@@ -1,0 +1,117 @@
+{
+  "version": "2025-11-03.v1",
+  "snippets": [
+    {
+      "id": "p535-ordinary-necessary",
+      "title": "IRS Pub 535 — Business Expenses",
+      "section": "Ordinary and necessary expenses",
+      "url": "https://www.irs.gov/publications/p535",
+      "tags": ["general", "ordinary", "necessary", "schedule-c"],
+      "text": "A business expense is deductible if it is both ordinary (common and accepted in your trade or business) and necessary (helpful and appropriate for your business). Personal, living, or family expenses are not deductible."
+    },
+    {
+      "id": "p535-advertising",
+      "title": "IRS Pub 535 — Business Expenses",
+      "section": "Advertising",
+      "url": "https://www.irs.gov/publications/p535",
+      "tags": ["advertising", "marketing", "website", "mailers", "promotions", "schedule-c", "line-8"],
+      "text": "You can generally deduct ordinary and necessary expenses of advertising and marketing your business, including digital ads, print, and promotional materials."
+    },
+    {
+      "id": "schc-line8",
+      "title": "Schedule C Instructions",
+      "section": "Part II — Line 8 (Advertising)",
+      "url": "https://www.irs.gov/instructions/i1040sc",
+      "tags": ["advertising", "marketing", "schedule-c", "line-8"],
+      "text": "Enter ordinary and necessary expenses for advertising and promotion of your business on line 8."
+    },
+    {
+      "id": "p463-meals-50",
+      "title": "IRS Pub 463 — Travel, Gift, and Car Expenses",
+      "section": "Meals — 50% limit",
+      "url": "https://www.irs.gov/publications/p463",
+      "tags": ["meals", "food", "50percent", "substantiation", "schedule-c", "line-24b"],
+      "text": "You can generally deduct 50% of business meal costs if the expense is not lavish or extravagant, the taxpayer (or an employee) is present, and the meals are directly related to conducting business. Keep records of who, when, where, and business purpose."
+    },
+    {
+      "id": "schc-line24b",
+      "title": "Schedule C Instructions",
+      "section": "Part II — Line 24b (Meals)",
+      "url": "https://www.irs.gov/instructions/i1040sc",
+      "tags": ["meals", "schedule-c", "line-24b"],
+      "text": "Enter the deductible portion of business meals (generally 50%) on line 24b."
+    },
+    {
+      "id": "p463-travel-tax-home",
+      "title": "IRS Pub 463 — Travel, Gift, and Car Expenses",
+      "section": "Travel — tax home and overnight rule",
+      "url": "https://www.irs.gov/publications/p463",
+      "tags": ["travel", "lodging", "transportation", "tax home", "overnight", "schedule-c"],
+      "text": "Travel expenses are deductible when you are away from your tax home longer than an ordinary workday and you need sleep or rest to meet the demands of your work. The trip must be primarily business-related."
+    },
+    {
+      "id": "p334-travel",
+      "title": "IRS Pub 334 — Tax Guide for Small Business",
+      "section": "Business travel overview",
+      "url": "https://www.irs.gov/publications/p334",
+      "tags": ["travel", "lodging", "transportation", "schedule-c"],
+      "text": "Deduct ordinary and necessary travel costs for business trips away from your tax home. Keep receipts and records of dates, locations, and business purpose."
+    },
+    {
+      "id": "p463-car-mileage-actual",
+      "title": "IRS Pub 463 — Travel, Gift, and Car Expenses",
+      "section": "Car expenses — standard mileage vs. actual",
+      "url": "https://www.irs.gov/publications/p463",
+      "tags": ["car_truck", "vehicle", "mileage", "actual", "commuting", "schedule-c", "line-9"],
+      "text": "For business vehicle use, you can choose the standard mileage rate or actual expenses; keep contemporaneous records of business miles. Commuting from home to a regular workplace is not deductible."
+    },
+    {
+      "id": "schc-line9",
+      "title": "Schedule C Instructions",
+      "section": "Part II — Line 9 (Car and truck expenses)",
+      "url": "https://www.irs.gov/instructions/i1040sc",
+      "tags": ["car_truck", "vehicle", "mileage", "actual", "schedule-c", "line-9"],
+      "text": "Enter deductible car and truck expenses on line 9. If using actual expenses, keep records of fuel, maintenance, insurance, depreciation, etc. If using standard mileage, keep detailed mileage logs."
+    },
+    {
+      "id": "p463-gifts-25-limit",
+      "title": "IRS Pub 463 — Travel, Gift, and Car Expenses",
+      "section": "Gifts — $25 limit per recipient",
+      "url": "https://www.irs.gov/publications/p463",
+      "tags": ["gifts", "25limit", "client gifts", "schedule-c"],
+      "text": "You can deduct no more than $25 of business gifts you give directly or indirectly to any one person during the tax year. Keep records of date, recipient, cost, and business purpose."
+    },
+    {
+      "id": "p535-gifts",
+      "title": "IRS Pub 535 — Business Expenses",
+      "section": "Business gifts",
+      "url": "https://www.irs.gov/publications/p535",
+      "tags": ["gifts", "25limit", "schedule-c"],
+      "text": "Business gifts are deductible up to $25 per recipient per year. Exceptions and special circumstances are limited; see Pub 463 for details."
+    },
+    {
+      "id": "p587-home-office-simplified-ref",
+      "title": "IRS — Simplified Option for Home Office Deduction",
+      "section": "Simplified method",
+      "url": "https://www.irs.gov/newsroom/simplified-option-for-home-office-deduction",
+      "tags": ["home_office", "simplified", "exclusive_regular_use", "primary_place_of_business", "schedule-c", "line-30"],
+      "text": "If you use part of your home regularly and exclusively for business, you may compute the home office deduction using the simplified method at a prescribed rate per square foot, up to the allowable maximum. This avoids detailed actual-expense recordkeeping."
+    },
+    {
+      "id": "p587-home-office-eligibility",
+      "title": "IRS Pub 587 — Business Use of Your Home",
+      "section": "Exclusive and regular use; principal place of business",
+      "url": "https://www.irs.gov/publications/p587",
+      "tags": ["home_office", "exclusive_regular_use", "primary_place_of_business", "schedule-c", "line-30"],
+      "text": "To qualify for a home office deduction, the space must be used regularly and exclusively for business and be your principal place of business (or a place to meet clients). Mixed personal use generally disqualifies the area."
+    },
+    {
+      "id": "p17-overview",
+      "title": "IRS Pub 17 — Your Federal Income Tax",
+      "section": "Business vs. personal expenses",
+      "url": "https://www.irs.gov/publications/p17",
+      "tags": ["general", "personal_vs_business", "pub17"],
+      "text": "An expense must be for your business and not a personal expense to be deductible. Maintain records that clearly reflect the business nature and purpose of each expense."
+    }
+  ]
+}

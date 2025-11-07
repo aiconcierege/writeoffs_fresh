@@ -1,0 +1,19 @@
+# Node / Next
+node_modules
+.next
+out
+dist
+.cache
+.vercel
+
+# OS / IDE
+.DS_Store
+*.log
+
+# Local env / secrets
+.env.local
+.env.*
+!.env.example
+
+# Local backups
+backups/

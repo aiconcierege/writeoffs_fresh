@@ -1,0 +1,6 @@
+date,description,amount,type,category,memo
+2025-01-03,STARBUCKS #1234,-5.45,debit,,Coffee with client
+2025-01-07,UBER TRIP,-18.20,debit,Travel,
+2025-01-08,AMAZON MARKETPLACE,-27.99,debit,Supplies,Phone tripod
+2025-01-10,VENMO PAYMENT FROM @CLIENT,250.00,credit,Income,Consulting invoice 1002
+2025-01-14,SHELL OIL,-42.13,debit,Vehicle,Gas for client visits

@@ -1,0 +1,2 @@
+# run CI checks before pushing
+npm run ci-checks
