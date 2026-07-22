@@ -146,7 +146,7 @@ export default function BulkTable({
   }
   function onApproved(notes: string | null) {
     if (!approveTxId) return
-    setRows(prev => prev.map(r => (r.id === approveTxId ? { ...r, /* @ts-ignore */ needs_review: false, notes: notes ?? r.notes } : r)))
+    setRows(prev => prev.map(r => (r.id === approveTxId ? { ...r, needs_review: false, notes: notes ?? r.notes } : r)))
   }
 
   return (

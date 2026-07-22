@@ -5,18 +5,15 @@
  */
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 export default function WaitlistNotice() {
   const params = useSearchParams()
-  const [show, setShow] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
+  const requested = params.get('waitlist') === '1'
 
-  useEffect(() => {
-    if (params.get('waitlist') === '1') setShow(true)
-  }, [params])
-
-  if (!show) return null
+  if (!requested || dismissed) return null
 
   return (
     <div className="fixed inset-x-0 top-0 z-50">
@@ -26,7 +23,7 @@ export default function WaitlistNotice() {
             Signups are closed while we finish MVP. Join the waitlist and we’ll notify you for early access.
           </div>
           <button
-            onClick={() => setShow(false)}
+            onClick={() => setDismissed(true)}
             className="rounded-lg border px-2 py-1 text-sm"
             aria-label="Dismiss banner"
           >

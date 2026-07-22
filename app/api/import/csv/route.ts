@@ -20,14 +20,15 @@ function normalizeDate(input: string): string | null {
   // YYYY-MM-DD
   let m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(t);
   if (m) {
-    const [_, y, mo, d] = m;
+    const [, y, mo, d] = m;
     return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
 
   // MM/DD/YYYY
   m = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/.exec(t);
   if (m) {
-    let [_, mm, dd, yy] = m;
+    const [, mm, dd, rawYear] = m;
+    let yy = rawYear;
     if (yy.length === 2) yy = `20${yy}`;
     return `${yy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
   }
@@ -35,7 +36,8 @@ function normalizeDate(input: string): string | null {
   // DD.MM.YYYY
   m = /^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/.exec(t);
   if (m) {
-    let [_, dd, mm, yy] = m;
+    const [, dd, mm, rawYear] = m;
+    let yy = rawYear;
     if (yy.length === 2) yy = `20${yy}`;
     return `${yy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
   }

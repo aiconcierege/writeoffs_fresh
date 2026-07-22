@@ -1,9 +1,7 @@
-// eslint.config.mjs — ESLint 9 flat config using eslint-plugin-next
+import nextCoreWebVitals from 'eslint-config-next/core-web-vitals'
+import nextTypeScript from 'eslint-config-next/typescript'
 
-import nextPlugin from 'eslint-plugin-next';
-
-export default [
-  // Replace .eslintignore
+const config = [
   {
     ignores: [
       'node_modules/**',
@@ -11,9 +9,19 @@ export default [
       'coverage/**',
       'dist/**',
       'public/**/*.min.*',
+      'backups/**',
+      '**/*.disabled.*',
     ],
   },
+  ...nextCoreWebVitals,
+  ...nextTypeScript,
+  {
+    rules: {
+      // Existing prototype routes still contain broad integration payloads.
+      // Keep this debt visible without blocking unrelated correctness checks.
+      '@typescript-eslint/no-explicit-any': 'warn',
+    },
+  },
+]
 
-  // Use Next's "core-web-vitals" preset from the plugin
-  nextPlugin.configs['core-web-vitals'],
-];
+export default config

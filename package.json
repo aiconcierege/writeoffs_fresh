@@ -37,7 +37,6 @@
     "autoprefixer": "^10.4.20",
     "eslint": "^9.11.1",
     "eslint-config-next": "^16.0.1",
-    "eslint-plugin-next": "^0.0.0",
     "husky": "^9.1.7",
     "postcss": "^8.4.41",
     "postcss-selector-parser": "^6.0.13",
