@@ -16,28 +16,41 @@ export default async function ProfileSettingsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('vertical,business_name,owner_name,contact_email,phone,address_line1,address_line2,city,region,postal_code,country,theme,bank_connected')
-    .eq('id', user.id)
-    .maybeSingle()
+  const [{ data: profile }, { data: business }, { data: bankConnection }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('vertical,theme')
+      .eq('id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('businesses')
+      .select('name,owner_name,contact_email,phone,address_line1,address_line2,city,state,postal_code,country')
+      .eq('owner_user_id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('bank_connections')
+      .select('id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle(),
+  ])
 
   const initial: SettingsInitial = {
     vertical: (profile?.vertical ?? 'general') as SettingsInitial['vertical'],
-    business_name: profile?.business_name ?? '',
-    owner_name: profile?.owner_name ?? '',
-    contact_email: profile?.contact_email ?? (user.email ?? ''),
-    phone: profile?.phone ?? '',
-    address_line1: profile?.address_line1 ?? '',
-    address_line2: profile?.address_line2 ?? '',
-    city: profile?.city ?? '',
-    region: profile?.region ?? '',
-    postal_code: profile?.postal_code ?? '',
-    country: profile?.country ?? '',
+    business_name: business?.name ?? '',
+    owner_name: business?.owner_name ?? '',
+    contact_email: business?.contact_email ?? (user.email ?? ''),
+    phone: business?.phone ?? '',
+    address_line1: business?.address_line1 ?? '',
+    address_line2: business?.address_line2 ?? '',
+    city: business?.city ?? '',
+    region: business?.state ?? '',
+    postal_code: business?.postal_code ?? '',
+    country: business?.country ?? 'US',
     theme: (profile?.theme ?? 'system') as SettingsInitial['theme'],
   }
 
-  const bankConnected = Boolean(profile?.bank_connected)
+  const bankConnected = Boolean(bankConnection)
 
   return (
     <main className="min-h-screen bg-muted">

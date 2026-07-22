@@ -36,38 +36,72 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'invalid json' }, { status: 400 })
   }
 
-  // Whitelist allowed fields
-  const allowed: Record<string, unknown> = {}
-  const assign = (k: keyof Payload) => {
-    if (k in body) allowed[k] = (body as any)[k]
-  }
-  ;[
-    'vertical',
-    'business_name',
+  const profileUpdate: Record<string, unknown> = {}
+  if ('vertical' in body) profileUpdate.vertical = body.vertical
+  if ('theme' in body) profileUpdate.theme = body.theme
+
+  const businessUpdate: Record<string, unknown> = {}
+  const businessFields: Array<keyof Pick<
+    Payload,
+    | 'owner_name'
+    | 'contact_email'
+    | 'phone'
+    | 'address_line1'
+    | 'address_line2'
+    | 'city'
+    | 'postal_code'
+  >> = [
     'owner_name',
     'contact_email',
     'phone',
     'address_line1',
     'address_line2',
     'city',
-    'region',
     'postal_code',
-    'country',
-    'theme',
-  ].forEach(k => assign(k as keyof Payload))
+  ]
 
-  if (Object.keys(allowed).length === 0) {
+  if ('business_name' in body) businessUpdate.name = body.business_name
+  if ('region' in body) businessUpdate.state = body.region?.trim().toUpperCase() || null
+  if ('country' in body) businessUpdate.country = body.country?.trim().toUpperCase() || 'US'
+  for (const field of businessFields) {
+    if (field in body) businessUpdate[field] = body[field]
+  }
+
+  if (Object.keys(profileUpdate).length === 0 && Object.keys(businessUpdate).length === 0) {
     return NextResponse.json({ error: 'no fields to update' }, { status: 400 })
   }
 
-  // Persist
-  const { error } = await supabase
-    .from('profiles')
-    .update(allowed)
-    .eq('id', user.id)
+  if (businessUpdate.country && businessUpdate.country !== 'US') {
+    return NextResponse.json({ error: 'only US businesses are supported' }, { status: 400 })
+  }
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 })
+  if (businessUpdate.state && !/^[A-Z]{2}$/.test(String(businessUpdate.state))) {
+    return NextResponse.json({ error: 'state must be a two-letter US code' }, { status: 400 })
+  }
+
+  if (Object.keys(profileUpdate).length > 0) {
+    const { error } = await supabase
+      .from('profiles')
+      .update(profileUpdate)
+      .eq('id', user.id)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+  }
+
+  if (Object.keys(businessUpdate).length > 0) {
+    const { error, count } = await supabase
+      .from('businesses')
+      .update(businessUpdate, { count: 'exact' })
+      .eq('owner_user_id', user.id)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+    if (count !== 1) {
+      return NextResponse.json({ error: 'business profile is unavailable' }, { status: 409 })
+    }
   }
 
   return NextResponse.json({ ok: true })
