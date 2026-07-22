@@ -10,8 +10,12 @@ let _dispatcher: Agent | null = null;
 export function tellerDispatcher() {
   if (_dispatcher) return _dispatcher;
 
-  const certPath = process.env.TELLER_CLIENT_CERT_PATH || "./app/keys/certificate.pem";
-  const keyPath  = process.env.TELLER_CLIENT_KEY_PATH  || "./app/keys/teller_private.pem";
+  const certPath = process.env.TELLER_CLIENT_CERT_PATH;
+  const keyPath = process.env.TELLER_CLIENT_KEY_PATH;
+
+  if (!certPath || !keyPath) {
+    throw new Error("teller_deprecated_not_configured");
+  }
 
   const certAbs = path.resolve(certPath);
   const keyAbs  = path.resolve(keyPath);
