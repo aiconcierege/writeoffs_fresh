@@ -1,5 +1,9 @@
-import nextCoreWebVitals from 'eslint-config-next/core-web-vitals'
-import nextTypeScript from 'eslint-config-next/typescript'
+import { FlatCompat } from '@eslint/eslintrc'
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const currentDirectory = dirname(fileURLToPath(import.meta.url))
+const compat = new FlatCompat({ baseDirectory: currentDirectory })
 
 const config = [
   {
@@ -8,13 +12,13 @@ const config = [
       '.next/**',
       'coverage/**',
       'dist/**',
+      'next-env.d.ts',
       'public/**/*.min.*',
       'backups/**',
       '**/*.disabled.*',
     ],
   },
-  ...nextCoreWebVitals,
-  ...nextTypeScript,
+  ...compat.extends('next/core-web-vitals', 'next/typescript'),
   {
     rules: {
       // Existing prototype routes still contain broad integration payloads.

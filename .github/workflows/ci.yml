@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_ENABLE_SIGNUP: "false"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Reject committed private keys
+        run: |
+          if git ls-files | grep -E '\.(key|pem|p12|pfx)$'; then
+            echo "Private key or certificate file is tracked by Git."
+            exit 1
+          fi
+          if git grep -Il -E 'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY'; then
+            echo "Private key material is tracked by Git."
+            exit 1
+          fi
+
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck -- --incremental false
+      - run: npm run lint
+      - run: npm test -- --run
+      - run: npm run build
