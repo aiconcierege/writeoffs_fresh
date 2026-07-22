@@ -1,6 +1,10 @@
 // app/api/import/csv/route.ts
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import {
+  getAuthenticatedContext,
+  unauthorizedResponse,
+} from "../../../lib/auth/require-user";
 
 type Mapping = { date: string | null; description: string | null; amount: string | null };
 type Body = {
@@ -67,12 +71,11 @@ function sha1(s: string): string {
   return crypto.createHash("sha1").update(s).digest("hex");
 }
 
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-
 export async function POST(req: Request) {
   try {
+    const { supabase, user } = await getAuthenticatedContext();
+    if (!user) return unauthorizedResponse();
+
     const body = (await req.json()) as Body;
 
     if (!body?.rows?.length) {
@@ -114,6 +117,8 @@ export async function POST(req: Request) {
       const amount_cents = Math.round(amount * 100);
       const normalized_description = normalizeDescription(rawDesc);
       const source_account_id = "csv";
+      // Keep the legacy hash stable until the schema migration can replace the
+      // global unique index with a tenant-scoped constraint.
       const dedupe_hash = sha1(`${posted_at}|${amount_cents}|${normalized_description}|${source_account_id}`);
 
       if (seen.has(dedupe_hash)) continue;
@@ -121,6 +126,7 @@ export async function POST(req: Request) {
 
       // Do NOT include fiscal_year (generated column).
       prepared.push({
+        user_id: user.id,
         posted_at,
         amount_cents,
         currency: "USD",
@@ -132,43 +138,20 @@ export async function POST(req: Request) {
       });
     }
 
-    // Dry-run mode if env missing
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json(
-        {
-          ok: true,
-          mode: "dry-run",
-          imported: prepared.length,
-          skipped: body.rows.length - prepared.length,
-          errors,
-        },
-        { status: 200 }
-      );
-    }
+    const { data: inserted, error: insertError } = await supabase
+      .from("transactions")
+      .upsert(prepared, { onConflict: "dedupe_hash" })
+      .select("id");
 
-    // Insert via PostgREST
-    const resp = await fetch(`${SUPABASE_URL}/rest/v1/transactions?on_conflict=dedupe_hash`, {
-      method: "POST",
-      headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        "Content-Type": "application/json",
-        Prefer: "resolution=merge-duplicates,return=representation",
-      },
-      body: JSON.stringify(prepared),
-    });
-
-    const text = await resp.text();
-    if (!resp.ok) {
+    if (insertError) {
       return NextResponse.json(
-        { error: `Supabase insert failed (${resp.status})`, details: text.slice(0, 2000) },
+        { error: "Transaction import failed." },
         { status: 500 }
       );
     }
 
-    const inserted = text ? JSON.parse(text) : [];
     return NextResponse.json(
-      { ok: true, mode: "db", imported: inserted.length, errors },
+      { ok: true, mode: "db", imported: inserted?.length ?? 0, errors },
       { status: 200 }
     );
   } catch (e: any) {

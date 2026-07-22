@@ -1,6 +1,11 @@
 // app/api/teller/import/route.ts
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import {
+  getAuthenticatedContext,
+  unauthorizedResponse,
+} from "../../../lib/auth/require-user";
+import { getTellerAccessToken } from "../../../lib/teller";
 
 /**
  * POST /api/teller/import
@@ -15,10 +20,6 @@ import crypto from "crypto";
  *            source_account_id, currency="USD", dedupe_hash.
  * Upserts via on_conflict=dedupe_hash (requires ux_transactions_dedupe_hash unique index).
  */
-
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 // Teller REST base
 const TELLER_BASE = "https://api.teller.io";
@@ -41,16 +42,16 @@ function toISO(d: Date) {
 // ---------- route ----------
 export async function POST(req: Request) {
   try {
+    const { supabase, user } = await getAuthenticatedContext();
+    if (!user) return unauthorizedResponse();
+
     const body = await req.json().catch(() => ({}));
     const accountId = String(body.accountId || "");
-    const accessToken = body.accessToken ? String(body.accessToken) : "";
 
     if (!accountId) {
       return NextResponse.json({ error: "accountId is required" }, { status: 400 });
     }
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json({ error: "Server not configured for Supabase." }, { status: 500 });
-    }
+    const accessToken = await getTellerAccessToken();
 
     // Date range: default last 90 days
     const today = new Date();
@@ -59,26 +60,22 @@ export async function POST(req: Request) {
 
     // --- Fetch from Teller ---
     // Using Connect access token via Basic auth. (Cert mode not wired in this minimal route.)
-    const authHeader = accessToken ? "Basic " + Buffer.from(`${accessToken}:`).toString("base64") : "";
+    const authHeader = "Basic " + Buffer.from(`${accessToken}:`).toString("base64");
 
     const tellerUrl = `${TELLER_BASE}/accounts/${encodeURIComponent(
       accountId
     )}/transactions?from=${fromDate}&to=${toDate}`;
 
     const tResp = await fetch(tellerUrl, {
-      headers: accessToken ? { Authorization: authHeader } : undefined,
+      headers: { Authorization: authHeader },
       cache: "no-store",
     });
 
     if (!tResp.ok) {
-      const txt = await tResp.text().catch(() => "");
       return NextResponse.json(
         {
           error: `Teller fetch failed (${tResp.status})`,
-          details: txt.slice(0, 1000),
-          hint: accessToken
-            ? "Check accessToken and accountId (and that they match)."
-            : "No accessToken provided; this route expects a Teller Connect token.",
+          hint: "Reconnect the account if access has expired.",
         },
         { status: 502 }
       );
@@ -111,11 +108,14 @@ export async function POST(req: Request) {
       const normalized_description = normalizeDescription(raw_description);
       const source_account_id = accountId;
 
+      // Keep the legacy hash stable until the schema migration can replace the
+      // global unique index with a tenant-scoped constraint.
       const dedupe_hash = sha1(`${posted_at}|${amount_cents}|${normalized_description}|${source_account_id}`);
       if (seen.has(dedupe_hash)) continue;
       seen.add(dedupe_hash);
 
       prepared.push({
+        user_id: user.id,
         posted_at,
         amount_cents,
         currency: "USD",
@@ -134,32 +134,23 @@ export async function POST(req: Request) {
       );
     }
 
-    // Upsert to Supabase (on_conflict requires full unique index on dedupe_hash)
-    const sResp = await fetch(`${SUPABASE_URL}/rest/v1/transactions?on_conflict=dedupe_hash`, {
-      method: "POST",
-      headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        "Content-Type": "application/json",
-        Prefer: "resolution=merge-duplicates,return=representation",
-      },
-      body: JSON.stringify(prepared),
-    });
+    const { data: inserted, error: insertError } = await supabase
+      .from("transactions")
+      .upsert(prepared, { onConflict: "dedupe_hash" })
+      .select("id");
 
-    const text = await sResp.text();
-    if (!sResp.ok) {
+    if (insertError) {
       return NextResponse.json(
-        { error: `Supabase insert failed (${sResp.status})`, details: text.slice(0, 2000) },
+        { error: "Transaction import failed." },
         { status: 500 }
       );
     }
 
-    const inserted = text ? JSON.parse(text) : [];
     return NextResponse.json(
       {
         ok: true,
-        imported: inserted.length,
-        skipped: Math.max(0, prepared.length - inserted.length),
+        imported: inserted?.length ?? 0,
+        skipped: Math.max(0, prepared.length - (inserted?.length ?? 0)),
         range: { from: fromDate, to: toDate },
       },
       { status: 200 }
@@ -168,4 +159,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: e?.message || "Unexpected error." }, { status: 500 });
   }
 }
-

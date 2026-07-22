@@ -26,6 +26,7 @@ export async function GET(request: Request) {
   let query = supabase
     .from('transactions')
     .select('date,vendor,description,amount,category_key,pack')
+    .eq('user_id', user.id)
     .order('date', { ascending: true })
     .limit(50000)
 

@@ -1,49 +1,36 @@
 // app/api/transactions/export/route.ts
 import { NextResponse } from "next/server";
-
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+import {
+  getAuthenticatedContext,
+  unauthorizedResponse,
+} from "../../../lib/auth/require-user";
 
 // GET /api/transactions/export?year=2025 | year=all
 export async function GET(req: Request) {
   try {
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json(
-        { error: "Server is not configured for Supabase." },
-        { status: 500 }
-      );
-    }
+    const { supabase, user } = await getAuthenticatedContext();
+    if (!user) return unauthorizedResponse();
 
     const { searchParams } = new URL(req.url);
     const yearParam = (searchParams.get("year") || "").toLowerCase(); // "2025" | "all" | ""
-    const select = "posted_at,raw_description,amount_cents,source";
-
-    let url =
-      `${SUPABASE_URL}/rest/v1/transactions` +
-      `?select=${encodeURIComponent(select)}` +
-      `&order=posted_at.asc.nullsfirst`;
+    let query = supabase
+      .from("transactions")
+      .select("posted_at,raw_description,amount_cents,source")
+      .eq("user_id", user.id)
+      .order("posted_at", { ascending: true, nullsFirst: true });
 
     // Filter by date range if a specific year is requested
     if (yearParam && yearParam !== "all") {
       const y = Number(yearParam);
       if (!Number.isNaN(y)) {
-        url += `&posted_at=gte.${y}-01-01&posted_at=lte.${y}-12-31`;
+        query = query.gte("posted_at", `${y}-01-01`).lte("posted_at", `${y}-12-31`);
       }
     }
 
-    const resp = await fetch(url, {
-      headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      },
-      cache: "no-store",
-    });
-
-    if (!resp.ok) {
-      const txt = await resp.text().catch(() => "");
+    const { data, error } = await query;
+    if (error) {
       return NextResponse.json(
-        { error: `Supabase error ${resp.status}`, details: txt.slice(0, 1000) },
+        { error: "Could not export transactions." },
         { status: 500 }
       );
     }
@@ -53,7 +40,7 @@ export async function GET(req: Request) {
       raw_description: string | null;
       amount_cents: number | null;
       source: string | null;
-    }> = await resp.json();
+    }> = data ?? [];
 
     // Build CSV
     const header = ["date", "description", "amount", "source"];
