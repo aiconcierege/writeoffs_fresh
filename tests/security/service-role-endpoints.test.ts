@@ -30,6 +30,16 @@ describe('customer endpoint isolation', () => {
     expect(existsSync(join(root, 'app/api/debug/env/route.ts'))).toBe(false)
   })
 
+  it('blocks new Teller enrollments at both UI and API boundaries', () => {
+    const connectComponent = source('app/components/BankConnect.tsx')
+    const enrollRoute = source('app/api/teller/enroll/route.ts')
+
+    expect(connectComponent).toContain('disabled')
+    expect(connectComponent).not.toContain('cdn.teller.io')
+    expect(enrollRoute).toContain('status: 410')
+    expect(enrollRoute).not.toContain('.from("bank_connections").insert')
+  })
+
   it('does not use a service-role credential in customer API handlers', () => {
     const routes = [
       ...authenticatedRoutes,

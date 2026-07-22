@@ -55,7 +55,7 @@ export default async function SettingsPage() {
           <div className="rounded-2xl border p-5">
             <div className="text-sm text-neutral-600">Bank connections</div>
             <p className="mt-1 text-sm">
-              Securely connect your bank to auto-detect write-offs.
+              View existing bank connection information.
             </p>
             <Link
               href="/settings/banking"
@@ -64,7 +64,7 @@ export default async function SettingsPage() {
               Manage bank connections →
             </Link>
             <p className="mt-2 text-xs text-neutral-500">
-              Powered by Teller. You’ll return here after connecting.
+              New bank connections are temporarily unavailable.
             </p>
           </div>
         </div>
@@ -72,4 +72,3 @@ export default async function SettingsPage() {
     </main>
   );
 }
-

@@ -41,7 +41,8 @@ export default async function BankingSettings({ searchParams }: PageProps) {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Bank connections</h1>
         <p className="text-sm text-neutral-600">
-          Connect your bank to auto-detect write-offs and pull recent transactions securely.
+          Bank connections are temporarily unavailable while we update our banking infrastructure.
+          Existing imported transactions remain available.
         </p>
       </header>
 
@@ -60,8 +61,8 @@ export default async function BankingSettings({ searchParams }: PageProps) {
       {/* Always render Connect so you can relaunch the flow */}
       <div className="space-y-2">
         <BankConnect />
-        <p className="text-xs text-neutral-500">
-          You can reconnect or add another bank anytime.
+        <p id="bank-connect-status" className="text-xs text-neutral-500">
+          New connections and reconnections are currently disabled.
         </p>
       </div>
 
