@@ -37,7 +37,7 @@ export default async function ScheduleCSummary({
   // Fetch transactions with nested receipts(count)
   let query = supabase
     .from("transactions")
-    .select("amount, category_key, categories(label), receipts(count)")
+    .select("amount, category_key, categories(label), receipts:receipts!receipts_transaction_id_fkey(count)")
     .order("date", { ascending: true })
     .limit(50000)
 
