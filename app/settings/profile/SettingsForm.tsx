@@ -3,7 +3,7 @@
 import { useState } from 'react'
 
 export type SettingsInitial = {
-  vertical: 'general' | 'realtor' | 'driver' | 'creator'
+  vertical: 'general' | 'realtor'
   business_name: string
   owner_name: string
   contact_email: string
@@ -53,8 +53,8 @@ export default function SettingsForm({ initial }: { initial: SettingsInitial }) 
       {/* Pack */}
       <div className="mt-4">
         <label className="block text-sm font-medium">Industry pack</label>
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {(['general','realtor','driver','creator'] as const).map(p => (
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {(['general','realtor'] as const).map(p => (
             <button
               type="button"
               key={p}
@@ -63,7 +63,7 @@ export default function SettingsForm({ initial }: { initial: SettingsInitial }) 
                 form.vertical === p ? 'btn-primary text-white' : 'btn-secondary'
               }`}
             >
-              {p === 'realtor' ? 'Realtor' : p === 'driver' ? 'Drivers' : p === 'creator' ? 'Creator' : 'General'}
+              {p === 'realtor' ? 'Realtor' : 'General'}
             </button>
           ))}
         </div>

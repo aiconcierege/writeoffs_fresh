@@ -32,14 +32,20 @@ export async function POST(req: NextRequest) {
     if (!vertical || typeof vertical !== "string") {
       return NextResponse.json({ error: "Missing 'vertical'." }, { status: 400 })
     }
+    if (vertical !== "general" && vertical !== "realtor") {
+      return NextResponse.json({ error: "Unsupported industry pack." }, { status: 400 })
+    }
 
     // Update the user's profile vertical
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from("profiles")
-      .update({ vertical })
+      .update({ vertical }, { count: "exact" })
       .eq("id", user.id)
 
     if (error) throw error
+    if (count !== 1) {
+      return NextResponse.json({ error: "Profile is unavailable." }, { status: 409 })
+    }
 
     return NextResponse.json({ ok: true }, { status: 200 })
   } catch (e: any) {

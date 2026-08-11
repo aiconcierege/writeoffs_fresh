@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../utils/supabase/server'
 
 type Payload = {
-  vertical?: 'general' | 'realtor' | 'driver' | 'creator'
+  vertical?: 'general' | 'realtor'
   business_name?: string | null
   owner_name?: string | null
   contact_email?: string | null
@@ -37,7 +37,12 @@ export async function POST(req: Request) {
   }
 
   const profileUpdate: Record<string, unknown> = {}
-  if ('vertical' in body) profileUpdate.vertical = body.vertical
+  if ('vertical' in body) {
+    if (body.vertical !== 'general' && body.vertical !== 'realtor') {
+      return NextResponse.json({ error: 'unsupported industry pack' }, { status: 400 })
+    }
+    profileUpdate.vertical = body.vertical
+  }
   if ('theme' in body) profileUpdate.theme = body.theme
 
   const businessUpdate: Record<string, unknown> = {}
@@ -80,13 +85,16 @@ export async function POST(req: Request) {
   }
 
   if (Object.keys(profileUpdate).length > 0) {
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from('profiles')
-      .update(profileUpdate)
+      .update(profileUpdate, { count: 'exact' })
       .eq('id', user.id)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+    if (count !== 1) {
+      return NextResponse.json({ error: 'profile is unavailable' }, { status: 409 })
     }
   }
 
