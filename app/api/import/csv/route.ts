@@ -119,8 +119,7 @@ export async function POST(req: Request) {
       const amount_cents = Math.round(amount * 100);
       const normalized_description = normalizeDescription(rawDesc);
       const source_account_id = "csv";
-      // Keep the legacy hash stable until the schema migration can replace the
-      // global unique index with a tenant-scoped constraint.
+      // Keep the legacy hash stable; uniqueness is scoped by authenticated user.
       const dedupe_hash = sha1(`${posted_at}|${amount_cents}|${normalized_description}|${source_account_id}`);
 
       if (seen.has(dedupe_hash)) continue;
@@ -142,7 +141,7 @@ export async function POST(req: Request) {
 
     const { data: inserted, error: insertError } = await supabase
       .from("transactions")
-      .upsert(prepared, { onConflict: "dedupe_hash" })
+      .upsert(prepared, { onConflict: "user_id,dedupe_hash" })
       .select("id");
 
     if (insertError) {
