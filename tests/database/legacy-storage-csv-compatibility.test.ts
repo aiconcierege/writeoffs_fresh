@@ -15,6 +15,14 @@ const csvImporter = readFileSync(
   'utf8'
 )
 
+const csvDisplayBackfill = readFileSync(
+  join(
+    process.cwd(),
+    'supabase/migrations/20260811000200_backfill_csv_legacy_display_fields.sql'
+  ),
+  'utf8'
+)
+
 describe('legacy receipt storage compatibility', () => {
   it('creates a private receipts bucket', () => {
     expect(migration).toContain("values ('receipts', 'receipts', false)")
@@ -50,5 +58,34 @@ describe('legacy CSV tenant deduplication', () => {
     expect(csvImporter).not.toContain(
       '.upsert(prepared, { onConflict: "dedupe_hash" })'
     )
+  })
+})
+
+describe('legacy CSV display compatibility', () => {
+  it('dual-writes the fields consumed by existing Review and Dashboard screens', () => {
+    expect(csvImporter).toContain('date: posted_at')
+    expect(csvImporter).toContain(
+      'vendor: rawDesc || normalized_description || "Imported transaction"'
+    )
+    expect(csvImporter).toContain(
+      'description: rawDesc || normalized_description || null'
+    )
+    expect(csvImporter).toMatch(/\n\s+amount,\n/)
+
+    expect(csvImporter).toContain('posted_at,')
+    expect(csvImporter).toContain('amount_cents,')
+    expect(csvImporter).toContain('raw_description: rawDesc')
+    expect(csvImporter).toContain('normalized_description,')
+  })
+
+  it('backfills only missing legacy fields on CSV-imported rows', () => {
+    expect(csvDisplayBackfill).toContain("where source = 'csv'")
+    expect(csvDisplayBackfill).toContain('date = coalesce(date, posted_at)')
+    expect(csvDisplayBackfill).toContain('vendor = coalesce(')
+    expect(csvDisplayBackfill).toContain('description = coalesce(')
+    expect(csvDisplayBackfill).toContain(
+      'amount = coalesce(amount, amount_cents::numeric / 100)'
+    )
+    expect(csvDisplayBackfill).toMatch(/date is null[\s\S]+amount is null/)
   })
 })

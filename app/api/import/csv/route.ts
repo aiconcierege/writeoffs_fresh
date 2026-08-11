@@ -128,6 +128,10 @@ export async function POST(req: Request) {
       // Do NOT include fiscal_year (generated column).
       prepared.push({
         user_id: user.id,
+        date: posted_at,
+        vendor: rawDesc || normalized_description || "Imported transaction",
+        description: rawDesc || normalized_description || null,
+        amount,
         posted_at,
         amount_cents,
         currency: "USD",
