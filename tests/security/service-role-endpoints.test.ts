@@ -13,7 +13,6 @@ describe('customer endpoint isolation', () => {
     'app/api/transactions/list/route.ts',
     'app/api/transactions/export/route.ts',
     'app/api/import/csv/route.ts',
-    'app/api/teller/import/route.ts',
     'app/api/mileage/create/route.ts',
     'app/api/mileage/list/route.ts',
     'app/api/mileage/export/route.ts',
@@ -50,6 +49,17 @@ describe('customer endpoint isolation', () => {
     expect(existsSync(join(root, 'app/teller/accounts/page.tsx'))).toBe(false)
   })
 
+  it('does not expose retired Teller runtime files', () => {
+    for (const file of [
+      'app/api/teller/accounts/route.ts',
+      'app/api/teller/transactions/route.ts',
+      'app/api/teller/import/route.ts',
+      'app/lib/teller.ts',
+    ]) {
+      expect(existsSync(join(root, file)), file).toBe(false)
+    }
+  })
+
   it('keeps banking settings provider-neutral while connections are unavailable', () => {
     const bankingSettings = source('app/settings/banking/page.tsx')
     const profileSettings = source('app/settings/profile/page.tsx')
@@ -82,9 +92,8 @@ describe('customer endpoint isolation', () => {
     expect(source('app/api/export/csv/route.ts')).toContain(".eq('user_id', user.id)")
   })
 
-  it('assigns the authenticated user to imported compatibility transactions', () => {
+  it('assigns the authenticated user to CSV-imported compatibility transactions', () => {
     expect(source('app/api/import/csv/route.ts')).toContain('user_id: user.id')
-    expect(source('app/api/teller/import/route.ts')).toContain('user_id: user.id')
   })
 
   it('keeps mileage unavailable until ownership can be enforced', () => {
