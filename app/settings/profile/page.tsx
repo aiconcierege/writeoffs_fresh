@@ -16,7 +16,7 @@ export default async function ProfileSettingsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: profile }, { data: business }, { data: bankConnection }] = await Promise.all([
+  const [{ data: profile }, { data: business }] = await Promise.all([
     supabase
       .from('profiles')
       .select('vertical,theme')
@@ -26,12 +26,6 @@ export default async function ProfileSettingsPage() {
       .from('businesses')
       .select('name,owner_name,contact_email,phone,address_line1,address_line2,city,state,postal_code,country')
       .eq('owner_user_id', user.id)
-      .maybeSingle(),
-    supabase
-      .from('bank_connections')
-      .select('id')
-      .eq('user_id', user.id)
-      .limit(1)
       .maybeSingle(),
   ])
 
@@ -50,8 +44,6 @@ export default async function ProfileSettingsPage() {
     theme: (profile?.theme ?? 'system') as SettingsInitial['theme'],
   }
 
-  const bankConnected = Boolean(bankConnection)
-
   return (
     <main className="min-h-screen bg-muted">
       <section className="mx-auto max-w-3xl px-6 py-10">
@@ -65,7 +57,7 @@ export default async function ProfileSettingsPage() {
             <SettingsForm initial={initial} />
           </div>
           <div className="card p-5">
-            <BankConnectionsCard connected={bankConnected} />
+            <BankConnectionsCard />
           </div>
         </div>
       </section>
@@ -73,7 +65,7 @@ export default async function ProfileSettingsPage() {
   )
 }
 
-function BankConnectionsCard({ connected }: { connected: boolean }) {
+function BankConnectionsCard() {
   return (
     <div>
       <div className="text-base font-semibold">Bank connections</div>
@@ -87,7 +79,7 @@ function BankConnectionsCard({ connected }: { connected: boolean }) {
           className="btn btn-secondary disabled:opacity-60"
           title="Coming soon"
         >
-          {connected ? 'Connected (coming soon)' : 'Connect bank (coming soon)'}
+          Connect bank (coming soon)
         </button>
       </div>
     </div>

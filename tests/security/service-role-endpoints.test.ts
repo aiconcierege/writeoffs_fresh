@@ -50,6 +50,20 @@ describe('customer endpoint isolation', () => {
     expect(existsSync(join(root, 'app/teller/accounts/page.tsx'))).toBe(false)
   })
 
+  it('keeps banking settings provider-neutral while connections are unavailable', () => {
+    const bankingSettings = source('app/settings/banking/page.tsx')
+    const profileSettings = source('app/settings/profile/page.tsx')
+
+    expect(bankingSettings).toContain('BankConnect')
+    expect(bankingSettings).not.toContain('BankAccounts')
+    expect(bankingSettings).not.toContain('bank_connections')
+    expect(bankingSettings).not.toContain('provider", "teller')
+    expect(bankingSettings).not.toContain('access_token')
+    expect(profileSettings).not.toContain('bank_connections')
+    expect(profileSettings).not.toContain('Connected (coming soon)')
+    expect(existsSync(join(root, 'app/components/BankAccounts.tsx'))).toBe(false)
+  })
+
   it('does not use a service-role credential in customer API handlers', () => {
     const routes = [
       ...authenticatedRoutes,
