@@ -1,9 +1,0 @@
-// app/legal/layout.tsx
-export default function LegalLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  // Inherit the root header/footer; DO NOT render another header here.
-  return <>{children}</>;
-}
