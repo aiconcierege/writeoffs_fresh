@@ -30,6 +30,10 @@ describe('customer endpoint isolation', () => {
     expect(existsSync(join(root, 'app/api/debug/env/route.ts'))).toBe(false)
   })
 
+  it('does not expose the retired Teller token-exchange endpoint', () => {
+    expect(existsSync(join(root, 'app/api/teller/token/route.ts'))).toBe(false)
+  })
+
   it('blocks new Teller enrollments at both UI and API boundaries', () => {
     const connectComponent = source('app/components/BankConnect.tsx')
     const enrollRoute = source('app/api/teller/enroll/route.ts')
