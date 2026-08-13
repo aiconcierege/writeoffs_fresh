@@ -46,6 +46,10 @@ describe('customer endpoint isolation', () => {
     expect(existsSync(join(root, 'app/api/teller/webhook/route.ts'))).toBe(false)
   })
 
+  it('does not expose the retired Teller accounts diagnostic page', () => {
+    expect(existsSync(join(root, 'app/teller/accounts/page.tsx'))).toBe(false)
+  })
+
   it('does not use a service-role credential in customer API handlers', () => {
     const routes = [
       ...authenticatedRoutes,
