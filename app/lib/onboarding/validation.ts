@@ -46,6 +46,18 @@ export type ValidationResult =
   | { ok: true; step: OnboardingBusinessStep; update: OnboardingBusinessUpdate }
   | { ok: false; error: string }
 
+export type OnboardingVehicleUpdate = {
+  display_name: string
+  vehicle_year: number | null
+  make: string | null
+  model: string | null
+  is_mixed_use: boolean
+}
+
+export type VehicleValidationResult =
+  | { ok: true; update: OnboardingVehicleUpdate }
+  | { ok: false; error: string }
+
 const BUSINESS_NAME_MAX_LENGTH = 200
 const BUSINESS_DESCRIPTION_MAX_LENGTH = 2000
 const HOME_OFFICE_SQUARE_FEET_MAX = 10000
@@ -67,6 +79,75 @@ function hasOnlyKeys(value: Record<string, unknown>, allowed: readonly string[])
 
 function invalid(error: string): ValidationResult {
   return { ok: false, error }
+}
+
+function invalidVehicle(error: string): VehicleValidationResult {
+  return { ok: false, error }
+}
+
+function optionalTrimmedText(value: unknown, field: string) {
+  if (value === undefined || value === null) {
+    return { ok: true as const, value: null }
+  }
+  if (typeof value !== 'string') {
+    return { ok: false as const, error: `${field} must be a string or null` }
+  }
+  return { ok: true as const, value: value.trim() || null }
+}
+
+export function validateOnboardingVehicle(
+  input: unknown
+): VehicleValidationResult {
+  if (
+    !isRecord(input) ||
+    !hasOnlyKeys(input, [
+      'display_name',
+      'vehicle_year',
+      'make',
+      'model',
+      'is_mixed_use',
+    ])
+  ) {
+    return invalidVehicle('vehicle contains unsupported fields')
+  }
+
+  if (typeof input.display_name !== 'string') {
+    return invalidVehicle('display_name is required')
+  }
+  const displayName = input.display_name.trim()
+  if (!displayName) return invalidVehicle('display_name is required')
+  if (displayName.length > 120) {
+    return invalidVehicle('display_name must be 120 characters or fewer')
+  }
+
+  const year = input.vehicle_year
+  if (
+    year !== undefined &&
+    year !== null &&
+    (!Number.isInteger(year) || Number(year) < 1900 || Number(year) > 2100)
+  ) {
+    return invalidVehicle('vehicle_year must be a whole number from 1900 to 2100')
+  }
+
+  const make = optionalTrimmedText(input.make, 'make')
+  if (!make.ok) return invalidVehicle(make.error)
+  const model = optionalTrimmedText(input.model, 'model')
+  if (!model.ok) return invalidVehicle(model.error)
+
+  if (typeof input.is_mixed_use !== 'boolean') {
+    return invalidVehicle('is_mixed_use is required')
+  }
+
+  return {
+    ok: true,
+    update: {
+      display_name: displayName,
+      vehicle_year: year === undefined || year === null ? null : Number(year),
+      make: make.value,
+      model: model.value,
+      is_mixed_use: input.is_mixed_use,
+    },
+  }
 }
 
 function validateBusiness(data: Record<string, unknown>): ValidationResult {
