@@ -12,10 +12,10 @@ describe('v2 onboarding UI contract', () => {
     for (const copy of [
       'First, tell us about your business.',
       'How is your business organized?',
-      'When did this business start?',
+      'When did your business start?',
       'Do you use part of your home for your business?',
       'Do you use a vehicle for business?',
-      'How many financial accounts do you expect WriteOffs to work with?',
+      'How many bank accounts and credit cards will you be adding to WriteOffs for bookkeeping?',
       'How would you like to get started?',
       'Here’s the plan that best fits your answers.',
       'Review your setup.',
@@ -52,7 +52,52 @@ describe('v2 onboarding UI contract', () => {
     expect(flow).not.toContain('Do you have a qualifying home office?')
     expect(flow).toContain('regularly and exclusively for business')
     expect(flow).toContain('simplified method')
+    expect(flow).toContain('Does your home workspace meet this description?')
     expect(flow).not.toMatch(/commut/i)
+  })
+
+  it('restores scroll position and accessible heading focus whenever the step changes', () => {
+    expect(flow).toContain("contentRef.current?.scrollIntoView")
+    expect(flow).toContain("block: 'start'")
+    expect(flow).toContain("headingRef.current?.focus({ preventScroll: true })")
+    expect(flow).toContain("'(prefers-reduced-motion: reduce)'")
+    expect(flow).toContain('}, [step])')
+    expect(flow).toContain('if (next) setStep(next)')
+    expect(flow).toContain('if (previous) setStep(previous)')
+    expect(flow).toContain('editStep={setStep}')
+  })
+
+  it('uses the revised start, vehicle, and bank/card language', () => {
+    expect(flow).toContain('Date business started (Month/Year)')
+    expect(flow).toContain('Add another vehicle')
+    expect(flow).not.toContain('Add a second vehicle')
+    expect(flow).toContain('Number of accounts and cards')
+    expect(flow).toContain('Are any of these accounts or cards also used for personal expenses?')
+    expect(flow).toContain('No, they’re primarily for business')
+    expect(flow).toContain('Yes, at least one is mixed business and personal')
+    expect(flow).toContain("'primarily_business'")
+    expect(flow).toContain("'mixed_use'")
+  })
+
+  it('uses the revised starting choices without launching their workflows', () => {
+    expect(flow).toContain('Start with receipts')
+    expect(flow).toContain('Take photos or upload receipts and let WriteOffs start organizing your expenses.')
+    expect(flow).toContain('Connect my accounts')
+    expect(flow).toContain('Let WriteOffs use activity from your accounts to help organize your business finances.')
+    expect(flow).toContain('Upload existing statements to bring in past activity.')
+    expect(flow).toContain('You can add or change these later.')
+    expect(flow).not.toContain('Starting workflow')
+    expect(flow).not.toMatch(/\/api\/(plaid|stripe|upload|receipts?)/i)
+  })
+
+  it('uses plain-language Review labels and summaries', () => {
+    expect(flow).toContain("['Date business started'")
+    expect(flow).toContain("['Bank accounts & credit cards'")
+    expect(flow).toContain("['How you’ll get started'")
+    expect(flow).toContain('primarily used for business')
+    expect(flow).toContain('at least one is mixed business and personal')
+    expect(flow).toContain('business & personal use')
+    expect(flow).toContain('business use only')
   })
 
   it('supports incremental saves, retry-safe errors, progress, and returned navigation', () => {

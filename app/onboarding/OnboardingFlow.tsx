@@ -79,6 +79,7 @@ export default function OnboardingFlow({
   const [step, setStep] = useState<OnboardingUiStep>(firstStep)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const contentRef = useRef<HTMLElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
 
   const stepIndex = ONBOARDING_UI_STEPS.indexOf(step)
@@ -95,7 +96,17 @@ export default function OnboardingFlow({
   }, [business.expected_financial_account_count, business.onboarding_start_method])
 
   useEffect(() => {
-    headingRef.current?.focus()
+    const frame = window.requestAnimationFrame(() => {
+      const reduceMotion = window.matchMedia(
+        '(prefers-reduced-motion: reduce)'
+      ).matches
+      contentRef.current?.scrollIntoView({
+        behavior: reduceMotion ? 'auto' : 'smooth',
+        block: 'start',
+      })
+      headingRef.current?.focus({ preventScroll: true })
+    })
+    return () => window.cancelAnimationFrame(frame)
   }, [step])
 
   function updateBusiness<K extends keyof OnboardingBusinessData>(
@@ -304,7 +315,7 @@ export default function OnboardingFlow({
   }
 
   return (
-    <section className="mx-auto max-w-2xl py-6 sm:py-10">
+    <section ref={contentRef} className="mx-auto max-w-2xl scroll-mt-24 py-6 sm:py-10">
       <div className="mb-5 px-1">
         <div className="flex items-center justify-between text-sm">
           <span className="font-semibold text-[#243186]">
@@ -517,10 +528,10 @@ function StepContent(props: StepContentProps) {
     const currentMonth = new Date().toISOString().slice(0, 7)
     return (
       <div>
-        <h2 ref={headingRef} tabIndex={-1} className={headingClass}>When did this business start?</h2>
+        <h2 ref={headingRef} tabIndex={-1} className={headingClass}>When did your business start?</h2>
         <p className="mt-3 text-sm text-slate-600">This helps WriteOffs understand which months belong to this business.</p>
         <div className="mt-7 max-w-sm">
-          <Field label="Business start month">
+          <Field label="Date business started (Month/Year)">
             <input
               type="month"
               required
@@ -544,7 +555,7 @@ function StepContent(props: StepContentProps) {
         <p className="mt-3 text-sm leading-6 text-slate-600">
           The IRS generally requires the space to be used regularly and exclusively for business. WriteOffs uses the simplified method, based on the business-use square footage you provide. Your tax professional can confirm eligibility.
         </p>
-        <ChoiceGroup legend="Do you use part of your home regularly and exclusively for this business?">
+        <ChoiceGroup legend="Does your home workspace meet this description?">
           <Choice name="home_office" checked={business.has_qualifying_home_office === true} onChange={() => props.updateBusiness('has_qualifying_home_office', true)} label="Yes" />
           <Choice name="home_office" checked={business.has_qualifying_home_office === false} onChange={() => { props.updateBusiness('has_qualifying_home_office', false); props.updateBusiness('home_office_square_feet', null) }} label="No" />
         </ChoiceGroup>
@@ -574,7 +585,7 @@ function StepContent(props: StepContentProps) {
               <VehicleEditor key={vehicle.slot} vehicle={vehicle} update={(patch) => props.updateVehicle(vehicle.slot, patch)} removable={vehicle.slot === 2} remove={props.removeSecondVehicle} />
             ))}
             {!activeVehicles.some((vehicle) => vehicle.slot === 2) && (
-              <button type="button" onClick={props.addSecondVehicle} className="btn btn-secondary min-h-11">Add a second vehicle</button>
+              <button type="button" onClick={props.addSecondVehicle} className="btn btn-secondary min-h-11">Add another vehicle</button>
             )}
           </div>
         )}
@@ -585,19 +596,19 @@ function StepContent(props: StepContentProps) {
   if (step === 'accounts') {
     return (
       <div>
-        <h2 ref={headingRef} tabIndex={-1} className={headingClass}>How many financial accounts do you expect WriteOffs to work with?</h2>
+        <h2 ref={headingRef} tabIndex={-1} className={headingClass}>How many bank accounts and credit cards will you be adding to WriteOffs for bookkeeping?</h2>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          Most users start with one checking account and one credit card. Personal or mixed-use accounts are allowed—you do not need a business-branded account.
+          We recommend using one checking account and one credit card primarily for business whenever possible. Personal and mixed-use accounts are okay too—we’ll help you sort the business transactions during your weekly review.
         </p>
-        <ChoiceGroup legend="Expected number of accounts" columns>
+        <ChoiceGroup legend="Number of accounts and cards" columns>
           {Array.from({ length: 7 }, (_, count) => (
             <Choice key={count} name="account_count" checked={business.expected_financial_account_count === count} onChange={() => { props.updateBusiness('expected_financial_account_count', count); if (count === 0) props.updateBusiness('expected_financial_account_use', null) }} label={String(count)} compact />
           ))}
         </ChoiceGroup>
         {Number(business.expected_financial_account_count) > 0 ? (
-          <ChoiceGroup legend="How are these accounts used overall?">
-            <Choice name="account_use" checked={business.expected_financial_account_use === 'primarily_business'} onChange={() => props.updateBusiness('expected_financial_account_use', 'primarily_business')} label="Primarily for business" />
-            <Choice name="account_use" checked={business.expected_financial_account_use === 'mixed_use'} onChange={() => props.updateBusiness('expected_financial_account_use', 'mixed_use')} label="Mixed business and personal" description="Mixed-use accounts work with WriteOffs, but they may create more items for your weekly review. If even one account is regularly mixed-use, choose this option." />
+          <ChoiceGroup legend="Are any of these accounts or cards also used for personal expenses?">
+            <Choice name="account_use" checked={business.expected_financial_account_use === 'primarily_business'} onChange={() => props.updateBusiness('expected_financial_account_use', 'primarily_business')} label="No, they’re primarily for business" />
+            <Choice name="account_use" checked={business.expected_financial_account_use === 'mixed_use'} onChange={() => props.updateBusiness('expected_financial_account_use', 'mixed_use')} label="Yes, at least one is mixed business and personal" />
           </ChoiceGroup>
         ) : business.expected_financial_account_count === 0 ? (
           <InfoBox>That’s okay. You can use WriteOffs for receipts, manual expenses, and mileage without connecting an account.</InfoBox>
@@ -610,12 +621,12 @@ function StepContent(props: StepContentProps) {
     return (
       <div>
         <h2 ref={headingRef} tabIndex={-1} className={headingClass}>How would you like to get started?</h2>
-        <ChoiceGroup legend="Starting workflow">
-          <Choice name="start_method" checked={business.onboarding_start_method === 'receipts'} onChange={() => props.updateBusiness('onboarding_start_method', 'receipts')} label="Start with receipts" description="Take photos, upload files, or enter expenses manually. Financial connections are not required for receipt tracking." />
-          <Choice name="start_method" checked={business.onboarding_start_method === 'connected_financial_accounts'} onChange={() => props.updateBusiness('onboarding_start_method', 'connected_financial_accounts')} label="Connect financial accounts" description="Use account activity to help organize expenses and income. This saves your preference only; no account will be connected during onboarding." />
-          <Choice name="start_method" checked={business.onboarding_start_method === 'statement_uploads'} onChange={() => props.updateBusiness('onboarding_start_method', 'statement_uploads')} label="Upload statements" description="Use statements to bring in account activity and fill historical gaps. This saves your preference only." />
+        <ChoiceGroup legend="Choose how to get started" visuallyHiddenLegend>
+          <Choice name="start_method" checked={business.onboarding_start_method === 'receipts'} onChange={() => props.updateBusiness('onboarding_start_method', 'receipts')} label="Start with receipts" description="Take photos or upload receipts and let WriteOffs start organizing your expenses." />
+          <Choice name="start_method" checked={business.onboarding_start_method === 'connected_financial_accounts'} onChange={() => props.updateBusiness('onboarding_start_method', 'connected_financial_accounts')} label="Connect my accounts" description="Let WriteOffs use activity from your accounts to help organize your business finances." />
+          <Choice name="start_method" checked={business.onboarding_start_method === 'statement_uploads'} onChange={() => props.updateBusiness('onboarding_start_method', 'statement_uploads')} label="Upload statements" description="Upload existing statements to bring in past activity." />
         </ChoiceGroup>
-        <p className="mt-5 text-sm text-slate-600">You can add other sources later. Choosing receipts does not require a connected account.</p>
+        <p className="mt-5 text-sm text-slate-600">You can add or change these later.</p>
       </div>
     )
   }
@@ -684,11 +695,11 @@ function ReviewStep({ headingRef, business, vehicles, recommendation, editStep }
   const rows: Array<[string, string, OnboardingUiStep]> = [
     ['Business', `${business.name || 'No business name'} — ${business.business_description}`, 'business'],
     ['Organization', `${labelFor(LEGAL_LABELS, business.legal_structure)}; ${labelFor(FEDERAL_LABELS, business.federal_tax_reporting_type)}`, 'organization'],
-    ['Business start', formatMonth(business.business_start_month), 'start_date'],
+    ['Date business started', formatMonth(business.business_start_month), 'start_date'],
     ['Home office', business.has_qualifying_home_office ? `Yes — ${business.home_office_square_feet} sq. ft.` : 'No', 'home_office'],
-    ['Vehicles', business.uses_vehicle_for_business ? vehicles.map((vehicle) => vehicle.display_name).join(', ') : 'No business vehicle', 'vehicles'],
-    ['Financial accounts', `${business.expected_financial_account_count} expected${business.expected_financial_account_use ? ` — ${business.expected_financial_account_use === 'mixed_use' ? 'mixed use' : 'primarily business'}` : ''}`, 'accounts'],
-    ['Starting workflow', business.onboarding_start_method === 'receipts' ? 'Receipts' : business.onboarding_start_method === 'connected_financial_accounts' ? 'Connect financial accounts' : 'Upload statements', 'starting_method'],
+    ['Vehicles', business.uses_vehicle_for_business ? vehicles.map(formatVehicle).join('; ') : 'No business vehicle', 'vehicles'],
+    ['Bank accounts & credit cards', formatAccountSummary(business), 'accounts'],
+    ['How you’ll get started', business.onboarding_start_method === 'receipts' ? 'Start with receipts' : business.onboarding_start_method === 'connected_financial_accounts' ? 'Connect my accounts' : 'Upload statements', 'starting_method'],
     ['Plan recommendation', recommendation?.name ?? 'Unavailable', 'recommendation'],
   ]
   return (
@@ -712,8 +723,8 @@ function Field({ label, hint, description, children }: { label: string; hint?: s
   return <label className="block"><span className="text-sm font-semibold text-slate-800">{label}</span>{hint && <span className="ml-2 text-xs font-normal text-slate-500">{hint}</span>}{description && <span className="mt-1 block text-sm leading-5 text-slate-600">{description}</span>}<span className="mt-2 block">{children}</span></label>
 }
 
-function ChoiceGroup({ legend, columns = false, children }: { legend: string; columns?: boolean; children: React.ReactNode }) {
-  return <fieldset className="mt-7"><legend className="text-sm font-semibold text-slate-800">{legend}</legend><div className={`mt-3 grid gap-3 ${columns ? 'grid-cols-4 sm:grid-cols-7' : 'sm:grid-cols-2'}`}>{children}</div></fieldset>
+function ChoiceGroup({ legend, columns = false, visuallyHiddenLegend = false, children }: { legend: string; columns?: boolean; visuallyHiddenLegend?: boolean; children: React.ReactNode }) {
+  return <fieldset className="mt-7"><legend className={visuallyHiddenLegend ? 'sr-only' : 'text-sm font-semibold text-slate-800'}>{legend}</legend><div className={`grid gap-3 ${visuallyHiddenLegend ? '' : 'mt-3'} ${columns ? 'grid-cols-4 sm:grid-cols-7' : 'sm:grid-cols-2'}`}>{children}</div></fieldset>
 }
 
 function Choice({ name, checked, onChange, label, description, compact = false }: { name: string; checked: boolean; onChange: () => void; label: string; description?: string; compact?: boolean }) {
@@ -752,4 +763,34 @@ function formatMonth(value: string | null) {
   if (!value) return 'Not answered'
   const [year, month] = value.split('-').map(Number)
   return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(year, month - 1, 1)))
+}
+
+function formatVehicle(vehicle: OnboardingVehicleData) {
+  const identification = [
+    vehicle.vehicle_year ? String(vehicle.vehicle_year) : null,
+    vehicle.make?.trim() || null,
+    vehicle.model?.trim() || null,
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const usage =
+    vehicle.is_mixed_use === true
+      ? 'business & personal use'
+      : vehicle.is_mixed_use === false
+        ? 'business use only'
+        : null
+  return [vehicle.display_name, identification || null, usage]
+    .filter(Boolean)
+    .join(' — ')
+}
+
+function formatAccountSummary(business: OnboardingBusinessData) {
+  const count = business.expected_financial_account_count ?? 0
+  const noun = count === 1 ? 'account/card' : 'accounts/cards'
+  if (count === 0) return '0 accounts/cards — using WriteOffs without connected accounts'
+  const use =
+    business.expected_financial_account_use === 'mixed_use'
+      ? 'at least one is mixed business and personal'
+      : 'primarily used for business'
+  return `${count} ${noun} — ${use}`
 }
