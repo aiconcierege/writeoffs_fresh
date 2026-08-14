@@ -58,6 +58,10 @@ export type VehicleValidationResult =
   | { ok: true; update: OnboardingVehicleUpdate }
   | { ok: false; error: string }
 
+export type CompleteOnboardingValidationResult =
+  | { ok: true }
+  | { ok: false; errors: string[] }
+
 const BUSINESS_NAME_MAX_LENGTH = 200
 const BUSINESS_DESCRIPTION_MAX_LENGTH = 2000
 const HOME_OFFICE_SQUARE_FEET_MAX = 10000
@@ -366,4 +370,125 @@ export function validateOnboardingBusinessPatch(
     case 'starting_method':
       return validateStartingMethod(input.data)
   }
+}
+
+export function validateCompleteOnboarding(
+  business: unknown,
+  activeVehicles: unknown,
+  now = new Date()
+): CompleteOnboardingValidationResult {
+  if (!isRecord(business)) {
+    return { ok: false, errors: ['business profile is unavailable'] }
+  }
+
+  const errors: string[] = []
+  const description = business.business_description
+  if (
+    typeof description !== 'string' ||
+    !description.trim() ||
+    description.trim().length > BUSINESS_DESCRIPTION_MAX_LENGTH
+  ) {
+    errors.push('business_description is required and must be 2000 characters or fewer')
+  }
+  if (!isOneOf(business.legal_structure, LEGAL_STRUCTURES)) {
+    errors.push('legal_structure is required')
+  }
+  if (
+    !isOneOf(
+      business.federal_tax_reporting_type,
+      FEDERAL_TAX_REPORTING_TYPES
+    )
+  ) {
+    errors.push('federal_tax_reporting_type is required')
+  }
+
+  const startMonth = business.business_start_month
+  const currentMonth = `${now.getUTCFullYear()}-${String(
+    now.getUTCMonth() + 1
+  ).padStart(2, '0')}`
+  if (
+    typeof startMonth !== 'string' ||
+    !/^\d{4}-(0[1-9]|1[0-2])-01$/.test(startMonth) ||
+    startMonth.slice(0, 7) > currentMonth
+  ) {
+    errors.push('business_start_month must be a valid month that is not in the future')
+  }
+
+  if (typeof business.has_qualifying_home_office !== 'boolean') {
+    errors.push('has_qualifying_home_office is required')
+  } else if (business.has_qualifying_home_office) {
+    if (
+      !Number.isInteger(business.home_office_square_feet) ||
+      Number(business.home_office_square_feet) < 1 ||
+      Number(business.home_office_square_feet) > HOME_OFFICE_SQUARE_FEET_MAX
+    ) {
+      errors.push('home_office_square_feet must be a whole number from 1 to 10000')
+    }
+  } else if (business.home_office_square_feet !== null) {
+    errors.push('home_office_square_feet must be empty when there is no home office')
+  }
+
+  const vehicles = Array.isArray(activeVehicles) ? activeVehicles : []
+  if (!Array.isArray(activeVehicles)) {
+    errors.push('active vehicle records are unavailable')
+  }
+  if (typeof business.uses_vehicle_for_business !== 'boolean') {
+    errors.push('uses_vehicle_for_business is required')
+  } else if (business.uses_vehicle_for_business) {
+    if (vehicles.length < 1 || vehicles.length > 2) {
+      errors.push('one or two active vehicles are required')
+    }
+  } else if (vehicles.length !== 0) {
+    errors.push('active vehicles must be archived when vehicle use is false')
+  }
+
+  const seenSlots = new Set<number>()
+  for (const [index, vehicle] of vehicles.entries()) {
+    if (!isRecord(vehicle)) {
+      errors.push(`vehicle ${index + 1} is invalid`)
+      continue
+    }
+    const slot = vehicle.slot
+    if ((slot !== 1 && slot !== 2) || seenSlots.has(slot)) {
+      errors.push(`vehicle ${index + 1} has an invalid or duplicate slot`)
+    } else {
+      seenSlots.add(slot)
+    }
+    const validation = validateOnboardingVehicle({
+      display_name: vehicle.display_name,
+      vehicle_year: vehicle.vehicle_year,
+      make: vehicle.make,
+      model: vehicle.model,
+      is_mixed_use: vehicle.is_mixed_use,
+    })
+    if (!validation.ok) {
+      errors.push(`vehicle ${index + 1}: ${validation.error}`)
+    }
+  }
+
+  const accountCount = business.expected_financial_account_count
+  if (
+    !Number.isInteger(accountCount) ||
+    Number(accountCount) < 0 ||
+    Number(accountCount) > 6
+  ) {
+    errors.push('expected_financial_account_count must be an integer from 0 to 6')
+  } else if (accountCount === 0) {
+    if (business.expected_financial_account_use !== null) {
+      errors.push('expected_financial_account_use must be empty when account count is zero')
+    }
+  } else if (
+    !isOneOf(
+      business.expected_financial_account_use,
+      EXPECTED_FINANCIAL_ACCOUNT_USES
+    )
+  ) {
+    errors.push('expected_financial_account_use is required when account count is greater than zero')
+  }
+
+  if (!isOneOf(business.onboarding_start_method, ONBOARDING_START_METHODS)) {
+    errors.push('onboarding_start_method is required')
+  }
+
+  return errors.length === 0 ? { ok: true } : { ok: false, errors }
 }
