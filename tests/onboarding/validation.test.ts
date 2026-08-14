@@ -75,6 +75,15 @@ describe('v2 onboarding Business validation', () => {
     ).toBe(false)
   })
 
+  it.each(['1998-01', '2010-06', '2020-12'])(
+    'accepts the historical business start month %s',
+    (business_start_month) => {
+      expect(
+        validUpdate({ step: 'start_date', data: { business_start_month } })
+      ).toEqual({ business_start_month: `${business_start_month}-01` })
+    }
+  )
+
   it('requires home-office details when applicable and clears them otherwise', () => {
     expect(
       validUpdate({

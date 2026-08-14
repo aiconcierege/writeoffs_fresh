@@ -79,6 +79,25 @@ describe('v2 onboarding UI contract', () => {
     expect(flow).toContain("'mixed_use'")
   })
 
+  it('keeps legal and federal reporting separate while filtering confusing choices', () => {
+    expect(flow).toContain("corporation: ['Corporation (S or C)'")
+    expect(flow).toContain("sole_proprietor: ['schedule_c', 's_corporation', 'c_corporation', 'not_sure']")
+    expect(flow).toContain("single_member_llc: ['schedule_c', 's_corporation', 'c_corporation', 'not_sure']")
+    expect(flow).toContain("partnership_multi_member_llc: ['partnership', 's_corporation', 'c_corporation', 'not_sure']")
+    expect(flow).toContain("corporation: ['s_corporation', 'c_corporation', 'not_sure']")
+    expect(flow).toContain("not_sure: ['schedule_c', 'partnership', 's_corporation', 'c_corporation', 'not_sure']")
+    expect(flow).toContain("props.updateBusiness('federal_tax_reporting_type', null)")
+    expect(flow).toContain("props.updateBusiness('legal_structure', value)")
+    expect(flow).not.toMatch(/updateBusiness\('federal_tax_reporting_type',\s*(value|['"]\w+['"])\).*updateBusiness\('legal_structure'/s)
+  })
+
+  it('allows historical month/year input with only a future-date boundary', () => {
+    expect(flow).toContain('type="month"')
+    expect(flow).toContain('max={currentMonth}')
+    expect(flow).not.toMatch(/<input[^>]+type="month"[^>]+min=/s)
+    expect(flow).toContain('You can choose any past month and year.')
+  })
+
   it('uses the revised starting choices without launching their workflows', () => {
     expect(flow).toContain('Start with receipts')
     expect(flow).toContain('Take photos or upload receipts and let WriteOffs start organizing your expenses.')
@@ -88,6 +107,14 @@ describe('v2 onboarding UI contract', () => {
     expect(flow).toContain('You can add or change these later.')
     expect(flow).not.toContain('Starting workflow')
     expect(flow).not.toMatch(/\/api\/(plaid|stripe|upload|receipts?)/i)
+    const connected = flow.indexOf('label="Connect my accounts"')
+    const receipts = flow.indexOf('label="Start with receipts"')
+    const statements = flow.indexOf('label="Upload statements"')
+    expect(connected).toBeGreaterThan(-1)
+    expect(connected).toBeLessThan(receipts)
+    expect(receipts).toBeLessThan(statements)
+    expect(flow.slice(connected, receipts)).toContain('badge="Recommended"')
+    expect(flow).not.toMatch(/useState\([^)]*connected_financial_accounts/)
   })
 
   it('uses plain-language Review labels and summaries', () => {

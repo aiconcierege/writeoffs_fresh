@@ -39,7 +39,7 @@ const LEGAL_LABELS: Record<(typeof LEGAL_STRUCTURES)[number], [string, string]> 
   sole_proprietor: ['Sole proprietor', 'You operate the business personally without forming a separate company.'],
   single_member_llc: ['Single-member LLC', 'An LLC with one owner.'],
   partnership_multi_member_llc: ['Partnership / multi-member LLC', 'A business with two or more owners.'],
-  corporation: ['Corporation', 'A business legally formed as a corporation.'],
+  corporation: ['Corporation (S or C)', 'A business legally formed as a corporation.'],
   not_sure: ['I’m not sure', 'You can confirm this later with a tax professional.'],
 }
 
@@ -49,6 +49,17 @@ const FEDERAL_LABELS: Record<(typeof FEDERAL_TAX_REPORTING_TYPES)[number], strin
   c_corporation: 'C Corporation',
   partnership: 'Partnership',
   not_sure: 'I’m not sure',
+}
+
+const FEDERAL_OPTIONS_BY_LEGAL_STRUCTURE: Record<
+  (typeof LEGAL_STRUCTURES)[number],
+  readonly (typeof FEDERAL_TAX_REPORTING_TYPES)[number][]
+> = {
+  sole_proprietor: ['schedule_c', 's_corporation', 'c_corporation', 'not_sure'],
+  single_member_llc: ['schedule_c', 's_corporation', 'c_corporation', 'not_sure'],
+  partnership_multi_member_llc: ['partnership', 's_corporation', 'c_corporation', 'not_sure'],
+  corporation: ['s_corporation', 'c_corporation', 'not_sure'],
+  not_sure: ['schedule_c', 'partnership', 's_corporation', 'c_corporation', 'not_sure'],
 }
 
 const emptyVehicle = (slot: 1 | 2): OnboardingVehicleData => ({
@@ -483,6 +494,12 @@ function StepContent(props: StepContentProps) {
   }
 
   if (step === 'organization') {
+    const legalStructure = LEGAL_STRUCTURES.find(
+      (value) => value === business.legal_structure
+    )
+    const federalOptions = legalStructure
+      ? FEDERAL_OPTIONS_BY_LEGAL_STRUCTURE[legalStructure]
+      : []
     return (
       <div>
         <h2 ref={headingRef} tabIndex={-1} className={headingClass}>How is your business organized?</h2>
@@ -495,25 +512,40 @@ function StepContent(props: StepContentProps) {
               key={value}
               name="legal_structure"
               checked={business.legal_structure === value}
-              onChange={() => props.updateBusiness('legal_structure', value)}
+              onChange={() => {
+                props.updateBusiness('legal_structure', value)
+                const allowed = FEDERAL_OPTIONS_BY_LEGAL_STRUCTURE[value]
+                if (
+                  business.federal_tax_reporting_type &&
+                  !allowed.includes(
+                    business.federal_tax_reporting_type as (typeof FEDERAL_TAX_REPORTING_TYPES)[number]
+                  )
+                ) {
+                  props.updateBusiness('federal_tax_reporting_type', null)
+                }
+              }}
               label={LEGAL_LABELS[value][0]}
               description={LEGAL_LABELS[value][1]}
             />
           ))}
         </ChoiceGroup>
-        <ChoiceGroup legend="How does your business report federal taxes?">
-          {FEDERAL_TAX_REPORTING_TYPES.map((value) => (
-            <Choice
-              key={value}
-              name="federal_tax_reporting_type"
-              checked={business.federal_tax_reporting_type === value}
-              onChange={() =>
-                props.updateBusiness('federal_tax_reporting_type', value)
-              }
-              label={FEDERAL_LABELS[value]}
-            />
-          ))}
-        </ChoiceGroup>
+        {legalStructure ? (
+          <ChoiceGroup legend="How does your business report federal taxes?">
+            {federalOptions.map((value) => (
+              <Choice
+                key={value}
+                name="federal_tax_reporting_type"
+                checked={business.federal_tax_reporting_type === value}
+                onChange={() =>
+                  props.updateBusiness('federal_tax_reporting_type', value)
+                }
+                label={FEDERAL_LABELS[value]}
+              />
+            ))}
+          </ChoiceGroup>
+        ) : (
+          <InfoBox>Choose a legal structure first. We’ll then show the federal reporting choices that commonly fit it.</InfoBox>
+        )}
         {business.federal_tax_reporting_type &&
           business.federal_tax_reporting_type !== 'schedule_c' && (
             <InfoBox>
@@ -542,6 +574,9 @@ function StepContent(props: StepContentProps) {
               }
               className={FIELD_CLASS}
             />
+            <span className="mt-2 block text-xs text-slate-500">
+              You can choose any past month and year. Future months are not allowed.
+            </span>
           </Field>
         </div>
       </div>
@@ -622,8 +657,8 @@ function StepContent(props: StepContentProps) {
       <div>
         <h2 ref={headingRef} tabIndex={-1} className={headingClass}>How would you like to get started?</h2>
         <ChoiceGroup legend="Choose how to get started" visuallyHiddenLegend>
+          <Choice name="start_method" checked={business.onboarding_start_method === 'connected_financial_accounts'} onChange={() => props.updateBusiness('onboarding_start_method', 'connected_financial_accounts')} label="Connect my accounts" description="Let WriteOffs use activity from your accounts to help organize your business finances." badge="Recommended" />
           <Choice name="start_method" checked={business.onboarding_start_method === 'receipts'} onChange={() => props.updateBusiness('onboarding_start_method', 'receipts')} label="Start with receipts" description="Take photos or upload receipts and let WriteOffs start organizing your expenses." />
-          <Choice name="start_method" checked={business.onboarding_start_method === 'connected_financial_accounts'} onChange={() => props.updateBusiness('onboarding_start_method', 'connected_financial_accounts')} label="Connect my accounts" description="Let WriteOffs use activity from your accounts to help organize your business finances." />
           <Choice name="start_method" checked={business.onboarding_start_method === 'statement_uploads'} onChange={() => props.updateBusiness('onboarding_start_method', 'statement_uploads')} label="Upload statements" description="Upload existing statements to bring in past activity." />
         </ChoiceGroup>
         <p className="mt-5 text-sm text-slate-600">You can add or change these later.</p>
@@ -727,8 +762,8 @@ function ChoiceGroup({ legend, columns = false, visuallyHiddenLegend = false, ch
   return <fieldset className="mt-7"><legend className={visuallyHiddenLegend ? 'sr-only' : 'text-sm font-semibold text-slate-800'}>{legend}</legend><div className={`grid gap-3 ${visuallyHiddenLegend ? '' : 'mt-3'} ${columns ? 'grid-cols-4 sm:grid-cols-7' : 'sm:grid-cols-2'}`}>{children}</div></fieldset>
 }
 
-function Choice({ name, checked, onChange, label, description, compact = false }: { name: string; checked: boolean; onChange: () => void; label: string; description?: string; compact?: boolean }) {
-  return <label className={`relative flex min-h-11 cursor-pointer gap-3 rounded-xl border p-3 transition focus-within:ring-2 focus-within:ring-[#243186] focus-within:ring-offset-2 ${checked ? 'border-[#243186] bg-indigo-50' : 'border-slate-200 bg-white hover:border-slate-300'} ${compact ? 'items-center justify-center' : 'items-start'}`}><input type="radio" name={name} checked={checked} onChange={onChange} className={compact ? 'sr-only' : 'mt-1 h-4 w-4 accent-[#243186]'} /><span><span className="block text-sm font-semibold text-slate-900">{label}</span>{description && <span className="mt-1 block text-xs leading-5 text-slate-600">{description}</span>}</span></label>
+function Choice({ name, checked, onChange, label, description, compact = false, badge }: { name: string; checked: boolean; onChange: () => void; label: string; description?: string; compact?: boolean; badge?: string }) {
+  return <label className={`relative flex min-h-11 cursor-pointer gap-3 rounded-xl border p-3 transition focus-within:ring-2 focus-within:ring-[#243186] focus-within:ring-offset-2 ${checked ? 'border-[#243186] bg-indigo-50' : 'border-slate-200 bg-white hover:border-slate-300'} ${compact ? 'items-center justify-center' : 'items-start'}`}><input type="radio" name={name} checked={checked} onChange={onChange} className={compact ? 'sr-only' : 'mt-1 h-4 w-4 accent-[#243186]'} /><span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><span className="block text-sm font-semibold text-slate-900">{label}</span>{badge && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-emerald-800">{badge}</span>}</span>{description && <span className="mt-1 block text-xs leading-5 text-slate-600">{description}</span>}</span></label>
 }
 
 function InfoBox({ children }: { children: React.ReactNode }) {
