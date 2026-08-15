@@ -20,18 +20,18 @@ export default function PressPage() {
           <h2 className="text-lg font-semibold">Logos</h2>
           <ul className="mt-3 space-y-2 text-sm">
             <li>
-              <a className="text-[#1D4ED8] hover:underline" href="/press/writeoffs_logo_clean.png" download>
+              <a className="text-[#1D4ED8] hover:underline" href="/media/writeoffs_logo_clean.png" download>
                 Primary logo (PNG)
               </a>
             </li>
             <li>
-              <a className="text-[#1D4ED8] hover:underline" href="/press/writeoffs_logo_clean.svg" download>
+              <a className="text-[#1D4ED8] hover:underline" href="/logo.svg" download>
                 Primary logo (SVG)
               </a>
             </li>
             <li>
-              <a className="text-[#1D4ED8] hover:underline" href="/press/icon.png" download>
-                App icon (PNG)
+              <a className="text-[#1D4ED8] hover:underline" href="/og/og-default.png" download>
+                App icon
               </a>
             </li>
           </ul>

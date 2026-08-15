@@ -50,10 +50,14 @@ export async function POST(req: Request) {
   // Attempt to parse date and amount
   const date = parseDateFromString(sourceName) // 'YYYY-MM-DD' or null
   const total = parseAmountFromString(sourceName) // number or null
-  const vendor = parseVendorFromString(sourceName, { date, total }) // string or null
+  const vendor = parseVendorFromString(sourceName) // string or null
 
   // Build update payload (only set if found)
-  const payload: Record<string, any> = {}
+  const payload: {
+    vendor_hint?: string
+    date_hint?: string
+    total_hint?: number
+  } = {}
   if (vendor) payload.vendor_hint = vendor
   if (date) payload.date_hint = date
   if (typeof total === 'number') payload.total_hint = total
@@ -115,7 +119,7 @@ function parseAmountFromString(s: string): number | null {
   return Number.isNaN(n) ? null : n
 }
 
-function parseVendorFromString(s: string, ctx: { date: string | null; total: number | null }): string | null {
+function parseVendorFromString(s: string): string | null {
   // Remove extension
   const name = s.replace(/\.[a-zA-Z0-9]+$/, '')
   // Split on common separators and filter out obvious tokens (date, numbers)

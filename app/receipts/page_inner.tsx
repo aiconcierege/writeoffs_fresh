@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { supabase } from '../../utils/supabase/client'
 import Link from 'next/link'
 
@@ -36,7 +36,6 @@ export default function ReceiptsInner() {
   // Upload queue
   const [items, setItems] = useState<UploadItem[]>([])
   const [busy, setBusy] = useState(false)
-  const [selectAll, setSelectAll] = useState(false)
 
   // Existing uploads
   const [existing, setExisting] = useState<ExistingReceipt[]>([])
@@ -44,7 +43,6 @@ export default function ReceiptsInner() {
   const [listErr, setListErr] = useState<string | null>(null)
 
   // Diagnostics
-  const [annotatingId, setAnnotatingId] = useState<string | null>(null)
   const [ocrRunningId, setOcrRunningId] = useState<string | null>(null)
 
   // By default hide linked receipts; toggle for debugging
@@ -67,8 +65,8 @@ export default function ReceiptsInner() {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Failed to load receipts')
       setExisting(Array.isArray(data?.receipts) ? data.receipts as ExistingReceipt[] : [])
-    } catch (e: any) {
-      setListErr(e?.message || 'Failed to load receipts')
+    } catch (error: unknown) {
+      setListErr(errorMessage(error, 'Failed to load receipts'))
     } finally {
       setListBusy(false)
     }
@@ -107,7 +105,6 @@ export default function ReceiptsInner() {
         }
       }
       setItems(prev => [...incoming, ...prev])
-      setSelectAll(true)
     } catch {}
   }
 
@@ -116,23 +113,8 @@ export default function ReceiptsInner() {
     onFilesSelected(e.dataTransfer.files)
   }
 
-  function setCheckedAll(next: boolean) {
-    setSelectAll(next)
-    setItems(prev => prev.map(i => ({ ...i, checked: i.status === 'ready' ? next : i.checked })))
-  }
-
-  function toggleOne(idx: number, next: boolean) {
-    setItems(prev => {
-      const copy = prev.slice()
-      copy[idx] = { ...copy[idx], checked: next }
-      return copy
-    })
-  }
-
-  const readyCheckedCount = items.filter(i => i.checked && i.status === 'ready').length
-
   function uuidv4() {
-    try { if (typeof crypto !== 'undefined' && typeof (crypto as any).randomUUID === 'function') return (crypto as any).randomUUID() } catch {}
+    try { if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID() } catch {}
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
       const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8)
       return v.toString(16)
@@ -140,7 +122,6 @@ export default function ReceiptsInner() {
   }
 
   async function annotateById(id: string) {
-    setAnnotatingId(id)
     try {
       await fetch('/api/receipts/annotate', {
         method: 'POST',
@@ -148,7 +129,6 @@ export default function ReceiptsInner() {
         body: JSON.stringify({ id })
       })
     } catch {}
-    setAnnotatingId(null)
   }
 
   async function handleUploadSelected() {
@@ -221,8 +201,8 @@ export default function ReceiptsInner() {
 
         // 4) Auto-annotate from filename
         await annotateById(inserted.id)
-      } catch (e: any) {
-        queue[i] = { ...queue[i], status: 'error', message: e?.message || 'Upload failed' }
+      } catch (error: unknown) {
+        queue[i] = { ...queue[i], status: 'error', message: errorMessage(error, 'Upload failed') }
         setItems([...queue])
       }
     }
@@ -275,8 +255,8 @@ export default function ReceiptsInner() {
         }
       }
       await refreshExisting()
-    } catch (e: any) {
-      alert(e?.message || 'OCR failed')
+    } catch (error: unknown) {
+      alert(errorMessage(error, 'OCR failed'))
     } finally {
       setOcrRunningId(null)
     }
@@ -298,8 +278,8 @@ export default function ReceiptsInner() {
       setToastOpen(false)
       setToastTxId(null)
       await refreshExisting()
-    } catch (e: any) {
-      alert(e?.message || 'Undo failed')
+    } catch (error: unknown) {
+      alert(errorMessage(error, 'Undo failed'))
     }
   }
 
@@ -482,9 +462,10 @@ export default function ReceiptsInner() {
   )
 }
 
-function Th({ children, className = '' }: any) { return <th className={`px-3 py-2 font-medium ${className}`}>{children}</th> }
-function Td({ children, className = '', colSpan }: any) { return <td className={`px-3 py-2 align-top ${className}`} colSpan={colSpan}>{children}</td> }
+function Th({ children, className = '' }: { children: ReactNode; className?: string }) { return <th className={`px-3 py-2 font-medium ${className}`}>{children}</th> }
+function Td({ children, className = '', colSpan, title }: { children: ReactNode; className?: string; colSpan?: number; title?: string }) { return <td className={`px-3 py-2 align-top ${className}`} colSpan={colSpan} title={title}>{children}</td> }
 function extFromName(name: string): string | null { const m = name.match(/\.([a-zA-Z0-9]+)$/); return m ? m[1].toLowerCase() : null }
 function extFromType(type: string): string | null { if (!type) return null; if (type === 'application/pdf') return 'pdf'; if (type.startsWith('image/')) return type.split('/')[1]; return null }
 function formatBytes(n: number) { if (n < 1024) return `${n} B`; if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`; return `${(n / (1024 * 1024)).toFixed(1)} MB` }
 function basename(p: string) { const parts = p.split('/'); return parts[parts.length - 1] || p }
+function errorMessage(error: unknown, fallback: string) { return error instanceof Error && error.message ? error.message : fallback }

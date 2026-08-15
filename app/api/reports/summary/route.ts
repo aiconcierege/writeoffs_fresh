@@ -1,5 +1,5 @@
 // app/api/reports/summary/route.ts
-import { NextResponse, type NextRequest } from "next/server"
+import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { createServerClient } from "@supabase/ssr"
 
@@ -11,7 +11,13 @@ const COL_CATEGORY = "category_key"
 const COL_DATE = "date"
 // ────────────────────────────────────────────────────────────────
 
-export async function GET(_req: NextRequest) {
+type SummaryTransaction = {
+  amount: number | string | null
+  category_key: string | null
+  date: string | null
+}
+
+export async function GET() {
   // 👇 cookies() must be awaited in route handlers (Next 15)
   const cookieStore = await cookies()
 
@@ -61,10 +67,10 @@ export async function GET(_req: NextRequest) {
     let uncategorizedCount = 0
     const categoryMap: Record<string, number> = {}
 
-    for (const t of txns ?? []) {
-      const amt = Number((t as any)[COL_AMOUNT]) || 0
-      const d = new Date((t as any)[COL_DATE])
-      const cat = ((t as any)[COL_CATEGORY] as string | null) ?? null
+    for (const t of (txns ?? []) as SummaryTransaction[]) {
+      const amt = Number(t.amount) || 0
+      const d = new Date(t.date ?? 0)
+      const cat = t.category_key ?? null
 
       totalWindow += amt
 
@@ -103,4 +109,3 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
   }
 }
-

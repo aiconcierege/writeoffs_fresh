@@ -7,7 +7,7 @@
  */
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 
 type Row = Record<string, string>
@@ -116,9 +116,9 @@ export default function ImportPage() {
         setRows(parsed)
         setMapping(guessMapping(hdrs))
         setStatus('ready')
-      } catch (e: any) {
+      } catch (error: unknown) {
         setStatus('error')
-        setMessage(e?.message || 'Failed to parse CSV.')
+        setMessage(errorMessage(error, 'Failed to parse CSV.'))
       }
     }
     reader.readAsText(file)
@@ -154,9 +154,9 @@ export default function ImportPage() {
       }
       setStatus('done')
       setMessage(`Imported ${data?.imported ?? 0} rows.`)
-    } catch (e: any) {
+    } catch (error: unknown) {
       setStatus('error')
-      setMessage(e?.message || 'Import failed.')
+      setMessage(errorMessage(error, 'Import failed.'))
     }
   }
 
@@ -331,6 +331,10 @@ export default function ImportPage() {
       </section>
     </main>
   )
+}
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback
 }
 
 function FieldMap({
