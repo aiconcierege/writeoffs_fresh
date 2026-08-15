@@ -23,9 +23,13 @@ separately validated batches.
    association is one-to-one while active. A mistaken receipt/manual match can be
    revoked with its history retained; origin financial evidence cannot be revoked.
 3. **Bookkeeping treatment** — `bookkeeping_decisions` is an append-only sequence.
-   A decision says whether the record is unresolved, business, personal,
-   mixed-use, or excluded. It also records review state, provenance, confidence,
-   explanation, and business purpose.
+   Each version separately records the activity's economic nature (`expense`,
+   `business_income`, `transfer`, `credit_card_payment`, `refund`,
+   `owner_contribution`, `loan_proceeds`, or `other_non_income`) and its use
+   treatment (unresolved, business, personal, mixed-use, or excluded). Keeping
+   those concepts separate avoids treating every deposit as income or every
+   payment as an expense. Decisions also record review state, provenance,
+   confidence, explanation, and business purpose.
 4. **Allocations** — `bookkeeping_allocations` belongs to one decision. Resolved
    decisions allocate the complete signed record amount among business, personal,
    or excluded portions. Business allocations may carry an internal tax category.
@@ -48,13 +52,21 @@ separately validated batches.
   Future automated processing uses trusted server-side service code and records
   `automation`, `system`, or `import` provenance.
 - Canonical records, decisions, and allocations reject updates and deletes.
-- A decision can have only one successor, preventing correction history from
-  branching. A record can have only one initial decision.
+- A database insert trigger requires the first decision to be a root and every
+  correction to supersede the current leaf. Together with unique root and
+  successor indexes and the self-reference constraint, this prevents direct SQL
+  inserts from creating branches, cycles, disconnected histories, or multiple
+  current decisions.
 - Financial-origin records must copy the source transaction's signed amount,
   currency, and date. Database triggers verify this without changing the source.
+- A receipt/manual amount is authoritative only until financial evidence is
+  attached. Once matched, the immutable financial transaction's signed amount is
+  authoritative for every resolved decision. Currency must match as well.
 - Adding or revoking matched financial evidence cannot leave the current decision
-  out of balance. If amounts differ, the relationship and a superseding decision
-  must be committed together by a future matching workflow.
+  out of balance. When a posted amount differs, the supplied
+  `match_bookkeeping_source_with_correction` operation attaches the source and
+  appends its balanced superseding decision in one database transaction; either
+  both changes commit or neither does.
 - Documentation links can only be revoked; their identity and original provenance
   cannot be rewritten.
 
@@ -76,9 +88,13 @@ The application service in `app/lib/bookkeeping` validates commands before they
 reach a repository. Its `ensureRecord` port must use the database uniqueness
 constraints as an atomic insert-or-return operation, so concurrent ingestion is
 idempotent. The migration supplies `ensure_bookkeeping_record` and
-`append_bookkeeping_decision` transaction functions for repository adapters; RLS
-still applies because the functions use caller privileges. The service deliberately
-has no Plaid, CSV, OCR, Supabase, UI, or tax form dependency.
+`append_bookkeeping_decision` transaction functions, an atomic source-match and
+correction function, and an atomic receipt-link insert-or-return function for
+repository adapters. Every repository command receives the complete actor
+(Business, user when applicable, and provenance), so its database call does not
+depend on hidden service state. RLS still applies because the functions use caller
+privileges. The service deliberately has no Plaid, CSV, OCR, Supabase, UI, or tax
+form dependency.
 
 ## Transition strategy
 

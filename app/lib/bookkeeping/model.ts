@@ -17,6 +17,19 @@ export const REVIEW_STATUSES = [
 
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number]
 
+export const BOOKKEEPING_NATURES = [
+  'expense',
+  'business_income',
+  'transfer',
+  'credit_card_payment',
+  'refund',
+  'owner_contribution',
+  'loan_proceeds',
+  'other_non_income',
+] as const
+
+export type BookkeepingNature = (typeof BOOKKEEPING_NATURES)[number]
+
 export const DECISION_PROVENANCE = [
   'automation',
   'user',
@@ -31,7 +44,14 @@ export type AllocationKind = 'business' | 'personal' | 'excluded'
 export type CanonicalBookkeepingRecord = {
   id: string
   businessId: string
-  amountCents: number | null
+  authoritativeAmountCents: number | null
+  authoritativeCurrency: string
+}
+
+export type FinancialSourceEvidence = {
+  id: string
+  businessId: string
+  amountCents: number
   currency: string
 }
 
@@ -52,6 +72,7 @@ export type BookkeepingAllocationInput = {
 }
 
 export type BookkeepingDecisionInput = {
+  bookkeepingNature: BookkeepingNature | null
   treatment: BookkeepingTreatment
   reviewStatus: ReviewStatus
   provenance: DecisionProvenance

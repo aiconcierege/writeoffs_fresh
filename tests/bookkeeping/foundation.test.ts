@@ -4,6 +4,7 @@ import type {
   CanonicalBookkeepingRecord,
   CanonicalRecordInput,
   DocumentationLink,
+  FinancialSourceEvidence,
   StoredBookkeepingDecision,
 } from '../../app/lib/bookkeeping/model'
 import {
@@ -16,24 +17,29 @@ class MemoryBookkeepingRepository implements BookkeepingRepository {
   decisions: StoredBookkeepingDecision[] = []
   links: DocumentationLink[] = []
   receiptBusinesses = new Map<string, string>()
-  financialTransactionBusinesses = new Map<string, string>()
+  financialTransactions = new Map<string, FinancialSourceEvidence>()
   financialSources = new Map<string, string>()
+  lastEnsureActor: BookkeepingActor | null = null
   nextId = 10
 
-  async ensureRecord(input: { businessId: string; record: CanonicalRecordInput }) {
+  async ensureRecord(input: {
+    actor: BookkeepingActor
+    record: CanonicalRecordInput
+  }) {
+    this.lastEnsureActor = input.actor
     const existing =
       this.records.find(
         (record) =>
-          record.businessId === input.businessId &&
+          record.businessId === input.actor.businessId &&
           (record as CanonicalBookkeepingRecord & { ingestionKey?: string })
             .ingestionKey === input.record.ingestionKey
       ) ?? null
     if (existing) return existing
     const record = {
       id: `record-${this.nextId++}`,
-      businessId: input.businessId,
-      amountCents: input.record.amountCents,
-      currency: input.record.currency,
+      businessId: input.actor.businessId,
+      authoritativeAmountCents: input.record.amountCents,
+      authoritativeCurrency: input.record.currency,
       ingestionKey: input.record.ingestionKey,
     }
     this.records.push(record)
@@ -41,11 +47,21 @@ class MemoryBookkeepingRepository implements BookkeepingRepository {
   }
 
   async findRecord(businessId: string, recordId: string) {
-    return (
+    const record =
       this.records.find(
-        (record) => record.businessId === businessId && record.id === recordId
+        (candidate) =>
+          candidate.businessId === businessId && candidate.id === recordId
       ) ?? null
-    )
+    if (!record) return null
+    const sourceId = this.financialSources.get(recordId)
+    const source = sourceId ? this.financialTransactions.get(sourceId) : null
+    return source
+      ? {
+          ...record,
+          authoritativeAmountCents: source.amountCents,
+          authoritativeCurrency: source.currency,
+        }
+      : record
   }
 
   async findCurrentDecision(businessId: string, recordId: string) {
@@ -62,11 +78,16 @@ class MemoryBookkeepingRepository implements BookkeepingRepository {
     return decisions.find((decision) => !superseded.has(decision.id)) ?? null
   }
 
+  async findFinancialSource(businessId: string, financialTransactionId: string) {
+    const source = this.financialTransactions.get(financialTransactionId)
+    return source?.businessId === businessId ? source : null
+  }
+
   async attachFinancialSource(
     input: Parameters<BookkeepingRepository['attachFinancialSource']>[0]
   ) {
     if (
-      this.financialTransactionBusinesses.get(input.financialTransactionId) !==
+      this.financialTransactions.get(input.financialTransactionId)?.businessId !==
       input.actor.businessId
     ) {
       throw new Error('financial transaction does not belong to Business')
@@ -77,6 +98,33 @@ class MemoryBookkeepingRepository implements BookkeepingRepository {
     }
     this.financialSources.set(input.recordId, input.financialTransactionId)
     return `source:${input.recordId}:${input.financialTransactionId}`
+  }
+
+  async matchFinancialSourceWithCorrection(
+    input: Parameters<BookkeepingRepository['matchFinancialSourceWithCorrection']>[0]
+  ) {
+    const previousSource = this.financialSources.get(input.record.id)
+    try {
+      await this.attachFinancialSource({
+        actor: input.actor,
+        recordId: input.record.id,
+        financialTransactionId: input.financialSource.id,
+      })
+      return await this.appendDecision({
+        actor: input.actor,
+        record: {
+          ...input.record,
+          authoritativeAmountCents: input.financialSource.amountCents,
+          authoritativeCurrency: input.financialSource.currency,
+        },
+        supersedesDecisionId: input.supersedesDecisionId,
+        decision: input.decision,
+      })
+    } catch (error) {
+      if (previousSource) this.financialSources.set(input.record.id, previousSource)
+      else this.financialSources.delete(input.record.id)
+      throw error
+    }
   }
 
   async appendDecision(
@@ -115,9 +163,15 @@ class MemoryBookkeepingRepository implements BookkeepingRepository {
     )
   }
 
-  async insertDocumentLink(
-    input: Parameters<BookkeepingRepository['insertDocumentLink']>[0]
+  async ensureDocumentLink(
+    input: Parameters<BookkeepingRepository['ensureDocumentLink']>[0]
   ) {
+    const existing = await this.findActiveDocumentLink(
+      input.actor.businessId,
+      input.recordId,
+      input.receiptId
+    )
+    if (existing) return existing
     const link: DocumentationLink = {
       id: `link-${this.nextId++}`,
       businessId: input.actor.businessId,
@@ -159,8 +213,8 @@ function setup(amountCents: number | null = -10_000) {
   repository.records.push({
     id: 'record-1',
     businessId: 'business-1',
-    amountCents,
-    currency: 'USD',
+    authoritativeAmountCents: amountCents,
+    authoritativeCurrency: 'USD',
   })
   return { repository, service: new CanonicalBookkeepingService(repository) }
 }
@@ -188,6 +242,65 @@ describe('canonical bookkeeping behavior', () => {
             .ingestionKey === record.ingestionKey
       )
     ).toHaveLength(1)
+    expect(repository.lastEnsureActor).toEqual(userActor())
+  })
+
+  it('supports the approved versioned bookkeeping natures', async () => {
+    for (const bookkeepingNature of [
+      'expense',
+      'business_income',
+      'transfer',
+      'credit_card_payment',
+      'refund',
+      'owner_contribution',
+      'loan_proceeds',
+      'other_non_income',
+    ] as const) {
+      const { service } = setup(10_000)
+      const decision = await service.recordDecision({
+        actor: userActor(),
+        recordId: 'record-1',
+        expectedCurrentDecisionId: null,
+        decision: {
+          bookkeepingNature,
+          treatment: 'business',
+          reviewStatus: 'resolved',
+          allocations: [{ kind: 'business', amountCents: 10_000 }],
+        },
+      })
+      expect(decision.bookkeepingNature).toBe(bookkeepingNature)
+    }
+  })
+
+  it('requires a bookkeeping nature only after treatment is resolved', async () => {
+    const { service } = setup()
+    await expect(
+      service.recordDecision({
+        actor: userActor(),
+        recordId: 'record-1',
+        expectedCurrentDecisionId: null,
+        decision: {
+          bookkeepingNature: null,
+          treatment: 'business',
+          reviewStatus: 'resolved',
+          allocations: [{ kind: 'business', amountCents: -10_000 }],
+        },
+      })
+    ).rejects.toThrow('requires a bookkeeping nature')
+
+    await expect(
+      service.recordDecision({
+        actor: userActor(),
+        recordId: 'record-1',
+        expectedCurrentDecisionId: null,
+        decision: {
+          bookkeepingNature: 'dividend' as 'expense',
+          treatment: 'business',
+          reviewStatus: 'resolved',
+          allocations: [{ kind: 'business', amountCents: -10_000 }],
+        },
+      })
+    ).rejects.toThrow('nature is not supported')
   })
 
   it('rejects non-reconciling and wrong-sign allocations', async () => {
@@ -202,6 +315,7 @@ describe('canonical bookkeeping behavior', () => {
       service.recordDecision({
         ...base,
         decision: {
+          bookkeepingNature: 'expense',
           treatment: 'business',
           reviewStatus: 'resolved',
           allocations: [{ kind: 'business', amountCents: -9000 }],
@@ -213,6 +327,7 @@ describe('canonical bookkeeping behavior', () => {
       service.recordDecision({
         ...base,
         decision: {
+          bookkeepingNature: 'expense',
           treatment: 'business',
           reviewStatus: 'resolved',
           allocations: [
@@ -242,7 +357,12 @@ describe('canonical bookkeeping behavior', () => {
         actor: userActor(),
         recordId: 'record-1',
         expectedCurrentDecisionId: null,
-        decision: { treatment, reviewStatus: 'resolved', allocations: [...allocations] },
+        decision: {
+          bookkeepingNature: 'expense',
+          treatment,
+          reviewStatus: 'resolved',
+          allocations: [...allocations],
+        },
       })
       expect(decision.treatment).toBe(treatment)
     }
@@ -255,6 +375,7 @@ describe('canonical bookkeeping behavior', () => {
       recordId: 'record-1',
       expectedCurrentDecisionId: null,
       decision: {
+        bookkeepingNature: null,
         treatment: 'unresolved',
         reviewStatus: 'needs_review',
         confidence: 0.42,
@@ -275,6 +396,7 @@ describe('canonical bookkeeping behavior', () => {
       recordId: 'record-1',
       expectedCurrentDecisionId: null,
       decision: {
+        bookkeepingNature: 'expense',
         treatment: 'business',
         reviewStatus: 'needs_review',
         confidence: 0.7,
@@ -286,6 +408,7 @@ describe('canonical bookkeeping behavior', () => {
       recordId: 'record-1',
       expectedCurrentDecisionId: original.id,
       decision: {
+        bookkeepingNature: 'expense',
         treatment: 'personal',
         reviewStatus: 'resolved',
         reason: 'Personal purchase',
@@ -302,6 +425,7 @@ describe('canonical bookkeeping behavior', () => {
         recordId: 'record-1',
         expectedCurrentDecisionId: original.id,
         decision: {
+          bookkeepingNature: 'expense',
           treatment: 'excluded',
           reviewStatus: 'resolved',
           allocations: [{ kind: 'excluded', amountCents: -10_000 }],
@@ -320,6 +444,7 @@ describe('canonical bookkeeping behavior', () => {
         recordId: 'record-1',
         expectedCurrentDecisionId: null,
         decision: {
+          bookkeepingNature: 'expense',
           treatment: 'business',
           reviewStatus: 'resolved',
           allocations: [{ kind: 'business', amountCents: -10_000 }],
@@ -338,8 +463,18 @@ describe('canonical bookkeeping behavior', () => {
 
   it('attaches later financial evidence idempotently with tenant isolation', async () => {
     const { repository, service } = setup()
-    repository.financialTransactionBusinesses.set('financial-1', 'business-1')
-    repository.financialTransactionBusinesses.set('financial-2', 'business-2')
+    repository.financialTransactions.set('financial-1', {
+      id: 'financial-1',
+      businessId: 'business-1',
+      amountCents: -10_000,
+      currency: 'USD',
+    })
+    repository.financialTransactions.set('financial-2', {
+      id: 'financial-2',
+      businessId: 'business-2',
+      amountCents: -10_000,
+      currency: 'USD',
+    })
 
     const first = await service.attachFinancialSource({
       actor: userActor(),
@@ -359,7 +494,107 @@ describe('canonical bookkeeping behavior', () => {
         recordId: 'record-1',
         financialTransactionId: 'financial-2',
       })
-    ).rejects.toThrow('does not belong to Business')
+    ).rejects.toThrow('not found for this Business')
+  })
+
+  it('uses bank-posted amount as authoritative and corrects a differing receipt atomically', async () => {
+    const { repository, service } = setup(-9_500)
+    const original = await service.recordDecision({
+      actor: userActor(),
+      recordId: 'record-1',
+      expectedCurrentDecisionId: null,
+      decision: {
+        bookkeepingNature: 'expense',
+        treatment: 'business',
+        reviewStatus: 'resolved',
+        allocations: [{ kind: 'business', amountCents: -9_500 }],
+      },
+    })
+    repository.financialTransactions.set('financial-posted', {
+      id: 'financial-posted',
+      businessId: 'business-1',
+      amountCents: -10_000,
+      currency: 'USD',
+    })
+
+    await expect(
+      service.attachFinancialSource({
+        actor: userActor(),
+        recordId: 'record-1',
+        financialTransactionId: 'financial-posted',
+      })
+    ).rejects.toThrow('requires an atomic matching correction')
+    expect(repository.financialSources.has('record-1')).toBe(false)
+
+    const correction = await service.matchFinancialSourceWithCorrection({
+      actor: userActor(),
+      recordId: 'record-1',
+      financialTransactionId: 'financial-posted',
+      expectedCurrentDecisionId: original.id,
+      decision: {
+        bookkeepingNature: 'expense',
+        treatment: 'business',
+        reviewStatus: 'resolved',
+        reason: 'Bank-posted amount controls.',
+        allocations: [{ kind: 'business', amountCents: -10_000 }],
+      },
+    })
+
+    expect(repository.financialSources.get('record-1')).toBe('financial-posted')
+    expect(correction.supersedesDecisionId).toBe(original.id)
+    expect(correction.allocations).toEqual([
+      { kind: 'business', amountCents: -10_000 },
+    ])
+  })
+
+  it('rejects mismatched source currency before creating an association', async () => {
+    const { repository, service } = setup()
+    repository.financialTransactions.set('financial-cad', {
+      id: 'financial-cad',
+      businessId: 'business-1',
+      amountCents: -10_000,
+      currency: 'CAD',
+    })
+
+    await expect(
+      service.attachFinancialSource({
+        actor: userActor(),
+        recordId: 'record-1',
+        financialTransactionId: 'financial-cad',
+      })
+    ).rejects.toThrow('currency must match')
+    expect(repository.financialSources.has('record-1')).toBe(false)
+  })
+
+  it('rolls back source matching if its correction cannot be appended', async () => {
+    const { repository, service } = setup(-9_500)
+    repository.financialTransactions.set('financial-posted', {
+      id: 'financial-posted',
+      businessId: 'business-1',
+      amountCents: -10_000,
+      currency: 'USD',
+    })
+    const originalAppend = repository.appendDecision.bind(repository)
+    repository.appendDecision = async () => {
+      throw new Error('simulated database rejection')
+    }
+
+    await expect(
+      service.matchFinancialSourceWithCorrection({
+        actor: userActor(),
+        recordId: 'record-1',
+        financialTransactionId: 'financial-posted',
+        expectedCurrentDecisionId: null,
+        decision: {
+          bookkeepingNature: 'expense',
+          treatment: 'business',
+          reviewStatus: 'resolved',
+          allocations: [{ kind: 'business', amountCents: -10_000 }],
+        },
+      })
+    ).rejects.toThrow('simulated database rejection')
+    expect(repository.financialSources.has('record-1')).toBe(false)
+    repository.appendDecision = originalAppend
   })
 
   it('links documentation idempotently and revokes rather than deleting history', async () => {

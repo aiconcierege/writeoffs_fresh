@@ -4,6 +4,7 @@ import type {
   CanonicalBookkeepingRecord,
   CanonicalRecordInput,
   DocumentationLink,
+  FinancialSourceEvidence,
   StoredBookkeepingDecision,
 } from './model'
 import {
@@ -14,7 +15,7 @@ import {
 
 export interface BookkeepingRepository {
   ensureRecord(input: {
-    businessId: string
+    actor: BookkeepingActor
     record: CanonicalRecordInput
   }): Promise<CanonicalBookkeepingRecord>
   findRecord(
@@ -25,11 +26,22 @@ export interface BookkeepingRepository {
     businessId: string,
     recordId: string
   ): Promise<StoredBookkeepingDecision | null>
+  findFinancialSource(
+    businessId: string,
+    financialTransactionId: string
+  ): Promise<FinancialSourceEvidence | null>
   attachFinancialSource(input: {
     actor: BookkeepingActor
     recordId: string
     financialTransactionId: string
   }): Promise<string>
+  matchFinancialSourceWithCorrection(input: {
+    actor: BookkeepingActor
+    record: CanonicalBookkeepingRecord
+    financialSource: FinancialSourceEvidence
+    supersedesDecisionId: string | null
+    decision: BookkeepingDecisionInput
+  }): Promise<StoredBookkeepingDecision>
   appendDecision(input: {
     actor: BookkeepingActor
     record: CanonicalBookkeepingRecord
@@ -42,7 +54,7 @@ export interface BookkeepingRepository {
     recordId: string,
     receiptId: string
   ): Promise<DocumentationLink | null>
-  insertDocumentLink(input: {
+  ensureDocumentLink(input: {
     actor: BookkeepingActor
     recordId: string
     receiptId: string
@@ -77,7 +89,7 @@ export class CanonicalBookkeepingService {
     assertActor(input.actor)
     validateCanonicalRecordInput(input.record)
     return this.repository.ensureRecord({
-      businessId: input.actor.businessId,
+      actor: input.actor,
       record: input.record,
     })
   }
@@ -113,7 +125,7 @@ export class CanonicalBookkeepingService {
       ...input.decision,
       provenance: input.actor.provenance,
     }
-    validateBookkeepingDecision(record.amountCents, decision)
+    validateBookkeepingDecision(record.authoritativeAmountCents, decision)
 
     return this.repository.appendDecision({
       actor: input.actor,
@@ -143,7 +155,73 @@ export class CanonicalBookkeepingService {
         'Bookkeeping record was not found for this Business.'
       )
     }
+    const source = await this.requireFinancialSource(
+      input.actor.businessId,
+      input.financialTransactionId
+    )
+    this.assertCurrencyMatches(record, source)
+
+    const current = await this.repository.findCurrentDecision(
+      input.actor.businessId,
+      input.recordId
+    )
+    if (current && current.treatment !== 'unresolved') {
+      try {
+        validateBookkeepingDecision(source.amountCents, current)
+      } catch {
+        throw new BookkeepingValidationError(
+          'The posted amount requires an atomic matching correction.'
+        )
+      }
+    }
     return this.repository.attachFinancialSource(input)
+  }
+
+  async matchFinancialSourceWithCorrection(input: {
+    actor: BookkeepingActor
+    recordId: string
+    financialTransactionId: string
+    expectedCurrentDecisionId: string | null
+    decision: Omit<BookkeepingDecisionInput, 'provenance'>
+  }) {
+    assertActor(input.actor)
+    const record = await this.repository.findRecord(
+      input.actor.businessId,
+      input.recordId
+    )
+    if (!record) {
+      throw new BookkeepingValidationError(
+        'Bookkeeping record was not found for this Business.'
+      )
+    }
+    const source = await this.requireFinancialSource(
+      input.actor.businessId,
+      input.financialTransactionId
+    )
+    this.assertCurrencyMatches(record, source)
+
+    const current = await this.repository.findCurrentDecision(
+      input.actor.businessId,
+      input.recordId
+    )
+    if ((current?.id ?? null) !== input.expectedCurrentDecisionId) {
+      throw new BookkeepingValidationError(
+        'The bookkeeping decision changed; reload before saving a correction.'
+      )
+    }
+
+    const decision: BookkeepingDecisionInput = {
+      ...input.decision,
+      provenance: input.actor.provenance,
+    }
+    validateBookkeepingDecision(source.amountCents, decision)
+    return this.repository.matchFinancialSourceWithCorrection({
+      actor: input.actor,
+      record,
+      financialSource: source,
+      supersedesDecisionId: current?.id ?? null,
+      decision,
+    })
   }
 
   async linkReceipt(input: {
@@ -172,14 +250,7 @@ export class CanonicalBookkeepingService {
       )
     }
 
-    const existing = await this.repository.findActiveDocumentLink(
-      input.actor.businessId,
-      input.recordId,
-      input.receiptId
-    )
-    if (existing) return existing
-
-    return this.repository.insertDocumentLink({
+    return this.repository.ensureDocumentLink({
       actor: input.actor,
       recordId: input.recordId,
       receiptId: input.receiptId,
@@ -207,5 +278,32 @@ export class CanonicalBookkeepingService {
       linkId: link.id,
       reason: input.reason.trim(),
     })
+  }
+
+  private async requireFinancialSource(
+    businessId: string,
+    financialTransactionId: string
+  ) {
+    const source = await this.repository.findFinancialSource(
+      businessId,
+      financialTransactionId
+    )
+    if (!source) {
+      throw new BookkeepingValidationError(
+        'Financial source evidence was not found for this Business.'
+      )
+    }
+    return source
+  }
+
+  private assertCurrencyMatches(
+    record: CanonicalBookkeepingRecord,
+    source: FinancialSourceEvidence
+  ) {
+    if (record.authoritativeCurrency !== source.currency) {
+      throw new BookkeepingValidationError(
+        'Financial source currency must match the bookkeeping record currency.'
+      )
+    }
   }
 }

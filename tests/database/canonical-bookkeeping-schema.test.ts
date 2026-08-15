@@ -51,6 +51,28 @@ describe('canonical bookkeeping database boundary', () => {
     )
     expect(migration).toContain('bookkeeping_decisions_one_initial_idx')
     expect(migration).toContain('bookkeeping_decisions_one_successor_idx')
+    expect(migration).toContain('bookkeeping_decisions_validate_chain')
+    expect(migration).toContain('only the first bookkeeping decision may be a root')
+    expect(migration).toContain(
+      'a correction must supersede the current bookkeeping decision'
+    )
+    expect(migration).toContain('bookkeeping_decisions_no_self_reference')
+  })
+
+  it('versions economic nature independently from business-use treatment', () => {
+    for (const nature of [
+      'expense',
+      'business_income',
+      'transfer',
+      'credit_card_payment',
+      'refund',
+      'owner_contribution',
+      'loan_proceeds',
+      'other_non_income',
+    ]) {
+      expect(migration).toContain(`'${nature}'`)
+    }
+    expect(migration).toContain('bookkeeping_decisions_resolved_nature_check')
   })
 
   it('checks allocation reconciliation at the end of the transaction', () => {
@@ -72,6 +94,13 @@ describe('canonical bookkeeping database boundary', () => {
     expect(migration).toContain('function public.append_bookkeeping_decision')
     expect(migration).toContain(
       'function public.attach_bookkeeping_financial_source'
+    )
+    expect(migration).toContain(
+      'function public.match_bookkeeping_source_with_correction'
+    )
+    expect(migration).toContain('function public.ensure_bookkeeping_document_link')
+    expect(migration).toContain(
+      'financial source currency must match bookkeeping record currency'
     )
     expect(migration).toContain(
       'bookkeeping decision changed; reload before correcting'

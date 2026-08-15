@@ -1,4 +1,9 @@
-import type {
+import {
+  BOOKKEEPING_NATURES,
+  BOOKKEEPING_TREATMENTS,
+  DECISION_PROVENANCE,
+  REVIEW_STATUSES,
+  type AllocationKind,
   BookkeepingAllocationInput,
   BookkeepingDecisionInput,
   BookkeepingTreatment,
@@ -84,6 +89,21 @@ export function validateBookkeepingDecision(
   recordAmountCents: number | null,
   decision: BookkeepingDecisionInput
 ) {
+  if (!BOOKKEEPING_TREATMENTS.includes(decision.treatment)) {
+    throw new BookkeepingValidationError('Bookkeeping treatment is not supported.')
+  }
+  if (!REVIEW_STATUSES.includes(decision.reviewStatus)) {
+    throw new BookkeepingValidationError('Review status is not supported.')
+  }
+  if (!DECISION_PROVENANCE.includes(decision.provenance)) {
+    throw new BookkeepingValidationError('Decision provenance is not supported.')
+  }
+  if (
+    decision.bookkeepingNature !== null &&
+    !BOOKKEEPING_NATURES.includes(decision.bookkeepingNature)
+  ) {
+    throw new BookkeepingValidationError('Bookkeeping nature is not supported.')
+  }
   if (decision.provenance === 'user' && decision.confidence != null) {
     throw new BookkeepingValidationError(
       'Confidence belongs to automated decisions, not explicit user decisions.'
@@ -103,6 +123,11 @@ export function validateBookkeepingDecision(
   ) {
     throw new BookkeepingValidationError(
       'Unresolved treatment must remain in review.'
+    )
+  }
+  if (decision.treatment !== 'unresolved' && decision.bookkeepingNature === null) {
+    throw new BookkeepingValidationError(
+      'A resolved decision requires a bookkeeping nature.'
     )
   }
   if (decision.treatment === 'unresolved') {
@@ -125,6 +150,13 @@ export function validateBookkeepingDecision(
   }
 
   for (const allocation of decision.allocations) {
+    if (
+      !(['business', 'personal', 'excluded'] as AllocationKind[]).includes(
+        allocation.kind
+      )
+    ) {
+      throw new BookkeepingValidationError('Allocation kind is not supported.')
+    }
     if (!Number.isSafeInteger(allocation.amountCents) || allocation.amountCents === 0) {
       throw new BookkeepingValidationError(
         'Allocation amounts must be non-zero integer cents.'
@@ -142,7 +174,8 @@ export function validateBookkeepingDecision(
     }
   }
 
-  if (allocationTotal(decision.allocations) !== recordAmountCents) {
+  const total = allocationTotal(decision.allocations)
+  if (!Number.isSafeInteger(total) || total !== recordAmountCents) {
     throw new BookkeepingValidationError(
       'Allocations must reconcile exactly to the record amount.'
     )

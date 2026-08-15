@@ -81,6 +81,7 @@ create table public.bookkeeping_decisions (
   business_id uuid not null references public.businesses(id) on delete restrict,
   bookkeeping_record_id uuid not null,
   supersedes_decision_id uuid,
+  bookkeeping_nature text,
   treatment text not null,
   review_status text not null,
   provenance text not null,
@@ -101,6 +102,19 @@ create table public.bookkeeping_decisions (
     on delete restrict,
   constraint bookkeeping_decisions_treatment_check check (
     treatment in ('unresolved', 'business', 'personal', 'mixed_use', 'excluded')
+  ),
+  constraint bookkeeping_decisions_nature_check check (
+    bookkeeping_nature is null
+    or bookkeeping_nature in (
+      'expense', 'business_income', 'transfer', 'credit_card_payment',
+      'refund', 'owner_contribution', 'loan_proceeds', 'other_non_income'
+    )
+  ),
+  constraint bookkeeping_decisions_resolved_nature_check check (
+    treatment = 'unresolved' or bookkeeping_nature is not null
+  ),
+  constraint bookkeeping_decisions_no_self_reference check (
+    supersedes_decision_id is null or supersedes_decision_id <> id
   ),
   constraint bookkeeping_decisions_review_status_check check (
     review_status in ('not_required', 'needs_review', 'in_review', 'resolved')
@@ -244,6 +258,10 @@ begin
   end if;
 
   if source_transaction.id is not null then
+    if selected_record.currency is distinct from source_transaction.currency then
+      raise exception 'financial source currency must match bookkeeping record currency';
+    end if;
+
     select decisions.treatment, coalesce(sum(allocations.amount_cents), 0)
     into current_treatment, current_allocation_total
     from public.bookkeeping_decisions as decisions
@@ -320,6 +338,46 @@ for each row execute function public.reject_canonical_bookkeeping_mutation();
 create trigger bookkeeping_allocations_reject_update
 before update or delete on public.bookkeeping_allocations
 for each row execute function public.reject_canonical_bookkeeping_mutation();
+
+create or replace function public.validate_bookkeeping_decision_chain()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.supersedes_decision_id is null then
+    if exists (
+      select 1 from public.bookkeeping_decisions
+      where business_id = new.business_id
+        and bookkeeping_record_id = new.bookkeeping_record_id
+    ) then
+      raise exception 'only the first bookkeeping decision may be a root';
+    end if;
+  else
+    if new.supersedes_decision_id = new.id then
+      raise exception 'a bookkeeping decision cannot supersede itself';
+    end if;
+    if not exists (
+      select 1
+      from public.bookkeeping_decisions as predecessor
+      where predecessor.id = new.supersedes_decision_id
+        and predecessor.business_id = new.business_id
+        and predecessor.bookkeeping_record_id = new.bookkeeping_record_id
+        and not exists (
+          select 1 from public.bookkeeping_decisions as successor
+          where successor.supersedes_decision_id = predecessor.id
+        )
+    ) then
+      raise exception 'a correction must supersede the current bookkeeping decision';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger bookkeeping_decisions_validate_chain
+before insert on public.bookkeeping_decisions
+for each row execute function public.validate_bookkeeping_decision_chain();
 
 create or replace function public.validate_bookkeeping_actor()
 returns trigger
@@ -712,6 +770,7 @@ create or replace function public.append_bookkeeping_decision(
   p_business_id uuid,
   p_bookkeeping_record_id uuid,
   p_expected_current_decision_id uuid,
+  p_bookkeeping_nature text,
   p_treatment text,
   p_review_status text,
   p_provenance text,
@@ -747,12 +806,12 @@ begin
   end if;
 
   insert into public.bookkeeping_decisions (
-    business_id, bookkeeping_record_id, supersedes_decision_id, treatment,
-    review_status, provenance, actor_user_id, confidence, reason,
-    business_purpose
+    business_id, bookkeeping_record_id, supersedes_decision_id,
+    bookkeeping_nature, treatment, review_status, provenance, actor_user_id,
+    confidence, reason, business_purpose
   ) values (
-    p_business_id, p_bookkeeping_record_id, current_decision_id, p_treatment,
-    p_review_status, p_provenance,
+    p_business_id, p_bookkeeping_record_id, current_decision_id,
+    p_bookkeeping_nature, p_treatment, p_review_status, p_provenance,
     case when p_provenance = 'user' then (select auth.uid()) else null end,
     p_confidence, p_reason, p_business_purpose
   )
@@ -777,9 +836,102 @@ end;
 $$;
 
 comment on function public.append_bookkeeping_decision(
-  uuid, uuid, uuid, text, text, text, numeric, text, text, jsonb
+  uuid, uuid, uuid, text, text, text, text, numeric, text, text, jsonb
 ) is
   'Atomically appends one decision and its allocations. Deferred constraints validate reconciliation before commit.';
+
+create or replace function public.match_bookkeeping_source_with_correction(
+  p_business_id uuid,
+  p_bookkeeping_record_id uuid,
+  p_financial_transaction_id uuid,
+  p_expected_current_decision_id uuid,
+  p_bookkeeping_nature text,
+  p_treatment text,
+  p_review_status text,
+  p_provenance text,
+  p_confidence numeric,
+  p_reason text,
+  p_business_purpose text,
+  p_allocations jsonb
+)
+returns uuid
+language plpgsql
+set search_path = ''
+as $$
+declare
+  matched_source_id uuid;
+  corrected_decision_id uuid;
+begin
+  matched_source_id := public.attach_bookkeeping_financial_source(
+    p_business_id,
+    p_bookkeeping_record_id,
+    p_financial_transaction_id,
+    p_provenance
+  );
+
+  corrected_decision_id := public.append_bookkeeping_decision(
+    p_business_id,
+    p_bookkeeping_record_id,
+    p_expected_current_decision_id,
+    p_bookkeeping_nature,
+    p_treatment,
+    p_review_status,
+    p_provenance,
+    p_confidence,
+    p_reason,
+    p_business_purpose,
+    p_allocations
+  );
+
+  return corrected_decision_id;
+end;
+$$;
+
+comment on function public.match_bookkeeping_source_with_correction(
+  uuid, uuid, uuid, uuid, text, text, text, text, numeric, text, text, jsonb
+) is
+  'Atomically attaches authoritative financial evidence and appends the required balanced correction.';
+
+create or replace function public.ensure_bookkeeping_document_link(
+  p_business_id uuid,
+  p_bookkeeping_record_id uuid,
+  p_receipt_id uuid,
+  p_provenance text
+)
+returns public.bookkeeping_document_links
+language plpgsql
+set search_path = ''
+as $$
+declare
+  selected_link public.bookkeeping_document_links%rowtype;
+begin
+  insert into public.bookkeeping_document_links (
+    business_id, bookkeeping_record_id, receipt_id, provenance, actor_user_id
+  ) values (
+    p_business_id, p_bookkeeping_record_id, p_receipt_id, p_provenance,
+    case when p_provenance = 'user' then (select auth.uid()) else null end
+  )
+  on conflict (bookkeeping_record_id, receipt_id)
+    where revoked_at is null do nothing
+  returning * into selected_link;
+
+  if selected_link.id is null then
+    select * into selected_link
+    from public.bookkeeping_document_links
+    where business_id = p_business_id
+      and bookkeeping_record_id = p_bookkeeping_record_id
+      and receipt_id = p_receipt_id
+      and revoked_at is null;
+  end if;
+
+  return selected_link;
+end;
+$$;
+
+comment on function public.ensure_bookkeeping_document_link(
+  uuid, uuid, uuid, text
+) is
+  'Atomically inserts or returns the active Business-scoped receipt relationship.';
 
 alter table public.bookkeeping_records enable row level security;
 alter table public.bookkeeping_financial_sources enable row level security;
