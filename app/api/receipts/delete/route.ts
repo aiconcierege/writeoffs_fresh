@@ -33,6 +33,7 @@ export async function POST(req: Request) {
     .from('receipts')
     .select('id, storage_path')
     .eq('id', id)
+    .eq('user_id', user.id)
     .maybeSingle()
 
   if (fetchErr) return NextResponse.json({ error: fetchErr.message }, { status: 400 })
@@ -47,7 +48,11 @@ export async function POST(req: Request) {
   }
 
   // 3) Delete the DB row
-  const { error: dbErr } = await supabase.from('receipts').delete().eq('id', id)
+  const { error: dbErr } = await supabase
+    .from('receipts')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id)
   if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 400 })
 
   return NextResponse.json({ ok: true })

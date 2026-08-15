@@ -11,7 +11,7 @@
  */
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 type Receipt = {
   id: string
@@ -75,7 +75,7 @@ export default function AttachReceipt({
   const txAbs = Math.abs(Number(txAmount ?? 0))
   const vendorWords = useMemo(() => tokenize(txVendor), [txVendor])
 
-  function score(r: Receipt) {
+  const score = useCallback((r: Receipt) => {
     let s = 0
     // Amount proximity (use absolute)
     const rh = typeof r.total_hint === 'number' ? Math.abs(r.total_hint) : null
@@ -98,13 +98,13 @@ export default function AttachReceipt({
     }
 
     return s
-  }
+  }, [txAbs, txDateObj, vendorWords])
 
   const ranked = useMemo(() => {
     const withScore = receipts.map(r => ({ r, s: score(r) }))
     withScore.sort((a, b) => b.s - a.s || new Date(b.r.created_at).getTime() - new Date(a.r.created_at).getTime())
     return withScore
-  }, [receipts, txDateObj, txAbs, vendorWords])
+  }, [receipts, score])
 
   const topId = ranked.length > 0 ? ranked[0].r.id : null
 

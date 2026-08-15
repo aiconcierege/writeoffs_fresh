@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../utils/supabase/client'
 import Link from 'next/link'
 
@@ -58,6 +58,22 @@ export default function ReceiptsInner() {
 
   const inputRef = useRef<HTMLInputElement>(null)
 
+  const refreshExisting = useCallback(async () => {
+    setListBusy(true); setListErr(null)
+    try {
+      const qs = new URLSearchParams({ limit: '50' })
+      if (showLinkedToo) qs.set('all', '1') // show linked and unlinked when toggled
+      const res = await fetch(`/api/receipts?${qs.toString()}`, { cache: 'no-store' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || 'Failed to load receipts')
+      setExisting(Array.isArray(data?.receipts) ? data.receipts as ExistingReceipt[] : [])
+    } catch (e: any) {
+      setListErr(e?.message || 'Failed to load receipts')
+    } finally {
+      setListBusy(false)
+    }
+  }, [showLinkedToo])
+
   useEffect(() => {
     let ignore = false
     ;(async () => {
@@ -73,23 +89,7 @@ export default function ReceiptsInner() {
       if (!session?.user) window.location.href = '/login'
     })
     return () => { ignore = true; sub.subscription.unsubscribe() }
-  }, [showLinkedToo])
-
-  async function refreshExisting() {
-    setListBusy(true); setListErr(null)
-    try {
-      const qs = new URLSearchParams({ limit: '50' })
-      if (showLinkedToo) qs.set('all', '1') // show linked and unlinked when toggled
-      const res = await fetch(`/api/receipts?${qs.toString()}`, { cache: 'no-store' })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.error || 'Failed to load receipts')
-      setExisting(Array.isArray(data?.receipts) ? data.receipts as ExistingReceipt[] : [])
-    } catch (e: any) {
-      setListErr(e?.message || 'Failed to load receipts')
-    } finally {
-      setListBusy(false)
-    }
-  }
+  }, [refreshExisting])
 
   function safeTestFileType(type: string): boolean {
     return /^(?:image\/.+|application\/pdf)$/.test(type || '')

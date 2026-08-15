@@ -29,6 +29,14 @@ describe('customer endpoint isolation', () => {
     expect(existsSync(join(root, 'app/api/debug/env/route.ts'))).toBe(false)
   })
 
+  it('does not expose the receipt diagnostics page', () => {
+    expect(existsSync(join(root, 'app/receipts/debug/page.tsx'))).toBe(false)
+  })
+
+  it('does not expose a user-facing mileage page during the initial product', () => {
+    expect(existsSync(join(root, 'app/mileage/page.tsx'))).toBe(false)
+  })
+
   it('does not expose the retired Teller token-exchange endpoint', () => {
     expect(existsSync(join(root, 'app/api/teller/token/route.ts'))).toBe(false)
   })

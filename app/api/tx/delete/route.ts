@@ -34,6 +34,7 @@ export async function POST(req: Request) {
     .from('transactions')
     .delete()
     .eq('id', id)
+    .eq('user_id', user.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   return NextResponse.json({ ok: true })
