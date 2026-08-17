@@ -5,6 +5,7 @@ import type {
   CanonicalRecordInput,
   DocumentationLink,
   FinancialSourceEvidence,
+  ResolvedFinancialTransactionRecord,
   StoredBookkeepingDecision,
 } from './model'
 import {
@@ -14,6 +15,7 @@ import {
 } from './validation'
 
 export interface BookkeepingRepository {
+  findBusinessIdForUser(userId: string): Promise<string | null>
   ensureRecord(input: {
     actor: BookkeepingActor
     record: CanonicalRecordInput
@@ -30,6 +32,10 @@ export interface BookkeepingRepository {
     businessId: string,
     financialTransactionId: string
   ): Promise<FinancialSourceEvidence | null>
+  findRecordByFinancialTransaction(
+    businessId: string,
+    financialTransactionId: string
+  ): Promise<CanonicalBookkeepingRecord | null>
   attachFinancialSource(input: {
     actor: BookkeepingActor
     recordId: string
@@ -92,6 +98,91 @@ export class CanonicalBookkeepingService {
       actor: input.actor,
       record: input.record,
     })
+  }
+
+  async resolveFinancialTransactionRecord(input: {
+    userId: string
+    financialTransactionId: string
+  }): Promise<ResolvedFinancialTransactionRecord> {
+    if (!input.userId.trim()) {
+      throw new BookkeepingValidationError('An authenticated user is required.')
+    }
+    if (!input.financialTransactionId.trim()) {
+      throw new BookkeepingValidationError(
+        'Financial source evidence is required.'
+      )
+    }
+
+    const businessId = await this.repository.findBusinessIdForUser(input.userId)
+    if (!businessId) {
+      throw new BookkeepingValidationError(
+        'Business was not found for the authenticated user.'
+      )
+    }
+    const actor: BookkeepingActor = {
+      businessId,
+      userId: input.userId,
+      provenance: 'user',
+    }
+    const source = await this.requireFinancialSource(
+      businessId,
+      input.financialTransactionId
+    )
+
+    let record = await this.repository.findRecordByFinancialTransaction(
+      businessId,
+      source.id
+    )
+    if (!record) {
+      try {
+        record = await this.ensureRecord({
+          actor,
+          record: {
+            sourceKind: 'financial_transaction',
+            financialTransactionId: source.id,
+            ingestionKey: `financial_transaction:${source.id}`,
+            amountCents: source.amountCents,
+            currency: source.currency,
+            occurredOn: source.occurredOn,
+          },
+        })
+      } catch (error) {
+        record = await this.repository.findRecordByFinancialTransaction(
+          businessId,
+          source.id
+        )
+        if (!record) throw error
+      }
+    }
+
+    let decision = await this.repository.findCurrentDecision(
+      businessId,
+      record.id
+    )
+    if (!decision) {
+      try {
+        decision = await this.recordDecision({
+          actor,
+          recordId: record.id,
+          expectedCurrentDecisionId: null,
+          decision: {
+            bookkeepingNature: null,
+            treatment: 'unresolved',
+            reviewStatus: 'needs_review',
+            reason: 'Awaiting bookkeeping review.',
+            allocations: [],
+          },
+        })
+      } catch (error) {
+        decision = await this.repository.findCurrentDecision(
+          businessId,
+          record.id
+        )
+        if (!decision) throw error
+      }
+    }
+
+    return { record, decision }
   }
 
   async recordDecision(input: {

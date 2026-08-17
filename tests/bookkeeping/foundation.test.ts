@@ -22,6 +22,15 @@ class MemoryBookkeepingRepository implements BookkeepingRepository {
   lastEnsureActor: BookkeepingActor | null = null
   nextId = 10
 
+  async findBusinessIdForUser(userId: string) {
+    const businessId = userId.endsWith('-owner')
+      ? userId.slice(0, -'-owner'.length)
+      : null
+    return this.records.some((record) => record.businessId === businessId)
+      ? businessId
+      : null
+  }
+
   async ensureRecord(input: {
     actor: BookkeepingActor
     record: CanonicalRecordInput
@@ -43,6 +52,9 @@ class MemoryBookkeepingRepository implements BookkeepingRepository {
       ingestionKey: input.record.ingestionKey,
     }
     this.records.push(record)
+    if (input.record.financialTransactionId) {
+      this.financialSources.set(record.id, input.record.financialTransactionId)
+    }
     return record
   }
 
@@ -81,6 +93,16 @@ class MemoryBookkeepingRepository implements BookkeepingRepository {
   async findFinancialSource(businessId: string, financialTransactionId: string) {
     const source = this.financialTransactions.get(financialTransactionId)
     return source?.businessId === businessId ? source : null
+  }
+
+  async findRecordByFinancialTransaction(
+    businessId: string,
+    financialTransactionId: string
+  ) {
+    const recordId = [...this.financialSources.entries()].find(
+      ([, sourceId]) => sourceId === financialTransactionId
+    )?.[0]
+    return recordId ? this.findRecord(businessId, recordId) : null
   }
 
   async attachFinancialSource(
@@ -130,6 +152,22 @@ class MemoryBookkeepingRepository implements BookkeepingRepository {
   async appendDecision(
     input: Parameters<BookkeepingRepository['appendDecision']>[0]
   ) {
+    const recordDecisions = this.decisions.filter(
+      (decision) =>
+        decision.businessId === input.actor.businessId &&
+        decision.bookkeepingRecordId === input.record.id
+    )
+    const conflictsWithRoot =
+      input.supersedesDecisionId === null && recordDecisions.length > 0
+    const conflictsWithSuccessor =
+      input.supersedesDecisionId !== null &&
+      recordDecisions.some(
+        (decision) =>
+          decision.supersedesDecisionId === input.supersedesDecisionId
+      )
+    if (conflictsWithRoot || conflictsWithSuccessor) {
+      throw new Error('bookkeeping decision changed; reload before correcting')
+    }
     const stored: StoredBookkeepingDecision = {
       ...input.decision,
       id: `decision-${this.nextId++}`,
@@ -220,6 +258,104 @@ function setup(amountCents: number | null = -10_000) {
 }
 
 describe('canonical bookkeeping behavior', () => {
+  it('resolves database-owned financial facts to one unresolved canonical record', async () => {
+    const { repository, service } = setup()
+    repository.financialTransactions.set('financial-new', {
+      id: 'financial-new',
+      businessId: 'business-1',
+      amountCents: -12_345,
+      currency: 'USD',
+      occurredOn: '2026-07-31',
+    })
+
+    const result = await service.resolveFinancialTransactionRecord({
+      userId: 'business-1-owner',
+      financialTransactionId: 'financial-new',
+    })
+
+    expect(result.record).toMatchObject({
+      businessId: 'business-1',
+      authoritativeAmountCents: -12_345,
+      authoritativeCurrency: 'USD',
+    })
+    expect(repository.financialSources.get(result.record.id)).toBe('financial-new')
+    expect(result.decision).toMatchObject({
+      bookkeepingNature: null,
+      treatment: 'unresolved',
+      reviewStatus: 'needs_review',
+      allocations: [],
+    })
+  })
+
+  it('reuses a record created through another canonical path and preserves its decision', async () => {
+    const { repository, service } = setup(-9_500)
+    repository.financialTransactions.set('financial-matched', {
+      id: 'financial-matched',
+      businessId: 'business-1',
+      amountCents: -10_000,
+      currency: 'USD',
+      occurredOn: '2026-08-02',
+    })
+    repository.financialSources.set('record-1', 'financial-matched')
+    const resolved = await service.recordDecision({
+      actor: userActor(),
+      recordId: 'record-1',
+      expectedCurrentDecisionId: null,
+      decision: {
+        bookkeepingNature: 'expense',
+        treatment: 'business',
+        reviewStatus: 'resolved',
+        allocations: [{ kind: 'business', amountCents: -10_000 }],
+      },
+    })
+
+    const result = await service.resolveFinancialTransactionRecord({
+      userId: 'business-1-owner',
+      financialTransactionId: 'financial-matched',
+    })
+
+    expect(result.record.id).toBe('record-1')
+    expect(result.decision.id).toBe(resolved.id)
+    expect(repository.records).toHaveLength(1)
+    expect(repository.decisions).toHaveLength(1)
+  })
+
+  it('concurrent resolution converges and rejects another Business source', async () => {
+    const { repository, service } = setup()
+    repository.financialTransactions.set('financial-race', {
+      id: 'financial-race',
+      businessId: 'business-1',
+      amountCents: 20_000,
+      currency: 'USD',
+      occurredOn: '2026-08-03',
+    })
+    repository.financialTransactions.set('financial-other', {
+      id: 'financial-other',
+      businessId: 'business-2',
+      amountCents: -500,
+      currency: 'USD',
+      occurredOn: '2026-08-03',
+    })
+
+    const results = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        service.resolveFinancialTransactionRecord({
+          userId: 'business-1-owner',
+          financialTransactionId: 'financial-race',
+        })
+      )
+    )
+
+    expect(new Set(results.map((result) => result.record.id))).toHaveLength(1)
+    expect(new Set(results.map((result) => result.decision.id))).toHaveLength(1)
+    await expect(
+      service.resolveFinancialTransactionRecord({
+        userId: 'business-1-owner',
+        financialTransactionId: 'financial-other',
+      })
+    ).rejects.toThrow('not found for this Business')
+  })
+
   it('creates canonical records idempotently per Business and ingestion key', async () => {
     const { repository, service } = setup()
     const record: CanonicalRecordInput = {
@@ -468,12 +604,14 @@ describe('canonical bookkeeping behavior', () => {
       businessId: 'business-1',
       amountCents: -10_000,
       currency: 'USD',
+      occurredOn: '2026-08-01',
     })
     repository.financialTransactions.set('financial-2', {
       id: 'financial-2',
       businessId: 'business-2',
       amountCents: -10_000,
       currency: 'USD',
+      occurredOn: '2026-08-01',
     })
 
     const first = await service.attachFinancialSource({
@@ -515,6 +653,7 @@ describe('canonical bookkeeping behavior', () => {
       businessId: 'business-1',
       amountCents: -10_000,
       currency: 'USD',
+      occurredOn: '2026-08-01',
     })
 
     await expect(
@@ -554,6 +693,7 @@ describe('canonical bookkeeping behavior', () => {
       businessId: 'business-1',
       amountCents: -10_000,
       currency: 'CAD',
+      occurredOn: '2026-08-01',
     })
 
     await expect(
@@ -573,6 +713,7 @@ describe('canonical bookkeeping behavior', () => {
       businessId: 'business-1',
       amountCents: -10_000,
       currency: 'USD',
+      occurredOn: '2026-08-01',
     })
     const originalAppend = repository.appendDecision.bind(repository)
     repository.appendDecision = async () => {

@@ -53,6 +53,12 @@ export type FinancialSourceEvidence = {
   businessId: string
   amountCents: number
   currency: string
+  occurredOn: string
+}
+
+export type ResolvedFinancialTransactionRecord = {
+  record: CanonicalBookkeepingRecord
+  decision: StoredBookkeepingDecision
 }
 
 export type CanonicalRecordInput = {
