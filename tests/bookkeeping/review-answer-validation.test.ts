@@ -3,6 +3,7 @@ import {
   validateBusinessPurposeAnswer,
   validateBusinessUseAnswer,
   validateMixedUseAmountAnswer,
+  validateTransactionTypeAnswer,
 } from '../../app/lib/bookkeeping/review-answer-validation'
 
 describe('business-purpose review answer validation', () => {
@@ -115,5 +116,72 @@ describe('mixed-use dollar answer validation', () => {
       businessAmountCents: 12000,
       ...extra,
     })).toThrow('Only schemaVersion and businessAmountCents')
+  })
+})
+
+describe('transaction-type factual answer validation', () => {
+  it.each([
+    'purchase', 'earned_money', 'moved_money', 'paid_card',
+    'received_refund', 'added_own_money', 'borrowed_money',
+  ] as const)('accepts the semantic %s activity', (activity) => {
+    expect(validateTransactionTypeAnswer({ schemaVersion: 1, activity })).toEqual({
+      schemaVersion: 1,
+      activity,
+    })
+  })
+
+  it('trims factual details for other', () => {
+    expect(validateTransactionTypeAnswer({
+      schemaVersion: 1,
+      activity: 'other',
+      details: '  Insurance proceeds from a damaged laptop  ',
+    })).toEqual({
+      schemaVersion: 1,
+      activity: 'other',
+      details: 'Insurance proceeds from a damaged laptop',
+    })
+  })
+
+  it('requires meaningful, bounded details for other', () => {
+    expect(() => validateTransactionTypeAnswer({
+      schemaVersion: 1, activity: 'other', details: '   ',
+    })).toThrow('required')
+    expect(() => validateTransactionTypeAnswer({
+      schemaVersion: 1, activity: 'other', details: 'x'.repeat(1001),
+    })).toThrow('1,000')
+  })
+
+  it.each([
+    ['bookkeeping nature', { bookkeepingNature: 'expense' }],
+    ['category', { category: 'Meals' }],
+    ['category key', { category_key: 'meals' }],
+    ['treatment', { treatment: 'business' }],
+    ['allocations', { allocations: [] }],
+    ['percentage', { percentage: 100 }],
+    ['confidence', { confidence: 1 }],
+    ['approval', { approval: true }],
+    ['approved', { approved: true }],
+    ['decision', { decision: {} }],
+    ['provenance', { provenance: 'user' }],
+    ['actor', { actorUserId: 'someone' }],
+  ])('rejects caller-supplied %s', (_label, extra) => {
+    expect(() => validateTransactionTypeAnswer({
+      schemaVersion: 1,
+      activity: 'purchase',
+      ...extra,
+    })).toThrow('Only schemaVersion and activity')
+  })
+
+  it('rejects internal nature values as semantic activities', () => {
+    expect(() => validateTransactionTypeAnswer({
+      schemaVersion: 1,
+      activity: 'business_income',
+    })).toThrow('not supported')
+    expect(() => validateTransactionTypeAnswer({
+      schemaVersion: 1,
+      activity: 'other',
+      details: 'Factual detail',
+      bookkeepingNature: 'other_non_income',
+    })).toThrow('factual details')
   })
 })

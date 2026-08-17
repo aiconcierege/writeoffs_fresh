@@ -2,12 +2,20 @@ import type {
   BusinessPurposeAnswer,
   BusinessUseAnswer,
   MixedUseAmountAnswer,
+  TransactionTypeAnswer,
 } from './review-answer-model'
+import { TRANSACTION_ACTIVITIES } from './review-answer-model'
 import { BookkeepingValidationError } from './validation'
 
 const ALLOWED_KEYS = new Set(['schemaVersion', 'businessPurpose'])
 const BUSINESS_USE_KEYS = new Set(['schemaVersion', 'use'])
 const MIXED_USE_KEYS = new Set(['schemaVersion', 'businessAmountCents'])
+const TRANSACTION_TYPE_KEYS = new Set(['schemaVersion', 'activity'])
+const OTHER_TRANSACTION_TYPE_KEYS = new Set([
+  'schemaVersion',
+  'activity',
+  'details',
+])
 
 function requireExactKeys(
   input: Record<string, unknown>,
@@ -98,5 +106,51 @@ export function validateMixedUseAmountAnswer(
   return {
     schemaVersion: 1,
     businessAmountCents: input.businessAmountCents,
+  }
+}
+
+export function validateTransactionTypeAnswer(
+  value: unknown
+): TransactionTypeAnswer {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new BookkeepingValidationError('A factual transaction answer is required.')
+  }
+  const input = value as Record<string, unknown>
+  if (input.schemaVersion !== 1) {
+    throw new BookkeepingValidationError('Answer schema version is not supported.')
+  }
+  if (input.activity === 'other') {
+    requireExactKeys(
+      input,
+      OTHER_TRANSACTION_TYPE_KEYS,
+      'Only schemaVersion, activity, and factual details are accepted for other.'
+    )
+    if (typeof input.details !== 'string') {
+      throw new BookkeepingValidationError('Factual details are required for other.')
+    }
+    const details = input.details.trim()
+    if (!details) {
+      throw new BookkeepingValidationError('Factual details are required for other.')
+    }
+    if (details.length > 1000) {
+      throw new BookkeepingValidationError(
+        'Transaction details must be 1,000 characters or fewer.'
+      )
+    }
+    return { schemaVersion: 1, activity: 'other', details }
+  }
+  requireExactKeys(
+    input,
+    TRANSACTION_TYPE_KEYS,
+    'Only schemaVersion and activity are accepted.'
+  )
+  if (!TRANSACTION_ACTIVITIES.includes(
+    input.activity as (typeof TRANSACTION_ACTIVITIES)[number]
+  )) {
+    throw new BookkeepingValidationError('Transaction activity is not supported.')
+  }
+  return {
+    schemaVersion: 1,
+    activity: input.activity as (typeof TRANSACTION_ACTIVITIES)[number],
   }
 }

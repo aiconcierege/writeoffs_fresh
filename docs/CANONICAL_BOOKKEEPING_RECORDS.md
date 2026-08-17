@@ -153,3 +153,18 @@ over-total amount is rejected. Once nature is known, the resulting user decision
 contains exact signed business and personal allocations; otherwise the amount is
 preserved and a typed transaction-nature issue is opened. Neither contract exposes
 percentages, allocation kinds, categories, treatment, confidence, or approval.
+
+`TRANSACTION_TYPE_UNCLEAR` asks only what happened. Its semantic activities map
+server-side to expense, business income, transfer, credit-card payment, refund,
+owner contribution, or loan proceeds; the customer never submits those canonical
+nature values. “Other” requires factual details and deliberately remains
+unresolved rather than becoming a catch-all `other_non_income` decision.
+
+The transaction-type answer verifies earlier Business, Personal, Both, and
+business-dollar answers from immutable answered-event history. A purchase reuses
+those facts to complete exact signed allocations or opens only the next missing
+typed issue. Transfers, card payments, owner funding, and loan proceeds are
+non-counted excluded activity. An unmatched refund remains unresolved for trusted
+agent processing, and earned money that conflicts with prior Personal or Both
+answers opens `CONFLICTING_EVIDENCE`. The answer, user decision, resolution, and
+any follow-up are one stale-safe database transaction.

@@ -18,6 +18,27 @@ export type MixedUseAmountAnswer = {
   businessAmountCents: number
 }
 
+export const TRANSACTION_ACTIVITIES = [
+  'purchase',
+  'earned_money',
+  'moved_money',
+  'paid_card',
+  'received_refund',
+  'added_own_money',
+  'borrowed_money',
+] as const
+
+export type TransactionTypeAnswer =
+  | {
+      schemaVersion: 1
+      activity: (typeof TRANSACTION_ACTIVITIES)[number]
+    }
+  | {
+      schemaVersion: 1
+      activity: 'other'
+      details: string
+    }
+
 export type StoredReviewAnswerResult = {
   answeredEvent: StoredWeeklyReviewEvent
   resolvedEvent: StoredWeeklyReviewEvent

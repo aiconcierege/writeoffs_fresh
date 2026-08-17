@@ -3,11 +3,13 @@ import type {
   BusinessPurposeAnswer,
   BusinessUseAnswer,
   MixedUseAmountAnswer,
+  TransactionTypeAnswer,
 } from './review-answer-model'
 import {
   validateBusinessPurposeAnswer,
   validateBusinessUseAnswer,
   validateMixedUseAmountAnswer,
+  validateTransactionTypeAnswer,
 } from './review-answer-validation'
 import { SupabaseBookkeepingRepository } from './supabase-repository'
 
@@ -79,5 +81,19 @@ export async function answerMixedUseReviewIssue(
     expectedContextFingerprint: input.expectedContextFingerprint,
     expectedEvidenceFingerprint: input.expectedEvidenceFingerprint,
     answer: validateMixedUseAmountAnswer(input.answer),
+  })
+}
+
+export async function answerTransactionTypeReviewIssue(
+  input: ReviewAnswerCommand<TransactionTypeAnswer>
+) {
+  await requireAuthenticatedUser(input.supabase)
+  return new SupabaseBookkeepingRepository(input.supabase).answerTransactionType({
+    reviewIssueId: input.reviewIssueId,
+    expectedCurrentEventId: input.expectedCurrentEventId,
+    expectedCurrentDecisionId: input.expectedCurrentDecisionId,
+    expectedContextFingerprint: input.expectedContextFingerprint,
+    expectedEvidenceFingerprint: input.expectedEvidenceFingerprint,
+    answer: validateTransactionTypeAnswer(input.answer),
   })
 }

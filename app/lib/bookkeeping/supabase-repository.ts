@@ -14,6 +14,7 @@ import type {
   BusinessUseAnswer,
   MixedUseAmountAnswer,
   StoredReviewAnswerResult,
+  TransactionTypeAnswer,
 } from './review-answer-model'
 import type { BookkeepingRepository } from './service'
 import type { WeeklyReviewRepository } from './review-events'
@@ -597,6 +598,21 @@ export class SupabaseBookkeepingRepository
     )
   }
 
+  async answerTransactionType(input: {
+    reviewIssueId: string
+    expectedCurrentEventId: string
+    expectedCurrentDecisionId: string
+    expectedContextFingerprint: string
+    expectedEvidenceFingerprint: string
+    answer: TransactionTypeAnswer
+  }): Promise<StoredReviewAnswerResult> {
+    return this.answerReviewRpc(
+      'answer_bookkeeping_transaction_type_review_issue',
+      'answer bookkeeping transaction-type review issue',
+      input
+    )
+  }
+
   private async answerReviewRpc(
     functionName: string,
     operation: string,
@@ -606,7 +622,7 @@ export class SupabaseBookkeepingRepository
       expectedCurrentDecisionId: string
       expectedContextFingerprint: string
       expectedEvidenceFingerprint: string
-      answer: BusinessUseAnswer | MixedUseAmountAnswer
+      answer: BusinessUseAnswer | MixedUseAmountAnswer | TransactionTypeAnswer
     }
   ): Promise<StoredReviewAnswerResult> {
     const { data, error } = await this.supabase.rpc(functionName, {
