@@ -60,11 +60,15 @@ function receiptClient({
   fetchError = null,
   storageError = null,
   deleteError = null,
+  canonicalLink = null,
+  canonicalLinkError = null,
 }: {
   row?: { id: string; storage_path: string } | null
   fetchError?: { message: string } | null
   storageError?: { message: string } | null
   deleteError?: { message: string } | null
+  canonicalLink?: { id: string } | null
+  canonicalLinkError?: { message: string } | null
 } = {}) {
   const maybeSingle = vi.fn(async () => ({ data: row, error: fetchError }))
   const selectScopeToUser = vi.fn(() => ({ maybeSingle }))
@@ -74,6 +78,14 @@ function receiptClient({
   const deleteScopeToUser = vi.fn(async () => ({ error: deleteError }))
   const deleteScopeToId = vi.fn(() => ({ eq: deleteScopeToUser }))
   const deleteRows = vi.fn(() => ({ eq: deleteScopeToId }))
+
+  const linkMaybeSingle = vi.fn(async () => ({
+    data: canonicalLink,
+    error: canonicalLinkError,
+  }))
+  const linkLimit = vi.fn(() => ({ maybeSingle: linkMaybeSingle }))
+  const linkEq = vi.fn(() => ({ limit: linkLimit }))
+  const linkSelect = vi.fn(() => ({ eq: linkEq }))
 
   const remove = vi.fn(async () => ({ error: storageError }))
   const storageFrom = vi.fn((bucket: string) => {
@@ -86,8 +98,9 @@ function receiptClient({
       getUser: vi.fn(async () => ({ data: { user }, error: null })),
     },
     from: vi.fn((name: string) => {
-      if (name !== 'receipts') throw new Error(`unexpected table: ${name}`)
-      return table
+      if (name === 'receipts') return table
+      if (name === 'bookkeeping_document_links') return { select: linkSelect }
+      throw new Error(`unexpected table: ${name}`)
     }),
     storage: { from: storageFrom },
   }
@@ -102,6 +115,7 @@ function receiptClient({
     selectScopeToId,
     selectScopeToUser,
     storageFrom,
+    linkSelect,
   }
 }
 
@@ -188,6 +202,29 @@ describe('legacy destructive API security', () => {
     expect(context.remove.mock.invocationCallOrder[0]).toBeLessThan(
       context.deleteRows.mock.invocationCallOrder[0]
     )
+  })
+
+  it('preserves canonically linked receipt evidence before storage deletion', async () => {
+    const context = receiptClient({ canonicalLink: { id: 'link-1' } })
+    createServerSupabase.mockResolvedValue(context.client)
+
+    const response = await deleteReceipt(request({ id: 'receipt-1' }))
+
+    expect(response.status).toBe(409)
+    expect(context.linkSelect).toHaveBeenCalledWith('id')
+    expect(context.remove).not.toHaveBeenCalled()
+    expect(context.deleteRows).not.toHaveBeenCalled()
+  })
+
+  it('treats revoked canonical links as protected receipt history', async () => {
+    const context = receiptClient({ canonicalLink: { id: 'revoked-link-1' } })
+    createServerSupabase.mockResolvedValue(context.client)
+
+    const response = await deleteReceipt(request({ id: 'receipt-1' }))
+
+    expect(response.status).toBe(409)
+    expect(context.remove).not.toHaveBeenCalled()
+    expect(context.deleteRows).not.toHaveBeenCalled()
   })
 
   it('does not delete receipt metadata when storage deletion fails', async () => {

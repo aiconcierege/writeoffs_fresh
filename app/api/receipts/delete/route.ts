@@ -39,6 +39,24 @@ export async function POST(req: Request) {
   if (fetchErr) return NextResponse.json({ error: fetchErr.message }, { status: 400 })
   if (!row) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
+  // Canonical document evidence is historical and must not be destroyed, even
+  // when its relationship has since been revoked.
+  const { data: canonicalLink, error: canonicalLinkError } = await supabase
+    .from('bookkeeping_document_links')
+    .select('id')
+    .eq('receipt_id', id)
+    .limit(1)
+    .maybeSingle()
+  if (canonicalLinkError) {
+    return NextResponse.json({ error: canonicalLinkError.message }, { status: 400 })
+  }
+  if (canonicalLink) {
+    return NextResponse.json(
+      { error: 'receipt is preserved as canonical bookkeeping evidence' },
+      { status: 409 }
+    )
+  }
+
   // 2) Delete the file from Storage (ignore if missing)
   const storagePath = row.storage_path as string
   const { error: storageErr } = await supabase.storage.from('receipts').remove([storagePath])
