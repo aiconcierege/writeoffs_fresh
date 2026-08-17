@@ -105,3 +105,19 @@ with compatibility reads retained until its data has an explicit migration polic
 
 This v1 foundation does not implement Weekly Review, reporting, provider sync,
 receipt matching UI, tax filing, or official tax forms.
+
+## Canonical Weekly Review foundation
+
+`bookkeeping_review_events` is a separate append-only history of specific material
+questions. An unresolved bookkeeping decision alone is agent-processing backlog;
+it does not enter customer Weekly Review until trusted processing opens one of the
+five approved typed issues. Current Weekly Review items are derived only from the
+leaf event of each issue, never from legacy transaction flags or category state.
+
+An issue begins with `opened`, may be `skipped` without being resolved, can be
+`resolved`, and can be `reopened` only with a new material-context fingerprint.
+The stable issue identity and predecessor chain prevent rewriting or branching
+history. Reprocessing the same issue key is idempotent even after resolution.
+Authenticated users may only skip their own Business's issue; narrow trusted
+operations open, resolve, and materially reopen issues. This foundation does not
+yet collect answers or alter bookkeeping decisions from review responses.

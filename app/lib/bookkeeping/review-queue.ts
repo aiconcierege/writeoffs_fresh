@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { CanonicalBookkeepingService } from './service'
+import { CanonicalWeeklyReviewService } from './review-events'
 import { SupabaseBookkeepingRepository } from './supabase-repository'
 
 export async function listCanonicalReviewQueue(input: {
@@ -11,7 +11,8 @@ export async function listCanonicalReviewQueue(input: {
   } = await input.supabase.auth.getUser()
   if (error || !user) throw new Error('An authenticated user is required.')
 
-  return new CanonicalBookkeepingService(
-    new SupabaseBookkeepingRepository(input.supabase)
-  ).listReviewQueueForUser(user.id)
+  const repository = new SupabaseBookkeepingRepository(input.supabase)
+  const businessId = await repository.findBusinessIdForUser(user.id)
+  if (!businessId) throw new Error('Business was not found for the authenticated user.')
+  return new CanonicalWeeklyReviewService(repository).listQueue(businessId)
 }

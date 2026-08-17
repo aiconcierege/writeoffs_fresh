@@ -81,6 +81,49 @@ export type CanonicalReviewQueueItem = {
   decision: StoredBookkeepingDecision
 }
 
+export const WEEKLY_REVIEW_REASONS = [
+  'BUSINESS_USE_UNCLEAR',
+  'BUSINESS_PURPOSE_NEEDED',
+  'MIXED_USE_CLARIFICATION',
+  'TRANSACTION_TYPE_UNCLEAR',
+  'CONFLICTING_EVIDENCE',
+] as const
+
+export type WeeklyReviewReason = (typeof WEEKLY_REVIEW_REASONS)[number]
+
+export const WEEKLY_REVIEW_EVENT_TYPES = [
+  'opened',
+  'skipped',
+  'resolved',
+  'reopened',
+] as const
+
+export type WeeklyReviewEventType = (typeof WEEKLY_REVIEW_EVENT_TYPES)[number]
+
+export type StoredWeeklyReviewEvent = {
+  id: string
+  businessId: string
+  bookkeepingRecordId: string
+  reviewIssueId: string
+  supersedesEventId: string | null
+  sequenceNumber: number
+  eventType: WeeklyReviewEventType
+  reason: WeeklyReviewReason
+  basedOnDecisionId: string
+  issueKey: string
+  contextFingerprint: string
+  deferredUntil: string | null
+  provenance: 'automation' | 'system' | 'user'
+  actorUserId: string | null
+  createdAt: string
+}
+
+export type CanonicalWeeklyReviewItem = {
+  record: CanonicalBookkeepingRecord
+  decision: StoredBookkeepingDecision
+  event: StoredWeeklyReviewEvent
+}
+
 export type CanonicalRecordInput = {
   sourceKind: 'financial_transaction' | 'receipt' | 'manual'
   financialTransactionId: string | null

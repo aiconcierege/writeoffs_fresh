@@ -182,20 +182,12 @@ describe.skipIf(!runLocal)('canonical agent decisions and review queue on local 
     ])
     expect(concurrent.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
 
-    const queueA = await listCanonicalReviewQueue({ supabase: a.supabase })
-    expect(queueA.map((item) => item.decision.id).sort()).toEqual(
-      [
-        needsReview.id,
-        unresolved.id,
-        (concurrent.find((result) => result.status === 'fulfilled') as PromiseFulfilledResult<typeof needsReview>).value.id,
-      ].sort()
-    )
-    expect(queueA.some((item) => item.decision.id === resolvedA[0].decision.id)).toBe(false)
-    expect(queueA.some((item) => item.decision.id === userDecision.id)).toBe(false)
-    expect(queueA.some((item) => item.record.businessId === resolvedB.record.businessId)).toBe(false)
-
-    const queueB = await listCanonicalReviewQueue({ supabase: b.supabase })
-    expect(queueB).toHaveLength(1)
-    expect(queueB[0].record.businessId).toBe(resolvedB.record.businessId)
+    // Decision review_status is coarse bookkeeping state. Without a typed material
+    // question, unresolved and needs-review decisions stay out of Weekly Review.
+    expect(needsReview.reviewStatus).toBe('needs_review')
+    expect(unresolved.reviewStatus).toBe('in_review')
+    expect(concurrent.some((result) => result.status === 'fulfilled')).toBe(true)
+    expect(await listCanonicalReviewQueue({ supabase: a.supabase })).toEqual([])
+    expect(await listCanonicalReviewQueue({ supabase: b.supabase })).toEqual([])
   })
 })

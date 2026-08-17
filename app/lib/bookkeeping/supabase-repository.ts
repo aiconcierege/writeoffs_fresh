@@ -7,8 +7,10 @@ import type {
   DocumentationLink,
   FinancialSourceEvidence,
   StoredBookkeepingDecision,
+  StoredWeeklyReviewEvent,
 } from './model'
 import type { BookkeepingRepository } from './service'
+import type { WeeklyReviewRepository } from './review-events'
 
 type DatabaseRow = Record<string, unknown>
 
@@ -101,7 +103,28 @@ function mapDocumentLink(row: DatabaseRow): DocumentationLink {
   }
 }
 
-export class SupabaseBookkeepingRepository implements BookkeepingRepository {
+function mapWeeklyReviewEvent(row: DatabaseRow): StoredWeeklyReviewEvent {
+  return {
+    id: requiredString(row, 'id'),
+    businessId: requiredString(row, 'business_id'),
+    bookkeepingRecordId: requiredString(row, 'bookkeeping_record_id'),
+    reviewIssueId: requiredString(row, 'review_issue_id'),
+    supersedesEventId: nullableString(row, 'supersedes_event_id'),
+    sequenceNumber: Number(row.sequence_number),
+    eventType: requiredString(row, 'event_type') as StoredWeeklyReviewEvent['eventType'],
+    reason: requiredString(row, 'reason') as StoredWeeklyReviewEvent['reason'],
+    basedOnDecisionId: requiredString(row, 'based_on_decision_id'),
+    issueKey: requiredString(row, 'issue_key'),
+    contextFingerprint: requiredString(row, 'context_fingerprint'),
+    deferredUntil: nullableString(row, 'deferred_until'),
+    provenance: requiredString(row, 'provenance') as StoredWeeklyReviewEvent['provenance'],
+    actorUserId: nullableString(row, 'actor_user_id'),
+    createdAt: requiredString(row, 'created_at'),
+  }
+}
+
+export class SupabaseBookkeepingRepository
+  implements BookkeepingRepository, WeeklyReviewRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
   async findBusinessIdForUser(userId: string) {
@@ -423,6 +446,89 @@ export class SupabaseBookkeepingRepository implements BookkeepingRepository {
         return { record, decision }
       })
     )
+  }
+
+  async openReviewIssue(input: Parameters<WeeklyReviewRepository['openReviewIssue']>[0]) {
+    const { data, error } = await this.supabase.rpc('open_bookkeeping_review_issue', {
+      p_business_id: input.businessId,
+      p_bookkeeping_record_id: input.recordId,
+      p_based_on_decision_id: input.decisionId,
+      p_reason: input.reason,
+      p_issue_key: input.issueKey,
+      p_context_fingerprint: input.contextFingerprint,
+    })
+    if (error) fail('open bookkeeping review issue', error)
+    return this.requireReviewEvent(input.businessId, data)
+  }
+
+  async skipReviewIssue(input: Parameters<WeeklyReviewRepository['skipReviewIssue']>[0]) {
+    const { data, error } = await this.supabase.rpc('skip_bookkeeping_review_issue', {
+      p_business_id: input.businessId,
+      p_review_issue_id: input.issueId,
+      p_expected_current_event_id: input.expectedCurrentEventId,
+      p_deferred_until: input.deferredUntil,
+    })
+    if (error) fail('skip bookkeeping review issue', error)
+    return this.requireReviewEvent(input.businessId, data)
+  }
+
+  async resolveReviewIssue(input: Parameters<WeeklyReviewRepository['resolveReviewIssue']>[0]) {
+    const { data, error } = await this.supabase.rpc('resolve_bookkeeping_review_issue', {
+      p_business_id: input.businessId,
+      p_review_issue_id: input.issueId,
+      p_expected_current_event_id: input.expectedCurrentEventId,
+    })
+    if (error) fail('resolve bookkeeping review issue', error)
+    return this.requireReviewEvent(input.businessId, data)
+  }
+
+  async reopenReviewIssue(input: Parameters<WeeklyReviewRepository['reopenReviewIssue']>[0]) {
+    const { data, error } = await this.supabase.rpc('reopen_bookkeeping_review_issue', {
+      p_business_id: input.businessId,
+      p_review_issue_id: input.issueId,
+      p_expected_current_event_id: input.expectedCurrentEventId,
+      p_based_on_decision_id: input.decisionId,
+      p_context_fingerprint: input.contextFingerprint,
+    })
+    if (error) fail('reopen bookkeeping review issue', error)
+    return this.requireReviewEvent(input.businessId, data)
+  }
+
+  async listCurrentWeeklyReviewItems(businessId: string, asOf: string) {
+    const { data, error } = await this.supabase.rpc('list_current_bookkeeping_review_issues', {
+      p_business_id: businessId,
+      p_as_of: asOf,
+    })
+    if (error) fail('list current bookkeeping review issues', error)
+    return Promise.all(
+      ((data ?? []) as DatabaseRow[]).map(async (row) => {
+        const event = mapWeeklyReviewEvent(row)
+        const [record, decision] = await Promise.all([
+          this.findRecord(businessId, event.bookkeepingRecordId),
+          this.findDecisionById(businessId, event.basedOnDecisionId),
+        ])
+        if (!record || !decision) {
+          fail('map bookkeeping review issue', {
+            message: 'review issue record or decision is missing',
+          })
+        }
+        return { record, decision, event }
+      })
+    )
+  }
+
+  private async requireReviewEvent(businessId: string, value: unknown) {
+    if (typeof value !== 'string') {
+      fail('load bookkeeping review event', { message: 'no id returned' })
+    }
+    const { data, error } = await this.supabase
+      .from('bookkeeping_review_events')
+      .select('*')
+      .eq('business_id', businessId)
+      .eq('id', value)
+      .single()
+    if (error) fail('load bookkeeping review event', error)
+    return mapWeeklyReviewEvent(data)
   }
 
   private async findDecisionById(businessId: string, decisionId: string) {
