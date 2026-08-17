@@ -192,3 +192,29 @@ conflict-specific fingerprint. The selected outcome is revalidated against the
 authoritative amount and canonical constraints. A new user-provenance decision,
 answer event, resolution, and optional typed follow-up commit atomically. Prior
 answers and losing interpretations remain immutable history.
+
+## Canonical documentation risk
+
+Documentation risk is separate from bookkeeping decisions and Weekly Review.
+`bookkeeping_documentation_events` preserves a Business-scoped append-only chain
+for a specific missing-supporting-documentation request. An otherwise supportable
+expense keeps its established nature, treatment, allocations, category, business
+purpose, and review status when its receipt is unavailable.
+
+The first customer assertion is exactly `receipt_lost`; it accepts no note, risk
+score, category, treatment, approval, or evidence identity. One authenticated
+database transaction verifies the current request leaf and canonical evidence
+fingerprint, appends the user assertion, and appends a system resolution. The
+resolved issue leaves the outstanding documentation queue and ordinary processing
+returns that resolved leaf instead of recreating the request.
+
+Reopening is trusted-only and requires both materially new context and a changed
+canonical evidence fingerprint. A receipt that remains missing after Receipt Lost
+is not new context. The schema reserves `evidence_attached`, but this slice does
+not alter receipt matching or create document links; later integration must append
+evidence history atomically with the real canonical link.
+
+Future documentation reporting can combine immutable Receipt Lost history with
+current document-link evidence to distinguish missing documentation, later-found
+evidence, and weaker support. None of those states claims IRS compliance or changes
+bookkeeping truth.

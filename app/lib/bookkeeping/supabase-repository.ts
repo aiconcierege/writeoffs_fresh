@@ -20,6 +20,13 @@ import type {
 import type { BookkeepingRepository } from './service'
 import type { WeeklyReviewRepository } from './review-events'
 import type { TrustedConflictQuestion } from './conflict-model'
+import type {
+  DocumentationRepository,
+} from './documentation-events'
+import type {
+  ReceiptLostResult,
+  StoredDocumentationEvent,
+} from './documentation-model'
 
 type DatabaseRow = Record<string, unknown>
 
@@ -143,8 +150,29 @@ function mapWeeklyReviewEvent(row: DatabaseRow): StoredWeeklyReviewEvent {
   }
 }
 
+function mapDocumentationEvent(row: DatabaseRow): StoredDocumentationEvent {
+  return {
+    id: requiredString(row, 'id'),
+    businessId: requiredString(row, 'business_id'),
+    bookkeepingRecordId: requiredString(row, 'bookkeeping_record_id'),
+    documentationIssueId: requiredString(row, 'documentation_issue_id'),
+    supersedesEventId: nullableString(row, 'supersedes_event_id'),
+    sequenceNumber: Number(row.sequence_number),
+    eventType: requiredString(row, 'event_type') as StoredDocumentationEvent['eventType'],
+    reason: requiredString(row, 'reason') as StoredDocumentationEvent['reason'],
+    issueKey: requiredString(row, 'issue_key'),
+    contextFingerprint: requiredString(row, 'context_fingerprint'),
+    evidenceFingerprint: requiredString(row, 'evidence_fingerprint'),
+    questionContext: nullableObject(row, 'question_context'),
+    assertionPayload: nullableObject(row, 'assertion_payload'),
+    provenance: requiredString(row, 'provenance') as StoredDocumentationEvent['provenance'],
+    actorUserId: nullableString(row, 'actor_user_id'),
+    createdAt: requiredString(row, 'created_at'),
+  }
+}
+
 export class SupabaseBookkeepingRepository
-  implements BookkeepingRepository, WeeklyReviewRepository {
+  implements BookkeepingRepository, WeeklyReviewRepository, DocumentationRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
   async findBusinessIdForUser(userId: string) {
@@ -649,6 +677,80 @@ export class SupabaseBookkeepingRepository
     return this.requireReviewEvent(input.businessId, data)
   }
 
+  async openDocumentationRequest(
+    input: Parameters<DocumentationRepository['openDocumentationRequest']>[0]
+  ) {
+    const { data, error } = await this.supabase.rpc(
+      'open_bookkeeping_documentation_request',
+      {
+        p_business_id: input.businessId,
+        p_bookkeeping_record_id: input.recordId,
+        p_reason: input.reason,
+        p_issue_key: input.issueKey,
+        p_context_fingerprint: input.contextFingerprint,
+        p_question_context: input.questionContext,
+      }
+    )
+    if (error) fail('open bookkeeping documentation request', error)
+    return this.requireDocumentationEvent(input.businessId, data)
+  }
+
+  async markReceiptLost(
+    input: Parameters<DocumentationRepository['markReceiptLost']>[0]
+  ): Promise<ReceiptLostResult> {
+    const { data, error } = await this.supabase.rpc(
+      'mark_bookkeeping_receipt_lost',
+      {
+        p_documentation_issue_id: input.issueId,
+        p_expected_current_event_id: input.expectedCurrentEventId,
+        p_expected_context_fingerprint: input.expectedContextFingerprint,
+        p_expected_evidence_fingerprint: input.expectedEvidenceFingerprint,
+        p_assertion: input.answer,
+      }
+    )
+    if (error) fail('mark bookkeeping receipt lost', error)
+    const row = oneRow(data)
+    if (!row) fail('mark bookkeeping receipt lost', { message: 'no result returned' })
+    const businessId = requiredString(row, 'business_id')
+    const [receiptLostEvent, resolvedEvent] = await Promise.all([
+      this.loadDocumentationEvent(
+        businessId,
+        requiredString(row, 'receipt_lost_event_id')
+      ),
+      this.loadDocumentationEvent(
+        businessId,
+        requiredString(row, 'resolved_event_id')
+      ),
+    ])
+    return { receiptLostEvent, resolvedEvent }
+  }
+
+  async reopenDocumentationRequest(
+    input: Parameters<DocumentationRepository['reopenDocumentationRequest']>[0]
+  ) {
+    const { data, error } = await this.supabase.rpc(
+      'reopen_bookkeeping_documentation_request',
+      {
+        p_business_id: input.businessId,
+        p_documentation_issue_id: input.issueId,
+        p_expected_current_event_id: input.expectedCurrentEventId,
+        p_context_fingerprint: input.contextFingerprint,
+        p_question_context: input.questionContext,
+      }
+    )
+    if (error) fail('reopen bookkeeping documentation request', error)
+    return this.requireDocumentationEvent(input.businessId, data)
+  }
+
+  async listOutstandingDocumentationRequests(businessId: string) {
+    const { data, error } = await this.supabase.rpc(
+      'list_current_bookkeeping_documentation_requests',
+      { p_business_id: businessId }
+    )
+    if (error) fail('list bookkeeping documentation requests', error)
+    return ((data ?? []) as DatabaseRow[]).map(mapDocumentationEvent)
+  }
+
   private async answerReviewRpc(
     functionName: string,
     operation: string,
@@ -703,6 +805,24 @@ export class SupabaseBookkeepingRepository
       fail('load bookkeeping review event', { message: 'no id returned' })
     }
     return this.loadReviewEvent(businessId, value)
+  }
+
+  private async requireDocumentationEvent(businessId: string, value: unknown) {
+    if (typeof value !== 'string') {
+      fail('load bookkeeping documentation event', { message: 'no id returned' })
+    }
+    return this.loadDocumentationEvent(businessId, value)
+  }
+
+  private async loadDocumentationEvent(businessId: string, eventId: string) {
+    const { data, error } = await this.supabase
+      .from('bookkeeping_documentation_events')
+      .select('*')
+      .eq('business_id', businessId)
+      .eq('id', eventId)
+      .single()
+    if (error) fail('load bookkeeping documentation event', error)
+    return mapDocumentationEvent(data)
   }
 
   private async loadReviewEvent(businessId: string, eventId: string) {
