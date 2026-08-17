@@ -61,6 +61,26 @@ export type ResolvedFinancialTransactionRecord = {
   decision: StoredBookkeepingDecision
 }
 
+export type AutomatedDecisionBasis = {
+  evidenceSufficient: boolean
+  ruleKey: string | null
+  ruleAllowed: boolean
+  businessPurposeSupported: boolean
+  mixedUseAllocationSupported: boolean
+}
+
+export type AutomatedDecisionProposal = Omit<
+  BookkeepingDecisionInput,
+  'provenance'
+> & {
+  basis: AutomatedDecisionBasis
+}
+
+export type CanonicalReviewQueueItem = {
+  record: CanonicalBookkeepingRecord
+  decision: StoredBookkeepingDecision
+}
+
 export type CanonicalRecordInput = {
   sourceKind: 'financial_transaction' | 'receipt' | 'manual'
   financialTransactionId: string | null

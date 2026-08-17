@@ -8,6 +8,7 @@ import {
   BookkeepingDecisionInput,
   BookkeepingTreatment,
   CanonicalRecordInput,
+  AutomatedDecisionProposal,
 } from './model'
 
 export class BookkeepingValidationError extends Error {
@@ -181,4 +182,49 @@ export function validateBookkeepingDecision(
     )
   }
   assertKinds(decision.treatment, decision.allocations)
+}
+
+export function validateAutomatedDecisionProposal(
+  recordAmountCents: number | null,
+  proposal: AutomatedDecisionProposal
+) {
+  if (proposal.confidence == null) {
+    throw new BookkeepingValidationError(
+      'Automated decisions require an explicit confidence value.'
+    )
+  }
+  if (!proposal.reason?.trim()) {
+    throw new BookkeepingValidationError(
+      'Automated decisions require a plain-language explanation.'
+    )
+  }
+  if (proposal.businessPurpose && !proposal.basis.businessPurposeSupported) {
+    throw new BookkeepingValidationError(
+      'Business purpose cannot be inferred without supporting evidence.'
+    )
+  }
+  if (
+    proposal.treatment === 'mixed_use' &&
+    !proposal.basis.mixedUseAllocationSupported
+  ) {
+    throw new BookkeepingValidationError(
+      'Mixed-use allocations require supporting evidence or an approved rule.'
+    )
+  }
+  if (
+    proposal.treatment !== 'unresolved' &&
+    (!proposal.basis.evidenceSufficient ||
+      !proposal.basis.ruleAllowed ||
+      !proposal.basis.ruleKey?.trim())
+  ) {
+    throw new BookkeepingValidationError(
+      'Automated resolution requires sufficient evidence and an allowed rule.'
+    )
+  }
+
+  validateBookkeepingDecision(recordAmountCents, {
+    ...proposal,
+    reason: proposal.reason.trim(),
+    provenance: 'automation',
+  })
 }

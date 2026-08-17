@@ -7,11 +7,14 @@ import type {
   FinancialSourceEvidence,
   ResolvedFinancialTransactionRecord,
   StoredBookkeepingDecision,
+  AutomatedDecisionProposal,
+  CanonicalReviewQueueItem,
 } from './model'
 import {
   BookkeepingValidationError,
   validateCanonicalRecordInput,
   validateBookkeepingDecision,
+  validateAutomatedDecisionProposal,
 } from './validation'
 
 export interface BookkeepingRepository {
@@ -28,6 +31,10 @@ export interface BookkeepingRepository {
     businessId: string,
     recordId: string
   ): Promise<StoredBookkeepingDecision | null>
+  ensureInitialUnresolvedDecision(
+    businessId: string,
+    recordId: string
+  ): Promise<StoredBookkeepingDecision>
   findFinancialSource(
     businessId: string,
     financialTransactionId: string
@@ -70,6 +77,9 @@ export interface BookkeepingRepository {
     linkId: string
     reason: string
   }): Promise<DocumentationLink>
+  listCurrentReviewItems(
+    businessId: string
+  ): Promise<CanonicalReviewQueueItem[]>
 }
 
 function assertActor(actor: BookkeepingActor) {
@@ -161,18 +171,10 @@ export class CanonicalBookkeepingService {
     )
     if (!decision) {
       try {
-        decision = await this.recordDecision({
-          actor,
-          recordId: record.id,
-          expectedCurrentDecisionId: null,
-          decision: {
-            bookkeepingNature: null,
-            treatment: 'unresolved',
-            reviewStatus: 'needs_review',
-            reason: 'Awaiting bookkeeping review.',
-            allocations: [],
-          },
-        })
+        decision = await this.repository.ensureInitialUnresolvedDecision(
+          businessId,
+          record.id
+        )
       } catch (error) {
         decision = await this.repository.findCurrentDecision(
           businessId,
@@ -224,6 +226,75 @@ export class CanonicalBookkeepingService {
       supersedesDecisionId: current?.id ?? null,
       decision,
     })
+  }
+
+  async recordAutomatedDecision(input: {
+    businessId: string
+    recordId: string
+    expectedCurrentDecisionId: string
+    proposal: AutomatedDecisionProposal
+  }) {
+    const actor: BookkeepingActor = {
+      businessId: input.businessId,
+      userId: null,
+      provenance: 'automation',
+    }
+    const record = await this.repository.findRecord(
+      input.businessId,
+      input.recordId
+    )
+    if (!record) {
+      throw new BookkeepingValidationError(
+        'Bookkeeping record was not found for this Business.'
+      )
+    }
+    const current = await this.repository.findCurrentDecision(
+      input.businessId,
+      input.recordId
+    )
+    if (!current || current.id !== input.expectedCurrentDecisionId) {
+      throw new BookkeepingValidationError(
+        'The bookkeeping decision changed; reevaluate before saving.'
+      )
+    }
+    if (current.provenance === 'user') {
+      throw new BookkeepingValidationError(
+        'An automated decision cannot silently supersede a user decision.'
+      )
+    }
+
+    validateAutomatedDecisionProposal(
+      record.authoritativeAmountCents,
+      input.proposal
+    )
+    return this.repository.appendDecision({
+      actor,
+      record,
+      supersedesDecisionId: current.id,
+      decision: {
+        bookkeepingNature: input.proposal.bookkeepingNature,
+        treatment: input.proposal.treatment,
+        reviewStatus: input.proposal.reviewStatus,
+        provenance: 'automation',
+        confidence: input.proposal.confidence,
+        reason: input.proposal.reason?.trim(),
+        businessPurpose: input.proposal.businessPurpose,
+        allocations: input.proposal.allocations,
+      },
+    })
+  }
+
+  async listReviewQueueForUser(userId: string) {
+    if (!userId.trim()) {
+      throw new BookkeepingValidationError('An authenticated user is required.')
+    }
+    const businessId = await this.repository.findBusinessIdForUser(userId)
+    if (!businessId) {
+      throw new BookkeepingValidationError(
+        'Business was not found for the authenticated user.'
+      )
+    }
+    return this.repository.listCurrentReviewItems(businessId)
   }
 
   async attachFinancialSource(input: {

@@ -218,6 +218,27 @@ export class SupabaseBookkeepingRepository implements BookkeepingRepository {
     return mapDecision(current, allocations)
   }
 
+  async ensureInitialUnresolvedDecision(businessId: string, recordId: string) {
+    const { data, error } = await this.supabase.rpc(
+      'ensure_initial_bookkeeping_decision',
+      {
+        p_business_id: businessId,
+        p_bookkeeping_record_id: recordId,
+      }
+    )
+    if (error) fail('ensure initial bookkeeping decision', error)
+    if (typeof data !== 'string') {
+      fail('ensure initial bookkeeping decision', { message: 'no id returned' })
+    }
+    const decision = await this.findDecisionById(businessId, data)
+    if (!decision) {
+      fail('ensure initial bookkeeping decision', {
+        message: 'initial decision was not found',
+      })
+    }
+    return decision
+  }
+
   async findFinancialSource(businessId: string, financialTransactionId: string) {
     const { data, error } = await this.supabase
       .from('financial_transactions')
@@ -362,6 +383,46 @@ export class SupabaseBookkeepingRepository implements BookkeepingRepository {
       .single()
     if (error) fail('revoke document link', error)
     return mapDocumentLink(data)
+  }
+
+  async listCurrentReviewItems(businessId: string) {
+    const { data: candidates, error: candidateError } = await this.supabase
+      .from('bookkeeping_decisions')
+      .select('id,bookkeeping_record_id,created_at')
+      .eq('business_id', businessId)
+      .in('review_status', ['needs_review', 'in_review'])
+      .order('created_at', { ascending: true })
+    if (candidateError) fail('list review candidates', candidateError)
+
+    const { data: successors, error: successorError } = await this.supabase
+      .from('bookkeeping_decisions')
+      .select('supersedes_decision_id')
+      .eq('business_id', businessId)
+      .not('supersedes_decision_id', 'is', null)
+    if (successorError) fail('find superseded review decisions', successorError)
+    const superseded = new Set(
+      ((successors ?? []) as DatabaseRow[])
+        .map((row) => nullableString(row, 'supersedes_decision_id'))
+        .filter((id): id is string => Boolean(id))
+    )
+
+    const currentCandidates = ((candidates ?? []) as DatabaseRow[]).filter(
+      (row) => !superseded.has(requiredString(row, 'id'))
+    )
+    return Promise.all(
+      currentCandidates.map(async (candidate) => {
+        const recordId = requiredString(candidate, 'bookkeeping_record_id')
+        const decisionId = requiredString(candidate, 'id')
+        const [record, decision] = await Promise.all([
+          this.findRecord(businessId, recordId),
+          this.findDecisionById(businessId, decisionId),
+        ])
+        if (!record || !decision) {
+          fail('map review queue', { message: 'current review item is missing' })
+        }
+        return { record, decision }
+      })
+    )
   }
 
   private async findDecisionById(businessId: string, decisionId: string) {

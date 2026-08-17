@@ -90,6 +90,28 @@ class MemoryBookkeepingRepository implements BookkeepingRepository {
     return decisions.find((decision) => !superseded.has(decision.id)) ?? null
   }
 
+  async ensureInitialUnresolvedDecision(businessId: string, recordId: string) {
+    const existing = await this.findCurrentDecision(businessId, recordId)
+    if (existing) return existing
+    const record = await this.findRecord(businessId, recordId)
+    if (!record) throw new Error('record not found')
+    return this.appendDecision({
+      actor: { businessId, userId: null, provenance: 'system' },
+      record,
+      supersedesDecisionId: null,
+      decision: {
+        bookkeepingNature: null,
+        treatment: 'unresolved',
+        reviewStatus: 'needs_review',
+        provenance: 'system',
+        confidence: null,
+        reason: 'Awaiting bookkeeping review.',
+        businessPurpose: null,
+        allocations: [],
+      },
+    })
+  }
+
   async findFinancialSource(businessId: string, financialTransactionId: string) {
     const source = this.financialTransactions.get(financialTransactionId)
     return source?.businessId === businessId ? source : null
@@ -238,6 +260,27 @@ class MemoryBookkeepingRepository implements BookkeepingRepository {
     link.revocationReason = input.reason
     return link
   }
+
+  async listCurrentReviewItems(businessId: string) {
+    const superseded = new Set(
+      this.decisions
+        .map((decision) => decision.supersedesDecisionId)
+        .filter((id): id is string => Boolean(id))
+    )
+    return this.decisions
+      .filter(
+        (decision) =>
+          decision.businessId === businessId &&
+          !superseded.has(decision.id) &&
+          ['needs_review', 'in_review'].includes(decision.reviewStatus)
+      )
+      .map((decision) => ({
+        record: this.records.find(
+          (record) => record.id === decision.bookkeepingRecordId
+        )!,
+        decision,
+      }))
+  }
 }
 
 const userActor = (businessId = 'business-1'): BookkeepingActor => ({
@@ -258,6 +301,237 @@ function setup(amountCents: number | null = -10_000) {
 }
 
 describe('canonical bookkeeping behavior', () => {
+  const automatedBasis = {
+    evidenceSufficient: true,
+    ruleKey: 'merchant_rule_v1',
+    ruleAllowed: true,
+    businessPurposeSupported: false,
+    mixedUseAllocationSupported: false,
+  }
+
+  it('appends structured automated decisions without mutating history', async () => {
+    for (const amount of [-10_000, 10_000]) {
+      const { repository, service } = setup(amount)
+      const initial = await service.recordDecision({
+        actor: { businessId: 'business-1', userId: null, provenance: 'system' },
+        recordId: 'record-1',
+        expectedCurrentDecisionId: null,
+        decision: {
+          bookkeepingNature: null,
+          treatment: 'unresolved',
+          reviewStatus: 'needs_review',
+          allocations: [],
+        },
+      })
+      const resolved = await service.recordAutomatedDecision({
+        businessId: 'business-1',
+        recordId: 'record-1',
+        expectedCurrentDecisionId: initial.id,
+        proposal: {
+          bookkeepingNature: amount < 0 ? 'expense' : 'business_income',
+          treatment: 'business',
+          reviewStatus: 'not_required',
+          confidence: 0.96,
+          reason: 'An approved recurring rule matches the available evidence.',
+          allocations: [{ kind: 'business', amountCents: amount }],
+          basis: automatedBasis,
+        },
+      })
+      expect(resolved.provenance).toBe('automation')
+      expect(resolved.supersedesDecisionId).toBe(initial.id)
+      expect(repository.decisions).toHaveLength(2)
+      expect(repository.decisions[0]).toEqual(initial)
+    }
+  })
+
+  it('preserves resolved needs-review and unresolved review decisions', async () => {
+    const { service } = setup()
+    const initial = await service.recordDecision({
+      actor: { businessId: 'business-1', userId: null, provenance: 'system' },
+      recordId: 'record-1',
+      expectedCurrentDecisionId: null,
+      decision: {
+        bookkeepingNature: null,
+        treatment: 'unresolved',
+        reviewStatus: 'needs_review',
+        allocations: [],
+      },
+    })
+    const proposed = await service.recordAutomatedDecision({
+      businessId: 'business-1',
+      recordId: 'record-1',
+      expectedCurrentDecisionId: initial.id,
+      proposal: {
+        bookkeepingNature: 'expense',
+        treatment: 'business',
+        reviewStatus: 'needs_review',
+        confidence: 0.75,
+        reason: 'The evidence supports an expense, but human attention remains required.',
+        allocations: [{ kind: 'business', amountCents: -10_000 }],
+        basis: automatedBasis,
+      },
+    })
+    expect(proposed.treatment).toBe('business')
+    expect(proposed.reviewStatus).toBe('needs_review')
+  })
+
+  it('rejects stale proposals and silent overrides of user decisions', async () => {
+    const { service } = setup()
+    const userDecision = await service.recordDecision({
+      actor: userActor(),
+      recordId: 'record-1',
+      expectedCurrentDecisionId: null,
+      decision: {
+        bookkeepingNature: 'expense',
+        treatment: 'personal',
+        reviewStatus: 'resolved',
+        allocations: [{ kind: 'personal', amountCents: -10_000 }],
+      },
+    })
+    const command = {
+      businessId: 'business-1',
+      recordId: 'record-1',
+      proposal: {
+        bookkeepingNature: 'expense' as const,
+        treatment: 'business' as const,
+        reviewStatus: 'not_required' as const,
+        confidence: 0.99,
+        reason: 'Automated proposal.',
+        allocations: [{ kind: 'business' as const, amountCents: -10_000 }],
+        basis: automatedBasis,
+      },
+    }
+    await expect(
+      service.recordAutomatedDecision({
+        ...command,
+        expectedCurrentDecisionId: userDecision.id,
+      })
+    ).rejects.toThrow('cannot silently supersede')
+    await expect(
+      service.recordAutomatedDecision({
+        ...command,
+        expectedCurrentDecisionId: 'stale-decision',
+      })
+    ).rejects.toThrow('reevaluate')
+  })
+
+  it('requires evidence and an allowed rule rather than confidence alone', async () => {
+    const { service } = setup()
+    const initial = await service.recordDecision({
+      actor: { businessId: 'business-1', userId: null, provenance: 'system' },
+      recordId: 'record-1',
+      expectedCurrentDecisionId: null,
+      decision: {
+        bookkeepingNature: null,
+        treatment: 'unresolved',
+        reviewStatus: 'needs_review',
+        allocations: [],
+      },
+    })
+    await expect(
+      service.recordAutomatedDecision({
+        businessId: 'business-1',
+        recordId: 'record-1',
+        expectedCurrentDecisionId: initial.id,
+        proposal: {
+          bookkeepingNature: 'expense',
+          treatment: 'business',
+          reviewStatus: 'not_required',
+          confidence: 1,
+          reason: 'Confidence without evidence is insufficient.',
+          businessPurpose: 'Fabricated purpose',
+          allocations: [{ kind: 'business', amountCents: -10_000 }],
+          basis: {
+            ...automatedBasis,
+            evidenceSufficient: false,
+            ruleAllowed: false,
+            businessPurposeSupported: false,
+          },
+        },
+      })
+    ).rejects.toThrow(/Business purpose|sufficient evidence/)
+  })
+
+  it('validates mixed-use support and concurrent proposals', async () => {
+    const { repository, service } = setup()
+    const initial = await service.recordDecision({
+      actor: { businessId: 'business-1', userId: null, provenance: 'system' },
+      recordId: 'record-1',
+      expectedCurrentDecisionId: null,
+      decision: {
+        bookkeepingNature: null,
+        treatment: 'unresolved',
+        reviewStatus: 'needs_review',
+        allocations: [],
+      },
+    })
+    const proposal = {
+      bookkeepingNature: 'expense' as const,
+      treatment: 'mixed_use' as const,
+      reviewStatus: 'needs_review' as const,
+      confidence: 0.8,
+      reason: 'Evidence supports a mixed-use allocation.',
+      allocations: [
+        { kind: 'business' as const, amountCents: -6_000 },
+        { kind: 'personal' as const, amountCents: -4_000 },
+      ],
+      basis: { ...automatedBasis, mixedUseAllocationSupported: true },
+    }
+    await expect(
+      service.recordAutomatedDecision({
+        businessId: 'business-1',
+        recordId: 'record-1',
+        expectedCurrentDecisionId: initial.id,
+        proposal: {
+          ...proposal,
+          basis: { ...automatedBasis, mixedUseAllocationSupported: false },
+        },
+      })
+    ).rejects.toThrow('Mixed-use allocations require supporting evidence')
+    const results = await Promise.allSettled([
+      service.recordAutomatedDecision({
+        businessId: 'business-1', recordId: 'record-1',
+        expectedCurrentDecisionId: initial.id, proposal,
+      }),
+      service.recordAutomatedDecision({
+        businessId: 'business-1', recordId: 'record-1',
+        expectedCurrentDecisionId: initial.id, proposal,
+      }),
+    ])
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
+    expect(repository.decisions).toHaveLength(2)
+  })
+
+  it('queues only current review decisions for the authenticated Business', async () => {
+    const { repository, service } = setup()
+    const initial = await service.recordDecision({
+      actor: { businessId: 'business-1', userId: null, provenance: 'system' },
+      recordId: 'record-1', expectedCurrentDecisionId: null,
+      decision: { bookkeepingNature: null, treatment: 'unresolved', reviewStatus: 'needs_review', allocations: [] },
+    })
+    await service.recordAutomatedDecision({
+      businessId: 'business-1', recordId: 'record-1',
+      expectedCurrentDecisionId: initial.id,
+      proposal: {
+        bookkeepingNature: 'expense', treatment: 'business',
+        reviewStatus: 'not_required', confidence: 0.98,
+        reason: 'Resolved by approved rule.',
+        allocations: [{ kind: 'business', amountCents: -10_000 }],
+        basis: automatedBasis,
+      },
+    })
+    repository.records.push({
+      id: 'record-2', businessId: 'business-1',
+      authoritativeAmountCents: -2_000, authoritativeCurrency: 'USD',
+    })
+    await service.recordDecision({
+      actor: { businessId: 'business-1', userId: null, provenance: 'system' },
+      recordId: 'record-2', expectedCurrentDecisionId: null,
+      decision: { bookkeepingNature: null, treatment: 'unresolved', reviewStatus: 'in_review', allocations: [] },
+    })
+    const queue = await service.listReviewQueueForUser('business-1-owner')
+    expect(queue.map((item) => item.record.id)).toEqual(['record-2'])
+  })
   it('resolves database-owned financial facts to one unresolved canonical record', async () => {
     const { repository, service } = setup()
     repository.financialTransactions.set('financial-new', {
