@@ -15,6 +15,7 @@ const config = [
       'next-env.d.ts',
       'public/**/*.min.*',
       'backups/**',
+      'supabase/.temp/**',
       '**/*.disabled.*',
     ],
   },

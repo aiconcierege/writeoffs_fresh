@@ -939,6 +939,51 @@ alter table public.bookkeeping_decisions enable row level security;
 alter table public.bookkeeping_allocations enable row level security;
 alter table public.bookkeeping_document_links enable row level security;
 
+grant select, insert on public.bookkeeping_records to authenticated;
+grant select, insert, update on public.bookkeeping_financial_sources to authenticated;
+grant select, insert on public.bookkeeping_decisions to authenticated;
+grant select, insert on public.bookkeeping_allocations to authenticated;
+grant select, insert, update on public.bookkeeping_document_links to authenticated;
+grant select on public.businesses, public.financial_transactions, public.receipts
+  to authenticated;
+grant select, insert on public.bookkeeping_records to service_role;
+grant select, insert, update on public.bookkeeping_financial_sources to service_role;
+grant select, insert on public.bookkeeping_decisions to service_role;
+grant select, insert on public.bookkeeping_allocations to service_role;
+grant select, insert, update on public.bookkeeping_document_links to service_role;
+grant select on public.businesses, public.financial_transactions, public.receipts
+  to service_role;
+revoke execute on function public.ensure_bookkeeping_record(
+  uuid, text, uuid, text, text, bigint, text, date
+) from public, anon;
+grant execute on function public.ensure_bookkeeping_record(
+  uuid, text, uuid, text, text, bigint, text, date
+) to authenticated, service_role;
+revoke execute on function public.attach_bookkeeping_financial_source(
+  uuid, uuid, uuid, text
+) from public, anon;
+grant execute on function public.attach_bookkeeping_financial_source(
+  uuid, uuid, uuid, text
+) to authenticated, service_role;
+revoke execute on function public.append_bookkeeping_decision(
+  uuid, uuid, uuid, text, text, text, text, numeric, text, text, jsonb
+) from public, anon;
+grant execute on function public.append_bookkeeping_decision(
+  uuid, uuid, uuid, text, text, text, text, numeric, text, text, jsonb
+) to authenticated, service_role;
+revoke execute on function public.match_bookkeeping_source_with_correction(
+  uuid, uuid, uuid, uuid, text, text, text, text, numeric, text, text, jsonb
+) from public, anon;
+grant execute on function public.match_bookkeeping_source_with_correction(
+  uuid, uuid, uuid, uuid, text, text, text, text, numeric, text, text, jsonb
+) to authenticated, service_role;
+revoke execute on function public.ensure_bookkeeping_document_link(
+  uuid, uuid, uuid, text
+) from public, anon;
+grant execute on function public.ensure_bookkeeping_document_link(
+  uuid, uuid, uuid, text
+) to authenticated, service_role;
+
 create policy "bookkeeping_records_select_own_business"
   on public.bookkeeping_records for select to authenticated
   using (exists (

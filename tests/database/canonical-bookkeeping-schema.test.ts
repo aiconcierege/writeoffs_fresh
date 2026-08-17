@@ -125,6 +125,33 @@ describe('canonical bookkeeping database boundary', () => {
     expect(migration).toContain(
       'businesses.owner_user_id = (select auth.uid())'
     )
+    expect(migration).toContain(
+      'grant select, insert on public.bookkeeping_records to authenticated'
+    )
+    expect(migration).toContain(
+      'grant select, insert, update on public.bookkeeping_financial_sources to authenticated'
+    )
+    expect(migration).toContain(
+      'grant select, insert on public.bookkeeping_decisions to authenticated'
+    )
+    expect(migration).toContain(
+      'grant select, insert on public.bookkeeping_allocations to authenticated'
+    )
+    expect(migration).toContain(
+      'grant select, insert, update on public.bookkeeping_document_links to authenticated'
+    )
+    expect(migration).toContain(
+      'grant select on public.businesses, public.financial_transactions, public.receipts'
+    )
+    expect(migration).toContain(
+      'grant execute on function public.ensure_bookkeeping_record'
+    )
+    expect(migration).toContain(
+      'grant execute on function public.match_bookkeeping_source_with_correction'
+    )
+    expect(migration).toContain('from public, anon')
+    expect(migration).toContain('to authenticated, service_role')
+    expect(migration).not.toMatch(/grant[^;]*delete[^;]*authenticated/i)
   })
 
   it('does not backfill or alter compatibility receipts and transactions', () => {
