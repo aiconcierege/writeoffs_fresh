@@ -18,6 +18,7 @@ export interface WeeklyReviewRepository {
     reason: WeeklyReviewReason
     issueKey: string
     contextFingerprint: string
+    questionContext?: Record<string, unknown> | null
   }): Promise<StoredWeeklyReviewEvent>
   skipReviewIssue(input: {
     businessId: string
@@ -37,6 +38,7 @@ export interface WeeklyReviewRepository {
     expectedCurrentEventId: string
     decisionId: string
     contextFingerprint: string
+    questionContext?: Record<string, unknown> | null
   }): Promise<StoredWeeklyReviewEvent>
   listCurrentWeeklyReviewItems(
     businessId: string,
@@ -59,12 +61,14 @@ export class CanonicalWeeklyReviewService {
     reason: string
     issueKey: string
     contextFingerprint: string
+    questionContext?: Record<string, unknown> | null
   }) {
     const identity = validateReviewIssueIdentity(input)
     return this.repository.openReviewIssue({
       businessId: required(input.businessId, 'Business'),
       recordId: required(input.recordId, 'Bookkeeping record'),
       decisionId: required(input.decisionId, 'Bookkeeping decision'),
+      questionContext: input.questionContext ?? null,
       ...identity,
     })
   }

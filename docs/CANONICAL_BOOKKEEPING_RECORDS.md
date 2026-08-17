@@ -120,4 +120,21 @@ The stable issue identity and predecessor chain prevent rewriting or branching
 history. Reprocessing the same issue key is idempotent even after resolution.
 Authenticated users may only skip their own Business's issue; narrow trusted
 operations open, resolve, and materially reopen issues. This foundation does not
-yet collect answers or alter bookkeeping decisions from review responses.
+alter bookkeeping decisions from unsupported review responses.
+
+`BUSINESS_PURPOSE_NEEDED` is the first supported factual answer. Its customer
+contract contains only a schema version and plain-language business purpose. One
+authenticated database operation verifies the current issue leaf, current decision
+leaf, trusted question context, and a fingerprint of canonical source/document
+evidence. It then copies the established nature, treatment, allocations, internal
+category mapping, and explanation into a new user-provenance decision, adds only
+the trimmed factual purpose, and appends `answered` and `resolved` events. All
+records commit together or all roll back. The other four review reasons reject
+answers until their separately validated factual mappings are implemented.
+
+Evidence fingerprints cover the canonical record and authoritative amount and
+currency, the active financial-source association, and document-link history
+including revocation state. Evidence-link mutations and answers take the same
+record-level transaction lock, preventing a stale answer from racing a source or
+document association change. This answer path does not write legacy transactions,
+receipt links, categories, UI state, or documentation-risk state.

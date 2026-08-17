@@ -93,6 +93,7 @@ export type WeeklyReviewReason = (typeof WEEKLY_REVIEW_REASONS)[number]
 
 export const WEEKLY_REVIEW_EVENT_TYPES = [
   'opened',
+  'answered',
   'skipped',
   'resolved',
   'reopened',
@@ -112,6 +113,10 @@ export type StoredWeeklyReviewEvent = {
   basedOnDecisionId: string
   issueKey: string
   contextFingerprint: string
+  evidenceFingerprint: string | null
+  questionContext: Record<string, unknown> | null
+  answerPayload: Record<string, unknown> | null
+  resultingDecisionId: string | null
   deferredUntil: string | null
   provenance: 'automation' | 'system' | 'user'
   actorUserId: string | null

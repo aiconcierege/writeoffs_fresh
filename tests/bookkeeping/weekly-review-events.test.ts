@@ -21,6 +21,7 @@ class MemoryWeeklyReviewRepository implements WeeklyReviewRepository {
   async openReviewIssue(input: {
     businessId: string; recordId: string; decisionId: string
     reason: WeeklyReviewReason; issueKey: string; contextFingerprint: string
+    questionContext?: Record<string, unknown> | null
   }) {
     const existing = this.events.find((event) =>
       event.eventType === 'opened' && event.businessId === input.businessId &&
@@ -34,6 +35,8 @@ class MemoryWeeklyReviewRepository implements WeeklyReviewRepository {
       reviewIssueId: id, supersedesEventId: null, sequenceNumber: 1,
       eventType: 'opened', reason: input.reason, basedOnDecisionId: input.decisionId,
       issueKey: input.issueKey, contextFingerprint: input.contextFingerprint,
+      evidenceFingerprint: null, questionContext: input.questionContext ?? null,
+      answerPayload: null, resultingDecisionId: null,
       deferredUntil: null, provenance: 'automation', actorUserId: null,
       createdAt: new Date().toISOString(),
     }

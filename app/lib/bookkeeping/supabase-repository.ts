@@ -9,6 +9,10 @@ import type {
   StoredBookkeepingDecision,
   StoredWeeklyReviewEvent,
 } from './model'
+import type {
+  BusinessPurposeAnswer,
+  StoredReviewAnswerResult,
+} from './review-answer-model'
 import type { BookkeepingRepository } from './service'
 import type { WeeklyReviewRepository } from './review-events'
 
@@ -48,6 +52,13 @@ function requiredString(row: DatabaseRow, key: string) {
 function nullableString(row: DatabaseRow, key: string) {
   const value = row[key]
   return typeof value === 'string' ? value : null
+}
+
+function nullableObject(row: DatabaseRow, key: string) {
+  const value = row[key]
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
 }
 
 function mapRecord(row: DatabaseRow): CanonicalBookkeepingRecord {
@@ -116,6 +127,10 @@ function mapWeeklyReviewEvent(row: DatabaseRow): StoredWeeklyReviewEvent {
     basedOnDecisionId: requiredString(row, 'based_on_decision_id'),
     issueKey: requiredString(row, 'issue_key'),
     contextFingerprint: requiredString(row, 'context_fingerprint'),
+    evidenceFingerprint: nullableString(row, 'evidence_fingerprint'),
+    questionContext: nullableObject(row, 'question_context'),
+    answerPayload: nullableObject(row, 'answer_payload'),
+    resultingDecisionId: nullableString(row, 'resulting_decision_id'),
     deferredUntil: nullableString(row, 'deferred_until'),
     provenance: requiredString(row, 'provenance') as StoredWeeklyReviewEvent['provenance'],
     actorUserId: nullableString(row, 'actor_user_id'),
@@ -449,13 +464,14 @@ export class SupabaseBookkeepingRepository
   }
 
   async openReviewIssue(input: Parameters<WeeklyReviewRepository['openReviewIssue']>[0]) {
-    const { data, error } = await this.supabase.rpc('open_bookkeeping_review_issue', {
+    const { data, error } = await this.supabase.rpc('open_bookkeeping_review_issue_v2', {
       p_business_id: input.businessId,
       p_bookkeeping_record_id: input.recordId,
       p_based_on_decision_id: input.decisionId,
       p_reason: input.reason,
       p_issue_key: input.issueKey,
       p_context_fingerprint: input.contextFingerprint,
+      p_question_context: input.questionContext ?? null,
     })
     if (error) fail('open bookkeeping review issue', error)
     return this.requireReviewEvent(input.businessId, data)
@@ -517,15 +533,51 @@ export class SupabaseBookkeepingRepository
     )
   }
 
+  async answerBusinessPurpose(input: {
+    reviewIssueId: string
+    expectedCurrentEventId: string
+    expectedCurrentDecisionId: string
+    expectedContextFingerprint: string
+    expectedEvidenceFingerprint: string
+    answer: BusinessPurposeAnswer
+  }): Promise<StoredReviewAnswerResult> {
+    const { data, error } = await this.supabase.rpc(
+      'answer_bookkeeping_business_purpose_review_issue',
+      {
+        p_review_issue_id: input.reviewIssueId,
+        p_expected_current_event_id: input.expectedCurrentEventId,
+        p_expected_current_decision_id: input.expectedCurrentDecisionId,
+        p_expected_context_fingerprint: input.expectedContextFingerprint,
+        p_expected_evidence_fingerprint: input.expectedEvidenceFingerprint,
+        p_answer: input.answer,
+      }
+    )
+    if (error) fail('answer bookkeeping business-purpose review issue', error)
+    const result = oneRow(data)
+    if (!result) fail('answer bookkeeping business-purpose review issue', { message: 'no result returned' })
+    const businessId = requiredString(result, 'business_id')
+    const [answeredEvent, resolvedEvent, decision] = await Promise.all([
+      this.loadReviewEvent(businessId, requiredString(result, 'answered_event_id')),
+      this.loadReviewEvent(businessId, requiredString(result, 'resolved_event_id')),
+      this.findDecisionById(businessId, requiredString(result, 'decision_id')),
+    ])
+    if (!decision) fail('answer bookkeeping business-purpose review issue', { message: 'decision is missing' })
+    return { answeredEvent, resolvedEvent, decision }
+  }
+
   private async requireReviewEvent(businessId: string, value: unknown) {
     if (typeof value !== 'string') {
       fail('load bookkeeping review event', { message: 'no id returned' })
     }
+    return this.loadReviewEvent(businessId, value)
+  }
+
+  private async loadReviewEvent(businessId: string, eventId: string) {
     const { data, error } = await this.supabase
       .from('bookkeeping_review_events')
       .select('*')
       .eq('business_id', businessId)
-      .eq('id', value)
+      .eq('id', eventId)
       .single()
     if (error) fail('load bookkeeping review event', error)
     return mapWeeklyReviewEvent(data)
