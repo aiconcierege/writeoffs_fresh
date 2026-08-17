@@ -11,6 +11,8 @@ import type {
 } from './model'
 import type {
   BusinessPurposeAnswer,
+  BusinessUseAnswer,
+  MixedUseAmountAnswer,
   StoredReviewAnswerResult,
 } from './review-answer-model'
 import type { BookkeepingRepository } from './service'
@@ -562,7 +564,84 @@ export class SupabaseBookkeepingRepository
       this.findDecisionById(businessId, requiredString(result, 'decision_id')),
     ])
     if (!decision) fail('answer bookkeeping business-purpose review issue', { message: 'decision is missing' })
-    return { answeredEvent, resolvedEvent, decision }
+    return { answeredEvent, resolvedEvent, decision, followUpEvent: null }
+  }
+
+  async answerBusinessUse(input: {
+    reviewIssueId: string
+    expectedCurrentEventId: string
+    expectedCurrentDecisionId: string
+    expectedContextFingerprint: string
+    expectedEvidenceFingerprint: string
+    answer: BusinessUseAnswer
+  }): Promise<StoredReviewAnswerResult> {
+    return this.answerReviewRpc(
+      'answer_bookkeeping_business_use_review_issue',
+      'answer bookkeeping business-use review issue',
+      input
+    )
+  }
+
+  async answerMixedUse(input: {
+    reviewIssueId: string
+    expectedCurrentEventId: string
+    expectedCurrentDecisionId: string
+    expectedContextFingerprint: string
+    expectedEvidenceFingerprint: string
+    answer: MixedUseAmountAnswer
+  }): Promise<StoredReviewAnswerResult> {
+    return this.answerReviewRpc(
+      'answer_bookkeeping_mixed_use_review_issue',
+      'answer bookkeeping mixed-use review issue',
+      input
+    )
+  }
+
+  private async answerReviewRpc(
+    functionName: string,
+    operation: string,
+    input: {
+      reviewIssueId: string
+      expectedCurrentEventId: string
+      expectedCurrentDecisionId: string
+      expectedContextFingerprint: string
+      expectedEvidenceFingerprint: string
+      answer: BusinessUseAnswer | MixedUseAmountAnswer
+    }
+  ): Promise<StoredReviewAnswerResult> {
+    const { data, error } = await this.supabase.rpc(functionName, {
+      p_review_issue_id: input.reviewIssueId,
+      p_expected_current_event_id: input.expectedCurrentEventId,
+      p_expected_current_decision_id: input.expectedCurrentDecisionId,
+      p_expected_context_fingerprint: input.expectedContextFingerprint,
+      p_expected_evidence_fingerprint: input.expectedEvidenceFingerprint,
+      p_answer: input.answer,
+    })
+    if (error) fail(operation, error)
+    const result = oneRow(data)
+    if (!result) fail(operation, { message: 'no result returned' })
+    const businessId = requiredString(result, 'business_id')
+    const followUpEventId = nullableString(result, 'follow_up_event_id')
+    const [answeredEvent, resolvedEvent, decision, followUpEvent] =
+      await Promise.all([
+        this.loadReviewEvent(
+          businessId,
+          requiredString(result, 'answered_event_id')
+        ),
+        this.loadReviewEvent(
+          businessId,
+          requiredString(result, 'resolved_event_id')
+        ),
+        this.findDecisionById(
+          businessId,
+          requiredString(result, 'decision_id')
+        ),
+        followUpEventId
+          ? this.loadReviewEvent(businessId, followUpEventId)
+          : Promise.resolve(null),
+      ])
+    if (!decision) fail(operation, { message: 'decision is missing' })
+    return { answeredEvent, resolvedEvent, decision, followUpEvent }
   }
 
   private async requireReviewEvent(businessId: string, value: unknown) {

@@ -138,3 +138,18 @@ including revocation state. Evidence-link mutations and answers take the same
 record-level transaction lock, preventing a stale answer from racing a source or
 document association change. This answer path does not write legacy transactions,
 receipt links, categories, UI state, or documentation-risk state.
+
+`BUSINESS_USE_UNCLEAR` accepts only the factual choices Business, Personal, or
+Both. With a known bookkeeping nature, Business or Personal creates a complete
+user decision using the full authoritative signed amount. Without a known nature,
+the answer remains preserved while a typed `TRANSACTION_TYPE_UNCLEAR` issue is
+opened atomically. Both never creates partial mixed-use allocations: it closes the
+business-use issue and atomically opens `MIXED_USE_CLARIFICATION`.
+
+The mixed-use customer contract accepts only a positive business amount in whole
+cents. WriteOffs applies the authoritative transaction sign and derives the
+personal remainder by exact subtraction. A zero, negative, fractional, full, or
+over-total amount is rejected. Once nature is known, the resulting user decision
+contains exact signed business and personal allocations; otherwise the amount is
+preserved and a typed transaction-nature issue is opened. Neither contract exposes
+percentages, allocation kinds, categories, treatment, confidence, or approval.
