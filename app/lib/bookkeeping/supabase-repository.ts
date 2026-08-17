@@ -165,6 +165,11 @@ function mapDocumentationEvent(row: DatabaseRow): StoredDocumentationEvent {
     evidenceFingerprint: requiredString(row, 'evidence_fingerprint'),
     questionContext: nullableObject(row, 'question_context'),
     assertionPayload: nullableObject(row, 'assertion_payload'),
+    documentLinkId: nullableString(row, 'bookkeeping_document_link_id'),
+    evidenceSatisfiesRequest:
+      typeof row.evidence_satisfies_request === 'boolean'
+        ? row.evidence_satisfies_request
+        : null,
     provenance: requiredString(row, 'provenance') as StoredDocumentationEvent['provenance'],
     actorUserId: nullableString(row, 'actor_user_id'),
     createdAt: requiredString(row, 'created_at'),
@@ -440,6 +445,22 @@ export class SupabaseBookkeepingRepository
     return mapDocumentLink(row)
   }
 
+  async attachReceiptWithDocumentation(
+    input: Parameters<BookkeepingRepository['attachReceiptWithDocumentation']>[0]
+  ) {
+    const { data, error } = await this.supabase.rpc(
+      'attach_bookkeeping_receipt_with_documentation',
+      {
+        p_bookkeeping_record_id: input.recordId,
+        p_receipt_id: input.receiptId,
+      }
+    )
+    if (error) fail('attach receipt with documentation history', error)
+    const row = oneRow(data)
+    if (!row) fail('attach receipt with documentation history', { message: 'no row returned' })
+    return mapDocumentLink(row)
+  }
+
   async revokeDocumentLink(input: Parameters<BookkeepingRepository['revokeDocumentLink']>[0]) {
     const { data, error } = await this.supabase
       .from('bookkeeping_document_links')
@@ -454,6 +475,23 @@ export class SupabaseBookkeepingRepository
       .single()
     if (error) fail('revoke document link', error)
     return mapDocumentLink(data)
+  }
+
+
+  async revokeReceiptLinkWithDocumentation(
+    input: Parameters<BookkeepingRepository['revokeReceiptLinkWithDocumentation']>[0]
+  ) {
+    const { data, error } = await this.supabase.rpc(
+      'revoke_bookkeeping_receipt_with_documentation',
+      {
+        p_document_link_id: input.linkId,
+        p_reason: input.reason,
+      }
+    )
+    if (error) fail('revoke receipt with documentation history', error)
+    const row = oneRow(data)
+    if (!row) fail('revoke receipt with documentation history', { message: 'no row returned' })
+    return mapDocumentLink(row)
   }
 
   async listCurrentReviewItems(businessId: string) {

@@ -19,6 +19,18 @@ export type ReceiptLostAnswer = {
   assertion: 'receipt_lost'
 }
 
+export type ReceiptDocumentationRequirement = {
+  type: 'receipt_for_record'
+  version: 1
+}
+
+export type DocumentationRequestContext = {
+  schemaVersion: 1
+  reason: 'MISSING_SUPPORTING_DOCUMENTATION'
+  requirement?: ReceiptDocumentationRequirement
+  [key: string]: unknown
+}
+
 export type StoredDocumentationEvent = {
   id: string
   businessId: string
@@ -33,6 +45,8 @@ export type StoredDocumentationEvent = {
   evidenceFingerprint: string
   questionContext: Record<string, unknown> | null
   assertionPayload: Record<string, unknown> | null
+  documentLinkId: string | null
+  evidenceSatisfiesRequest: boolean | null
   provenance: 'automation' | 'system' | 'user'
   actorUserId: string | null
   createdAt: string

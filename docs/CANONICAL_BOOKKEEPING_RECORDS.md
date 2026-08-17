@@ -218,3 +218,16 @@ Future documentation reporting can combine immutable Receipt Lost history with
 current document-link evidence to distinguish missing documentation, later-found
 evidence, and weaker support. None of those states claims IRS compliance or changes
 bookkeeping truth.
+
+Receipt attachment uses one authenticated database transaction to create or reuse
+the canonical document link and append any relevant documentation observation. A
+trusted `receipt_for_record` requirement is satisfied by a real, active receipt
+link; the same issue receives `evidence_attached` and `resolved`. If Receipt Lost
+was recorded earlier, that assertion remains in the same immutable chain before
+the later evidence events. Unknown requirements are never automatically satisfied.
+
+Document-link revocation uses the same record lock. Losing the only satisfying
+link reopens an evidence-resolved request, but a prior Receipt Lost assertion keeps
+the request resolved and prevents renewed prompting. Active links and immutable
+events together support factual documentation-condition reporting without altering
+bookkeeping or claiming substantiation or tax compliance.

@@ -30,6 +30,7 @@ class MemoryDocumentationRepository implements DocumentationRepository {
       issueKey: input.issueKey, contextFingerprint: input.contextFingerprint,
       evidenceFingerprint: 'evidence:v1', questionContext: input.questionContext,
       assertionPayload: null, provenance: 'automation', actorUserId: null,
+      documentLinkId: null, evidenceSatisfiesRequest: null,
       createdAt: new Date().toISOString(),
     }
     this.events.push(event)

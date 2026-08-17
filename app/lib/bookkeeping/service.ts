@@ -72,7 +72,17 @@ export interface BookkeepingRepository {
     recordId: string
     receiptId: string
   }): Promise<DocumentationLink>
+  attachReceiptWithDocumentation(input: {
+    actor: BookkeepingActor
+    recordId: string
+    receiptId: string
+  }): Promise<DocumentationLink>
   revokeDocumentLink(input: {
+    actor: BookkeepingActor
+    linkId: string
+    reason: string
+  }): Promise<DocumentationLink>
+  revokeReceiptLinkWithDocumentation(input: {
     actor: BookkeepingActor
     linkId: string
     reason: string
@@ -412,7 +422,7 @@ export class CanonicalBookkeepingService {
       )
     }
 
-    return this.repository.ensureDocumentLink({
+    return this.repository.attachReceiptWithDocumentation({
       actor: input.actor,
       recordId: input.recordId,
       receiptId: input.receiptId,
@@ -435,7 +445,7 @@ export class CanonicalBookkeepingService {
       input.receiptId
     )
     if (!link) return null
-    return this.repository.revokeDocumentLink({
+    return this.repository.revokeReceiptLinkWithDocumentation({
       actor: input.actor,
       linkId: link.id,
       reason: input.reason.trim(),

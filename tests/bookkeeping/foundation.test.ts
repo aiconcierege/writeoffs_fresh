@@ -247,6 +247,12 @@ class MemoryBookkeepingRepository implements BookkeepingRepository {
     return link
   }
 
+  async attachReceiptWithDocumentation(
+    input: Parameters<BookkeepingRepository['attachReceiptWithDocumentation']>[0]
+  ) {
+    return this.ensureDocumentLink(input)
+  }
+
   async revokeDocumentLink(
     input: Parameters<BookkeepingRepository['revokeDocumentLink']>[0]
   ) {
@@ -259,6 +265,13 @@ class MemoryBookkeepingRepository implements BookkeepingRepository {
     link.revokedAt = new Date().toISOString()
     link.revocationReason = input.reason
     return link
+  }
+
+
+  async revokeReceiptLinkWithDocumentation(
+    input: Parameters<BookkeepingRepository['revokeReceiptLinkWithDocumentation']>[0]
+  ) {
+    return this.revokeDocumentLink(input)
   }
 
   async listCurrentReviewItems(businessId: string) {

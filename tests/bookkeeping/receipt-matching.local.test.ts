@@ -111,14 +111,13 @@ describe.skipIf(!runLocal)('canonical receipt matching on local Supabase', () =>
       financialTransactionId: transactionA,
       receiptId: receiptA,
     })
-    const { error: revokeError } = await supabase
-      .from('bookkeeping_document_links')
-      .update({
-        revoked_at: new Date().toISOString(),
-        revoked_by_user_id: matched.link.actorUserId,
-        revocation_reason: 'Local evidence-retention test',
-      })
-      .eq('id', matched.link.id)
+    const { error: revokeError } = await supabase.rpc(
+      'revoke_bookkeeping_receipt_with_documentation',
+      {
+        p_document_link_id: matched.link.id,
+        p_reason: 'Local evidence-retention test',
+      }
+    )
     expect(revokeError).toBeNull()
 
     const { error: deleteError } = await supabase

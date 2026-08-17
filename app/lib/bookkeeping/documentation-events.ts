@@ -8,6 +8,7 @@ import type {
 import {
   validateDocumentationIssueIdentity,
   validateDocumentationContextFingerprint,
+  validateDocumentationRequestContext,
   validateReceiptLostAnswer,
 } from './documentation-validation'
 import { BookkeepingValidationError } from './validation'
@@ -61,7 +62,9 @@ export class CanonicalDocumentationService {
     return this.repository.openDocumentationRequest({
       businessId: required(input.businessId, 'Business'),
       recordId: required(input.recordId, 'Bookkeeping record'),
-      questionContext: input.questionContext,
+      questionContext: validateDocumentationRequestContext(
+        input.questionContext
+      ),
       ...identity,
     })
   }

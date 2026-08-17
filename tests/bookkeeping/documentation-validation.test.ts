@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   validateDocumentationIssueIdentity,
+  validateDocumentationRequestContext,
   validateReceiptLostAnswer,
 } from '../../app/lib/bookkeeping/documentation-validation'
 
@@ -18,6 +19,21 @@ describe('canonical documentation validation', () => {
     expect(() => validateDocumentationIssueIdentity({
       reason: 'IRS_COMPLIANCE_SCORE', issueKey: 'risk',
       contextFingerprint: 'risk',
+    })).toThrow(/not supported/)
+  })
+
+  it('accepts only the supported trusted receipt requirement', () => {
+    expect(validateDocumentationRequestContext({
+      schemaVersion: 1,
+      reason: 'MISSING_SUPPORTING_DOCUMENTATION',
+      requirement: { type: 'receipt_for_record', version: 1 },
+    })).toMatchObject({
+      requirement: { type: 'receipt_for_record', version: 1 },
+    })
+    expect(() => validateDocumentationRequestContext({
+      schemaVersion: 1,
+      reason: 'MISSING_SUPPORTING_DOCUMENTATION',
+      requirement: { type: 'any_document', version: 1 },
     })).toThrow(/not supported/)
   })
 

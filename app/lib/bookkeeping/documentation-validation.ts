@@ -1,6 +1,7 @@
 import {
   DOCUMENTATION_REASONS,
   type DocumentationReason,
+  type DocumentationRequestContext,
   type ReceiptLostAnswer,
 } from './documentation-model'
 import { BookkeepingValidationError } from './validation'
@@ -41,6 +42,35 @@ export function validateDocumentationIssueIdentity(input: {
 
 export function validateDocumentationContextFingerprint(value: string) {
   return required(value, 'Documentation context fingerprint', 200)
+}
+
+export function validateDocumentationRequestContext(
+  value: Record<string, unknown>
+): DocumentationRequestContext {
+  if (
+    value.schemaVersion !== 1 ||
+    value.reason !== 'MISSING_SUPPORTING_DOCUMENTATION'
+  ) {
+    throw new BookkeepingValidationError(
+      'A supported documentation request context is required.'
+    )
+  }
+  if ('requirement' in value) {
+    const requirement = value.requirement
+    if (
+      !requirement ||
+      typeof requirement !== 'object' ||
+      Array.isArray(requirement) ||
+      Object.keys(requirement).length !== 2 ||
+      (requirement as Record<string, unknown>).type !== 'receipt_for_record' ||
+      (requirement as Record<string, unknown>).version !== 1
+    ) {
+      throw new BookkeepingValidationError(
+        'Documentation requirement is not supported.'
+      )
+    }
+  }
+  return value as DocumentationRequestContext
 }
 
 export function validateReceiptLostAnswer(value: unknown): ReceiptLostAnswer {
