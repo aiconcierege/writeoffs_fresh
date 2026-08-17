@@ -39,6 +39,17 @@ export type TransactionTypeAnswer =
       details: string
     }
 
+export type ConflictingEvidenceAnswer =
+  | {
+      schemaVersion: 1
+      optionId: string
+    }
+  | {
+      schemaVersion: 1
+      optionId: 'none_of_these'
+      factualExplanation: string
+    }
+
 export type StoredReviewAnswerResult = {
   answeredEvent: StoredWeeklyReviewEvent
   resolvedEvent: StoredWeeklyReviewEvent

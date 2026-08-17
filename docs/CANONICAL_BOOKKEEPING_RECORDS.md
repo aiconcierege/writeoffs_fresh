@@ -168,3 +168,27 @@ non-counted excluded activity. An unmatched refund remains unresolved for truste
 agent processing, and earned money that conflicts with prior Personal or Both
 answers opens `CONFLICTING_EVIDENCE`. The answer, user decision, resolution, and
 any follow-up are one stale-safe database transaction.
+
+`CONFLICTING_EVIDENCE` is narrower than ordinary uncertainty. Trusted processing
+may open it only with at least two distinct, evidence-backed factual
+interpretations. Each immutable option has a stable ID, plain-language meaning,
+same-Business evidence/history references, and one versioned server-controlled
+outcome. Options and references are normalized before their separate conflict
+fingerprint is stored. Low confidence, incomplete evidence, generic confirmation,
+and category selection are not valid conflict questions.
+
+The customer submits only the selected option ID. An optional `none_of_these`
+choice exists only when trusted context explicitly enables it and then requires a
+short factual explanation; it returns the record to agent processing without
+turning that text into bookkeeping. Supported trusted outcomes can copy the
+current decision, copy a verified prior decision into a new decision, apply a
+strictly validated candidate, remain unresolved, or open exactly one of the other
+four typed questions. There is no generic mutation executor.
+
+Answering locks the primary and referenced records in deterministic ID order,
+then rechecks the review leaf, decision leaf, primary evidence fingerprint,
+immutable context, referenced history and related-record evidence, and the
+conflict-specific fingerprint. The selected outcome is revalidated against the
+authoritative amount and canonical constraints. A new user-provenance decision,
+answer event, resolution, and optional typed follow-up commit atomically. Prior
+answers and losing interpretations remain immutable history.

@@ -4,12 +4,14 @@ import type {
   BusinessUseAnswer,
   MixedUseAmountAnswer,
   TransactionTypeAnswer,
+  ConflictingEvidenceAnswer,
 } from './review-answer-model'
 import {
   validateBusinessPurposeAnswer,
   validateBusinessUseAnswer,
   validateMixedUseAmountAnswer,
   validateTransactionTypeAnswer,
+  validateConflictingEvidenceAnswer,
 } from './review-answer-validation'
 import { SupabaseBookkeepingRepository } from './supabase-repository'
 
@@ -95,5 +97,24 @@ export async function answerTransactionTypeReviewIssue(
     expectedContextFingerprint: input.expectedContextFingerprint,
     expectedEvidenceFingerprint: input.expectedEvidenceFingerprint,
     answer: validateTransactionTypeAnswer(input.answer),
+  })
+}
+
+export async function answerConflictingEvidenceReviewIssue(
+  input: ReviewAnswerCommand<ConflictingEvidenceAnswer> & {
+    expectedConflictFingerprint: string
+  }
+) {
+  await requireAuthenticatedUser(input.supabase)
+  return new SupabaseBookkeepingRepository(
+    input.supabase
+  ).answerConflictingEvidence({
+    reviewIssueId: input.reviewIssueId,
+    expectedCurrentEventId: input.expectedCurrentEventId,
+    expectedCurrentDecisionId: input.expectedCurrentDecisionId,
+    expectedContextFingerprint: input.expectedContextFingerprint,
+    expectedEvidenceFingerprint: input.expectedEvidenceFingerprint,
+    expectedConflictFingerprint: input.expectedConflictFingerprint,
+    answer: validateConflictingEvidenceAnswer(input.answer),
   })
 }

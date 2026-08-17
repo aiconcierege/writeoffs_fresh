@@ -15,9 +15,11 @@ import type {
   MixedUseAmountAnswer,
   StoredReviewAnswerResult,
   TransactionTypeAnswer,
+  ConflictingEvidenceAnswer,
 } from './review-answer-model'
 import type { BookkeepingRepository } from './service'
 import type { WeeklyReviewRepository } from './review-events'
+import type { TrustedConflictQuestion } from './conflict-model'
 
 type DatabaseRow = Record<string, unknown>
 
@@ -613,6 +615,40 @@ export class SupabaseBookkeepingRepository
     )
   }
 
+  async answerConflictingEvidence(input: {
+    reviewIssueId: string
+    expectedCurrentEventId: string
+    expectedCurrentDecisionId: string
+    expectedContextFingerprint: string
+    expectedEvidenceFingerprint: string
+    expectedConflictFingerprint: string
+    answer: ConflictingEvidenceAnswer
+  }): Promise<StoredReviewAnswerResult> {
+    return this.answerReviewRpc(
+      'answer_bookkeeping_conflicting_evidence_review_issue',
+      'answer bookkeeping conflicting-evidence review issue',
+      input,
+      { p_expected_conflict_fingerprint: input.expectedConflictFingerprint }
+    )
+  }
+
+  async openConflictingEvidence(input: TrustedConflictQuestion) {
+    const { data, error } = await this.supabase.rpc(
+      'open_bookkeeping_conflicting_evidence_issue',
+      {
+        p_business_id: input.businessId,
+        p_bookkeeping_record_id: input.recordId,
+        p_based_on_decision_id: input.decisionId,
+        p_conflict_key: input.conflictKey,
+        p_prompt: input.prompt,
+        p_allow_none_of_these: input.allowNoneOfThese ?? false,
+        p_options: input.options,
+      }
+    )
+    if (error) fail('open conflicting-evidence review issue', error)
+    return this.requireReviewEvent(input.businessId, data)
+  }
+
   private async answerReviewRpc(
     functionName: string,
     operation: string,
@@ -622,8 +658,9 @@ export class SupabaseBookkeepingRepository
       expectedCurrentDecisionId: string
       expectedContextFingerprint: string
       expectedEvidenceFingerprint: string
-      answer: BusinessUseAnswer | MixedUseAmountAnswer | TransactionTypeAnswer
-    }
+      answer: BusinessUseAnswer | MixedUseAmountAnswer | TransactionTypeAnswer | ConflictingEvidenceAnswer
+    },
+    extraParameters: Record<string, unknown> = {}
   ): Promise<StoredReviewAnswerResult> {
     const { data, error } = await this.supabase.rpc(functionName, {
       p_review_issue_id: input.reviewIssueId,
@@ -632,6 +669,7 @@ export class SupabaseBookkeepingRepository
       p_expected_context_fingerprint: input.expectedContextFingerprint,
       p_expected_evidence_fingerprint: input.expectedEvidenceFingerprint,
       p_answer: input.answer,
+      ...extraParameters,
     })
     if (error) fail(operation, error)
     const result = oneRow(data)
