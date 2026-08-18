@@ -20,25 +20,26 @@ export function Header() {
 
   if (pathname === "/") {
     return (
-      <header className="fixed top-0 z-50 w-full border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto grid h-[4.75rem] max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-2 px-4 sm:gap-3 sm:px-8 md:grid-cols-[1fr_auto_1fr] md:gap-0 lg:px-12">
-          <div className="justify-self-start">
-            <BrandLogo heightPx={42} />
+      <header className="absolute top-0 z-50 w-full bg-[#fff8ee]/95 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-[90rem] items-center justify-between px-5 sm:px-10 lg:px-16 xl:px-24">
+          <div className="flex min-w-0 items-center">
+            <BrandLogo heightPx={30} />
+            <span className="mx-6 hidden h-5 w-px bg-[#cfd8d2] md:block" aria-hidden="true" />
+            <nav aria-label="Public" className="hidden items-center gap-6 md:flex">
+              <Link href="/#how" className="text-[13px] font-medium tracking-[-0.01em] text-[#526159] transition hover:text-[#17211d]">How it works</Link>
+              <Link href="/#features" className="text-[13px] font-medium tracking-[-0.01em] text-[#526159] transition hover:text-[#17211d]">What you get</Link>
+              <Link href="/#for-you" className="text-[13px] font-medium tracking-[-0.01em] text-[#526159] transition hover:text-[#17211d]">Who it’s for</Link>
+            </nav>
           </div>
-          <nav className="hidden items-center justify-self-center gap-8 md:flex">
-            <Link href="/#how" className="text-sm font-semibold text-slate-600 transition hover:text-slate-950">How it works</Link>
-            <Link href="/#features" className="text-sm font-semibold text-slate-600 transition hover:text-slate-950">Why WriteOffs</Link>
-            <Link href="/#faq" className="text-sm font-semibold text-slate-600 transition hover:text-slate-950">FAQ</Link>
-          </nav>
-          <div className="flex items-center justify-self-end gap-4">
-            <Link href="/login" className="hidden text-sm font-medium text-slate-600 transition hover:text-slate-950 sm:inline-flex">
+          <div className="flex shrink-0 items-center gap-4 sm:gap-6">
+            <Link href="/login" className="hidden text-[13px] font-medium text-[#526159] transition hover:text-[#17211d] sm:inline-flex">
               Log in
             </Link>
             <Link
               href="/#waitlist"
-              className="inline-flex items-center whitespace-nowrap rounded-full bg-[#243186] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#1d2870] sm:px-4 sm:text-sm"
+              className="group inline-flex min-h-9 items-center gap-2 whitespace-nowrap border-b-2 border-[#243186] px-0.5 text-xs font-semibold text-[#243186] transition hover:border-[#00a984] hover:text-[#17211d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#243186] sm:text-[13px]"
             >
-              Join the Waitlist
+              Join the waitlist <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">→</span>
             </Link>
           </div>
         </div>
