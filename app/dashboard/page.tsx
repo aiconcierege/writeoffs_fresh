@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createServerSupabase } from '../../utils/supabase/server'
 import type { ReactNode } from 'react'
+import { customerQuestionHeadline, listCustomerQuestions } from '../lib/bookkeeping/customer-questions'
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
@@ -30,6 +31,8 @@ export default async function DashboardPage() {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const actionableQuestionCount = (await listCustomerQuestions({ supabase })).length
 
   // ----- Date ranges -----
   const now = new Date()
@@ -128,6 +131,20 @@ export default async function DashboardPage() {
           Snap receipts, auto-extract details, review, and export your Schedule C-ready data.
         </p>
       </section>
+
+      {actionableQuestionCount > 0 && (
+        <section className="mx-auto mt-6 max-w-7xl px-6">
+          <div className="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">
+                {customerQuestionHeadline(actionableQuestionCount)}
+              </h2>
+              <p className="mt-1 text-sm text-muted">A few simple answers will help WriteOffs keep your records organized.</p>
+            </div>
+            <Link href="/questions" className="btn btn-accent shrink-0">Answer questions</Link>
+          </div>
+        </section>
+      )}
 
       {/* Stat tiles */}
       <section className="mx-auto mt-6 max-w-7xl px-6">

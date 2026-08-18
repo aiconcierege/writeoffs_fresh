@@ -666,6 +666,52 @@ export class SupabaseBookkeepingRepository
     )
   }
 
+  async answerCustomerNotSure(input: {
+    reviewIssueId: string
+    expectedCurrentEventId: string
+    expectedCurrentDecisionId: string
+    expectedContextFingerprint: string
+    expectedEvidenceFingerprint: string
+  }): Promise<StoredReviewAnswerResult> {
+    return this.answerReviewRpc(
+      'answer_bookkeeping_customer_not_sure',
+      'record customer Not sure answer',
+      { ...input, answer: { schemaVersion: 1, response: 'not_sure' } }
+    )
+  }
+
+  async answerMixedUseAllBusiness(input: {
+    reviewIssueId: string
+    expectedCurrentEventId: string
+    expectedCurrentDecisionId: string
+    expectedContextFingerprint: string
+    expectedEvidenceFingerprint: string
+  }): Promise<StoredReviewAnswerResult> {
+    return this.answerReviewRpc(
+      'answer_bookkeeping_mixed_use_all_business',
+      'record all-business mixed-use answer',
+      { ...input, answer: { schemaVersion: 1, scope: 'all_business' } }
+    )
+  }
+
+  async answerMixedUsePersonalAmount(input: {
+    reviewIssueId: string
+    expectedCurrentEventId: string
+    expectedCurrentDecisionId: string
+    expectedContextFingerprint: string
+    expectedEvidenceFingerprint: string
+    personalAmountCents: number
+  }): Promise<StoredReviewAnswerResult> {
+    return this.answerReviewRpc(
+      'answer_bookkeeping_mixed_use_personal_amount',
+      'record mixed-use personal amount',
+      { ...input, answer: {
+        schemaVersion: 1,
+        personalAmountCents: input.personalAmountCents,
+      } }
+    )
+  }
+
   async answerTransactionType(input: {
     reviewIssueId: string
     expectedCurrentEventId: string
@@ -798,7 +844,8 @@ export class SupabaseBookkeepingRepository
       expectedCurrentDecisionId: string
       expectedContextFingerprint: string
       expectedEvidenceFingerprint: string
-      answer: BusinessUseAnswer | MixedUseAmountAnswer | TransactionTypeAnswer | ConflictingEvidenceAnswer
+      answer: BusinessUseAnswer | MixedUseAmountAnswer | TransactionTypeAnswer |
+        ConflictingEvidenceAnswer | Record<string, unknown>
     },
     extraParameters: Record<string, unknown> = {}
   ): Promise<StoredReviewAnswerResult> {

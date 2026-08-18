@@ -231,3 +231,35 @@ link reopens an evidence-resolved request, but a prior Receipt Lost assertion ke
 the request resolved and prevents renewed prompting. Active links and immutable
 events together support factual documentation-condition reporting without altering
 bookkeeping or claiming substantiation or tax compliance.
+
+## Customer question experience
+
+The customer question flow is a presentation and orchestration layer over current
+canonical review-event leaves. It does not maintain batches, question rows, mutable
+review flags, or a second bookkeeping state. The Home count projects only current,
+actionable typed issues into plain-language factual questions. A question deferred
+with `Do this later` stays immediately active in that continuous queue and therefore
+remains in the Home count; the current browser session alone remembers not to show
+it again during that session.
+
+Purchase-specific business-use, purpose, and mixed-use questions are projected only
+after trusted canonical processing has established that the activity is an expense.
+Unknown or non-expense activity stays in agent processing instead of being presented
+to the customer with a misleading purchase prompt.
+
+Button and text answers call the existing authenticated canonical answer paths.
+Business and Personal reuse the business-use answer function; purpose text uses the
+business-purpose function; trusted conflict options use the conflict function. The
+customer mixed-use interaction records either all-business use or a positive
+personal dollar amount. PostgreSQL applies the authoritative transaction sign and
+derives the business remainder exactly. None of these contracts accepts a category,
+treatment, allocation kind, confidence, provenance, or Business identity.
+
+`Not sure` is factual history, so its narrow database operation appends a
+user-provenance decision without inventing missing facts, then records and resolves
+the presented issue. Trusted processing may later reopen a materially necessary
+question with new context. `Do this later` is different: it appends only a deferred
+`skipped` event with no time-based suppression, creates no decision or answer
+evidence, and remains unresolved and actionable.
+Consequently “all caught up” describes the current session, not a weekly batch or a
+claim that every deferred matter is complete.
