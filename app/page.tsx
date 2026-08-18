@@ -5,309 +5,207 @@ import WaitlistForm from "./components/WaitlistForm"
 const steps = [
   {
     number: "01",
-    title: "Add your financial data",
-    body: "Connect your accounts when available, or securely upload transaction files and statements.",
+    title: "Connect",
+    body: "Bring in activity from the accounts you use for business and send over your receipts.",
   },
   {
     number: "02",
-    title: "Add your receipts",
-    body: "Take a photo or choose a file. WriteOffs preserves the original, captures the details, and matches it to the right activity whenever possible.",
+    title: "WriteOffs works",
+    body: "Your activity is organized and your documentation stays connected—without a pile of bookkeeping tasks for you.",
   },
   {
     number: "03",
-    title: "Review what needs you",
-    body: "Most bookkeeping is handled automatically. Once a week, spend a few minutes answering the questions only you can answer.",
+    title: "Answer only when needed",
+    body: "If something depends on a fact only you know, WriteOffs asks one clear question and keeps moving.",
   },
 ]
 
-const values = [
-  {
-    eyebrow: "Always working",
-    title: "Work completed before you arrive",
-    body: "WriteOffs reviews new activity, identifies business expenses, and keeps your records moving without waiting for you to manage every transaction.",
-  },
-  {
-    eyebrow: "Connected records",
-    title: "Receipts and transactions, brought together",
-    body: "Financial data shows what happened. Receipts provide the detail. WriteOffs connects the two and keeps the original evidence organized.",
-  },
-  {
-    eyebrow: "Focused attention",
-    title: "A shorter weekly review",
-    body: "No endless transaction queue. When your judgment is needed, WriteOffs presents a focused set of clear questions in one place.",
-  },
-  {
-    eyebrow: "Accurate treatment",
-    title: "Categories handled for you",
-    body: "Accurate tax categories matter. Routine categorization should not consume your time. WriteOffs handles the work while keeping every result open to review and correction.",
-  },
-  {
-    eyebrow: "Clear history",
-    title: "Records you can stand behind",
-    body: "Source data, receipts, business context, and corrections remain organized in a clear, defensible record.",
-  },
-  {
-    eyebrow: "Tax-ready",
-    title: "Ready for your CPA",
-    body: "When tax season arrives, your summaries, expense detail, documentation, and Schedule C records are already organized for a professional handoff.",
-  },
-]
-
-const faqs = [
-  {
-    question: "Does WriteOffs do the bookkeeping for me?",
-    answer: "Yes. WriteOffs handles routine bookkeeping when the available information supports a reliable decision. You step in only when your knowledge or judgment is needed.",
-  },
-  {
-    question: "How much time will I need to spend each week?",
-    answer: "The goal is a few minutes during a normal week. WriteOffs works in the background and collects necessary questions into one focused Weekly Review.",
-  },
-  {
-    question: "Will I need to categorize every expense?",
-    answer: "No. WriteOffs applies the appropriate categories and presents its work clearly. You can inspect or correct anything without maintaining the books transaction by transaction.",
-  },
-  {
-    question: "How do I provide financial data?",
-    answer: "WriteOffs is designed to support connected bank and credit-card accounts, CSV transaction files, and PDF statements. Availability may vary during early access.",
-  },
-  {
-    question: "How are receipts handled?",
-    answer: "Upload a photo, image, or PDF. WriteOffs preserves the original, extracts useful details, and attempts to match the receipt to the corresponding financial activity.",
-  },
-  {
-    question: "What happens when WriteOffs needs more information?",
-    answer: "The question is normally saved for your Weekly Review. You receive a short, clear prompt in business language—not an accounting task to figure out.",
-  },
-  {
-    question: "Who is WriteOffs built for?",
-    answer: "WriteOffs is launching first for independent Realtors. General support is intended for other qualifying US Schedule C businesses with straightforward bookkeeping needs.",
-  },
-  {
-    question: "Do I remain in control of my books?",
-    answer: "Always. WriteOffs performs the routine work, but you retain final authority over business or personal treatment, categories, splits, and corrections.",
-  },
-  {
-    question: "Does WriteOffs prepare or file tax returns?",
-    answer: "No. WriteOffs maintains organized bookkeeping records and prepares CPA handoff materials. Tax-return preparation and filing remain with you or your qualified tax professional.",
-  },
-]
+const outcomes = [
+  ["Know where you stand", "See how your business is doing without building your own reports."],
+  ["Keep the proof together", "Receipts and supporting documents stay organized with the activity they explain."],
+  ["Skip the busywork", "Stop spending your evenings sorting transactions into accounting categories."],
+  ["Be ready for tax time", "Your records stay clean and organized for you or your tax professional."],
+] as const
 
 export default function Page() {
   return (
-    <div className="-mx-4 -mb-10 bg-[#fbfcfe] text-[#101828] sm:-mx-6 lg:-mx-8">
-      <section className="relative overflow-hidden border-b border-slate-200/80 bg-white">
-        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-          <div className="absolute left-1/2 top-[-28rem] h-[42rem] w-[72rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(36,49,134,0.08),rgba(36,49,134,0)_68%)]" />
-        </div>
-
-        <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-7xl items-center px-6 py-24 sm:px-8 sm:py-32 lg:px-12 lg:py-36">
-          <div className="mx-auto max-w-5xl text-center">
-            <p className="mb-7 text-xs font-semibold uppercase tracking-[0.2em] text-[#243186] sm:text-sm">
-              Bookkeeping for independent businesses
-            </p>
-            <h1 className="text-balance text-5xl font-semibold leading-[0.98] tracking-[-0.045em] text-[#0b1220] sm:text-6xl md:text-7xl lg:text-[5.5rem]">
-              Bookkeeping handled.
-              <span className="block text-[#243186]">More time for your business.</span>
-            </h1>
-            <p className="mx-auto mt-8 max-w-3xl text-balance text-lg leading-8 text-slate-600 sm:text-xl sm:leading-9">
-              WriteOffs handles your day-to-day bookkeeping in the background—and brings you only the decisions that need your attention.
-            </p>
-            <p className="mt-5 text-base font-medium text-slate-900 sm:text-lg">
-              A few minutes a week. Organized books all year.
-            </p>
-            <div className="mt-10 flex flex-col items-center gap-4">
-              <a
-                href="#waitlist"
-                className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#243186] px-7 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(36,49,134,0.18)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#1d2870] focus:outline-none focus:ring-2 focus:ring-[#243186] focus:ring-offset-2"
+    <div className="-mx-4 -mb-10 overflow-hidden bg-[#fffaf3] text-[#17211d] sm:-mx-6 lg:-mx-8">
+      <section className="relative overflow-hidden bg-[#fff8ee]">
+        <div className="relative mx-auto grid max-w-[90rem] lg:min-h-[36rem] lg:grid-cols-[1.08fr_0.92fr] xl:min-h-[39rem]">
+          <div className="relative z-10 flex items-center px-6 py-12 sm:px-10 sm:py-16 lg:px-16 lg:py-14 xl:px-24">
+            <div className="max-w-[43rem]">
+              <p className="mb-6 inline-flex items-center gap-3 text-sm font-semibold text-[#176c54]">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#00b889]" aria-hidden="true" />
+                Bookkeeping for the self-employed
+              </p>
+              <h1
+                aria-label="You run your business. WriteOffs handles the books."
+                className="text-[2.8rem] font-semibold leading-[0.98] tracking-[-0.052em] text-[#15221d] sm:text-[3.5rem] lg:text-[3.9rem] xl:text-[4.25rem]"
               >
-                Join the Waitlist
-              </a>
-              <span className="text-sm text-slate-500">
-                Launching first for Realtors and qualifying Schedule C businesses.
-              </span>
+                <span className="block">You run your</span>
+                <span className="block">business.</span>
+                <span className="mt-2 block text-[#243186]">WriteOffs handles</span>
+                <span className="block text-[#243186]">the books.</span>
+              </h1>
+              <p className="mt-6 max-w-xl text-base leading-7 text-[#4f5d56] sm:text-lg sm:leading-8">
+                Connect your accounts and send us your receipts. WriteOffs organizes the activity, keeps your documentation together, and asks for your help only when it needs a fact from you.
+              </p>
+              <div className="mt-7 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+                <a
+                  href="#waitlist"
+                  className="inline-flex min-h-13 items-center justify-center rounded-xl bg-[#243186] px-7 py-3.5 text-base font-semibold text-white shadow-[0_12px_28px_rgba(36,49,134,0.2)] transition hover:-translate-y-0.5 hover:bg-[#1d2870] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#243186]"
+                >
+                  Join the waitlist
+                </a>
+                <a href="#how" className="text-sm font-semibold text-[#243186] underline decoration-[#9ca8dc] decoration-2 underline-offset-4 transition hover:decoration-[#243186]">
+                  See how it works
+                </a>
+              </div>
+              <p className="mt-4 text-xs text-[#68756e] sm:text-sm">Early access for U.S. independent business owners.</p>
+            </div>
+          </div>
+
+          <div className="relative min-h-[24rem] sm:min-h-[31rem] lg:-ml-14 lg:min-h-0 lg:[clip-path:polygon(12%_0,100%_0,100%_100%,0_100%)] xl:-ml-20">
+            <Image
+              src="/writeoffs-business-owner-hero.png"
+              alt="An independent contractor planning a project in her workshop"
+              fill
+              priority
+              sizes="(max-width: 1023px) 100vw, 48vw"
+              className="object-cover object-[72%_center] lg:object-[58%_center]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#17211d]/25 via-transparent to-transparent" aria-hidden="true" />
+            <div className="absolute bottom-5 left-5 right-5 max-w-sm rounded-2xl bg-white/92 p-4 shadow-[0_18px_45px_rgba(23,33,29,0.18)] backdrop-blur sm:bottom-7 sm:left-7 sm:p-5 lg:bottom-8 lg:left-8">
+              <p className="text-sm font-semibold text-[#176c54]">The best bookkeeping task?</p>
+              <p className="mt-1 text-xl font-semibold tracking-[-0.025em] text-[#17211d]">The one already handled.</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="border-b border-slate-200/80 bg-[#f6f8fc]">
-        <div className="mx-auto max-w-6xl px-6 py-14 text-center sm:px-8 sm:py-[4.5rem] lg:px-12">
-          <p className="mx-auto max-w-4xl text-balance text-xl font-medium leading-9 tracking-[-0.015em] text-slate-800 sm:text-2xl sm:leading-10">
-            Your financial records deserve care, clarity, and control.
-          </p>
-          <p className="mx-auto mt-4 max-w-3xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
-            WriteOffs preserves your original financial data and documentation, keeps its work transparent, and leaves every final decision with you.
-          </p>
+      <section className="bg-[#193f35] text-white">
+        <div className="mx-auto grid max-w-7xl gap-6 px-6 py-8 sm:grid-cols-3 sm:px-10 sm:py-9 lg:px-16">
+          {[
+            ["Less admin", "More time for the work that pays you."],
+            ["Clear records", "Activity and documentation kept together."],
+            ["Calm tax time", "Organized books ready for preparation."],
+          ].map(([title, body], index) => (
+            <div key={title} className={index ? "border-t border-white/20 pt-8 sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0" : ""}>
+              <p className="text-lg font-semibold">{title}</p>
+              <p className="mt-2 max-w-xs text-sm leading-6 text-[#cde4da]">{body}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      <section id="how" className="border-b border-slate-200/80 bg-white">
-        <div className="mx-auto max-w-7xl px-6 py-24 sm:px-8 sm:py-28 lg:px-12 lg:py-32">
+      <section id="how" className="bg-[#fffaf3]">
+        <div className="mx-auto max-w-7xl px-6 py-16 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
           <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#243186]">A simpler rhythm</p>
-            <h2 className="mt-4 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-5xl">
-              How WriteOffs works
+            <p className="text-sm font-semibold text-[#178368]">How it works</p>
+            <h2 className="mt-4 text-balance text-4xl font-semibold tracking-[-0.045em] text-[#17211d] sm:text-5xl">
+              Hand off the books. Get back to business.
             </h2>
           </div>
-
-          <div className="mt-14 grid border-t border-slate-200 md:grid-cols-3">
+          <div className="mt-11 grid gap-9 lg:grid-cols-3 lg:gap-0">
             {steps.map((step, index) => (
-              <article
-                key={step.number}
-                className={`py-10 md:px-8 md:py-12 ${index > 0 ? "border-t border-slate-200 md:border-l md:border-t-0" : "md:pl-0"}`}
-              >
-                <span className="font-mono text-xs font-semibold tracking-widest text-[#243186]">{step.number}</span>
-                <h3 className="mt-6 text-xl font-semibold tracking-[-0.02em] text-slate-950">{step.title}</h3>
-                <p className="mt-4 max-w-sm text-base leading-7 text-slate-600">{step.body}</p>
+              <article key={step.number} className={`relative ${index ? "lg:border-l lg:border-[#cfd8d2] lg:pl-10" : "lg:pr-10"}`}>
+                <span className="font-mono text-sm font-semibold text-[#178368]">{step.number}</span>
+                <h3 className="mt-5 text-2xl font-semibold tracking-[-0.03em]">{step.title}</h3>
+                <p className="mt-3 max-w-sm text-base leading-7 text-[#59665f]">{step.body}</p>
               </article>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="features" className="border-b border-slate-200/80 bg-[#f8fafc]">
-        <div className="mx-auto max-w-7xl px-6 py-24 sm:px-8 sm:py-28 lg:px-12 lg:py-32">
-          <div className="grid gap-12 lg:grid-cols-[0.75fr_1.25fr] lg:gap-20">
-            <div className="lg:sticky lg:top-28 lg:self-start">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#243186]">Built to do the work</p>
-              <h2 className="mt-4 text-balance text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-5xl">
-                The work gets done. You stay in control.
-              </h2>
-              <p className="mt-6 max-w-md text-lg leading-8 text-slate-600">
-                WriteOffs gives a one-person business the support of a dedicated bookkeeping function—without adding another job to the owner’s week.
-              </p>
-            </div>
-
-            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.06)]">
-              {values.map((value, index) => (
-                <article
-                  key={value.title}
-                  className={`p-7 sm:p-9 ${index > 0 ? "border-t border-slate-200" : ""}`}
-                >
-                  <div className="grid gap-3 sm:grid-cols-[9rem_1fr] sm:gap-8">
-                    <p className="pt-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#243186]">{value.eyebrow}</p>
-                    <div>
-                      <h3 className="text-xl font-semibold tracking-[-0.02em] text-slate-950">{value.title}</h3>
-                      <p className="mt-3 text-base leading-7 text-slate-600">{value.body}</p>
-                    </div>
-                  </div>
-                </article>
-              ))}
-              <p className="border-t border-slate-200 bg-slate-50 px-7 py-5 text-sm leading-6 text-slate-500 sm:px-9">
-                WriteOffs prepares your bookkeeping records. It does not prepare or file tax returns.
-              </p>
-            </div>
+      <section id="features" className="relative overflow-hidden bg-[#e9f5ef]">
+        <div className="absolute -left-28 top-16 h-72 w-72 rounded-full bg-[#9ce0c8]/30 blur-3xl" aria-hidden="true" />
+        <div className="relative mx-auto grid max-w-7xl gap-12 px-6 py-16 sm:px-10 sm:py-20 lg:grid-cols-[0.82fr_1.18fr] lg:items-start lg:gap-20 lg:px-16 lg:py-24">
+          <div className="lg:sticky lg:top-28">
+            <p className="text-sm font-semibold text-[#176c54]">What you get</p>
+            <h2 className="mt-4 text-balance text-4xl font-semibold tracking-[-0.045em] text-[#17211d] sm:text-5xl">
+              Everything under control. Without doing it all yourself.
+            </h2>
+            <p className="mt-6 max-w-md text-lg leading-8 text-[#53635b]">
+              WriteOffs works like a capable member of your team—quietly taking care of the records and bringing you only what truly needs your input.
+            </p>
           </div>
-        </div>
-      </section>
-
-      <section id="faq" className="border-b border-slate-200/80 bg-white">
-        <div className="mx-auto max-w-5xl px-6 py-24 sm:px-8 sm:py-28 lg:px-12 lg:py-32">
-          <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#243186]">Questions, answered</p>
-            <h2 className="mt-4 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-5xl">What to expect</h2>
-          </div>
-
-          <div className="mt-12 divide-y divide-slate-200 border-y border-slate-200">
-            {faqs.map((faq) => (
-              <details key={faq.question} className="group py-1">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-6 text-left text-lg font-medium tracking-[-0.015em] text-slate-950 marker:content-none sm:text-xl">
-                  {faq.question}
-                  <span className="relative h-5 w-5 shrink-0 text-slate-400" aria-hidden="true">
-                    <span className="absolute left-0 top-1/2 h-px w-5 bg-current" />
-                    <span className="absolute left-1/2 top-0 h-5 w-px bg-current transition-transform duration-200 group-open:rotate-90" />
-                  </span>
-                </summary>
-                <p className="max-w-3xl pb-7 pr-10 text-base leading-7 text-slate-600">{faq.answer}</p>
-              </details>
+          <div className="grid gap-x-10 gap-y-10 sm:grid-cols-2 sm:pt-2">
+            {outcomes.map(([title, body], index) => (
+              <article key={title} className={index % 2 ? "sm:translate-y-10" : ""}>
+                <span className={`block text-4xl font-semibold tracking-[-0.05em] ${index === 1 || index === 2 ? "text-[#243186]" : "text-[#178368]"}`} aria-hidden="true">
+                  0{index + 1}
+                </span>
+                <h3 className="text-xl font-semibold tracking-[-0.025em] text-[#17211d]">{title}</h3>
+                <p className="mt-3 max-w-xs text-base leading-7 text-[#53635b]">{body}</p>
+              </article>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="about" className="border-b border-slate-200/80 bg-[#f6f8fc]">
-        <div className="mx-auto grid max-w-7xl gap-12 px-6 py-24 sm:px-8 sm:py-28 lg:grid-cols-[0.8fr_1.2fr] lg:items-center lg:gap-20 lg:px-12 lg:py-32">
-          <div className="relative mx-auto w-full max-w-md lg:mx-0">
-            <div className="aspect-[1402/1122] overflow-hidden rounded-[2rem] bg-slate-200 shadow-[0_28px_80px_rgba(15,23,42,0.12)]">
-              <Image
-                src="/founder-photo.png"
-                alt="Rick LaFave, founder of WriteOffs"
-                width={720}
-                height={900}
-                unoptimized
-                className="h-full w-full object-contain"
-              />
+      <section id="for-you" className="bg-[#243186] text-white">
+        <div className="mx-auto max-w-7xl px-6 py-16 sm:px-10 sm:py-20 lg:px-16">
+          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-end lg:gap-20">
+            <div>
+              <p className="text-sm font-semibold text-[#8ce6cb]">Built for independent business</p>
+              <h2 className="mt-4 text-balance text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">
+                Your craft is the business. Bookkeeping shouldn’t be.
+              </h2>
             </div>
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#243186]">Why WriteOffs</p>
-            <h2 className="mt-4 text-balance text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-5xl">
-              Built to take bookkeeping off your plate
-            </h2>
-            <div className="mt-7 space-y-5 text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
-              <p>
-                I spent years leading operations in the tax industry and saw firsthand how often business owners reach year-end with incomplete records, missing documentation, and too much cleanup.
+            <div>
+              <p className="max-w-2xl text-lg leading-8 text-[#d9def8]">
+                For contractors, photographers, consultants, creators, home-service pros, and other one-person businesses who would rather serve customers than manage accounting software.
               </p>
-              <p>
-                The problem is not a lack of bookkeeping software. It is that most software still expects the owner to do the bookkeeping.
-              </p>
-              <p>
-                WriteOffs is built on a different premise: the work should already be handled. Your financial activity should be organized throughout the year, your documentation should remain connected to it, and your attention should be reserved for the few decisions that require your judgment.
-              </p>
-              <p>
-                We are starting with independent Realtors—business owners with demanding schedules, recurring expenses, and little time for administrative work.
-              </p>
-              <p>
-                Trust is fundamental. Your records remain yours. WriteOffs will never sell your financial information or use it for advertising.
-              </p>
-            </div>
-            <div className="mt-8 border-t border-slate-300 pt-6">
-              <p className="font-semibold text-slate-950">Rick LaFave</p>
-              <p className="mt-1 text-sm text-slate-500">Founder, WriteOffs</p>
+              <div className="mt-7 flex flex-wrap gap-x-7 gap-y-3 text-sm font-semibold text-white/90" aria-label="Businesses WriteOffs is made for">
+                <span>Hands-on trades</span><span>Creative work</span><span>Professional services</span><span>Independent experts</span>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="waitlist" className="relative overflow-hidden bg-[#111b52] text-white">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(98,116,220,0.24),transparent_54%)]" aria-hidden="true" />
-        <div className="relative mx-auto max-w-4xl px-6 py-24 text-center sm:px-8 sm:py-28 lg:px-12 lg:py-32">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-200">Early access</p>
-          <h2 className="mt-5 text-balance text-4xl font-semibold tracking-[-0.04em] sm:text-5xl md:text-6xl">
-            Put bookkeeping in the background.
+      <section className="bg-[#fffaf3]">
+        <div className="mx-auto grid max-w-7xl gap-7 px-6 py-12 sm:px-10 sm:py-14 lg:grid-cols-[1fr_auto] lg:items-center lg:px-16">
+          <div className="max-w-3xl">
+            <p className="text-sm font-semibold text-[#178368]">Built on trust</p>
+            <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">Your records stay yours.</h2>
+            <p className="mt-4 text-base leading-7 text-[#59665f] sm:text-lg sm:leading-8">
+              WriteOffs preserves the original financial activity and documentation behind its work. It prepares organized bookkeeping records; it does not prepare or file tax returns.
+            </p>
+          </div>
+          <Link href="/legal/privacy" className="text-sm font-semibold text-[#243186] underline decoration-[#9ca8dc] decoration-2 underline-offset-4">Read our privacy policy</Link>
+        </div>
+      </section>
+
+      <section id="waitlist" className="relative overflow-hidden bg-[#15221d] text-white">
+        <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#00b889]/20 blur-3xl" aria-hidden="true" />
+        <div className="relative mx-auto max-w-5xl px-6 py-16 text-center sm:px-10 sm:py-20 lg:py-24">
+          <p className="text-sm font-semibold text-[#8ce6cb]">Join early access</p>
+          <h2 className="mx-auto mt-4 max-w-4xl text-balance text-4xl font-semibold tracking-[-0.05em] sm:text-5xl lg:text-6xl">
+            Run your business. Leave the books to WriteOffs.
           </h2>
-          <p className="mx-auto mt-6 max-w-2xl text-balance text-lg leading-8 text-indigo-100">
-            Spend a few minutes each week supervising the work—not hours doing it.
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-[#c8d9d1]">
+            Join the waitlist to hear when WriteOffs is ready for your business.
           </p>
-          <div className="mx-auto mt-8 max-w-2xl rounded-2xl bg-white p-3 text-slate-900 shadow-[0_24px_70px_rgba(0,0,0,0.2)] sm:p-4">
+          <div className="mx-auto mt-8 max-w-2xl rounded-2xl bg-[#fffaf3] p-3 text-[#17211d] shadow-[0_24px_70px_rgba(0,0,0,0.24)] sm:p-4">
             <WaitlistForm source="landing#waitlist" appearance="landing" />
           </div>
-          <p className="mt-6 text-sm text-indigo-200">
-            Launching first for Realtors and qualifying Schedule C businesses.
-          </p>
+          <p className="mt-5 text-sm text-[#9fb8ad]">We’ll share thoughtful updates as early access opens.</p>
         </div>
       </section>
 
-      <footer className="bg-[#0b1238] text-indigo-100">
-        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-10 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
-          <p className="text-sm text-indigo-200">© {new Date().getFullYear()} WriteOffs.io. All rights reserved.</p>
-          <nav className="flex flex-wrap gap-x-6 gap-y-3 text-sm">
-            <Link href="/privacy" className="transition hover:text-white">Privacy</Link>
+      <footer className="bg-[#0d1713] text-[#c8d9d1]">
+        <div className="mx-auto flex max-w-7xl flex-col gap-7 px-6 py-9 sm:px-10 md:flex-row md:items-center md:justify-between lg:px-16">
+          <p className="text-sm">© {new Date().getFullYear()} WriteOffs.io. All rights reserved.</p>
+          <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-3 text-sm">
+            <Link href="/legal/privacy" className="transition hover:text-white">Privacy</Link>
             <Link href="/legal/terms" className="transition hover:text-white">Terms</Link>
             <Link href="/press" className="transition hover:text-white">Press</Link>
           </nav>
         </div>
       </footer>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
-        <div className="mx-auto flex max-w-md items-center justify-between gap-4">
-          <span className="text-sm font-semibold text-slate-900">Bookkeeping handled.</span>
-          <a href="#waitlist" className="rounded-full bg-[#243186] px-5 py-2.5 text-sm font-semibold text-white">
-            Join the Waitlist
-          </a>
-        </div>
-      </div>
     </div>
   )
 }
