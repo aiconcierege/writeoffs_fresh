@@ -5,10 +5,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date().toISOString();
 
   const routes = [
-    "", "blog",
-    "blog/starting-a-business-checklist",
-    "blog/overlooked-deductions-gig-drivers",
-    "blog/home-office-deduction-guide",
+    "",
     "waitlist",
     "legal/privacy",
     "legal/terms",

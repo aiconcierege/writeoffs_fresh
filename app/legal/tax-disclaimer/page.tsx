@@ -12,7 +12,7 @@ export default function Page() {
 
       <p>
         The content and tools provided by <strong>AI Concierge Inc. d/b/a WriteOffs.io</strong>
-        (including blog posts, FAQs, automated classifications, and in-app explanations) are for
+        (including FAQs, automated classifications, and in-app explanations) are for
         informational purposes only. They are not legal, tax, accounting, or investment advice,
         and should not be relied upon as a substitute for professional advice tailored to your
         specific circumstances.
