@@ -44,7 +44,7 @@ function LoginInner() {
         </div>
         <h1 className="text-3xl font-bold">Log in</h1>
         <p className="mt-2 text-sm text-neutral-700">
-          You’re logging into the <strong>{vertical === 'realtor' ? 'Realtor Pack' : 'General Pack'}</strong>.
+          Log in to continue to WriteOffs.
         </p>
 
         <form onSubmit={handleLogin} className="mt-6 space-y-4">
