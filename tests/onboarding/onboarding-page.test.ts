@@ -10,7 +10,7 @@ describe('/onboarding server page', () => {
     expect(page).toContain('supabase.auth.getUser()')
     expect(page).toContain("redirect('/login')")
     expect(page).toContain("business.onboarding_state === 'completed'")
-    expect(page).toContain("redirect('/dashboard')")
+    expect(page).toContain("redirect('/home')")
   })
 
   it('loads the one Business by authenticated owner and active vehicles by Business', () => {

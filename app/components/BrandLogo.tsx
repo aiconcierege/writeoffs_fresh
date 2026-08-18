@@ -7,9 +7,15 @@ import Link from "next/link";
  * Uses the trimmed raster header logo so the artwork fills the box.
  * Default: 56px tall. Adjust via `heightPx` if needed.
  */
-export default function BrandLogo({ heightPx = 56 }: { heightPx?: number }) {
+export default function BrandLogo({
+  heightPx = 56,
+  href = "/",
+}: {
+  heightPx?: number;
+  href?: string;
+}) {
   return (
-    <Link href="/" aria-label="WriteOffs.io Home" className="inline-flex items-center">
+    <Link href={href} aria-label="WriteOffs.io Home" className="inline-flex items-center">
       <img
         src="/logo-header.png"          // ← match your actual file
         alt=""                           // decorative; sr-only label below for a11y

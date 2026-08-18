@@ -45,7 +45,7 @@ export default async function OnboardingPage() {
     )
   }
 
-  if (business.onboarding_state === 'completed') redirect('/dashboard')
+  if (business.onboarding_state === 'completed') redirect('/home')
 
   const { data: vehicles, error: vehiclesError } = await supabase
     .from('business_vehicles')

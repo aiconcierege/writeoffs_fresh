@@ -263,3 +263,31 @@ question with new context. `Do this later` is different: it appends only a defer
 evidence, and remains unresolved and actionable.
 Consequently “all caught up” describes the current session, not a weekly batch or a
 claim that every deferred matter is complete.
+
+## Canonical financial summaries
+
+Canonical reporting uses one signed-cents convention: positive amounts are cash
+inflows and negative amounts are cash outflows. Aggregation never applies an
+absolute value to canonical activity. A positive expense allocation is therefore
+an expense credit or reversal that reduces net business expenses; customer-facing
+expense presentation negates the final signed expense total.
+
+The first reusable summary includes only current decision leaves. Business income
+is the signed total of business allocations on resolved `business_income`
+decisions. Business expenses are the business-allocated portion of resolved
+`expense` decisions, including only the business portion of mixed-use activity.
+Business profit is business income minus the customer-facing net expense amount.
+Transfers, credit-card payments, owner contributions, loan proceeds, personal and
+excluded allocations, unresolved activity, and unmatched refunds do not enter
+these totals.
+
+Financial-source amount, currency, and transaction date control whenever an active
+immutable financial transaction is attached. Otherwise the canonical record facts
+apply. The summary accepts explicit inclusive period boundaries, keeps currencies
+separate, returns unresolved/completeness metadata, and retains contributor IDs
+from allocation through decision, record, and financial source for internal
+traceability. Documentation risk does not change bookkeeping arithmetic.
+
+Estimated deductions and taxable-income concepts are intentionally absent. They
+require a separately approved, versioned canonical tax-treatment layer and must
+never be inferred by treating all business expenses as deductible.

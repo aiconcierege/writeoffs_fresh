@@ -148,7 +148,7 @@ describe('POST /api/onboarding/complete', () => {
     expect(current.mutation.eq).toHaveBeenCalledWith('owner_user_id', 'user-1')
     expect(body).toMatchObject({
       ok: true,
-      destination: '/dashboard',
+      destination: '/home',
       recommendation: { id: 'essential', informationalOnly: true },
     })
   })

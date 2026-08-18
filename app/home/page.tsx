@@ -1,0 +1,120 @@
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { createServerSupabase } from '../../utils/supabase/server'
+import { customerQuestionHeadline } from '../lib/bookkeeping/customer-questions'
+import { getAuthenticatedCanonicalFinancialSummary } from '../lib/bookkeeping/financial-summary-service'
+import { HomeGreeting } from './HomeGreeting'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
+const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+
+function firstNameFromMetadata(metadata: Record<string, unknown>) {
+  const candidate = [metadata.first_name, metadata.full_name, metadata.name]
+    .find((value) => typeof value === 'string' && value.trim())
+  if (typeof candidate !== 'string') return null
+  const firstName = candidate.trim().split(/\s+/)[0]
+  return firstName.length <= 60 ? firstName : null
+}
+
+export default async function HomePage() {
+  const supabase = await createServerSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const periodEnd = new Date().toISOString().slice(0, 10)
+  const summary = await getAuthenticatedCanonicalFinancialSummary({
+    supabase,
+    periodStart: `${periodEnd.slice(0, 4)}-01-01`,
+    periodEnd,
+    currency: 'USD',
+  })
+  const questionCount = summary.completeness.unresolvedCustomerQuestionCount
+  const processingComplete = summary.completeness.isComplete
+  const firstName = firstNameFromMetadata(user.user_metadata ?? {})
+  const financialLines = [
+    { label: 'Business income', value: summary.businessIncomeCents },
+    { label: 'Business expenses', value: summary.businessExpensesCents },
+    { label: 'Business profit', value: summary.businessProfitCents, emphasized: true },
+  ]
+
+  return (
+    <main className="min-h-[calc(100vh-4rem)] bg-[#fbfbfa]">
+      <div className="mx-auto max-w-4xl px-2 py-9 sm:px-6 sm:py-12 lg:py-14">
+        <header className="max-w-2xl">
+          <HomeGreeting firstName={firstName} />
+          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.025em] text-slate-950 sm:text-4xl">
+            {questionCount > 0
+              ? `${questionCount} ${questionCount === 1 ? 'thing needs' : 'things need'} your attention.`
+              : processingComplete
+                ? 'Your books are up to date.'
+                : 'WriteOffs is working.'}
+          </h1>
+          <p className="mt-3 max-w-xl text-base leading-6 text-slate-600">
+            {questionCount > 0
+              ? 'A few quick answers will help WriteOffs keep your records organized.'
+              : processingComplete
+                ? 'WriteOffs will keep working in the background.'
+                : 'Some activity is still being processed.'}
+          </p>
+        </header>
+
+        {questionCount > 0 && (
+          <section aria-labelledby="attention-heading" className="mt-10 border-y border-slate-200 py-7 sm:mt-11">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 id="attention-heading" className="text-lg font-semibold text-slate-950">
+                  Needs your attention
+                </h2>
+                <p className="mt-2 text-2xl font-medium tracking-[-0.02em] text-slate-900">
+                  {customerQuestionHeadline(questionCount)}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  A few purchases need your input.
+                </p>
+              </div>
+              <Link
+                href="/questions"
+                className="inline-flex min-h-11 items-center justify-center self-start rounded-md bg-[#243186] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#1d2870] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#243186] sm:self-center"
+              >
+                Answer questions <span aria-hidden="true" className="ml-2">→</span>
+              </Link>
+            </div>
+          </section>
+        )}
+
+        <section
+          aria-labelledby="year-to-date-heading"
+          className={`${questionCount > 0 ? 'mt-10' : 'mt-11'} border-t border-slate-200 pt-8 sm:pt-9`}
+        >
+          <h2 id="year-to-date-heading" className="text-xs font-semibold tracking-[0.16em] text-slate-500">
+            YEAR TO DATE
+          </h2>
+          <dl className="mt-5">
+            {financialLines.map((line) => (
+              <div
+                key={line.label}
+                className={`grid grid-cols-[1fr_auto] items-baseline gap-6 border-b border-slate-200 py-4 ${
+                  line.emphasized ? 'mt-1 border-t border-t-slate-300' : ''
+                }`}
+              >
+                <dt className={line.emphasized ? 'font-medium text-slate-950' : 'text-sm text-slate-700'}>
+                  {line.label}
+                </dt>
+                <dd className={`${line.emphasized ? 'text-2xl font-semibold' : 'text-xl font-medium'} tabular-nums tracking-[-0.02em] text-slate-950`}>
+                  {usd.format(line.value / 100)}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {!summary.completeness.isComplete && (
+            <p className="mt-4 text-sm leading-6 text-slate-600">
+              Some activity is still being processed.
+            </p>
+          )}
+        </section>
+      </div>
+    </main>
+  )
+}

@@ -47,7 +47,7 @@ function SignupInner() {
       })
     } catch { /* non-blocking */ }
 
-    router.push('/dashboard')
+    router.push('/home')
   }
 
   return (

@@ -61,7 +61,7 @@ export function QuestionFlow({ initialQuestions }: { initialQuestions: CustomerQ
         <section className="card w-full p-8 text-center">
           <h1 ref={heading} tabIndex={-1} className="text-3xl font-bold">You’re all caught up.</h1>
           <p className="mt-3 text-muted">WriteOffs will keep working in the background.</p>
-          <Link href="/dashboard" className="btn btn-accent mt-8 inline-flex">Back to Home</Link>
+          <Link href="/home" className="btn btn-accent mt-8 inline-flex">Back to Home</Link>
         </section>
       </main>
     )

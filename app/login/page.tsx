@@ -33,7 +33,7 @@ function LoginInner() {
     }
 
     setOk('Signed in — redirecting…')
-    setTimeout(() => router.push('/dashboard'), 150)
+    setTimeout(() => router.push('/home'), 150)
   }
 
   return (

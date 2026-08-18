@@ -9,9 +9,8 @@ import BrandLogo from "../components/BrandLogo"
 import SignOutButton from "../components/SignOutButton"
 
 const navItems = [
-  { name: "Dashboard", href: "/dashboard" },
-  { name: "Import", href: "/import" },
-  { name: "Review", href: "/review" },
+  { name: "Home", href: "/home" },
+  { name: "Transactions", href: "/review" },
   { name: "Reports", href: "/reports/summary" },
 ]
 
@@ -58,17 +57,15 @@ export function Header() {
   }
 
   return (
-    <header className="fixed top-0 z-50 w-full backdrop-blur bg-background/80 border-b border-border">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8
-                      grid grid-cols-[auto_1fr_auto] items-center h-16">
-        {/* Left: brand */}
-        <div className="justify-self-start flex items-center">
-          <BrandLogo heightPx={40} />
+    <header className="fixed top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto grid h-16 max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-self-start">
+          <span className="sm:hidden"><BrandLogo href="/home" heightPx={30} /></span>
+          <span className="hidden sm:inline-flex"><BrandLogo href="/home" heightPx={38} /></span>
         </div>
 
-        {/* Center: nav + Account */}
-        <div className="justify-self-center">
-          <nav className="flex items-center gap-6">
+        <div className="min-w-0 justify-self-center">
+          <nav aria-label="Primary" className="flex items-center gap-3 sm:gap-7">
             {navItems.map((item) => {
               const active = pathname.startsWith(item.href)
               return (
@@ -76,28 +73,38 @@ export function Header() {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    "text-sm font-medium transition-colors hover:text-primary px-1",
-                    active ? "text-primary" : "text-muted-foreground"
+                    "border-b-2 px-0.5 py-5 text-xs font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#243186] sm:text-sm",
+                    active
+                      ? "border-[#243186] text-slate-950"
+                      : "border-transparent text-slate-600 hover:text-slate-950"
                   )}
+                  aria-current={active ? "page" : undefined}
                 >
                   {item.name}
                 </Link>
               )
             })}
-
-            {/* Account link, included in centered group */}
-            <Link
-              href="/settings/profile"
-              className="text-sm font-medium text-muted-foreground hover:text-primary"
-            >
-              Account
-            </Link>
           </nav>
         </div>
 
-        {/* Right: Sign out (hard right) */}
         <div className="justify-self-end">
-          <SignOutButton />
+          <details className="group relative">
+            <summary className="flex min-h-9 cursor-pointer list-none items-center gap-1 rounded-md px-2 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#243186] sm:px-3 sm:text-sm [&::-webkit-details-marker]:hidden">
+              Account
+              <span aria-hidden="true" className="text-[10px] transition-transform group-open:rotate-180">▾</span>
+            </summary>
+            <div className="absolute right-0 mt-2 w-48 border border-slate-200 bg-white p-2 shadow-lg">
+              <Link
+                href="/settings/profile"
+                className="block rounded px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#243186]"
+              >
+                Account / Settings
+              </Link>
+              <div className="mt-1 border-t border-slate-100 pt-1">
+                <SignOutButton className="w-full justify-center rounded-md border-0 bg-white px-3 py-2 text-slate-700 shadow-none hover:bg-slate-50" />
+              </div>
+            </div>
+          </details>
         </div>
       </div>
     </header>

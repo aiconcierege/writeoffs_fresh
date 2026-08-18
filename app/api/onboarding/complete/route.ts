@@ -85,6 +85,6 @@ export async function POST() {
     ok: true,
     completedAt,
     recommendation,
-    destination: '/dashboard',
+    destination: '/home',
   })
 }

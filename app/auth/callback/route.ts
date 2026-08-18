@@ -37,8 +37,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(new URL("/login?error=auth", req.url))
     }
 
-    // Success → send user to dashboard
-    return NextResponse.redirect(new URL("/dashboard", req.url))
+    // Success → send user to Home
+    return NextResponse.redirect(new URL("/home", req.url))
   } catch (e: any) {
     console.error("Auth callback exception:", e?.message || e)
     return NextResponse.redirect(new URL("/login?error=exception", req.url))
