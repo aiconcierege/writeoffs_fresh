@@ -15,6 +15,14 @@ const csvImporter = readFileSync(
   'utf8'
 )
 
+const canonicalCsvMigration = readFileSync(
+  join(
+    process.cwd(),
+    'supabase/migrations/20260819000100_add_canonical_csv_ingestion.sql'
+  ),
+  'utf8'
+)
+
 const csvDisplayBackfill = readFileSync(
   join(
     process.cwd(),
@@ -51,31 +59,27 @@ describe('legacy CSV tenant deduplication', () => {
     expect(migration).not.toContain('on public.transactions (dedupe_hash)')
   })
 
-  it('uses the composite conflict target in the importer', () => {
-    expect(csvImporter).toContain(
-      '.upsert(prepared, { onConflict: "user_id,dedupe_hash" })'
+  it('uses the composite conflict target inside the atomic canonical importer', () => {
+    expect(csvImporter).toContain('ingestCsvFinancialActivity')
+    expect(canonicalCsvMigration).toContain(
+      'on conflict (user_id, dedupe_hash) do nothing'
     )
-    expect(csvImporter).not.toContain(
-      '.upsert(prepared, { onConflict: "dedupe_hash" })'
+    expect(canonicalCsvMigration).not.toContain(
+      'on conflict (dedupe_hash)'
     )
   })
 })
 
 describe('legacy CSV display compatibility', () => {
   it('dual-writes the fields consumed by existing Review and Dashboard screens', () => {
-    expect(csvImporter).toContain('date: posted_at')
-    expect(csvImporter).toContain(
-      'vendor: rawDesc || normalized_description || "Imported transaction"'
+    expect(canonicalCsvMigration).toContain('insert into public.transactions')
+    expect(canonicalCsvMigration).toContain(
+      'user_id, date, vendor, description, amount, posted_at'
     )
-    expect(csvImporter).toContain(
-      'description: rawDesc || normalized_description || null'
+    expect(canonicalCsvMigration).toContain(
+      'amount_cents, currency, raw_description, normalized_description'
     )
-    expect(csvImporter).toMatch(/\n\s+amount,\n/)
-
-    expect(csvImporter).toContain('posted_at,')
-    expect(csvImporter).toContain('amount_cents,')
-    expect(csvImporter).toContain('raw_description: rawDesc')
-    expect(csvImporter).toContain('normalized_description,')
+    expect(canonicalCsvMigration).toContain("'csv',")
   })
 
   it('backfills only missing legacy fields on CSV-imported rows', () => {

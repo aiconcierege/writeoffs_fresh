@@ -100,8 +100,16 @@ describe('customer endpoint isolation', () => {
     expect(source('app/api/export/csv/route.ts')).toContain(".eq('user_id', user.id)")
   })
 
-  it('assigns the authenticated user to CSV-imported compatibility transactions', () => {
-    expect(source('app/api/import/csv/route.ts')).toContain('user_id: user.id')
+  it('derives CSV tenant identity inside the authenticated canonical operation', () => {
+    const route = source('app/api/import/csv/route.ts')
+    const migration = source(
+      'supabase/migrations/20260819000100_add_canonical_csv_ingestion.sql'
+    )
+    expect(route).toContain('getAuthenticatedContext')
+    expect(route).toContain('ingestCsvFinancialActivity')
+    expect(migration).toContain('authenticated_user_id uuid := (select auth.uid())')
+    expect(migration).toContain('where businesses.owner_user_id = authenticated_user_id')
+    expect(migration).not.toMatch(/p_(business|user)_id/)
   })
 
   it('keeps mileage unavailable until ownership can be enforced', () => {

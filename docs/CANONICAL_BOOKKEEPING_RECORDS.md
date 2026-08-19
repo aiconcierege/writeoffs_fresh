@@ -76,8 +76,12 @@ separately validated batches.
 - **Plaid or another future provider:** the adapter creates/deduplicates an
   immutable `financial_transaction`, then idempotently creates its canonical
   bookkeeping record. No provider fields enter the bookkeeping tables.
-- **CSV and statements:** parsers normalize activity into the same
-  `financial_accounts` and `financial_transactions` contracts before bookkeeping.
+- **CSV and statements:** the authenticated CSV adapter parses exact signed cents,
+  normalizes source facts, and writes the same `financial_accounts` and
+  `financial_transactions` contracts before bookkeeping. The current CSV screen
+  has no account selector, so v1 resolves one stable manual-import account per
+  Business and currency. Its provider namespace is `csv`; it contains no provider
+  credential or Teller/Plaid dependency.
 - **Receipts:** a receipt can support an existing canonical record. If no financial
   activity exists yet, a receipt-origin record may remain unresolved and later gain
   an immutable financial-source association without fabricating or rewriting a bank
@@ -99,13 +103,31 @@ form dependency.
 
 ## Transition strategy
 
-The legacy `transactions` table remains readable and unchanged. No historical row
-is backfilled into this model because doing so would invent decisions that users
-did not make. Financial-transaction resolution, canonical receipt evidence,
-customer questions, documentation risk, and the Home financial summary now use
-the canonical foundation. Legacy CSV import, OCR-created transactions, the old
-Review surface, and legacy reports remain compatibility workflows until each has
-an explicit cutover and historical-data policy.
+The legacy `transactions` table remains readable. No historical row is bulk
+backfilled into this model because doing so would invent decisions that users did
+not make. New CSV activity now enters immutable canonical financial evidence first.
+For each valid import batch, one authenticated transaction resolves the stable CSV
+account, inserts or reuses each immutable financial transaction, creates its
+canonical financial-origin record and fixed unresolved system decision, and
+inserts or reuses the legacy display row. A database failure rolls back the whole
+valid batch; retries and overlapping files converge instead of leaving only one
+representation committed.
+
+CSV transaction identity is scoped by the Business-owned financial account and a
+versioned SHA-256 fingerprint of the normalized date, exact signed cents, currency,
+and full mapped source description. The separate legacy SHA-1 key is retained only
+to converge with rows created by the old importer. With the current three-column
+CSV contract, two byte-equivalent source rows are indistinguishable and converge;
+a future account-aware importer or bank-supplied transaction ID can provide a
+stronger identity without changing the canonical bookkeeping model.
+
+The legacy compatibility row is not canonical source evidence and may continue to
+be mutated by old Review/reporting workflows. Its pack/category fields are not
+copied into canonical decisions. Every imported canonical decision begins
+unresolved with system provenance and no nature, treatment conclusion, category,
+business-use percentage, or allocation. OCR-created transactions, the old Review
+surface, and legacy reports remain compatibility workflows until each has an
+explicit cutover and historical-data policy.
 
 The current foundation does not implement provider synchronization, tax-return
 preparation, official tax forms, or a canonical tax-treatment layer.
