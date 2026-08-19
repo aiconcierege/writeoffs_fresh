@@ -40,8 +40,9 @@ separately validated batches.
    ownership.
 6. **Decision history and review state** — a correction inserts a decision that
    supersedes the prior decision. The prior decision and allocations remain
-   immutable. The current decision is the decision with no successor. Its
-   `review_status` lets a future Weekly Review select unresolved or notable items.
+   immutable. The current decision is the decision with no successor.
+   `review_status` remains a coarse bookkeeping invariant; the durable customer
+   question queue is derived from current `bookkeeping_review_events` leaves.
 
 ## Integrity and security
 
@@ -49,7 +50,7 @@ separately validated batches.
   cross-tenant links even for privileged application code that makes a mistake.
 - RLS resolves every customer read/write through `businesses.owner_user_id`.
 - Authenticated customers may record only decisions attributed to themselves.
-  Future automated processing uses trusted server-side service code and records
+  Automated processing uses trusted server-side service code and records
   `automation`, `system`, or `import` provenance.
 - Canonical records, decisions, and allocations reject updates and deletes.
 - A database insert trigger requires the first decision to be a root and every
@@ -100,11 +101,14 @@ form dependency.
 
 The legacy `transactions` table remains readable and unchanged. No historical row
 is backfilled into this model because doing so would invent decisions that users
-did not make. Each current workflow will be cut over later behind focused adapters,
-with compatibility reads retained until its data has an explicit migration policy.
+did not make. Financial-transaction resolution, canonical receipt evidence,
+customer questions, documentation risk, and the Home financial summary now use
+the canonical foundation. Legacy CSV import, OCR-created transactions, the old
+Review surface, and legacy reports remain compatibility workflows until each has
+an explicit cutover and historical-data policy.
 
-This v1 foundation does not implement Weekly Review, reporting, provider sync,
-receipt matching UI, tax filing, or official tax forms.
+The current foundation does not implement provider synchronization, tax-return
+preparation, official tax forms, or a canonical tax-treatment layer.
 
 ## Canonical Weekly Review foundation
 
@@ -122,15 +126,15 @@ Authenticated users may only skip their own Business's issue; narrow trusted
 operations open, resolve, and materially reopen issues. This foundation does not
 alter bookkeeping decisions from unsupported review responses.
 
-`BUSINESS_PURPOSE_NEEDED` is the first supported factual answer. Its customer
+`BUSINESS_PURPOSE_NEEDED` accepts a factual answer whose customer
 contract contains only a schema version and plain-language business purpose. One
 authenticated database operation verifies the current issue leaf, current decision
 leaf, trusted question context, and a fingerprint of canonical source/document
 evidence. It then copies the established nature, treatment, allocations, internal
 category mapping, and explanation into a new user-provenance decision, adds only
 the trimmed factual purpose, and appends `answered` and `resolved` events. All
-records commit together or all roll back. The other four review reasons reject
-answers until their separately validated factual mappings are implemented.
+records commit together or all roll back. The remaining reason-specific factual
+contracts are described below; none accepts customer-supplied bookkeeping outcomes.
 
 Evidence fingerprints cover the canonical record and authoritative amount and
 currency, the active financial-source association, and document-link history
@@ -210,9 +214,9 @@ returns that resolved leaf instead of recreating the request.
 
 Reopening is trusted-only and requires both materially new context and a changed
 canonical evidence fingerprint. A receipt that remains missing after Receipt Lost
-is not new context. The schema reserves `evidence_attached`, but this slice does
-not alter receipt matching or create document links; later integration must append
-evidence history atomically with the real canonical link.
+is not new context. Receipt matching now appends `evidence_attached` history
+atomically with the real canonical document link when a recognized documentation
+requirement is affected.
 
 Future documentation reporting can combine immutable Receipt Lost history with
 current document-link evidence to distinguish missing documentation, later-found

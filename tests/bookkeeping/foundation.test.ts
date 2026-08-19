@@ -753,6 +753,18 @@ describe('canonical bookkeeping behavior', () => {
           bookkeepingNature: 'expense',
           treatment: 'business',
           reviewStatus: 'resolved',
+          allocations: [{ kind: 'business', amountCents: -11_000 }],
+        },
+      })
+    ).rejects.toThrow('reconcile exactly')
+
+    await expect(
+      service.recordDecision({
+        ...base,
+        decision: {
+          bookkeepingNature: 'expense',
+          treatment: 'business',
+          reviewStatus: 'resolved',
           allocations: [
             { kind: 'business', amountCents: -11_000 },
             { kind: 'business', amountCents: 1000 },
@@ -1050,5 +1062,15 @@ describe('canonical bookkeeping behavior', () => {
     expect(repository.links).toHaveLength(1)
     expect(repository.links[0].revokedAt).not.toBeNull()
     expect(repository.links[0].revocationReason).toBe('Matched to the wrong expense')
+
+    const rematched = await service.linkReceipt({
+      actor: userActor(),
+      recordId: 'record-1',
+      receiptId: 'receipt-1',
+    })
+    expect(rematched.id).not.toBe(first.id)
+    expect(repository.links).toHaveLength(2)
+    expect(repository.links[0].revokedAt).not.toBeNull()
+    expect(repository.links[1].revokedAt).toBeNull()
   })
 })
