@@ -19,6 +19,10 @@ describe('canonical onboarding entry and existing-user compatibility', () => {
   })
   it('sends new signups into onboarding and gives existing users a minimal Home follow-up', () => {
     expect(signup).toContain("router.push('/onboarding')")
+    expect(signup).toContain('data: { vertical }')
+    expect(signup).not.toContain("fetch('/api/profile/init'")
+    expect(signup).toContain('htmlFor="signup-email"')
+    expect(signup).toContain('htmlFor="signup-password"')
     expect(home).toContain('A few business details need an update')
     expect(home).toContain('Your existing work stays in place.')
   })

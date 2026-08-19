@@ -52,6 +52,14 @@ describe('canonical v1 onboarding UI', () => {
     expect(flow).toContain('role="progressbar"')
     expect(flow).toContain('headingRef.current?.focus')
     expect(flow).toContain('role="alert"')
+    expect(flow).toContain('aria-live="assertive"')
+    expect(flow).toContain('aria-busy={saving}')
+    expect(flow).toContain('focus-visible:outline')
     expect(flow).toContain('min-h-11')
+  })
+
+  it('hands completion to the selected activity while keeping Home available', () => {
+    expect(flow).toContain("body.destination === '/receipts' ? '/receipts' : '/import'")
+    expect(flow).toContain('Home remains available from the main navigation.')
   })
 })

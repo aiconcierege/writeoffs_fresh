@@ -505,6 +505,19 @@ but it cannot select another catalog or replace business-use facts. General mean
 the absence of more-specific profile context; Realtor does not create a separate
 bookkeeping, tax, question, reporting, or customer path.
 
+Accounting-sensitive Business context is independently historical. The current
+Business stage/start month, customer-job-material use, future-sale merchandise, and
+prior materials-handling values are projections of append-only
+`business_fact_events` chains. The same transaction appends the event and updates the
+constrained `businesses` read cache. Migration baselines preserve only persisted facts
+and are explicitly distinguished from user answers.
+
+A trusted tax treatment can optionally depend on exact Business fact event IDs.
+Changing a depended-on fact appends a `bookkeeping_tax_treatment_invalidation`; reports
+exclude that conclusion until a trusted current treatment is produced. Invalidation
+does not change financial sources, bookkeeping decisions, allocations, P&L, or prior
+tax history, and it never selects a new accounting method automatically.
+
 Universal candidate concepts, optional business-profile context, question gaps,
 and proposed rollout are documented in `TAX_RULES_V1_PROPOSAL.md`. That inventory
 remains non-executable unless explicitly identified as one of the seven approved

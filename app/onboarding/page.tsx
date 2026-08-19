@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createServerSupabase } from '../../utils/supabase/server'
 import { onboardingNeedsFollowUp, type OnboardingBusinessData } from '../lib/onboarding/progress'
+import { ACCOUNTING_SENSITIVE_BUSINESS_FACTS } from '../lib/onboarding/validation'
 import OnboardingFlow from './OnboardingFlow'
 
 const BUSINESS_FIELDS =
@@ -29,7 +30,13 @@ export default async function OnboardingPage({
     .eq('owner_user_id', user.id)
     .maybeSingle()
 
-  if (businessError || !business) {
+  const { data: factEvents, error: factEventsError } = business
+    ? await supabase.from('business_fact_events')
+      .select('id,fact_key,supersedes_event_id')
+      .eq('business_id', business.id)
+    : { data: [], error: null }
+
+  if (businessError || factEventsError || !business) {
     return (
       <section className="mx-auto max-w-xl py-12">
         <div className="card p-6 sm:p-8" role="alert">
@@ -48,11 +55,19 @@ export default async function OnboardingPage({
     )
   }
 
-  if (!editing && !onboardingNeedsFollowUp(business as OnboardingBusinessData)) redirect('/home')
+  const superseded = new Set((factEvents ?? []).map((event) => event.supersedes_event_id).filter(Boolean))
+  const sensitiveFactRevisions = Object.fromEntries(ACCOUNTING_SENSITIVE_BUSINESS_FACTS.map((key) => [
+    key,
+    (factEvents ?? []).find((event) => event.fact_key === key && !superseded.has(event.id))?.id ?? null,
+  ]))
+  const onboardingBusiness = { ...business, sensitive_fact_revisions: sensitiveFactRevisions } as OnboardingBusinessData
+
+  if (!editing && !onboardingNeedsFollowUp(onboardingBusiness)) redirect('/home')
 
   return (
     <OnboardingFlow
-      initialBusiness={business as OnboardingBusinessData}
+      initialBusiness={onboardingBusiness}
+      editing={editing}
     />
   )
 }

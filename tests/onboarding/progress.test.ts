@@ -8,6 +8,7 @@ function business(overrides: Partial<OnboardingBusinessData> = {}): OnboardingBu
     prior_materials_handling: null, catch_up_start_date: null, onboarding_start_method: null,
     v1_support_status: 'needs_clarification', v1_support_reason: null,
     onboarding_state: 'not_started', onboarding_version: null, onboarding_completed_at: null,
+    sensitive_fact_revisions: {},
     ...overrides }
 }
 const complete = business({ business_description: 'HVAC service', business_profile_context: 'general',

@@ -26,6 +26,7 @@ export type OnboardingBusinessData = {
   onboarding_state: string
   onboarding_version: number | null
   onboarding_completed_at: string | null
+  sensitive_fact_revisions: Record<string, string | null>
 }
 
 function oneOf(values: readonly string[], value: unknown) {
@@ -68,5 +69,6 @@ export function onboardingNeedsFollowUp(business: Pick<OnboardingBusinessData,
       name: null,
       v1_support_reason: null,
       onboarding_completed_at: null,
+      sensitive_fact_revisions: {},
     }, now) !== 'review'
 }

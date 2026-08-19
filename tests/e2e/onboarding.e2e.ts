@@ -1,0 +1,86 @@
+import { expect, test, type Page } from '@playwright/test'
+
+async function signUp(page: Page, profile: 'general' | 'realtor' = 'general') {
+  const nonce = crypto.randomUUID()
+  await page.goto(`/signup?vertical=${profile}`)
+  await page.getByLabel('Email').fill(`onboarding-browser-${nonce}@example.test`)
+  await page.getByLabel('Password').fill(`Browser-${nonce}-password`)
+  await page.getByRole('button', { name: 'Create account' }).click()
+  await expect(page).toHaveURL(/\/onboarding/, { timeout: 20_000 })
+  await expect(page.getByRole('heading', { name: 'Tell us about your business.' })).toBeVisible()
+}
+
+async function continueStep(page: Page) {
+  await page.getByRole('button', { name: 'Continue' }).click()
+}
+
+async function completeBasics(page: Page, profileLabel = 'My business') {
+  await page.getByLabel('What does your business do?').fill('Independent service and consulting work.')
+  await page.getByText(profileLabel, { exact: true }).click()
+  await continueStep(page)
+  await page.getByText('Yes', { exact: true }).click()
+  await continueStep(page)
+}
+
+test('new service business resumes after refresh and hands off to CSV import', async ({ page }) => {
+  await signUp(page)
+  await completeBasics(page)
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Are you starting fresh or bringing in an existing business?' })).toBeVisible()
+  await page.getByText('I’m starting a new business', { exact: true }).click()
+  await page.getByLabel('When did the business start?').fill('2026-01')
+  await continueStep(page)
+  await page.getByText('No', { exact: true }).first().click()
+  await page.getByRole('group', { name: 'Products kept for future sale' }).getByText('No', { exact: true }).click()
+  await continueStep(page)
+  await continueStep(page)
+  await page.getByText('Import a CSV', { exact: true }).click()
+  await continueStep(page)
+  await expect(page.getByRole('heading', { name: 'You’re ready to use WriteOffs.' })).toBeVisible()
+  await page.getByRole('button', { name: 'Finish setup' }).click()
+  await expect(page).toHaveURL(/\/import$/, { timeout: 15_000 })
+  await expect(page.getByRole('link', { name: 'Home', exact: true })).toBeVisible()
+})
+
+test('trade business remains supported with job materials and normal leftover stock', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await signUp(page)
+  await completeBasics(page)
+  await page.getByText('This business already exists', { exact: true }).click()
+  await page.getByLabel('When did the business start?').fill('2020-01')
+  await continueStep(page)
+  await page.getByRole('group', { name: 'Customer-job materials' }).getByText('Yes', { exact: true }).click()
+  await page.getByRole('group', { name: 'Products kept for future sale' }).getByText('No', { exact: true }).click()
+  await expect(page.getByText('Don’t count normal leftover parts or materials you keep for future jobs.')).toBeVisible()
+  await continueStep(page)
+  await page.getByText('My accountant handles this', { exact: true }).click()
+  await continueStep(page)
+  await continueStep(page)
+  await page.getByText('Upload receipts', { exact: true }).click()
+  await continueStep(page)
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await page.getByRole('button', { name: 'Finish setup' }).click()
+  await expect(page).toHaveURL(/\/receipts$/, { timeout: 15_000 })
+})
+
+test('Realtor context uses the same path and unsupported or uncertain answers fail closed', async ({ page }) => {
+  await page.setViewportSize({ width: 820, height: 1000 })
+  await signUp(page, 'realtor')
+  await completeBasics(page, 'Real estate professional')
+  await expect(page.getByRole('heading', { name: 'Are you starting fresh or bringing in an existing business?' })).toBeVisible()
+  await page.getByRole('button', { name: 'Back' }).click()
+  await expect(page.getByRole('heading', { name: 'Is this business reported on Schedule C with your personal tax return?' })).toBeVisible()
+  await page.getByText('I’m not sure', { exact: true }).click()
+  await expect(page.getByText('Confirm this before continuing')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0)
+  await page.getByText('Yes', { exact: true }).click()
+  await continueStep(page)
+  await page.getByText('This business already exists', { exact: true }).click()
+  await page.getByLabel('When did the business start?').fill('2020-01')
+  await continueStep(page)
+  await page.getByRole('group', { name: 'Customer-job materials' }).getByText('Yes', { exact: true }).click()
+  await page.getByRole('group', { name: 'Products kept for future sale' }).getByText('Yes', { exact: true }).click()
+  await expect(page.getByText('WriteOffs isn’t the right fit for this setup yet')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0)
+  await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '4')
+})

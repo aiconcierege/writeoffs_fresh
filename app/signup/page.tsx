@@ -28,7 +28,10 @@ function SignupInner() {
     const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` }
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: { vertical },
+      }
     })
     if (signUpError) { setErr(signUpError.message); setLoading(false); return }
 
@@ -38,14 +41,6 @@ function SignupInner() {
       setLoading(false)
       return
     }
-
-    try {
-      await fetch('/api/profile/init', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vertical })
-      })
-    } catch { /* non-blocking */ }
 
     router.push('/onboarding')
   }
@@ -65,8 +60,9 @@ function SignupInner() {
 
         <form onSubmit={handleSignup} className="mt-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium">Email</label>
+            <label htmlFor="signup-email" className="block text-sm font-medium">Email</label>
             <input
+              id="signup-email"
               type="email"
               required
               value={email}
@@ -76,8 +72,9 @@ function SignupInner() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium">Password</label>
+            <label htmlFor="signup-password" className="block text-sm font-medium">Password</label>
             <input
+              id="signup-password"
               type="password"
               required
               minLength={8}

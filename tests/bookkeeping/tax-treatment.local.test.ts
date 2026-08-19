@@ -113,6 +113,30 @@ suite('canonical tax treatment against local PostgreSQL', () => {
     expect(report.estimatedDeductionsCents).toBe(8_000)
     expect(report.businessExpensesCents).toBe(10_000)
     expect(report.businessProfitCents).toBe(-10_000)
+    const { data: factRevision, error: factError } = await owner.customer.rpc('record_business_fact_changes', {
+      p_business_id: owner.businessId, p_changes: { uses_customer_job_materials: 'no' },
+      p_expected_event_ids: {}, p_source: 'onboarding', p_reason: 'Initial Business fact.',
+      p_request_key: crypto.randomUUID(),
+    })
+    expect(factError).toBeNull()
+    const { error: dependencyError } = await admin
+      .from('bookkeeping_tax_treatment_business_fact_dependencies').insert({
+        business_id: owner.businessId, tax_treatment_id: first.id,
+        fact_key: 'uses_customer_job_materials',
+        based_on_business_fact_event_id: factRevision.uses_customer_job_materials,
+      })
+    expect(dependencyError).toBeNull()
+    const { error: correctionError } = await owner.customer.rpc('record_business_fact_changes', {
+      p_business_id: owner.businessId, p_changes: { uses_customer_job_materials: 'yes' },
+      p_expected_event_ids: { uses_customer_job_materials: factRevision.uses_customer_job_materials },
+      p_source: 'settings', p_reason: 'Corrected Business fact.', p_request_key: crypto.randomUUID(),
+    })
+    expect(correctionError).toBeNull()
+    report = await getAuthenticatedCanonicalReport({ supabase: owner.customer,
+      periodStart: '2026-01-01', periodEnd: '2026-12-31' })
+    expect(report.estimatedDeductionsCents).toBeNull()
+    expect(report.businessExpensesCents).toBe(10_000)
+    expect(report.businessProfitCents).toBe(-10_000)
     await correctCanonicalTransactionUse({ supabase: owner.customer,
       financialTransactionId: owner.transactionIds[0], expectedCurrentDecisionId: decision.id,
       correctionRequestId: crypto.randomUUID(), answer: { schemaVersion: 1, use: 'mixed', personalAmountCents: 3_000 } })

@@ -39,37 +39,14 @@ export async function POST() {
       { status: 422 }
     )
   }
-
-  if (business.onboarding_state === 'completed' && business.onboarding_version === 3) {
-    return NextResponse.json({ ok: true, completedAt: business.onboarding_completed_at, destination: '/home' })
-  }
-  const completedAt = new Date().toISOString()
-  const { error: updateError, count } = await supabase
-    .from('businesses')
-    .update(
-      {
-        onboarding_state: 'completed',
-        onboarding_version: 3,
-        onboarding_completed_at: completedAt,
-      },
-      { count: 'exact' }
-    )
-    .eq('id', business.id)
-    .eq('owner_user_id', user.id)
-
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 400 })
-  }
-  if (count !== 1) {
+  const { data: completion, error: completionError } = await supabase
+    .rpc('complete_business_onboarding_v3', { p_business_id: business.id })
+  if (completionError) {
+    const incomplete = completionError.message.includes('onboarding is incomplete')
     return NextResponse.json(
-      { error: 'business profile is unavailable' },
-      { status: 409 }
+      { error: incomplete ? 'onboarding is incomplete' : completionError.message },
+      { status: incomplete ? 422 : 400 }
     )
   }
-
-  return NextResponse.json({
-    ok: true,
-    completedAt,
-    destination: '/home',
-  })
+  return NextResponse.json({ ok: true, ...completion })
 }

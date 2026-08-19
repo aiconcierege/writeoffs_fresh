@@ -5,6 +5,10 @@ export const MATERIALS_HANDLING_ANSWERS = [
   'deduct_purchases', 'count_year_end', 'accountant_handles', 'not_sure',
 ] as const
 export const ONBOARDING_START_METHODS = ['statement_uploads', 'receipts'] as const
+export const ACCOUNTING_SENSITIVE_BUSINESS_FACTS = [
+  'business_stage', 'business_start_month', 'uses_customer_job_materials',
+  'keeps_future_sale_merchandise', 'prior_materials_handling',
+] as const
 export const ONBOARDING_BUSINESS_STEPS = [
   'business', 'eligibility', 'history', 'operations', 'materials_history', 'catch_up', 'starting_method',
 ] as const

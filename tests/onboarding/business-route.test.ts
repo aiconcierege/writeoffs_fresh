@@ -17,9 +17,11 @@ function client(state = 'not_started', count = 1) {
     update: vi.fn((value) => { updates.push(value); return mutation }),
   }
   const profiles = { update: vi.fn((value) => { profileUpdates.push(value); return profileMutation }) }
-  const api = { auth: { getUser: vi.fn(async () => ({ data: { user: { id: 'u1' } }, error: null })) },
+  const rpc = vi.fn(async (): Promise<{ data: Record<string, string> | null; error: { message: string } | null }> =>
+    ({ data: { uses_customer_job_materials: 'event-1', keeps_future_sale_merchandise: 'event-2' }, error: null }))
+  const api = { auth: { getUser: vi.fn(async () => ({ data: { user: { id: 'u1' } }, error: null })) }, rpc,
     from: vi.fn((name: string) => name === 'businesses' ? businesses : name === 'profiles' ? profiles : (() => { throw new Error(name) })()) }
-  return { api, updates, profileUpdates, mutation, businesses }
+  return { api, updates, profileUpdates, mutation, businesses, rpc }
 }
 
 describe('PATCH /api/onboarding/business', () => {
@@ -32,11 +34,13 @@ describe('PATCH /api/onboarding/business', () => {
 
   it('resolves one Business from auth and stores server-derived eligibility', async () => {
     const c = client(); createServerSupabase.mockResolvedValue(c.api)
-    expect((await PATCH(request({ step: 'operations', data: { schedule_c_eligibility: 'yes', uses_customer_job_materials: 'yes', keeps_future_sale_merchandise: 'no' } }))).status).toBe(200)
-    expect(c.updates[0]).toMatchObject({ uses_customer_job_materials: 'yes', keeps_future_sale_merchandise: 'no', onboarding_version: 3 })
-    expect(c.updates[0]).not.toHaveProperty('v1_support_status')
-    expect(c.mutation.eq).toHaveBeenCalledWith('id', 'b1')
-    expect(c.mutation.eq).toHaveBeenCalledWith('owner_user_id', 'u1')
+    const response = await PATCH(request({ step: 'operations', data: { schedule_c_eligibility: 'yes', uses_customer_job_materials: 'yes', keeps_future_sale_merchandise: 'no' }, request_id: 'request-1', expected_fact_event_ids: {} }))
+    expect(response.status).toBe(200)
+    expect(c.rpc).toHaveBeenCalledWith('record_business_fact_changes', expect.objectContaining({
+      p_business_id: 'b1', p_changes: { uses_customer_job_materials: 'yes', keeps_future_sale_merchandise: 'no' },
+      p_expected_event_ids: {}, p_request_key: 'request-1',
+    }))
+    expect(c.updates).toEqual([])
   })
 
   it('updates optional profile context without creating a separate path', async () => {
@@ -57,5 +61,13 @@ describe('PATCH /api/onboarding/business', () => {
   it('fails closed if ownership-scoped update does not affect exactly one Business', async () => {
     const c = client('not_started', 0); createServerSupabase.mockResolvedValue(c.api)
     expect((await PATCH(request({ step: 'eligibility', data: { schedule_c_eligibility: 'yes' } }))).status).toBe(409)
+  })
+
+  it('returns conflict for a stale accounting-sensitive fact revision', async () => {
+    const c = client()
+    c.rpc.mockResolvedValueOnce({ data: null, error: { message: 'Business fact changed before this answer was saved' } })
+    createServerSupabase.mockResolvedValue(c.api)
+    const response = await PATCH(request({ step: 'history', data: { business_stage: 'existing', business_start_month: '2020-01' }, request_id: 'request-stale', expected_fact_event_ids: {} }))
+    expect(response.status).toBe(409)
   })
 })

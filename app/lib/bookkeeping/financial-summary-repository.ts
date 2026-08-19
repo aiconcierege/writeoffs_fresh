@@ -90,6 +90,16 @@ implements CanonicalFinancialSummaryRepository {
       if (error) throw new Error(`Unable to load canonical tax treatments: ${error.message}`)
       return (data ?? []) as Row[]
     })
+    const taxTreatmentIds = taxTreatmentRows.map((row) => text(row, 'id'))
+    const invalidationRows = await inBatches(taxTreatmentIds, async (ids) => {
+      const { data, error } = await this.supabase.from('bookkeeping_tax_treatment_invalidations')
+        .select('tax_treatment_id').eq('business_id', input.businessId).in('tax_treatment_id', ids)
+      if (error) throw new Error(`Unable to load canonical tax-treatment validity: ${error.message}`)
+      return (data ?? []) as Row[]
+    })
+    const invalidatedTaxTreatmentIds = new Set(
+      invalidationRows.map((row) => text(row, 'tax_treatment_id'))
+    )
     const sourceRows = await inBatches(recordIds, async (ids) => {
       const { data, error } = await this.supabase.from('bookkeeping_financial_sources')
         .select('id,bookkeeping_record_id,financial_transaction_id')
@@ -130,6 +140,7 @@ implements CanonicalFinancialSummaryRepository {
 
     const taxTreatmentsByAllocation = new Map<string, CanonicalTaxTreatment[]>()
     for (const row of taxTreatmentRows) {
+      if (invalidatedTaxTreatmentIds.has(text(row, 'id'))) continue
       const allocationId = text(row, 'bookkeeping_allocation_id')
       const history = taxTreatmentsByAllocation.get(allocationId) ?? []
       history.push({ id: text(row, 'id'), allocationId,

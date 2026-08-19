@@ -16,12 +16,19 @@ suite('canonical onboarding v3 against local PostgreSQL', () => {
 
     const { error: updateError } = await ownerA.customer.from('businesses').update({
       business_description: 'HVAC installation and repair', business_profile_context: 'general',
-      schedule_c_eligibility: 'yes', business_stage: 'existing', business_start_month: '2020-01-01',
-      uses_customer_job_materials: 'yes', keeps_future_sale_merchandise: 'no',
-      prior_materials_handling: 'accountant_handles', catch_up_start_date: '2026-01-01',
+      schedule_c_eligibility: 'yes', catch_up_start_date: '2026-01-01',
       onboarding_start_method: 'statement_uploads', onboarding_state: 'in_progress', onboarding_version: 3,
     }).eq('id', ownerA.businessId)
     expect(updateError).toBeNull()
+    const { error: factsError } = await ownerA.customer.rpc('record_business_fact_changes', {
+      p_business_id: ownerA.businessId,
+      p_changes: { business_stage: 'existing', business_start_month: '2020-01-01',
+        uses_customer_job_materials: 'yes', keeps_future_sale_merchandise: 'no',
+        prior_materials_handling: 'accountant_handles' },
+      p_expected_event_ids: {}, p_source: 'onboarding', p_reason: 'Local onboarding test.',
+      p_request_key: crypto.randomUUID(),
+    })
+    expect(factsError).toBeNull()
 
     const { data: own } = await ownerA.customer.from('businesses')
       .select('v1_support_status,v1_support_reason,uses_customer_job_materials')
