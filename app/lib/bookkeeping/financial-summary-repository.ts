@@ -58,7 +58,7 @@ implements CanonicalFinancialSummaryRepository {
     const rows: Row[] = []
     for (let from = 0; ; from += 1000) {
       const { data, error } = await this.supabase.from('bookkeeping_records')
-        .select('id,amount_cents,currency,occurred_on')
+        .select('id,source_kind,amount_cents,currency,occurred_on')
         .eq('business_id', input.businessId).order('id').range(from, from + 999)
       if (error) throw new Error(`Unable to load canonical summary records: ${error.message}`)
       const page = (data ?? []) as Row[]
@@ -76,7 +76,7 @@ implements CanonicalFinancialSummaryRepository {
     const decisionIds = decisionRows.map((row) => text(row, 'id'))
     const allocationRows = await inBatches(decisionIds, async (ids) => {
       const { data, error } = await this.supabase.from('bookkeeping_allocations')
-        .select('id,bookkeeping_record_id,bookkeeping_decision_id,allocation_kind,amount_cents')
+        .select('id,bookkeeping_record_id,bookkeeping_decision_id,allocation_kind,amount_cents,tax_category_key')
         .eq('business_id', input.businessId).in('bookkeeping_decision_id', ids)
       if (error) throw new Error(`Unable to load canonical summary allocations: ${error.message}`)
       return (data ?? []) as Row[]
@@ -91,9 +91,31 @@ implements CanonicalFinancialSummaryRepository {
     const transactionIds = sourceRows.map((row) => text(row, 'financial_transaction_id'))
     const transactionRows = await inBatches(transactionIds, async (ids) => {
       const { data, error } = await this.supabase.from('financial_transactions')
-        .select('id,amount_cents,currency,transaction_date')
+        .select('id,amount_cents,currency,transaction_date,merchant_name,original_description')
         .eq('business_id', input.businessId).in('id', ids)
       if (error) throw new Error(`Unable to load canonical summary source transactions: ${error.message}`)
+      return (data ?? []) as Row[]
+    })
+    const documentRows = await inBatches(recordIds, async (ids) => {
+      const { data, error } = await this.supabase.from('bookkeeping_document_links')
+        .select('bookkeeping_record_id,receipt_id').eq('business_id', input.businessId)
+        .in('bookkeeping_record_id', ids).is('revoked_at', null)
+      if (error) throw new Error(`Unable to load canonical summary evidence: ${error.message}`)
+      return (data ?? []) as Row[]
+    })
+    const documentationRows = await inBatches(recordIds, async (ids) => {
+      const { data, error } = await this.supabase.from('bookkeeping_documentation_events')
+        .select('bookkeeping_record_id,event_type').eq('business_id', input.businessId)
+        .in('bookkeeping_record_id', ids)
+      if (error) throw new Error(`Unable to load canonical documentation state: ${error.message}`)
+      return (data ?? []) as Row[]
+    })
+    const receiptIds = documentRows.map((row) => text(row, 'receipt_id'))
+    const extractionRows = await inBatches(receiptIds, async (ids) => {
+      const { data, error } = await this.supabase.from('bookkeeping_receipt_extractions')
+        .select('receipt_id,merchant').eq('business_id', input.businessId)
+        .in('receipt_id', ids).order('created_at', { ascending: false })
+      if (error) throw new Error(`Unable to load canonical receipt source facts: ${error.message}`)
       return (data ?? []) as Row[]
     })
 
@@ -105,6 +127,7 @@ implements CanonicalFinancialSummaryRepository {
         id: text(row, 'id'),
         kind: text(row, 'allocation_kind') as CanonicalSummaryDecision['allocations'][number]['kind'],
         amountCents: cents(row.amount_cents)!,
+        taxCategoryKey: nullableText(row, 'tax_category_key'),
       })
       allocationsByDecision.set(decisionId, allocations)
     }
@@ -124,6 +147,15 @@ implements CanonicalFinancialSummaryRepository {
     }
     const sourceByRecord = new Map(sourceRows.map((row) => [text(row, 'bookkeeping_record_id'), row]))
     const transactionById = new Map(transactionRows.map((row) => [text(row, 'id'), row]))
+    const documentedRecords = new Set(documentRows.map((row) => text(row, 'bookkeeping_record_id')))
+    const receiptLostRecords = new Set(documentationRows.filter((row) => text(row, 'event_type') === 'receipt_lost')
+      .map((row) => text(row, 'bookkeeping_record_id')))
+    const receiptByRecord = new Map(documentRows.map((row) => [text(row, 'bookkeeping_record_id'), text(row, 'receipt_id')]))
+    const extractionByReceipt = new Map<string, Row>()
+    for (const row of extractionRows) {
+      const receiptId = text(row, 'receipt_id')
+      if (!extractionByReceipt.has(receiptId)) extractionByReceipt.set(receiptId, row)
+    }
 
     return {
       records: rows.map((row) => {
@@ -141,6 +173,12 @@ implements CanonicalFinancialSummaryRepository {
           currency: transaction ? text(transaction, 'currency') : text(row, 'currency'),
           financialSourceAssociationId: source ? text(source, 'id') : null,
           financialTransactionId: source ? text(source, 'financial_transaction_id') : null,
+          sourceKind: text(row, 'source_kind') as CanonicalSummaryRecord['sourceKind'],
+          merchant: transaction ? nullableText(transaction, 'merchant_name')
+            : nullableText(extractionByReceipt.get(receiptByRecord.get(id) ?? '') ?? {}, 'merchant'),
+          description: transaction ? nullableText(transaction, 'original_description') : null,
+          hasEvidence: documentedRecords.has(id),
+          receiptLost: receiptLostRecords.has(id),
           decisions: decisionsByRecord.get(id) ?? [],
         }
       }),

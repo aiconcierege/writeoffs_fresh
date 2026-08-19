@@ -40,8 +40,7 @@ export default function ExportPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Export</h1>
           <p className="mt-1 text-sm text-muted">
-            Download CSVs for bookkeeping or Schedule C prep. Your server will
-            respect the user’s pack from their profile — no selector here.
+            Download your current business activity for bookkeeping or tax preparation.
           </p>
         </div>
       </div>
@@ -51,7 +50,7 @@ export default function ExportPage() {
         <div className="space-y-1">
           <h2 className="text-base font-medium">CSV Exports</h2>
           <p className="text-sm text-muted">
-            Two quick pulls: everything, or only transactions missing categories.
+            Export everything, or only activity WriteOffs is still working on.
           </p>
         </div>
 
@@ -79,14 +78,13 @@ export default function ExportPage() {
               "disabled:opacity-70 disabled:cursor-not-allowed"
             )}
           >
-            {loading === "uncat" ? "Exporting…" : "Export CSV (uncategorized)"}
+            {loading === "uncat" ? "Exporting…" : "Export CSV (needs attention)"}
           </button>
         </div>
 
         <div className="pt-2">
           <p className="text-xs text-muted">
-            Tip: open the CSV in Excel/Sheets to spot anomalies. For audit armor,
-            keep your receipts zipped in the same folder as the CSV.
+            Exports reflect current treatment and preserve receipt-only activity without duplicating matched historical records.
           </p>
         </div>
       </div>

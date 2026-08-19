@@ -2,6 +2,7 @@ export type CanonicalSummaryAllocation = {
   id: string
   kind: 'business' | 'personal' | 'excluded'
   amountCents: number
+  taxCategoryKey?: string | null
 }
 
 export type CanonicalSummaryDecision = {
@@ -28,6 +29,11 @@ export type CanonicalSummaryRecord = {
   currency: string
   financialSourceAssociationId: string | null
   financialTransactionId: string | null
+  sourceKind?: 'financial_transaction' | 'receipt' | 'manual'
+  merchant?: string | null
+  description?: string | null
+  hasEvidence?: boolean
+  receiptLost?: boolean
   decisions: CanonicalSummaryDecision[]
 }
 

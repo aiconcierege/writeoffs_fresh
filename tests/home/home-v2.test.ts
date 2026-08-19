@@ -25,7 +25,7 @@ describe('WriteOffs Home v2', () => {
   })
 
   it('uses only canonical actionable questions for customer attention', () => {
-    expect(home).toContain('getAuthenticatedCanonicalFinancialSummary({')
+    expect(home).toContain('getAuthenticatedCanonicalReport({')
     expect(home).toContain('summary.completeness.unresolvedCustomerQuestionCount')
     expect(home).toContain('customerQuestionHeadline(questionCount)')
     expect(home).toContain('href="/questions"')
@@ -44,7 +44,7 @@ describe('WriteOffs Home v2', () => {
   it('requires authentication before loading tenant-scoped Home data', () => {
     const authCheck = home.indexOf('supabase.auth.getUser()')
     const redirectCheck = home.indexOf("if (!user) redirect('/login')")
-    const questionQuery = home.indexOf('getAuthenticatedCanonicalFinancialSummary({')
+    const questionQuery = home.indexOf('getAuthenticatedCanonicalReport({')
     expect(authCheck).toBeGreaterThan(-1)
     expect(redirectCheck).toBeGreaterThan(authCheck)
     expect(questionQuery).toBeGreaterThan(redirectCheck)
@@ -55,7 +55,7 @@ describe('WriteOffs Home v2', () => {
       expect(home).toContain(label)
       expect(financialSummary).toContain(label)
     }
-    expect(home).toContain('getAuthenticatedCanonicalFinancialSummary')
+    expect(home).toContain('getAuthenticatedCanonicalReport')
     expect(home).toContain('<dl')
     expect(home).toContain('Some activity is still being processed.')
     expect(home).not.toContain('Estimated deductions')

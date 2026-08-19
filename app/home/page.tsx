@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createServerSupabase } from '../../utils/supabase/server'
 import { customerQuestionHeadline } from '../lib/bookkeeping/customer-questions'
-import { getAuthenticatedCanonicalFinancialSummary } from '../lib/bookkeeping/financial-summary-service'
+import { getAuthenticatedCanonicalReport } from '../lib/bookkeeping/reporting-service'
 import { HomeGreeting } from './HomeGreeting'
 import { countReceiptsNeedingAttention } from '../lib/bookkeeping/receipt-workflow'
 
@@ -25,7 +25,7 @@ export default async function HomePage() {
   if (!user) redirect('/login')
 
   const periodEnd = new Date().toISOString().slice(0, 10)
-  const summary = await getAuthenticatedCanonicalFinancialSummary({
+  const summary = await getAuthenticatedCanonicalReport({
     supabase,
     periodStart: `${periodEnd.slice(0, 4)}-01-01`,
     periodEnd,

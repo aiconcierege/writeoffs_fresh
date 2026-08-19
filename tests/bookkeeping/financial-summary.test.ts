@@ -16,7 +16,7 @@ function decision(input: Partial<CanonicalSummaryDecision> = {}): CanonicalSumma
     supersedesDecisionId: null,
     bookkeepingNature: 'expense',
     treatment: 'business',
-    allocations: [{ id: `allocation-${sequence}`, kind: 'business', amountCents: -10_000 }],
+    allocations: [{ id: `allocation-${sequence}`, kind: 'business', amountCents: -10_000, taxCategoryKey: null }],
     ...input,
   }
 }

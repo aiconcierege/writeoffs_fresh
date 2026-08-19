@@ -103,8 +103,9 @@ describe('customer endpoint isolation', () => {
     expect(readModel).toContain(".eq('owner_user_id', input.userId)")
     expect(readModel).toContain(".eq('business_id', businessId)")
     expect(readModel).toContain(".eq('user_id', input.userId)")
-    expect(source('app/api/transactions/export/route.ts')).toContain('.eq("user_id", user.id)')
-    expect(source('app/api/export/csv/route.ts')).toContain(".eq('user_id', user.id)")
+    const reportingRepository = source('app/lib/bookkeeping/reporting-repository.ts')
+    expect(reportingRepository).toContain(".eq('user_id', input.userId)")
+    expect(reportingRepository).toContain(".is('canonical_financial_transaction_id', null)")
   })
 
   it('derives CSV tenant identity inside the authenticated canonical operation', () => {

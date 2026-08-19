@@ -387,3 +387,34 @@ traceability. Documentation risk does not change bookkeeping arithmetic.
 Estimated deductions and taxable-income concepts are intentionally absent. They
 require a separately approved, versioned canonical tax-treatment layer and must
 never be inferred by treating all business expenses as deductible.
+
+## Canonical reporting compatibility
+
+Home, Reports, tax-category preparation summaries, and detailed CSV exports now
+share the canonical reporting aggregation. The read model selects the current
+decision leaf, applies exact signed business and personal allocations, and includes
+both financial-transaction-backed and receipt-only records. Receipt-only rows keep
+their document provenance and never acquire a fabricated account or financial
+transaction. Prior correction decisions remain trace history rather than additional
+financial activity.
+
+Category summaries include only business allocations with an explicit supported
+`tax_category_key`. A resolved business expense without that mapping still affects
+business-expense and profit totals, but is disclosed as absent from the category
+breakdown. This is not an estimated-deduction calculation. Receipt Lost and other
+documentation conditions may be described in detailed output but never change the
+amount, use allocation, or category.
+
+Reporting periods use inclusive ISO date-only boundaries. Month, quarter, YTD, and
+annual callers therefore share calendar arithmetic without timezone conversion of
+financial dates. Currency is isolated and all arithmetic remains safe integer cents.
+The repository batches record, decision, allocation, source, evidence, and historical
+compatibility reads rather than issuing per-row queries.
+
+Historical legacy-only rows remain a contained fallback. A legacy row linked to a
+canonical financial transaction is excluded, preventing double counting. An
+uncorrelated categorized legacy row retains its historical expense-report behavior;
+an uncategorized legacy row remains unresolved and is not guessed into totals. No
+legacy category is copied into a canonical decision and report reads never mutate
+either model. Historical records have not been bulk migrated, so the legacy fallback
+remains a compatibility risk until a separately approved migration policy exists.
