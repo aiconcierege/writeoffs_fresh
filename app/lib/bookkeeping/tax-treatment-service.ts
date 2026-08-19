@@ -1,11 +1,62 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { validateTaxRuleAudit, validateTrustedTaxTreatment, type TaxTreatmentStatus } from './tax-treatment-model'
+import { evaluateProductionTaxRules } from './tax-rule-engine'
+import type { TaxRuleFacts } from './tax-rule-catalog'
 
 function stableJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`
   if (value && typeof value === 'object') return `{${Object.entries(value as Record<string, unknown>)
     .sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`).join(',')}}`
   return JSON.stringify(value)
+}
+
+/**
+ * Trusted background entry point for the fixed production catalog. The caller can
+ * supply factual evidence, but cannot select a rule or replace the catalog.
+ */
+export async function evaluateAndAppendProductionTaxTreatment(input: {
+  supabase: SupabaseClient
+  businessId: string
+  allocationId: string
+  expectedCurrentTaxTreatmentId: string | null
+  facts: TaxRuleFacts
+  evaluationRequestId: string
+}) {
+  if (!input.evaluationRequestId.trim() || input.evaluationRequestId.length > 100) {
+    throw new Error('A stable tax evaluation request identity is required.')
+  }
+  const { data: allocation, error } = await input.supabase.from('bookkeeping_allocations')
+    .select('amount_cents,tax_category_key,allocation_kind,bookkeeping_record_id')
+    .eq('id', input.allocationId).eq('business_id', input.businessId).maybeSingle()
+  if (error || !allocation || allocation.allocation_kind !== 'business') {
+    throw new Error('The canonical business allocation was not found.')
+  }
+  if (!allocation.tax_category_key) {
+    return { status: 'unresolved' as const, reason: 'no_active_rule' as const,
+      missingFacts: [], ruleIdentities: [] }
+  }
+  const { data: record, error: recordError } = await input.supabase.from('bookkeeping_records')
+    .select('occurred_on').eq('id', allocation.bookkeeping_record_id)
+    .eq('business_id', input.businessId).maybeSingle()
+  if (recordError || !record?.occurred_on || !/^\d{4}-\d{2}-\d{2}$/.test(record.occurred_on)) {
+    throw new Error('The canonical economic date was not found.')
+  }
+  const taxYear = Number(record.occurred_on.slice(0, 4))
+  const evaluation = evaluateProductionTaxRules({ taxYear,
+    taxCategoryKey: allocation.tax_category_key,
+    businessAllocationAmountCents: Number(allocation.amount_cents), facts: input.facts })
+  if (evaluation.status !== 'resolved') return evaluation
+  const persisted = await appendTrustedTaxTreatment({ supabase: input.supabase,
+    businessId: input.businessId, allocationId: input.allocationId,
+    expectedCurrentTaxTreatmentId: input.expectedCurrentTaxTreatmentId,
+    conclusionKey: `${evaluation.ruleKey}@${evaluation.ruleVersion}:${taxYear}:${input.evaluationRequestId}`,
+    status: evaluation.treatmentStatus, deductibleAmountCents: evaluation.deductibleAmountCents,
+    taxCategoryKey: evaluation.taxCategoryKey, ruleKey: evaluation.ruleKey,
+    ruleVersion: evaluation.ruleVersion, reason: evaluation.reason, provenance: 'automation',
+    taxYear: evaluation.taxYear, outcomeType: evaluation.outcomeType,
+    adjustmentMethod: evaluation.adjustmentMethod, factualBasis: evaluation.factualBasis,
+    authorityReferences: evaluation.authorityReferences as unknown as Array<Record<string, string | null>> })
+  return { ...evaluation, treatmentId: persisted.id, idempotent: persisted.idempotent }
 }
 
 /** Background-only writer. The table grants customers SELECT but no INSERT. */

@@ -477,10 +477,13 @@ treatments. Estimated Deductions alone reads the separate deductible amount.
 Tax rules use one stable `tax.*` namespace and one canonical evaluator; immutable
 versions; tax-year ranges; candidate, approved, active, and retired lifecycles; explicit
 automation levels; required factual evidence; outcomes; explanation templates;
-and compact authority/approval metadata. Only active rules execute. Missing facts,
+and immutable authority URL/support/verification plus approval metadata. Only active rules execute. Missing facts,
 unsupported years, conflicts, and absent active rules fail closed. The production
-catalog is deliberately empty, while fictional fixture rules are isolated under
-tests and rejected by the production evaluator.
+catalog contains exactly seven product-approved 2025 Tier A rules: advertising,
+office expense, supplies, postage/shipping, routine software/cloud services,
+payment/bank service fees, and ordinary current-business licenses. Every other
+researched rule remains inactive. Fictional fixture rules are isolated under tests
+and rejected by the production evaluator.
 
 Tax-treatment audit rows can preserve the evaluated tax year, outcome, adjustment
 method, factual-basis snapshot, and authority references. `requires_facts` and
@@ -497,4 +500,5 @@ bookkeeping, tax, question, reporting, or customer path.
 
 Universal candidate concepts, optional business-profile context, question gaps,
 and proposed rollout are documented in `TAX_RULES_V1_PROPOSAL.md`. That inventory
-is not executable and is not legal or product approval.
+remains non-executable unless explicitly identified as one of the seven approved
+2025 Tier A rules.

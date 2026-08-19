@@ -1,7 +1,8 @@
 import type { TaxRuleCatalog, TaxRuleDefinition } from '../../app/lib/bookkeeping/tax-rule-catalog'
 
 const authority = [{ authority: 'internal_review' as const, identifier: 'FICTIONAL-TEST-ONLY',
-  revision: null, topic: 'Synthetic rule-engine fixture' }]
+  revision: null, topic: 'Synthetic rule-engine fixture', officialUrl: 'https://www.irs.gov/',
+  supportStatement: 'Fictional test metadata only.', lastVerifiedOn: '2026-01-01' }]
 const approval = { reviewReference: 'TEST-ONLY-NOT-LEGAL-APPROVAL', approvedAt: '2026-01-01' }
 
 function rule(input: Partial<TaxRuleDefinition> & Pick<TaxRuleDefinition, 'key' | 'taxCategoryKey' | 'outcome'>): TaxRuleDefinition {

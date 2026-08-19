@@ -8,11 +8,94 @@ const input = (category: string, extra: Record<string, unknown> = {}) => ({
   facts: { businessPurpose: 'Synthetic test fact' }, ...extra })
 
 describe('versioned tax-rule engine', () => {
-  it('keeps production empty and exposes no caller-selected production catalog', () => {
-    expect(validateTaxRuleCatalog(PRODUCTION_TAX_RULE_CATALOG).rules).toEqual([])
+  it('exposes exactly the seven approved 2025 rules and no caller-selected production catalog', () => {
+    const rules = validateTaxRuleCatalog(PRODUCTION_TAX_RULE_CATALOG).rules
+    expect(rules).toHaveLength(7)
+    expect(rules.map((rule) => rule.key)).toEqual([
+      'tax.advertising', 'tax.office-expense', 'tax.supplies', 'tax.postage-shipping',
+      'tax.software-cloud', 'tax.payment-bank-fees', 'tax.business-license',
+    ])
+    expect(rules.every((rule) => rule.lifecycle === 'active'
+      && rule.taxYears.from === 2025 && rule.taxYears.through === 2025)).toBe(true)
     expect(evaluateProductionTaxRules(input('fixture-full')))
       .toMatchObject({ status: 'unresolved', reason: 'no_active_rule' })
     expect(evaluateProductionTaxRules).toHaveLength(1)
+  })
+
+  const productionCases = [
+    { category: 'advertising', key: 'tax.advertising', facts: { expenseNature: 'advertising', capitalizableAsset: false } },
+    { category: 'office-expense', key: 'tax.office-expense', facts: {
+      expenseNature: 'office_expense', durableProperty: false, inventoryOrResale: false } },
+    { category: 'supplies', key: 'tax.supplies', facts: {
+      expenseNature: 'consumable_supplies', durableProperty: false, inventoryOrResale: false } },
+    { category: 'postage-shipping', key: 'tax.postage-shipping', facts: {
+      expenseNature: 'postage_shipping', shippingCostContext: 'standalone_business_delivery' } },
+    { category: 'software-cloud', key: 'tax.software-cloud', facts: {
+      expenseNature: 'software_cloud', capitalizableAsset: false, prepaidMultiYear: false } },
+    { category: 'payment-bank-fees', key: 'tax.payment-bank-fees', facts: {
+      expenseNature: 'financial_service_fee', financialActivityType: 'payment_processing_fee' } },
+    { category: 'business-license', key: 'tax.business-license', facts: {
+      expenseNature: 'business_license', governmentPaymentType: 'ordinary_current_business_license', currentBusiness: true } },
+  ] as const
+
+  it.each(productionCases)('resolves qualifying $key evidence and pins authority/version', ({ category, key, facts }) => {
+    const result = evaluateProductionTaxRules({ taxYear: 2025, taxCategoryKey: category,
+      businessAllocationAmountCents: -7_000, facts: { transactionNature: 'expense',
+        businessPurpose: 'Established current business purpose.', businessUseTreatment: 'mixed',
+        conflictingEvidence: false, ...facts } })
+    expect(result).toMatchObject({ status: 'resolved', ruleKey: key, ruleVersion: 1,
+      taxYear: 2025, deductibleAmountCents: -7_000, outcomeType: 'full_deduction' })
+    if (result.status === 'resolved') {
+      expect(result.authorityReferences).toHaveLength(2)
+      expect(result.authorityReferences.every((reference) => reference.officialUrl.startsWith('https://www.irs.gov/')
+        && reference.lastVerifiedOn === '2026-08-19')).toBe(true)
+    }
+  })
+
+  it.each(productionCases)('fails closed for missing, conflicting, personal, and unsupported-year $key evidence',
+    ({ category, facts }) => {
+      const base = { taxYear: 2025, taxCategoryKey: category, businessAllocationAmountCents: -10_000,
+        facts: { transactionNature: 'expense', businessPurpose: 'Business purpose',
+          businessUseTreatment: 'business', conflictingEvidence: false, ...facts } }
+      expect(evaluateProductionTaxRules({ ...base, facts: { ...base.facts, businessPurpose: null } }))
+        .toMatchObject({ status: 'unresolved', reason: 'missing_evidence' })
+      expect(evaluateProductionTaxRules({ ...base, facts: { ...base.facts, conflictingEvidence: true } }))
+        .toMatchObject({ status: 'unresolved' })
+      expect(evaluateProductionTaxRules({ ...base, facts: { ...base.facts, businessUseTreatment: 'personal' } }))
+        .toMatchObject({ status: 'unresolved' })
+      expect(evaluateProductionTaxRules({ ...base, taxYear: 2026 }))
+        .toMatchObject({ status: 'unresolved', reason: 'unsupported_tax_year' })
+    })
+
+  it('enforces rule-specific exclusions and keeps Realtor context inside universal rules', () => {
+    const common = { taxYear: 2025, businessAllocationAmountCents: -10_000,
+      facts: { transactionNature: 'expense', businessPurpose: 'Business purpose',
+        businessUseTreatment: 'business', conflictingEvidence: false } }
+    expect(evaluateProductionTaxRules({ ...common, taxCategoryKey: 'office-expense', facts: {
+      ...common.facts, expenseNature: 'office_expense', durableProperty: true, inventoryOrResale: false } }))
+      .toMatchObject({ status: 'unresolved' })
+    expect(evaluateProductionTaxRules({ ...common, taxCategoryKey: 'supplies', facts: {
+      ...common.facts, expenseNature: 'advertising', durableProperty: false, inventoryOrResale: false } }))
+      .toMatchObject({ status: 'unresolved' })
+    expect(evaluateProductionTaxRules({ ...common, taxCategoryKey: 'postage-shipping', facts: {
+      ...common.facts, expenseNature: 'postage_shipping', shippingCostContext: 'capital_asset' } }))
+      .toMatchObject({ status: 'unresolved' })
+    expect(evaluateProductionTaxRules({ ...common, taxCategoryKey: 'software-cloud', facts: {
+      ...common.facts, expenseNature: 'software_cloud', capitalizableAsset: true, prepaidMultiYear: false } }))
+      .toMatchObject({ status: 'unresolved' })
+    for (const financialActivityType of ['interest', 'penalty', 'loan_principal', 'loan_repayment', 'transfer']) {
+      expect(evaluateProductionTaxRules({ ...common, taxCategoryKey: 'payment-bank-fees', facts: {
+        ...common.facts, expenseNature: 'financial_service_fee', financialActivityType } }))
+        .toMatchObject({ status: 'unresolved' })
+    }
+    for (const governmentPaymentType of ['fine', 'penalty', 'tax', 'new_business', 'unknown']) {
+      expect(evaluateProductionTaxRules({ ...common, taxCategoryKey: 'business-license', facts: {
+        ...common.facts, expenseNature: 'business_license', governmentPaymentType, currentBusiness: true } }))
+        .toMatchObject({ status: 'unresolved' })
+    }
+    expect(evaluateProductionTaxRules({ ...common, taxCategoryKey: 'advertising', facts: {
+      ...common.facts, expenseNature: 'advertising', capitalizableAsset: false,
+      businessProfileContext: 'realtor' } })).toMatchObject({ status: 'resolved', ruleKey: 'tax.advertising' })
   })
 
   it('evaluates fictional full, limited, and nondeductible outcomes without changing allocation', () => {

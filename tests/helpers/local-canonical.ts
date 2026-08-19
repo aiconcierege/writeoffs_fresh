@@ -11,6 +11,7 @@ export async function provisionLocalCanonicalOwner(input: {
   anonKey: string
   label: string
   amounts: number[]
+  occurredYear?: number
 }) {
   const nonce = crypto.randomUUID()
   const email = `${input.label}-${nonce}@example.test`
@@ -31,7 +32,7 @@ export async function provisionLocalCanonicalOwner(input: {
   const prepared = prepareCsvFinancialRows({
     mapping: { date: 'date', description: 'description', amount: 'amount' },
     rows: input.amounts.map((amount, index) => ({
-      date: `2026-08-${String(index + 1).padStart(2, '0')}`,
+      date: `${input.occurredYear ?? 2026}-08-${String(index + 1).padStart(2, '0')}`,
       description: `${input.label} source ${index + 1} ${nonce}`,
       amount: (amount / 100).toFixed(2),
     })),

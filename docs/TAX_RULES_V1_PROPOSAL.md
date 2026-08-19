@@ -1,13 +1,25 @@
 # Tax Rules v1 — approval proposal
 
-Status: **research-backed candidate policy only**. Last verified: **2026-08-19**.
+Status: **seven Tier A rules approved and active for federal tax year 2025; all
+other researched rules remain candidates**. Last verified: **2026-08-19**.
 The initial research target is federal tax year **2025**, the latest completed tax
 year for which the IRS has published the relevant filing-season instructions and
 publications. Nothing here is legal approval, an active rule, or tax advice.
 
-The executable production catalog remains empty. Candidate examples belong only in
-documentation or test fixtures until product and qualified tax/legal review approves
-an exact rule version, authority set, evidence contract, and activation change.
+The executable production catalog contains only `tax.advertising`,
+`tax.office-expense`, `tax.supplies`, `tax.postage-shipping`, `tax.software-cloud`,
+`tax.payment-bank-fees`, and `tax.business-license`, each pinned to 2025 and version
+1. Every Tier B, C, and D entry remains non-executable.
+
+## ACTIVE 2025 TIER A
+
+The seven approved rules execute only when business use, a plain-language business
+purpose, the specific expense nature, and every rule-specific negative guardrail
+are established with no conflicting evidence. They produce a full downstream tax-
+preparation deduction for the exact canonical business allocation. Missing facts,
+merchant-only evidence, Personal treatment, conflicting facts, and non-2025 dates
+fail closed. Realtor context may strengthen factual evidence but never changes the
+universal rule identity or evaluation path.
 
 Related documents:
 
@@ -204,11 +216,9 @@ This example is deliberately incomplete and **candidate**, so it cannot execute:
 }
 ```
 
-Before activation, authority metadata should also record an official URL, concise
-support statement, and verification date. The current runtime type stores authority,
-identifier, revision, and topic; URL/support/verification can be added when an
-approved rule is encoded. Annual/special candidates use `special_treatment` and do
-not produce a transaction-level deductible amount.
+Active rules record an official URL, concise support statement, verification date,
+approval reference, tax year, and immutable rule version. Annual/special candidates
+remain inactive and do not produce a transaction-level deductible amount.
 
 ## Explanation standard
 
@@ -236,11 +246,10 @@ approved threshold. The bookkeeping record and P&L remain intact.
 
 ## Product/legal approval gates
 
-Before any v1 rule becomes active, Rick and qualified tax/legal review must approve:
+Before any additional v1 rule becomes active, Rick and qualified tax/legal review must approve:
 
 1. the 2025 universal taxonomy and exact Schedule C mappings;
-2. which Tier A candidates truly qualify for automatic treatment and their required
-   evidence thresholds;
+2. any change to the seven approved Tier A evidence thresholds or outcomes;
 3. each Tier B question contract and whether unanswered items remain unresolved;
 4. the standard meal rule, exceptions, reimbursement handling, and rounding;
 5. the boundary between transaction travel and trip-level processing;

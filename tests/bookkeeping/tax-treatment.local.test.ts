@@ -4,7 +4,7 @@ import { provisionLocalCanonicalOwner } from '../helpers/local-canonical'
 import { resolveFinancialTransactionRecord } from '../../app/lib/bookkeeping/financial-transaction-workflow'
 import { CanonicalBookkeepingService } from '../../app/lib/bookkeeping/service'
 import { SupabaseBookkeepingRepository } from '../../app/lib/bookkeeping/supabase-repository'
-import { appendTrustedTaxTreatment } from '../../app/lib/bookkeeping/tax-treatment-service'
+import { appendTrustedTaxTreatment, evaluateAndAppendProductionTaxTreatment } from '../../app/lib/bookkeeping/tax-treatment-service'
 import { getAuthenticatedCanonicalReport } from '../../app/lib/bookkeeping/reporting-service'
 import { correctCanonicalTransactionUse } from '../../app/lib/bookkeeping/transaction-corrections'
 
@@ -15,6 +15,62 @@ const enabled = process.env.RUN_LOCAL_SUPABASE_INTEGRATION === '1' && Boolean(ur
 const suite = enabled ? describe : describe.skip
 
 suite('canonical tax treatment against local PostgreSQL', () => {
+  it('persists a 2025 active-rule conclusion idempotently and fails closed for unsupported years', async () => {
+    const admin = createClient(url!, serviceKey!, { auth: { persistSession: false } })
+    const owner = await provisionLocalCanonicalOwner({ admin, url: url!, anonKey: anonKey!,
+      label: 'tier-a-owner', amounts: [-10_000], occurredYear: 2025 })
+    const initial = await resolveFinancialTransactionRecord({ supabase: owner.customer,
+      financialTransactionId: owner.transactionIds[0] })
+    const bookkeeping = new CanonicalBookkeepingService(new SupabaseBookkeepingRepository(owner.customer))
+    const decision = await bookkeeping.recordDecision({ actor: { businessId: owner.businessId,
+      userId: owner.userId, provenance: 'user' }, recordId: initial.record.id,
+      expectedCurrentDecisionId: initial.decision.id, decision: { bookkeepingNature: 'expense',
+        treatment: 'mixed_use', reviewStatus: 'resolved', reason: 'Explicit mixed business use.',
+        allocations: [{ kind: 'business', amountCents: -7_000, taxCategoryKey: 'advertising' },
+          { kind: 'personal', amountCents: -3_000 }] } })
+    const { data: allocation } = await owner.customer.from('bookkeeping_allocations')
+      .select('id').eq('bookkeeping_decision_id', decision.id).eq('allocation_kind', 'business').single()
+    const facts = { transactionNature: 'expense', businessPurpose: 'Promote the existing business.',
+      businessUseTreatment: 'mixed', expenseNature: 'advertising', conflictingEvidence: false,
+      capitalizableAsset: false }
+    const [first, retry] = await Promise.all([0, 1].map(() => evaluateAndAppendProductionTaxTreatment({
+      supabase: admin, businessId: owner.businessId, allocationId: allocation!.id,
+      expectedCurrentTaxTreatmentId: null, facts, evaluationRequestId: 'same-evaluation' })))
+    expect(first).toMatchObject({ status: 'resolved', ruleKey: 'tax.advertising',
+      deductibleAmountCents: -7_000 })
+    expect(retry).toMatchObject({ status: 'resolved', treatmentId: first.status === 'resolved'
+      ? first.treatmentId : undefined })
+    const { data: rows } = await admin.from('bookkeeping_tax_treatments')
+      .select('rule_key,rule_version,tax_year,deductible_amount_cents,authority_references')
+      .eq('bookkeeping_allocation_id', allocation!.id)
+    expect(rows).toHaveLength(1)
+    expect(rows![0]).toMatchObject({ rule_key: 'tax.advertising', rule_version: 1,
+      tax_year: 2025, deductible_amount_cents: -7_000 })
+    expect(rows![0].authority_references).toHaveLength(2)
+    const report = await getAuthenticatedCanonicalReport({ supabase: owner.customer,
+      periodStart: '2025-01-01', periodEnd: '2025-12-31' })
+    expect(report).toMatchObject({ businessExpensesCents: 7_000, businessProfitCents: -7_000,
+      estimatedDeductionsCents: 7_000, estimatedTaxableIncomeCents: null })
+
+    const unsupported = await provisionLocalCanonicalOwner({ admin, url: url!, anonKey: anonKey!,
+      label: 'tier-a-unsupported-year', amounts: [-1_000] })
+    const unsupportedState = await resolveFinancialTransactionRecord({ supabase: unsupported.customer,
+      financialTransactionId: unsupported.transactionIds[0] })
+    const unsupportedService = new CanonicalBookkeepingService(new SupabaseBookkeepingRepository(unsupported.customer))
+    const unsupportedDecision = await unsupportedService.recordDecision({ actor: { businessId: unsupported.businessId,
+      userId: unsupported.userId, provenance: 'user' }, recordId: unsupportedState.record.id,
+      expectedCurrentDecisionId: unsupportedState.decision.id, decision: { bookkeepingNature: 'expense',
+        treatment: 'business', reviewStatus: 'resolved', reason: 'Business.',
+        allocations: [{ kind: 'business', amountCents: -1_000, taxCategoryKey: 'advertising' }] } })
+    const { data: unsupportedAllocation } = await unsupported.customer.from('bookkeeping_allocations')
+      .select('id').eq('bookkeeping_decision_id', unsupportedDecision.id).single()
+    expect(await evaluateAndAppendProductionTaxTreatment({ supabase: admin,
+      businessId: unsupported.businessId, allocationId: unsupportedAllocation!.id,
+      expectedCurrentTaxTreatmentId: null, facts: { ...facts, businessUseTreatment: 'business' },
+      evaluationRequestId: 'unsupported-year' }))
+      .toMatchObject({ status: 'unresolved', reason: 'unsupported_tax_year' })
+  })
+
   it('records trusted treatment, rejects customer writes, and follows current corrections', async () => {
     const admin = createClient(url!, serviceKey!, { auth: { persistSession: false } })
     await admin.from('categories').upsert({ key: 'supported-test', label: 'Supported test category' })

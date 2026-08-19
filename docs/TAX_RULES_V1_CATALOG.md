@@ -1,8 +1,8 @@
-# Tax Rules v1 — candidate catalog and safety matrix
+# Tax Rules v1 — active catalog and candidate safety matrix
 
-Status: **candidate specification; no entries are active**. Research target: federal
-tax year 2025. “Full” and “zero” below are proposed downstream tax-preparation
-outcomes only. Every row preserves the full economic business portion on the P&L.
+Status: **the seven Tier A entries are active for federal tax year 2025; Tier B/C/D
+entries remain candidate/inactive**. “Full” and “zero” below are downstream tax-
+preparation outcomes only. Every row preserves the full economic business portion on the P&L.
 Authority codes refer to `TAX_RULES_V1_AUTHORITIES.md`.
 
 ## Universal taxonomy
@@ -44,12 +44,13 @@ Authority codes refer to `TAX_RULES_V1_AUTHORITIES.md`.
 
 ## Automation recommendations
 
-### Tier A — review for eventual automatic activation (7)
+### ACTIVE 2025 TIER A (7)
 
 Advertising, office expense, consumable supplies, postage/shipping, routine
 single-period software/cloud service, payment/bank service fees, and ordinary
-current business licenses. Each still requires resolved business use/purpose and
-negative checks for capital, inventory, personal, reimbursement, and special facts.
+current business licenses. Each requires resolved business use/purpose and its
+explicit negative checks for capital, inventory, Personal, conflicting, and special
+facts. They fail closed outside 2025.
 
 ### Tier B — approve only with factual gates (15)
 

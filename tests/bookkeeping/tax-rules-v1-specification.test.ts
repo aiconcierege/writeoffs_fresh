@@ -7,10 +7,10 @@ const catalog = readFileSync('docs/TAX_RULES_V1_CATALOG.md', 'utf8')
 const authorities = readFileSync('docs/TAX_RULES_V1_AUTHORITIES.md', 'utf8')
 
 describe('Tax Rules v1 approval specification', () => {
-  it('keeps all researched rules non-executable and the production catalog empty', () => {
-    expect(PRODUCTION_TAX_RULE_CATALOG.rules).toEqual([])
-    expect(proposal).toMatch(/production catalog remains empty/i)
-    expect(catalog).toMatch(/no entries are active/i)
+  it('keeps researched Tier B/C/D rules inactive while documenting the seven approved Tier A rules', () => {
+    expect(PRODUCTION_TAX_RULE_CATALOG.rules).toHaveLength(7)
+    expect(proposal).toMatch(/ACTIVE 2025 TIER A/i)
+    expect(catalog).toMatch(/Tier B\/C\/D[\s\S]*candidate\/inactive/i)
   })
 
   it('uses one universal rule namespace without Realtor or General rule keys', () => {
