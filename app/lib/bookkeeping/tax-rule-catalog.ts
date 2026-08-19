@@ -12,7 +12,7 @@ export const TAX_RULE_FACT_KEYS = [
   'businessProfileContext', 'expenseNature', 'conflictingEvidence',
   'inventoryOrResale', 'durableProperty', 'capitalizableAsset', 'prepaidMultiYear',
   'shippingCostContext', 'financialActivityType', 'governmentPaymentType',
-  'currentBusiness',
+  'currentBusiness', 'supplyUseContext',
 ] as const
 export type TaxRuleFactKey = typeof TAX_RULE_FACT_KEYS[number]
 export type TaxRuleFactValue = string | number | boolean
@@ -177,7 +177,8 @@ export const PRODUCTION_TAX_RULE_CATALOG: TaxRuleCatalog = Object.freeze({
         { fact: 'inventoryOrResale', operator: 'equals', value: false },
       ], explanation: 'WriteOffs identified this as an ordinary current-use office expense for your business.' }),
     activeRule({ key: 'tax.supplies', taxCategoryKey: 'supplies', nature: 'consumable_supplies',
-      extraFacts: ['durableProperty', 'inventoryOrResale'], extraConditions: [
+      extraFacts: ['supplyUseContext', 'durableProperty', 'inventoryOrResale'], extraConditions: [
+        { fact: 'supplyUseContext', operator: 'equals', value: 'operating_supply' },
         { fact: 'durableProperty', operator: 'equals', value: false },
         { fact: 'inventoryOrResale', operator: 'equals', value: false },
       ], explanation: 'WriteOffs identified this as consumable supplies used to operate your business.' }),

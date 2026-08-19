@@ -27,7 +27,8 @@ describe('versioned tax-rule engine', () => {
     { category: 'office-expense', key: 'tax.office-expense', facts: {
       expenseNature: 'office_expense', durableProperty: false, inventoryOrResale: false } },
     { category: 'supplies', key: 'tax.supplies', facts: {
-      expenseNature: 'consumable_supplies', durableProperty: false, inventoryOrResale: false } },
+      expenseNature: 'consumable_supplies', supplyUseContext: 'operating_supply',
+      durableProperty: false, inventoryOrResale: false } },
     { category: 'postage-shipping', key: 'tax.postage-shipping', facts: {
       expenseNature: 'postage_shipping', shippingCostContext: 'standalone_business_delivery' } },
     { category: 'software-cloud', key: 'tax.software-cloud', facts: {
@@ -96,6 +97,31 @@ describe('versioned tax-rule engine', () => {
     expect(evaluateProductionTaxRules({ ...common, taxCategoryKey: 'advertising', facts: {
       ...common.facts, expenseNature: 'advertising', capitalizableAsset: false,
       businessProfileContext: 'realtor' } })).toMatchObject({ status: 'resolved', ruleKey: 'tax.advertising' })
+  })
+
+  it('distinguishes operating supplies from customer-job materials and future-sale inventory', () => {
+    const base = { taxYear: 2025, taxCategoryKey: 'supplies', businessAllocationAmountCents: -10_000,
+      facts: { transactionNature: 'expense', businessPurpose: 'Used in the business.',
+        businessUseTreatment: 'business', expenseNature: 'consumable_supplies',
+        conflictingEvidence: false, durableProperty: false, inventoryOrResale: false } }
+    expect(evaluateProductionTaxRules({ ...base, facts: {
+      ...base.facts, supplyUseContext: 'operating_supply' } }))
+      .toMatchObject({ status: 'resolved', ruleKey: 'tax.supplies', deductibleAmountCents: -10_000 })
+    for (const supplyUseContext of ['specific_customer_job', 'held_for_future_sale']) {
+      for (const businessProfileContext of ['trade_service', 'realtor']) {
+        const result = evaluateProductionTaxRules({ ...base, facts: { ...base.facts, supplyUseContext,
+          businessProfileContext } })
+        expect(result).toMatchObject({ status: 'unresolved' })
+        expect(result).not.toHaveProperty('deductibleAmountCents')
+      }
+    }
+    expect(evaluateProductionTaxRules({ ...base, facts: { ...base.facts,
+      supplyUseContext: 'held_for_future_sale', inventoryOrResale: true } }))
+      .toMatchObject({ status: 'unresolved' })
+    expect(PRODUCTION_TAX_RULE_CATALOG.rules.filter((rule) => rule.lifecycle === 'active')).toHaveLength(7)
+    const otherRules = PRODUCTION_TAX_RULE_CATALOG.rules.filter((rule) => rule.key !== 'tax.supplies')
+    expect(otherRules).toHaveLength(6)
+    expect(otherRules.every((rule) => !rule.requiredFacts.includes('supplyUseContext'))).toBe(true)
   })
 
   it('evaluates fictional full, limited, and nondeductible outcomes without changing allocation', () => {

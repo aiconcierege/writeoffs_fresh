@@ -4,7 +4,8 @@ Status: **seven Tier A rules approved and active for federal tax year 2025; all
 other researched rules remain candidates**. Last verified: **2026-08-19**.
 The initial research target is federal tax year **2025**, the latest completed tax
 year for which the IRS has published the relevant filing-season instructions and
-publications. Nothing here is legal approval, an active rule, or tax advice.
+publications. The seven rules explicitly identified as active have product approval;
+the remaining research is not legal approval, an active rule, or tax advice.
 
 The executable production catalog contains only `tax.advertising`,
 `tax.office-expense`, `tax.supplies`, `tax.postage-shipping`, `tax.software-cloud`,
@@ -20,6 +21,22 @@ preparation deduction for the exact canonical business allocation. Missing facts
 merchant-only evidence, Personal treatment, conflicting facts, and non-2025 dates
 fail closed. Realtor context may strengthen factual evidence but never changes the
 universal rule identity or evaluation path.
+
+### Service/trade job materials and the v1 inventory boundary
+
+WriteOffs v1 supports service and trade businesses that buy parts, materials, or
+equipment for a specific customer job. Those purchases remain valid business
+economic activity; they are not Personal and are not automatically “inventory.”
+Their downstream tax/accounting treatment requires separate research and approval,
+so they currently fail closed rather than entering `tax.supplies`.
+
+The active Supplies rule is limited to genuine operating consumables. The factual
+model records `supplyUseContext` as `operating_supply`, `specific_customer_job`, or
+`held_for_future_sale`. The latter identifies merchandise or stock maintained for
+future sale, whose ongoing inventory/COGS accounting remains outside v1. This is an
+internal evidence distinction only; no customer question is added by this patch.
+A later onboarding milestone must distinguish named-customer-job purchasing from
+merchandise inventory without describing every contractor purchase as inventory.
 
 Related documents:
 
@@ -69,6 +86,10 @@ rule. Before an ordinary operating candidate can be evaluated, WriteOffs needs:
 5. absence of a known capital, inventory, reimbursement, personal, or special-rule
    conflict; and
 6. the applicable tax year and active reviewed rule version.
+
+For Supplies specifically, WriteOffs must also know the item is an operating
+consumable. Specific-customer-job materials and goods held for future sale are
+separate facts and do not receive an automatic Supplies conclusion.
 
 Merchant recognition can support `merchantServiceType`; it cannot establish the
 business purpose, absence of personal use, or deductible amount by itself.

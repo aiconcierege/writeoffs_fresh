@@ -113,6 +113,18 @@ describe('canonical reporting read model', () => {
     expect(report([record()]).estimatedDeductionsCents).toBeNull()
   })
 
+  it('keeps customer-job materials in business expenses while tax treatment remains unresolved', () => {
+    const jobMaterial = record({ amountCents: -25_000, decisions: [{ id: 'job-material-decision',
+      supersedesDecisionId: null, bookkeepingNature: 'expense', treatment: 'business',
+      allocations: [{ id: 'job-material-allocation', kind: 'business', amountCents: -25_000,
+        taxCategoryKey: 'supplies', taxTreatments: [] }] }] })
+    const result = report([jobMaterial])
+    expect(result).toMatchObject({ businessExpensesCents: 25_000, businessProfitCents: -25_000,
+      estimatedDeductionsCents: null, completeness: { unresolvedTaxTreatmentCount: 1 } })
+    expect(result.rows[0]).toMatchObject({ treatment: 'Business', businessAmountCents: 25_000 })
+    expect(Math.abs(result.rows[0].personalAmountCents)).toBe(0)
+  })
+
   it('keeps bookkeeping P&L independent from fictional tax limitations', () => {
     const limited = record({ decisions: [{ id: 'limited-decision', supersedesDecisionId: null,
       bookkeepingNature: 'expense', treatment: 'business', allocations: [{ id: 'limited-business',

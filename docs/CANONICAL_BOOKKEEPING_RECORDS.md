@@ -485,6 +485,13 @@ payment/bank service fees, and ordinary current-business licenses. Every other
 researched rule remains inactive. Fictional fixture rules are isolated under tests
 and rejected by the production evaluator.
 
+The Supplies rule distinguishes operating consumables from materials, parts, or
+equipment acquired for a specific customer job and from merchandise held for future
+sale. Service/trade businesses buying for named jobs remain within v1 product scope,
+but those purchases keep their business economics and unresolved tax treatment until
+separately researched. Ongoing inventory/COGS accounting for future-sale stock is
+outside v1. Neither case is relabeled Personal, and no COGS treatment is inferred.
+
 Tax-treatment audit rows can preserve the evaluated tax year, outcome, adjustment
 method, factual-basis snapshot, and authority references. `requires_facts` and
 `special_treatment` carry no deductible amount. They allow future approved rules to

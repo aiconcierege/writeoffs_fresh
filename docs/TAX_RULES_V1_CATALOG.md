@@ -16,7 +16,7 @@ Authority codes refer to `TAX_RULES_V1_AUTHORITIES.md`.
 | 5 | `tax.business-interest` / Business interest | Lines 16a/16b | B | Debt/account purpose; period; business allocation | Full eligible business interest | Personal debt, capitalized interest, prepaid/future-year amount, or mixed debt → unresolved | A2, A3 |
 | 6 | `tax.legal-professional` / Legal and professional services | Line 17 | B | Provider type; matter/purpose; business allocation | Full current operating portion | Asset acquisition, startup, personal matter, settlement, or capital transaction → unresolved/special | A2, A3 |
 | 7 | `tax.office-expense` / Office expense | Line 18 | A | Consumable/current item; purpose; business use | Full business allocation | Durable property, inventory, personal/mixed item → unresolved or another candidate | A2 |
-| 8 | `tax.supplies` / Supplies | Line 22 | A | Consumable material; purpose; business use; not inventory | Full business allocation | Durable asset, inventory/COGS, or personal use → unresolved/special | A2, A3 |
+| 8 | `tax.supplies` / Supplies | Line 22 | A | Operating-consumable use; purpose; business use; not inventory | Full business allocation | Specific-customer-job materials, durable assets, future-sale inventory/COGS, or personal use → unresolved/special | A2, A3 |
 | 9 | `tax.postage-shipping` / Postage and shipping | Line 18 or 27b by supported mapping | A | Shipment/service nature; business purpose; reimbursement | Full business allocation | Inventory/COGS, client reimbursement, or personal shipment → unresolved | A2 |
 | 10 | `tax.software-cloud` / Software and cloud services | Line 18 or 27b | A | Service identity; business purpose; service period; business use | Full current business portion | Multi-year right, acquisition/intangible, durable equipment, or mixed use → unresolved/special | A2, A3 |
 | 11 | `tax.payment-bank-fees` / Bank and payment fees | Line 27b | A | Fee nature; business account/transaction connection | Full business fee | Interest, penalty, personal account, capital transaction, or chargeback principal → unresolved | A3 |
@@ -51,6 +51,20 @@ single-period software/cloud service, payment/bank service fees, and ordinary
 current business licenses. Each requires resolved business use/purpose and its
 explicit negative checks for capital, inventory, Personal, conflicting, and special
 facts. They fail closed outside 2025.
+
+`tax.supplies` additionally requires `supplyUseContext = operating_supply`.
+Parts, materials, or equipment acquired for a specific customer job remain supported
+business activity but receive no automatic v1 tax treatment pending separate
+research. Merchandise held for future sale is distinct and remains outside the v1
+inventory-accounting scope.
+
+### Research required: customer-job materials
+
+Research must determine the correct canonical accounting and tax-preparation
+treatment for parts, materials, and equipment acquired for a specific customer job
+without presuming either ordinary Supplies treatment or ongoing inventory/COGS.
+Until separately approved, retain the full economic business amount and evidence,
+and fail closed downstream.
 
 ### Tier B — approve only with factual gates (15)
 
