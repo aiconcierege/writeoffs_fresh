@@ -4,6 +4,7 @@ import {
   getAuthenticatedContext,
   unauthorizedResponse,
 } from "../../../lib/auth/require-user";
+import { listTransactionReadModel } from "../../../lib/bookkeeping/transaction-read-model";
 
 // GET /api/transactions/list?year=2025 | year=all
 export async function GET(req: Request) {
@@ -14,32 +15,23 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const yearParam = (searchParams.get("year") || "").toLowerCase(); // "2025" | "all" | ""
 
-    let query = supabase
-      .from("transactions")
-      .select("id,posted_at,amount_cents,raw_description,source")
-      .eq("user_id", user.id)
-      .order("posted_at", { ascending: false, nullsFirst: false })
-      .limit(200);
-
-    // If a specific year is requested, filter by posted_at range
+    let year: number | null = null;
     if (yearParam && yearParam !== "all") {
       const y = Number(yearParam);
       if (!Number.isNaN(y)) {
-        const from = `${y}-01-01`;
-        const to = `${y}-12-31`;
-        query = query.gte("posted_at", from).lte("posted_at", to);
+        year = y;
       }
     }
-
-    const { data, error } = await query;
-    if (error) {
-      return NextResponse.json(
-        { ok: false, error: "Could not list transactions." },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ ok: true, rows: data }, { status: 200 });
+    const rows = await listTransactionReadModel({ supabase, userId: user.id, year, limit: 200 });
+    return NextResponse.json({ ok: true, rows: rows.map((row) => ({
+      id: row.id,
+      posted_at: row.date,
+      amount_cents: row.amountCents,
+      raw_description: row.description,
+      source: row.sourceModel,
+      treatment: row.treatmentLabel,
+      has_receipt: row.has_receipt,
+    })) }, { status: 200 });
   } catch (e: any) {
     return NextResponse.json(
       { ok: false, error: e?.message || "Unexpected error" },

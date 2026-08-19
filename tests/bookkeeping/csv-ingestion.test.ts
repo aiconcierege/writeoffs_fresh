@@ -24,7 +24,7 @@ describe('canonical CSV normalization', () => {
     expect(normalizeCsvAmountToCents('900719925474099')).toBeNull()
   })
 
-  it('creates stable versioned identities from date, signed amount, currency, and raw description', () => {
+  it('creates stable versioned occurrence identities from source facts', () => {
     const input = {
       mapping,
       rows: [{ Date: '2026-08-19', Description: 'Hardware Store #12345', Amount: '-42.10' }],
@@ -34,6 +34,8 @@ describe('canonical CSV normalization', () => {
 
     expect(first).toEqual(retried)
     expect(first.sourceFingerprint).toMatch(/^[a-f0-9]{64}$/)
+    expect(first.normalizedFingerprint).toMatch(/^[a-f0-9]{64}$/)
+    expect(first.occurrence).toBe(1)
     expect(first.legacyDedupeHash).toMatch(/^[a-f0-9]{40}$/)
     expect(first.normalizedDescription).toBe('HARDWARE STORE')
   })
@@ -50,10 +52,12 @@ describe('canonical CSV normalization', () => {
     expect(result.rows[0].sourceFingerprint).not.toBe(result.rows[1].sourceFingerprint)
   })
 
-  it('converges exact duplicate source rows within one request', () => {
+  it('preserves the multiplicity of identical source rows', () => {
     const row = { Date: '2026-08-19', Description: 'Supply Shop', Amount: '-25.00' }
     const result = prepareCsvFinancialRows({ mapping, rows: [row, row] })
-    expect(result.rows).toHaveLength(1)
+    expect(result.rows).toHaveLength(2)
+    expect(result.rows.map(({ occurrence }) => occurrence)).toEqual([1, 2])
+    expect(new Set(result.rows.map(({ sourceFingerprint }) => sourceFingerprint)).size).toBe(2)
   })
 
   it('reports invalid rows without weakening valid source facts', () => {

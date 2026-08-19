@@ -113,21 +113,42 @@ inserts or reuses the legacy display row. A database failure rolls back the whol
 valid batch; retries and overlapping files converge instead of leaving only one
 representation committed.
 
-CSV transaction identity is scoped by the Business-owned financial account and a
-versioned SHA-256 fingerprint of the normalized date, exact signed cents, currency,
-and full mapped source description. The separate legacy SHA-1 key is retained only
-to converge with rows created by the old importer. With the current three-column
-CSV contract, two byte-equivalent source rows are indistinguishable and converge;
-a future account-aware importer or bank-supplied transaction ID can provide a
-stronger identity without changing the canonical bookkeeping model.
+CSV transaction identity is scoped by the Business-owned financial account. A
+versioned normalized fingerprint covers date, exact signed cents, currency, and
+the full mapped source description. A deterministic occurrence ordinal then gives
+each indistinguishable row its own source fingerprint. A file containing three
+identical rows therefore creates three transactions; retries converge on those
+same three, and an overlapping file can increase the stored multiplicity to the
+maximum it actually observes. The database recomputes both fingerprints and
+requires contiguous ordinals under a Business-level import lock.
 
-The legacy compatibility row is not canonical source evidence and may continue to
-be mutated by old Review/reporting workflows. Its pack/category fields are not
-copied into canonical decisions. Every imported canonical decision begins
+The three-column format cannot prove that one indistinguishable row in each of two
+separate files represents two different transactions. In that case the observed
+multiplicity remains one until a source file presents both occurrences. This is an
+explicit source limitation; random IDs would make retries unsafe, while collapsing
+all repetitions would lose known activity. A bank-supplied transaction ID can
+provide stronger identity later without changing the canonical bookkeeping model.
+
+The temporary legacy compatibility row is correlated one-to-one with its canonical
+financial transaction. Once linked, database triggers reject legacy updates,
+deletes, and legacy receipt associations so mutable compatibility fields cannot
+contradict canonical truth. Its pack/category fields are never copied into
+canonical decisions. Every imported canonical decision begins
 unresolved with system provenance and no nature, treatment conclusion, category,
 business-use percentage, or allocation. OCR-created transactions, the old Review
 surface, and legacy reports remain compatibility workflows until each has an
 explicit cutover and historical-data policy.
+
+The Transactions read model now gives canonical records precedence. It displays
+immutable financial date, description, signed amount, current canonical treatment,
+decision provenance/history count, and active canonical documentation state.
+Linked legacy display rows are suppressed so one activity appears once. Rows that
+have no canonical correlation continue through the tenant-scoped legacy fallback;
+no historical category or approval is promoted into a canonical conclusion. The
+legacy Review component remains the temporary presentation surface, but mutation
+controls are disabled for canonical rows. Legacy-only category, waiver, approval,
+delete, OCR, export, and report write/read paths still require later explicit
+canonical replacement.
 
 The current foundation does not implement provider synchronization, tax-return
 preparation, official tax forms, or a canonical tax-treatment layer.

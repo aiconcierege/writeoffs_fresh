@@ -1,10 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { applyAutomatedBookkeepingDecision } from '../../app/lib/bookkeeping/agent-resolution'
 import { resolveFinancialTransactionRecord } from '../../app/lib/bookkeeping/financial-transaction-workflow'
 import { listCanonicalReviewQueue } from '../../app/lib/bookkeeping/review-queue'
 import { CanonicalBookkeepingService } from '../../app/lib/bookkeeping/service'
 import { SupabaseBookkeepingRepository } from '../../app/lib/bookkeeping/supabase-repository'
+import { provisionLocalCanonicalOwner } from '../helpers/local-canonical'
 
 const localUrl = process.env.LOCAL_SUPABASE_URL
 const anonKey = process.env.LOCAL_SUPABASE_ANON_KEY
@@ -13,24 +14,15 @@ const runLocal =
   process.env.RUN_LOCAL_SUPABASE_INTEGRATION === '1' &&
   Boolean(localUrl && anonKey && serviceKey)
 
-const userA = { email: 'agent-a@example.test', password: 'local-password-a' }
-const userB = { email: 'agent-b@example.test', password: 'local-password-b' }
-const transactions = Array.from(
-  { length: 6 },
-  (_, index) => `44000000-0000-0000-0000-00000000000${index + 1}`
-)
+let userAClient: ReturnType<typeof client>
+let userBClient: ReturnType<typeof client>
+let userAId: string
+let transactions: string[]
 
 function client(key: string) {
   return createClient(localUrl!, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
-}
-
-async function signIn(credentials: typeof userA) {
-  const supabase = client(anonKey!)
-  const { data, error } = await supabase.auth.signInWithPassword(credentials)
-  if (error || !data.user) throw error ?? new Error('local sign-in failed')
-  return { supabase, user: data.user }
 }
 
 const basis = {
@@ -42,9 +34,21 @@ const basis = {
 }
 
 describe.skipIf(!runLocal)('canonical agent decisions and review queue on local Supabase', () => {
+  beforeAll(async () => {
+    const admin = client(serviceKey!)
+    const a = await provisionLocalCanonicalOwner({ admin, url: localUrl!, anonKey: anonKey!,
+      label: 'agent-review-a', amounts: [-10_000, 5_000, -2_000, -4_000, -12_000] })
+    const b = await provisionLocalCanonicalOwner({ admin, url: localUrl!, anonKey: anonKey!,
+      label: 'agent-review-b', amounts: [-3_000] })
+    userAClient = a.customer as ReturnType<typeof client>
+    userBClient = b.customer as ReturnType<typeof client>
+    userAId = a.userId
+    transactions = [...a.transactionIds, ...b.transactionIds]
+  })
+
   it('appends decisions safely and returns only current tenant review leaves', async () => {
-    const a = await signIn(userA)
-    const b = await signIn(userB)
+    const a = { supabase: userAClient, user: { id: userAId } }
+    const b = { supabase: userBClient }
     const resolvedA = await Promise.all(
       transactions.slice(0, 5).map((financialTransactionId) =>
         resolveFinancialTransactionRecord({

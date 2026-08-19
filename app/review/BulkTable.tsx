@@ -18,6 +18,11 @@ type Tx = {
   has_receipt?: boolean
   receipt_waived?: boolean
   notes?: string | null
+  sourceModel: 'canonical' | 'legacy'
+  treatmentLabel: string
+  decisionReason: string | null
+  decisionProvenance: string | null
+  correctionCount: number
 }
 
 type Category = { key: string; label: string }
@@ -45,7 +50,7 @@ export default function BulkTable({
   const [approveVendor, setApproveVendor] = useState<string>('')
   const [approveCategory, setApproveCategory] = useState<string | null>(null)
 
-  const allIds = useMemo(() => rows.map(t => t.id), [rows])
+  const allIds = useMemo(() => rows.filter(t => t.sourceModel === 'legacy').map(t => t.id), [rows])
   const selectedIds = useMemo(() => allIds.filter(id => selected[id]), [allIds, selected])
   const allChecked = selectedIds.length === allIds.length && allIds.length > 0
   const anyChecked = selectedIds.length > 0
@@ -198,19 +203,23 @@ export default function BulkTable({
           {rows.map((t) => (
             <tr key={t.id} className="odd:bg-white even:bg-slate-50 hover:bg-slate-100 transition-colors">
               <Td className="w-[40px]">
-                <input type="checkbox" checked={!!selected[t.id]} onChange={(e) => toggleOne(t.id, e.target.checked)} />
+                {t.sourceModel === 'legacy' && <input type="checkbox" checked={!!selected[t.id]} onChange={(e) => toggleOne(t.id, e.target.checked)} />}
               </Td>
               <Td>{t.date}</Td>
               <Td>{t.vendor}</Td>
               <Td className="max-w-[28ch] truncate" title={t.description || ''}>{t.description || '—'}</Td>
               <Td className="text-right font-mono">{formatAmount(t.amount)}</Td>
               <Td>
-                <CategorySelect
+                {t.sourceModel === 'legacy' ? <CategorySelect
                   key={`${t.id}:${t.category_key ?? ''}`}
                   id={t.id}
                   current={t.category_key}
                   categories={categories}
-                />
+                /> : <div>
+                  <span className="font-medium">{t.treatmentLabel}</span>
+                  {t.decisionReason && <p className="mt-1 max-w-[28ch] text-xs text-neutral-600">{t.decisionReason}</p>}
+                  {t.correctionCount > 0 && <p className="mt-1 text-xs text-neutral-500">{t.correctionCount} prior correction{t.correctionCount === 1 ? '' : 's'}</p>}
+                </div>}
               </Td>
 
               {/* Receipt + grouped actions with Approve underneath */}
@@ -235,7 +244,7 @@ export default function BulkTable({
                     </button>
                   )}
 
-                  {!t.has_receipt && (
+                  {!t.has_receipt && t.sourceModel === 'legacy' && (
                     <>
                       {!t.receipt_waived ? (
                         <button onClick={() => setWaiver(t.id, true)} className="btn btn-secondary text-xs" title="Mark not required">
@@ -249,17 +258,17 @@ export default function BulkTable({
                     </>
                   )}
 
-                  <AttachReceipt
+                  {t.sourceModel === 'legacy' && <AttachReceipt
                     transactionId={t.id}
                     txDate={t.date}
                     txAmount={typeof t.amount === 'string' ? Number(t.amount) : (t.amount as number)}
                     txVendor={t.vendor}
                     onAttached={() => markHasReceipt(t.id)}
-                  />
+                  />}
                 </div>
 
                 {/* Approve aligned beneath receipt actions */}
-                <div className="mt-2">
+                {t.sourceModel === 'legacy' && <div className="mt-2">
                   <button
                     onClick={() => openApprove(t.id, t.notes, t.vendor, t.category_key)}
                     className="btn btn-primary text-xs"
@@ -267,14 +276,14 @@ export default function BulkTable({
                   >
                     Approve
                   </button>
-                </div>
+                </div>}
               </Td>
 
               {/* Delete column */}
               <Td>
-                <button onClick={() => deleteRow(t.id)} className="btn btn-secondary text-xs" title="Delete">
+                {t.sourceModel === 'legacy' && <button onClick={() => deleteRow(t.id)} className="btn btn-secondary text-xs" title="Delete">
                   Delete
-                </button>
+                </button>}
               </Td>
             </tr>
           ))}

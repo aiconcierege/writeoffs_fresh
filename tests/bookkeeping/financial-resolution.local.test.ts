@@ -1,19 +1,21 @@
 import { createClient } from '@supabase/supabase-js'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { resolveFinancialTransactionRecord } from '../../app/lib/bookkeeping/financial-transaction-workflow'
+import { provisionLocalCanonicalOwner } from '../helpers/local-canonical'
 
 const localUrl = process.env.LOCAL_SUPABASE_URL
 const localAnonKey = process.env.LOCAL_SUPABASE_ANON_KEY
 const runLocal =
   process.env.RUN_LOCAL_SUPABASE_INTEGRATION === '1' &&
-  Boolean(localUrl && localAnonKey)
+  Boolean(localUrl && localAnonKey && process.env.LOCAL_SUPABASE_SERVICE_ROLE_KEY)
 
-const userA = { email: 'canonical-a@example.test', password: 'local-password-a' }
-const userB = { email: 'canonical-b@example.test', password: 'local-password-b' }
-const transactionA = '43000000-0000-0000-0000-000000000001'
-const preMatchedTransactionA = '43000000-0000-0000-0000-000000000002'
-const otherBusinessTransaction = '43000000-0000-0000-0000-000000000003'
-const preMatchedRecord = '63000000-0000-0000-0000-000000000002'
+const serviceKey = process.env.LOCAL_SUPABASE_SERVICE_ROLE_KEY
+let userAClient: ReturnType<typeof client>
+let userBClient: ReturnType<typeof client>
+let transactionA: string
+let preMatchedTransactionA: string
+let otherBusinessTransaction: string
+let preMatchedRecord: string
 
 function client() {
   return createClient(localUrl!, localAnonKey!, {
@@ -21,14 +23,23 @@ function client() {
   })
 }
 
-async function signIn(credentials: typeof userA) {
-  const supabase = client()
-  const { data, error } = await supabase.auth.signInWithPassword(credentials)
-  if (error || !data.user) throw error ?? new Error('local sign-in failed')
-  return supabase
-}
-
 describe.skipIf(!runLocal)('canonical financial resolution on local Supabase', () => {
+  beforeAll(async () => {
+    const admin = createClient(localUrl!, serviceKey!, { auth: { persistSession: false } })
+    const a = await provisionLocalCanonicalOwner({ admin, url: localUrl!, anonKey: localAnonKey!,
+      label: 'financial-resolution-a', amounts: [-12_345, -5_000] })
+    const b = await provisionLocalCanonicalOwner({ admin, url: localUrl!, anonKey: localAnonKey!,
+      label: 'financial-resolution-b', amounts: [-3_000] })
+    userAClient = a.customer as ReturnType<typeof client>
+    userBClient = b.customer as ReturnType<typeof client>
+    ;[transactionA, preMatchedTransactionA] = a.transactionIds
+    ;[otherBusinessTransaction] = b.transactionIds
+    const preMatched = await resolveFinancialTransactionRecord({
+      supabase: userAClient, financialTransactionId: preMatchedTransactionA,
+    })
+    preMatchedRecord = preMatched.record.id
+  })
+
   it('requires an authenticated Supabase session', async () => {
     await expect(
       resolveFinancialTransactionRecord({
@@ -39,7 +50,7 @@ describe.skipIf(!runLocal)('canonical financial resolution on local Supabase', (
   })
 
   it('converges on one database-owned record and preserves a later resolved decision', async () => {
-    const supabase = await signIn(userA)
+    const supabase = userAClient
     const results = await Promise.all(
       Array.from({ length: 5 }, () =>
         resolveFinancialTransactionRecord({
@@ -115,7 +126,7 @@ describe.skipIf(!runLocal)('canonical financial resolution on local Supabase', (
   })
 
   it('reuses a record previously created through another canonical path', async () => {
-    const supabase = await signIn(userA)
+    const supabase = userAClient
     const resolved = await resolveFinancialTransactionRecord({
       supabase,
       financialTransactionId: preMatchedTransactionA,
@@ -127,7 +138,7 @@ describe.skipIf(!runLocal)('canonical financial resolution on local Supabase', (
   })
 
   it('cannot resolve another Business financial transaction', async () => {
-    const supabase = await signIn(userB)
+    const supabase = userBClient
     await expect(
       resolveFinancialTransactionRecord({
         supabase,
@@ -136,7 +147,7 @@ describe.skipIf(!runLocal)('canonical financial resolution on local Supabase', (
     ).rejects.toThrow('not found for this Business')
     await expect(
       resolveFinancialTransactionRecord({
-        supabase: await signIn(userA),
+        supabase: userAClient,
         financialTransactionId: otherBusinessTransaction,
       })
     ).rejects.toThrow('not found for this Business')

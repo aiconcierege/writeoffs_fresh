@@ -5,6 +5,7 @@ import {
   prepareCsvFinancialRows,
   type PreparedCsvFinancialRow,
 } from '../../app/lib/bookkeeping/csv-ingestion'
+import { listTransactionReadModel } from '../../app/lib/bookkeeping/transaction-read-model'
 
 const url = process.env.LOCAL_SUPABASE_URL
 const anonKey = process.env.LOCAL_SUPABASE_ANON_KEY
@@ -62,12 +63,44 @@ function rpcRow(value: PreparedCsvFinancialRow) {
     currency: value.currency,
     raw_description: value.rawDescription,
     normalized_description: value.normalizedDescription,
+    normalized_fingerprint: value.normalizedFingerprint,
+    occurrence: value.occurrence,
     source_fingerprint: value.sourceFingerprint,
     legacy_dedupe_hash: value.legacyDedupeHash,
   }
 }
 
 describe.skipIf(!runLocal)('canonical CSV ingestion on local Supabase', () => {
+  it('preserves observed identical-row multiplicity and converges retries and overlaps', async () => {
+    const admin = client(serviceKey!)
+    const owner = await createUser(admin, 'multiplicity')
+    const identical = { date: '2026-08-19', description: 'Repeated Fare', amount: '-18.25' }
+    const two = prepareCsvFinancialRows({ mapping, rows: [identical, identical] }).rows
+    const three = prepareCsvFinancialRows({ mapping, rows: [identical, identical, identical] }).rows
+
+    expect(await ingestCsvFinancialActivity({ supabase: owner.client, rows: two }))
+      .toEqual({ imported: 2, duplicates: 0, processed: 2 })
+    expect(await ingestCsvFinancialActivity({ supabase: owner.client, rows: two }))
+      .toEqual({ imported: 0, duplicates: 2, processed: 2 })
+    expect(await ingestCsvFinancialActivity({ supabase: owner.client, rows: three }))
+      .toEqual({ imported: 1, duplicates: 2, processed: 3 })
+
+    const concurrent = await Promise.all([
+      ingestCsvFinancialActivity({ supabase: owner.client, rows: three }),
+      ingestCsvFinancialActivity({ supabase: owner.client, rows: three }),
+    ])
+    expect(concurrent.reduce((sum, result) => sum + result.imported, 0)).toBe(0)
+
+    for (const table of ['financial_transactions', 'bookkeeping_records', 'transactions']) {
+      const column = table === 'transactions' ? 'user_id' : 'business_id'
+      const value = table === 'transactions' ? owner.id : owner.businessId
+      const { count, error } = await owner.client.from(table)
+        .select('*', { count: 'exact', head: true }).eq(column, value)
+      expect(error, table).toBeNull()
+      expect(count, table).toBe(3)
+    }
+  })
+
   it('atomically creates account, immutable source, unresolved canonical state, and legacy compatibility', async () => {
     const admin = client(serviceKey!)
     const owner = await createUser(admin, 'foundation')
@@ -144,6 +177,18 @@ describe.skipIf(!runLocal)('canonical CSV ingestion on local Supabase', () => {
       source: 'csv',
       source_account_id: 'csv',
     })
+
+    const readRows = await listTransactionReadModel({
+      supabase: owner.client, userId: owner.id,
+    })
+    expect(readRows).toEqual([expect.objectContaining({
+      sourceModel: 'canonical', amountCents: -4_210,
+      treatmentLabel: 'Still being worked on', has_receipt: false,
+    })])
+
+    const { error: legacyMutationError } = await owner.client.from('transactions')
+      .update({ category_key: 'supplies' }).eq('user_id', owner.id)
+    expect(legacyMutationError).not.toBeNull()
 
     const { error: updateError } = await owner.client
       .from('financial_transactions')
@@ -250,6 +295,8 @@ describe.skipIf(!runLocal)('canonical CSV ingestion on local Supabase', () => {
       .select('id')
       .eq('business_id', b.businessId)
     expect(visibleB).toEqual([])
+    await expect(listTransactionReadModel({ supabase: a.client, userId: b.id }))
+      .rejects.toThrow('Business was not found')
   })
 
   it('denies anonymous execution and rejects caller-tampered identities', async () => {

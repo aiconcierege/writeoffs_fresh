@@ -1,19 +1,22 @@
 import { createClient } from '@supabase/supabase-js'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { attachReceiptToFinancialTransaction } from '../../app/lib/bookkeeping/receipt-matching-workflow'
+import { resolveFinancialTransactionRecord } from '../../app/lib/bookkeeping/financial-transaction-workflow'
+import { createLocalReceipt, provisionLocalCanonicalOwner } from '../helpers/local-canonical'
 
 const localUrl = process.env.LOCAL_SUPABASE_URL
 const localAnonKey = process.env.LOCAL_SUPABASE_ANON_KEY
 const runLocal =
   process.env.RUN_LOCAL_SUPABASE_INTEGRATION === '1' &&
-  Boolean(localUrl && localAnonKey)
+  Boolean(localUrl && localAnonKey && process.env.LOCAL_SUPABASE_SERVICE_ROLE_KEY)
 
-const userA = { email: 'canonical-a@example.test', password: 'local-password-a' }
-const transactionA = '43000000-0000-0000-0000-000000000004'
-const preMatchedTransaction = '43000000-0000-0000-0000-000000000002'
-const preMatchedRecord = '63000000-0000-0000-0000-000000000002'
-const receiptA = '53000000-0000-0000-0000-000000000001'
-const receiptB = '53000000-0000-0000-0000-000000000002'
+const serviceKey = process.env.LOCAL_SUPABASE_SERVICE_ROLE_KEY
+let ownerClient: ReturnType<typeof client>
+let transactionA: string
+let preMatchedTransaction: string
+let preMatchedRecord: string
+let receiptA: string
+let receiptB: string
 
 function client() {
   return createClient(localUrl!, localAnonKey!, {
@@ -21,14 +24,22 @@ function client() {
   })
 }
 
-async function signIn() {
-  const supabase = client()
-  const { error } = await supabase.auth.signInWithPassword(userA)
-  if (error) throw error
-  return supabase
-}
-
 describe.skipIf(!runLocal)('canonical receipt matching on local Supabase', () => {
+  beforeAll(async () => {
+    const admin = createClient(localUrl!, serviceKey!, { auth: { persistSession: false } })
+    const owner = await provisionLocalCanonicalOwner({ admin, url: localUrl!,
+      anonKey: localAnonKey!, label: 'receipt-owner', amounts: [-4_500, -5_000] })
+    const other = await provisionLocalCanonicalOwner({ admin, url: localUrl!,
+      anonKey: localAnonKey!, label: 'receipt-other', amounts: [-1_000] })
+    ownerClient = owner.customer as ReturnType<typeof client>
+    ;[transactionA, preMatchedTransaction] = owner.transactionIds
+    receiptA = await createLocalReceipt({ userId: owner.userId })
+    receiptB = await createLocalReceipt({ userId: other.userId })
+    preMatchedRecord = (await resolveFinancialTransactionRecord({
+      supabase: ownerClient, financialTransactionId: preMatchedTransaction,
+    })).record.id
+  })
+
   it('rejects unauthenticated matching', async () => {
     await expect(
       attachReceiptToFinancialTransaction({
@@ -40,7 +51,7 @@ describe.skipIf(!runLocal)('canonical receipt matching on local Supabase', () =>
   })
 
   it('links same-Business evidence idempotently without legacy or decision writes', async () => {
-    const supabase = await signIn()
+    const supabase = ownerClient
     const first = await attachReceiptToFinancialTransaction({
       supabase,
       financialTransactionId: transactionA,
@@ -88,7 +99,7 @@ describe.skipIf(!runLocal)('canonical receipt matching on local Supabase', () =>
   it('rejects a receipt owned by another Business', async () => {
     await expect(
       attachReceiptToFinancialTransaction({
-        supabase: await signIn(),
+        supabase: ownerClient,
         financialTransactionId: transactionA,
         receiptId: receiptB,
       })
@@ -97,7 +108,7 @@ describe.skipIf(!runLocal)('canonical receipt matching on local Supabase', () =>
 
   it('reuses an existing canonical record when attaching documentation', async () => {
     const matched = await attachReceiptToFinancialTransaction({
-      supabase: await signIn(),
+      supabase: ownerClient,
       financialTransactionId: preMatchedTransaction,
       receiptId: receiptA,
     })
@@ -105,7 +116,7 @@ describe.skipIf(!runLocal)('canonical receipt matching on local Supabase', () =>
   })
 
   it('retains revoked link history and database evidence protection', async () => {
-    const supabase = await signIn()
+    const supabase = ownerClient
     const matched = await attachReceiptToFinancialTransaction({
       supabase,
       financialTransactionId: transactionA,

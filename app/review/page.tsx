@@ -5,6 +5,7 @@
 import { redirect } from 'next/navigation'
 import { createServerSupabase } from '../../utils/supabase/server'
 import BulkTable from './BulkTable'
+import { listTransactionReadModel } from '../lib/bookkeeping/transaction-read-model'
 
 type Tx = {
   id: string
@@ -16,6 +17,11 @@ type Tx = {
   receipt_waived?: boolean
   created_from_receipt_id?: string | null
   has_receipt?: boolean
+  sourceModel: 'canonical' | 'legacy'
+  treatmentLabel: string
+  decisionReason: string | null
+  decisionProvenance: string | null
+  correctionCount: number
 }
 type Category = { key: string; label: string }
 
@@ -45,35 +51,18 @@ export default async function ReviewPage({
     .select('key,label')
     .order('label', { ascending: true })
 
-  // Transactions (no pack filter)
-  let txQuery = supabase
-    .from('transactions')
-    .select('id,date,vendor,description,amount,category_key,receipt_waived,created_from_receipt_id')
-    .eq('user_id', user.id)
-    .order('date', { ascending: false })
-    .limit(1000)
-
-  if (needsOnly) txQuery = txQuery.is('category_key', null)
-
-  const { data: txRaw, error } = await txQuery
-  const txList: Tx[] = Array.isArray(txRaw) ? txRaw as Tx[] : []
-
-  // Which tx have linked receipts via receipts.transaction_id?
-  const ids = txList.map(t => t.id)
-  let receiptsByTx = new Set<string>()
-  if (ids.length) {
-    const { data: rc } = await supabase
-      .from('receipts')
-      .select('transaction_id')
-      .in('transaction_id', ids)
-    receiptsByTx = new Set((rc || []).map(r => r.transaction_id).filter(Boolean))
+  let error: Error | null = null
+  let txsAll: Tx[] = []
+  try {
+    txsAll = await listTransactionReadModel({ supabase, userId: user.id, limit: 1000 })
+  } catch (caught) {
+    error = caught instanceof Error ? caught : new Error('Could not list transactions.')
   }
-
-  // Derive has_receipt
-  const txsAll: Tx[] = txList.map(t => ({
-    ...t,
-    has_receipt: Boolean(t.created_from_receipt_id) || receiptsByTx.has(t.id),
-  }))
+  if (needsOnly) {
+    txsAll = txsAll.filter((transaction) => transaction.sourceModel === 'canonical'
+      ? transaction.treatmentLabel === 'Still being worked on'
+      : transaction.category_key === null)
+  }
 
   // Needs-receipt filter = no receipt and not waived
   const txs = needsReceiptOnly

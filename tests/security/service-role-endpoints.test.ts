@@ -95,7 +95,11 @@ describe('customer endpoint isolation', () => {
   })
 
   it('explicitly scopes compatibility transaction reads to the user', () => {
-    expect(source('app/api/transactions/list/route.ts')).toContain('.eq("user_id", user.id)')
+    expect(source('app/api/transactions/list/route.ts')).toContain('userId: user.id')
+    const readModel = source('app/lib/bookkeeping/transaction-read-model.ts')
+    expect(readModel).toContain(".eq('owner_user_id', input.userId)")
+    expect(readModel).toContain(".eq('business_id', businessId)")
+    expect(readModel).toContain(".eq('user_id', input.userId)")
     expect(source('app/api/transactions/export/route.ts')).toContain('.eq("user_id", user.id)')
     expect(source('app/api/export/csv/route.ts')).toContain(".eq('user_id', user.id)")
   })

@@ -19,6 +19,8 @@ export type PreparedCsvFinancialRow = {
   currency: 'USD'
   rawDescription: string
   normalizedDescription: string
+  normalizedFingerprint: string
+  occurrence: number
   sourceFingerprint: string
   legacyDedupeHash: string
 }
@@ -86,7 +88,7 @@ export function normalizeCsvDescription(raw: string) {
     .trim()
 }
 
-function sourceFingerprint(input: {
+function normalizedFingerprint(input: {
   transactionDate: string
   amountCents: number
   currency: string
@@ -94,8 +96,12 @@ function sourceFingerprint(input: {
 }) {
   return hash(
     'sha256',
-    `csv:v1\n${input.transactionDate}\n${input.amountCents}\n${input.currency}\n${input.rawDescription}`
+    `csv:normalized:v1\n${input.transactionDate}\n${input.amountCents}\n${input.currency}\n${input.rawDescription}`
   )
+}
+
+function sourceFingerprint(baseFingerprint: string, occurrence: number) {
+  return hash('sha256', `csv:occurrence:v1\n${baseFingerprint}\n${occurrence}`)
 }
 
 export function prepareCsvFinancialRows(input: {
@@ -112,7 +118,7 @@ export function prepareCsvFinancialRows(input: {
 
   const prepared: PreparedCsvFinancialRow[] = []
   const errors: CsvImportError[] = []
-  const seen = new Set<string>()
+  const occurrences = new Map<string, number>()
 
   input.rows.forEach((row, index) => {
     const rowNumber = index + 2
@@ -134,14 +140,14 @@ export function prepareCsvFinancialRows(input: {
     }
 
     const normalizedDescription = normalizeCsvDescription(rawDescription)
-    const canonicalFingerprint = sourceFingerprint({
+    const baseFingerprint = normalizedFingerprint({
       transactionDate,
       amountCents,
       currency: 'USD',
       rawDescription,
     })
-    if (seen.has(canonicalFingerprint)) return
-    seen.add(canonicalFingerprint)
+    const occurrence = (occurrences.get(baseFingerprint) ?? 0) + 1
+    occurrences.set(baseFingerprint, occurrence)
 
     prepared.push({
       rowNumber,
@@ -150,10 +156,12 @@ export function prepareCsvFinancialRows(input: {
       currency: 'USD',
       rawDescription,
       normalizedDescription,
-      sourceFingerprint: canonicalFingerprint,
+      normalizedFingerprint: baseFingerprint,
+      occurrence,
+      sourceFingerprint: sourceFingerprint(baseFingerprint, occurrence),
       legacyDedupeHash: hash(
         'sha1',
-        `${transactionDate}|${amountCents}|${normalizedDescription}|csv`
+        `${transactionDate}|${amountCents}|${normalizedDescription}|csv|${occurrence}`
       ),
     })
   })
@@ -183,6 +191,8 @@ export async function ingestCsvFinancialActivity(input: {
       currency: row.currency,
       raw_description: row.rawDescription,
       normalized_description: row.normalizedDescription,
+      normalized_fingerprint: row.normalizedFingerprint,
+      occurrence: row.occurrence,
       source_fingerprint: row.sourceFingerprint,
       legacy_dedupe_hash: row.legacyDedupeHash,
     })),
