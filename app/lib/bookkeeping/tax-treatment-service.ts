@@ -1,5 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { validateTrustedTaxTreatment, type TaxTreatmentStatus } from './tax-treatment-model'
+import { validateTaxRuleAudit, validateTrustedTaxTreatment, type TaxTreatmentStatus } from './tax-treatment-model'
+
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`
+  if (value && typeof value === 'object') return `{${Object.entries(value as Record<string, unknown>)
+    .sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`).join(',')}}`
+  return JSON.stringify(value)
+}
 
 /** Background-only writer. The table grants customers SELECT but no INSERT. */
 export async function appendTrustedTaxTreatment(input: {
@@ -16,6 +23,11 @@ export async function appendTrustedTaxTreatment(input: {
   reason: string
   provenance: 'automation' | 'system'
   confidence?: number | null
+  taxYear?: number | null
+  outcomeType?: 'full_deduction' | 'fixed_fraction' | 'nondeductible' | 'special_treatment' | null
+  adjustmentMethod?: 'none' | 'fixed_fraction' | 'special_calculation' | null
+  factualBasis?: Record<string, string | number | boolean | null>
+  authorityReferences?: Array<Record<string, string | null>>
 }) {
   if (!input.conclusionKey.trim() || input.conclusionKey.trim().length > 200) {
     throw new Error('A stable trusted conclusion key is required.')
@@ -31,12 +43,15 @@ export async function appendTrustedTaxTreatment(input: {
     status: input.status, deductibleAmountCents: input.deductibleAmountCents,
     taxCategoryKey: input.taxCategoryKey, ruleKey: input.ruleKey,
     ruleVersion: input.ruleVersion, reason: input.reason })
+  validateTaxRuleAudit({ status: input.status, taxYear: input.taxYear ?? null,
+    outcomeType: input.outcomeType ?? null, adjustmentMethod: input.adjustmentMethod ?? null,
+    authorityReferences: input.authorityReferences ?? [] })
   if (input.status !== 'unresolved' && allocation.tax_category_key !== input.taxCategoryKey) {
     throw new Error('Tax treatment category must match the canonical allocation.')
   }
   const findExisting = async () => {
     const { data } = await input.supabase.from('bookkeeping_tax_treatments')
-      .select('id,supersedes_tax_treatment_id,treatment_status,deductible_amount_cents,tax_category_key,rule_key,rule_version,reason,provenance,confidence')
+      .select('id,supersedes_tax_treatment_id,treatment_status,deductible_amount_cents,tax_category_key,rule_key,rule_version,reason,provenance,confidence,tax_year,outcome_type,adjustment_method,factual_basis,authority_references')
       .eq('business_id', input.businessId).eq('bookkeeping_allocation_id', input.allocationId)
       .eq('conclusion_key', input.conclusionKey.trim()).maybeSingle()
     return data
@@ -50,6 +65,11 @@ export async function appendTrustedTaxTreatment(input: {
       && (existing.rule_version == null ? null : Number(existing.rule_version)) === input.ruleVersion
       && existing.reason === input.reason.trim() && existing.provenance === input.provenance
       && (existing.confidence == null ? null : Number(existing.confidence)) === (input.confidence ?? null)
+      && (existing.tax_year == null ? null : Number(existing.tax_year)) === (input.taxYear ?? null)
+      && existing.outcome_type === (input.outcomeType ?? null)
+      && existing.adjustment_method === (input.adjustmentMethod ?? null)
+      && stableJson(existing.factual_basis ?? {}) === stableJson(input.factualBasis ?? {})
+      && stableJson(existing.authority_references ?? []) === stableJson(input.authorityReferences ?? [])
     if (!matches) throw new Error('Tax-treatment conclusion key was reused with different content.')
     return { id: existing.id, idempotent: true }
   }
@@ -76,6 +96,9 @@ export async function appendTrustedTaxTreatment(input: {
     tax_category_key: input.taxCategoryKey, rule_key: input.ruleKey,
     rule_version: input.ruleVersion, reason: input.reason.trim(), provenance: input.provenance,
     confidence: input.confidence ?? null,
+    tax_year: input.taxYear ?? null, outcome_type: input.outcomeType ?? null,
+    adjustment_method: input.adjustmentMethod ?? null, factual_basis: input.factualBasis ?? {},
+    authority_references: input.authorityReferences ?? [],
   }).select('id').single()
   if (error) {
     const converged = await findExisting()

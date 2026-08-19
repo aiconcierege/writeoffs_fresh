@@ -465,3 +465,30 @@ does not yet establish that a business-level income-minus-deductions figure is a
 adequate customer definition, and canonical legacy income coverage and personal
 tax assumptions are incomplete. No tax liability, tax rate, or filed-form output
 is derived.
+
+## Tax-rule catalog preparation
+
+Bookkeeping allocations describe economic use; tax treatments describe downstream
+tax preparation. A limited or nondeductible tax outcome never creates Personal or
+Excluded allocation, changes a source amount, or changes bookkeeping expense or
+profit. Reporting calculates income, expense, and profit before reading tax
+treatments. Estimated Deductions alone reads the separate deductible amount.
+
+Tax rules use stable General, Realtor, or shared namespaces; immutable versions;
+tax-year ranges; candidate, approved, active, and retired lifecycles; explicit
+automation levels; required factual evidence; outcomes; explanation templates;
+and compact authority/approval metadata. Only active rules execute. Missing facts,
+unsupported years, conflicts, and absent active rules fail closed. The production
+catalog is deliberately empty, while fictional fixture rules are isolated under
+tests and rejected by the production evaluator.
+
+Tax-treatment audit rows can preserve the evaluated tax year, outcome, adjustment
+method, factual-basis snapshot, and authority references. `requires_facts` and
+`special_treatment` carry no deductible amount. They allow future approved rules to
+record why a calculation is incomplete without inventing a transaction-level
+deduction. Historical conclusions remain pinned to their original rule version;
+there is no automatic historical reprocessing.
+
+Candidate General and Realtor concepts, question gaps, and proposed rollout are
+documented in `TAX_RULES_V1_PROPOSAL.md`. That inventory is not executable and is
+not legal or product approval.

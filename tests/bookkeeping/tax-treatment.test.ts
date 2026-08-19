@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { currentTaxTreatment, validateTrustedTaxTreatment } from '../../app/lib/bookkeeping/tax-treatment-model'
+import { currentTaxTreatment, validateTaxRuleAudit, validateTrustedTaxTreatment } from '../../app/lib/bookkeeping/tax-treatment-model'
 
 describe('canonical tax-treatment domain', () => {
   it('requires a versioned supported rule for resolved treatment', () => {
@@ -16,6 +16,24 @@ describe('canonical tax-treatment domain', () => {
       allocationAmountCents: -10_000, status: 'deductible', deductibleAmountCents: amount,
       taxCategoryKey: 'supplies', ruleKey: 'approved:example', ruleVersion: 1,
       reason: 'Supported test rule.' })).toThrow(/signed portion/i)
+  })
+
+  it('represents missing-fact and special-calculation states without a deduction', () => {
+    for (const status of ['requires_facts', 'special_treatment'] as const) {
+      expect(() => validateTrustedTaxTreatment({ allocationAmountCents: -10_000, status,
+        deductibleAmountCents: null, taxCategoryKey: 'fixture-special', ruleKey: 'shared.fixture-special',
+        ruleVersion: 1, reason: 'Fictional pending treatment.' })).not.toThrow()
+    }
+  })
+
+  it('requires consistent downstream rule audit metadata without changing bookkeeping', () => {
+    expect(() => validateTaxRuleAudit({ status: 'special_treatment', taxYear: 2026,
+      outcomeType: 'special_treatment', adjustmentMethod: 'special_calculation',
+      authorityReferences: [{ authority: 'internal_review', identifier: 'FICTIONAL-TEST-ONLY' }] })).not.toThrow()
+    expect(() => validateTaxRuleAudit({ status: 'deductible', taxYear: 2026,
+      outcomeType: 'nondeductible', adjustmentMethod: 'none',
+      authorityReferences: [{ authority: 'internal_review', identifier: 'FICTIONAL-TEST-ONLY' }] }))
+      .toThrow(/inconsistent/i)
   })
 
   it('uses one current append-only treatment leaf', () => {

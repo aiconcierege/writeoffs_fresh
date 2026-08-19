@@ -85,7 +85,7 @@ implements CanonicalFinancialSummaryRepository {
     const allocationIds = allocationRows.map((row) => text(row, 'id'))
     const taxTreatmentRows = await inBatches(allocationIds, async (ids) => {
       const { data, error } = await this.supabase.from('bookkeeping_tax_treatments')
-        .select('id,bookkeeping_allocation_id,supersedes_tax_treatment_id,treatment_status,deductible_amount_cents,tax_category_key,rule_key,rule_version,reason,provenance,confidence')
+        .select('id,bookkeeping_allocation_id,supersedes_tax_treatment_id,treatment_status,deductible_amount_cents,tax_category_key,rule_key,rule_version,reason,provenance,confidence,tax_year,outcome_type,adjustment_method,factual_basis,authority_references')
         .eq('business_id', input.businessId).in('bookkeeping_allocation_id', ids)
       if (error) throw new Error(`Unable to load canonical tax treatments: ${error.message}`)
       return (data ?? []) as Row[]
@@ -139,7 +139,14 @@ implements CanonicalFinancialSummaryRepository {
         taxCategoryKey: nullableText(row, 'tax_category_key'), ruleKey: nullableText(row, 'rule_key'),
         ruleVersion: row.rule_version == null ? null : Number(row.rule_version), reason: text(row, 'reason'),
         provenance: text(row, 'provenance') as CanonicalTaxTreatment['provenance'],
-        confidence: row.confidence == null ? null : Number(row.confidence) })
+        confidence: row.confidence == null ? null : Number(row.confidence),
+        taxYear: row.tax_year == null ? null : Number(row.tax_year),
+        outcomeType: nullableText(row, 'outcome_type') as CanonicalTaxTreatment['outcomeType'],
+        adjustmentMethod: nullableText(row, 'adjustment_method') as CanonicalTaxTreatment['adjustmentMethod'],
+        factualBasis: row.factual_basis && typeof row.factual_basis === 'object'
+          ? row.factual_basis as CanonicalTaxTreatment['factualBasis'] : {},
+        authorityReferences: Array.isArray(row.authority_references)
+          ? row.authority_references as CanonicalTaxTreatment['authorityReferences'] : [] })
       taxTreatmentsByAllocation.set(allocationId, history)
     }
     const allocationsByDecision = new Map<string, CanonicalSummaryDecision['allocations']>()

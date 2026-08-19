@@ -113,6 +113,37 @@ describe('canonical reporting read model', () => {
     expect(report([record()]).estimatedDeductionsCents).toBeNull()
   })
 
+  it('keeps bookkeeping P&L independent from fictional tax limitations', () => {
+    const limited = record({ decisions: [{ id: 'limited-decision', supersedesDecisionId: null,
+      bookkeepingNature: 'expense', treatment: 'business', allocations: [{ id: 'limited-business',
+        kind: 'business', amountCents: -10_000, taxCategoryKey: 'fixture-half', taxTreatments: [{
+          id: 'limited-tax', allocationId: 'limited-business', supersedesTaxTreatmentId: null,
+          status: 'deductible', deductibleAmountCents: -5_000, taxCategoryKey: 'fixture-half',
+          ruleKey: 'shared.fixture-half', ruleVersion: 1, reason: 'Fictional test limitation.',
+          provenance: 'system', confidence: null,
+        }] }] }] })
+    const result = report([limited])
+    expect(result.businessExpensesCents).toBe(10_000)
+    expect(result.businessProfitCents).toBe(-10_000)
+    expect(result.estimatedDeductionsCents).toBe(5_000)
+  })
+
+  it('applies tax preparation only after exact mixed-use bookkeeping allocation', () => {
+    const mixed = record({ decisions: [{ id: 'mixed-tax-decision', supersedesDecisionId: null,
+      bookkeepingNature: 'expense', treatment: 'mixed_use', allocations: [
+        { id: 'mixed-tax-business', kind: 'business', amountCents: -7_000, taxCategoryKey: 'fixture-half',
+          taxTreatments: [{ id: 'mixed-tax', allocationId: 'mixed-tax-business', supersedesTaxTreatmentId: null,
+            status: 'deductible', deductibleAmountCents: -3_500, taxCategoryKey: 'fixture-half',
+            ruleKey: 'shared.fixture-half', ruleVersion: 1, reason: 'Fictional test limitation.',
+            provenance: 'system', confidence: null }] },
+        { id: 'mixed-tax-personal', kind: 'personal', amountCents: -3_000 },
+      ] }] })
+    const result = report([mixed])
+    expect(result.businessExpensesCents).toBe(7_000)
+    expect(result.rows[0]).toMatchObject({ businessAmountCents: 7_000, personalAmountCents: 3_000 })
+    expect(result.estimatedDeductionsCents).toBe(3_500)
+  })
+
   it('does not fabricate estimated taxable income or tax liability', () => {
     const result = report([record()])
     expect(result.estimatedTaxableIncomeCents).toBeNull()

@@ -42,7 +42,10 @@ suite('canonical tax treatment against local PostgreSQL', () => {
       allocationId: allocation!.id, expectedCurrentTaxTreatmentId: null,
       conclusionKey: 'supported-test:v1',
       status: 'deductible', deductibleAmountCents: -8_000, taxCategoryKey: 'supported-test',
-      ruleKey: 'approved:test-only', ruleVersion: 1, reason: 'Versioned test rule.', provenance: 'system' }
+      ruleKey: 'approved:test-only', ruleVersion: 1, reason: 'Versioned test rule.', provenance: 'system',
+      taxYear: 2026, outcomeType: 'fixed_fraction', adjustmentMethod: 'fixed_fraction',
+      factualBasis: { businessPurpose: 'Fictional test fact' },
+      authorityReferences: [{ authority: 'internal_review', identifier: 'FICTIONAL-TEST-ONLY' }] }
     const [first, repeated] = await Promise.all([
       appendTrustedTaxTreatment(taxInput), appendTrustedTaxTreatment(taxInput),
     ])
@@ -52,6 +55,8 @@ suite('canonical tax treatment against local PostgreSQL', () => {
     let report = await getAuthenticatedCanonicalReport({ supabase: owner.customer,
       periodStart: '2026-01-01', periodEnd: '2026-12-31' })
     expect(report.estimatedDeductionsCents).toBe(8_000)
+    expect(report.businessExpensesCents).toBe(10_000)
+    expect(report.businessProfitCents).toBe(-10_000)
     await correctCanonicalTransactionUse({ supabase: owner.customer,
       financialTransactionId: owner.transactionIds[0], expectedCurrentDecisionId: decision.id,
       correctionRequestId: crypto.randomUUID(), answer: { schemaVersion: 1, use: 'mixed', personalAmountCents: 3_000 } })
@@ -59,6 +64,35 @@ suite('canonical tax treatment against local PostgreSQL', () => {
       periodStart: '2026-01-01', periodEnd: '2026-12-31' })
     expect(report.businessExpensesCents).toBe(7_000)
     expect(report.estimatedDeductionsCents).toBeNull()
+  })
+
+  it('records special treatment without changing bookkeeping expense or claiming a deduction', async () => {
+    const admin = createClient(url!, serviceKey!, { auth: { persistSession: false } })
+    await admin.from('categories').upsert({ key: 'special-test', label: 'Special test category' })
+    const owner = await provisionLocalCanonicalOwner({ admin, url: url!, anonKey: anonKey!,
+      label: 'tax-special-owner', amounts: [-10_000] })
+    const initial = await resolveFinancialTransactionRecord({ supabase: owner.customer,
+      financialTransactionId: owner.transactionIds[0] })
+    const bookkeeping = new CanonicalBookkeepingService(new SupabaseBookkeepingRepository(owner.customer))
+    const decision = await bookkeeping.recordDecision({ actor: { businessId: owner.businessId,
+      userId: owner.userId, provenance: 'user' }, recordId: initial.record.id,
+      expectedCurrentDecisionId: initial.decision.id, decision: { bookkeepingNature: 'expense',
+        treatment: 'business', reviewStatus: 'resolved', reason: 'Explicit business fact.',
+        allocations: [{ kind: 'business', amountCents: -10_000, taxCategoryKey: 'special-test' }] } })
+    const { data: allocation } = await owner.customer.from('bookkeeping_allocations')
+      .select('id').eq('bookkeeping_decision_id', decision.id).single()
+    await appendTrustedTaxTreatment({ supabase: admin, businessId: owner.businessId,
+      allocationId: allocation!.id, expectedCurrentTaxTreatmentId: null,
+      conclusionKey: 'special-test:v1', status: 'special_treatment', deductibleAmountCents: null,
+      taxCategoryKey: 'special-test', ruleKey: 'shared.fixture-special', ruleVersion: 1,
+      reason: 'Fictional annual calculation required.', provenance: 'system', taxYear: 2026,
+      outcomeType: 'special_treatment', adjustmentMethod: 'special_calculation',
+      factualBasis: { assetIndicator: true },
+      authorityReferences: [{ authority: 'internal_review', identifier: 'FICTIONAL-TEST-ONLY' }] })
+    const report = await getAuthenticatedCanonicalReport({ supabase: owner.customer,
+      periodStart: '2026-01-01', periodEnd: '2026-12-31' })
+    expect(report).toMatchObject({ businessExpensesCents: 10_000, businessProfitCents: -10_000,
+      estimatedDeductionsCents: null })
   })
 
   it('enforces same-Business references, RLS, append-only history, and signed limits', async () => {

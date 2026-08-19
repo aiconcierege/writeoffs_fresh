@@ -109,7 +109,7 @@ export function buildCanonicalReport(input: {
       expenseSigned = safeAdd(expenseSigned, businessSigned)
       for (const allocation of business) {
         const taxTreatment = currentTaxTreatment(allocation.taxTreatments ?? [])
-        if (!taxTreatment || taxTreatment.status === 'unresolved') {
+        if (!taxTreatment || !['deductible', 'not_deductible'].includes(taxTreatment.status)) {
           unresolvedTaxTreatmentCount += 1
         } else if (taxTreatment.status === 'deductible') {
           deductibleSigned = safeAdd(deductibleSigned, taxTreatment.deductibleAmountCents!)
