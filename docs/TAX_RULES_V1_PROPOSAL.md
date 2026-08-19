@@ -1,204 +1,259 @@
-# Tax Rules v1 — candidate proposal
+# Tax Rules v1 — approval proposal
 
-Status: **architecture and candidate inventory only**. Nothing in this document is
-an approved tax conclusion. The production catalog is intentionally empty. Every
-candidate below requires product and qualified tax/legal review before activation.
+Status: **research-backed candidate policy only**. Last verified: **2026-08-19**.
+The initial research target is federal tax year **2025**, the latest completed tax
+year for which the IRS has published the relevant filing-season instructions and
+publications. Nothing here is legal approval, an active rule, or tax advice.
 
-## 1. Architectural principles
+The executable production catalog remains empty. Candidate examples belong only in
+documentation or test fixtures until product and qualified tax/legal review approves
+an exact rule version, authority set, evidence contract, and activation change.
 
-Bookkeeping answers what happened economically. Tax treatment answers how that
-already-recorded activity is handled for tax preparation. Source facts, business
-use, personal use, bookkeeping expense, income, and profit are upstream facts.
-Tax grouping and limitations are downstream conclusions and may never rewrite
-those facts.
+Related documents:
 
-Rules operate on the current canonical decision and exact business allocation.
-They use versioned factual evidence, fail closed, preserve their explanation and
-authority identifiers, and append a new treatment rather than changing history.
-Merchant recognition is evidence about a service or item; it is never itself a
-deduction rule. Documentation risk is separate from both bookkeeping and tax
-treatment.
+- [Candidate catalog and safety matrix](TAX_RULES_V1_CATALOG.md)
+- [Primary authority register](TAX_RULES_V1_AUTHORITIES.md)
+- [Canonical bookkeeping architecture](CANONICAL_BOOKKEEPING_RECORDS.md)
 
-## 2. Rule lifecycle and versioning
+## Approved architecture
 
-There is one canonical rule catalog and one evaluator. Rules have stable `tax.*`
-keys and an immutable positive version. Their lifecycle is `candidate`, `approved`, `active`, or
-`retired`. Only `active` rules can execute. An active production rule must have an
-approval reference and external authority metadata. A tax-year range selects a
-version prospectively; historical treatments retain their exact rule key, version,
-tax year, factual basis, outcome, adjustment method, explanation, and authority
-identifiers. Re-evaluation is never automatic.
+### One product path
 
-The evaluator returns unresolved when there is no active rule, the year is not
-supported, facts are missing, or more than one rule applies. Candidate, merely
-approved, and retired rules do not execute. The test catalog is marked
-`test_fixture` and the production entry point rejects it.
+WriteOffs has one catalog, evaluator, question flow, reporting path, and customer
+journey:
 
-## 3. Automation levels and outcomes
+`source evidence → factual evidence → business-use determination → bookkeeping/P&L → tax-treatment evaluation → tax-preparation output`
 
-- **Safe automatic**: an approved rule can conclude from complete canonical facts.
-- **Ask first**: one or more material factual answers are required.
-- **Special treatment**: an election, annual limit, depreciation, carryover, or
-  other calculation prevents a simple transaction-level deduction.
+Business profile is optional evidence in this path. Realtor context can strengthen
+the interpretation of an MLS charge, lockbox, listing sign, photography, CRM, or
+similar fact. It cannot choose another rule, catalog, workflow, or report. All rule
+identities use `tax.*`; there are no General or Realtor rule namespaces.
 
-The framework represents full, fixed-fraction, nondeductible, and special outcomes.
-Fixed fractions are infrastructure, not an activated meals or other real rule.
-Special outcomes do not claim a deductible amount. Missing facts remain unresolved.
+### Bookkeeping is not tax treatment
 
-A separate adjustment table is not needed for an exact transaction-level full,
-fixed-fraction, or zero outcome: the append-only allocation-scoped tax treatment
-already stores the downstream deductible amount and adjustment method without
-touching bookkeeping. Annual elections, cross-transaction limits, depreciation,
-and carryovers are intentionally represented as `special_treatment`; they will need
-a separately approved annual-calculation model rather than being forced into a
-transaction allocation.
+Business and personal allocations describe economic use. A tax limitation is a
+downstream adjustment and never changes the source amount, business allocation,
+personal allocation, P&L expense, income, or bookkeeping profit.
 
-## 4. Existing factual-question coverage
+- A $100 wholly business meal remains a $100 bookkeeping/P&L expense even if a
+  later approved tax rule allows a smaller tax-preparation amount.
+- A $100 mixed-use purchase with $70 business and $30 personal remains exactly
+  $70 business and $30 personal. Any tax adjustment applies only downstream to
+  the $70 business amount.
+- A business-connected fine or entertainment expense can be economically business
+  while having a proposed zero tax deduction. It must not be relabeled Personal.
 
-| Fact | Current coverage | Gap |
+### Ordinary and necessary is an evidence gate
+
+Section 162 and the 2025 IRS guidance require a trade-or-business connection and
+an ordinary and necessary expense. “Business” alone is not a universal deduction
+rule. Before an ordinary operating candidate can be evaluated, WriteOffs needs:
+
+1. a resolved economic nature;
+2. explicit or otherwise approved support for business use (Personal is never
+   inferred automatically);
+3. a sufficiently specific business purpose or factual nature;
+4. the economic date, amount, and business allocation;
+5. absence of a known capital, inventory, reimbursement, personal, or special-rule
+   conflict; and
+6. the applicable tax year and active reviewed rule version.
+
+Merchant recognition can support `merchantServiceType`; it cannot establish the
+business purpose, absence of personal use, or deductible amount by itself.
+
+## Candidate automation policy
+
+- **Tier A — safe automatic candidate:** all material facts can be present in the
+  canonical record, no election or annual/taxpayer calculation is needed, and a
+  reviewed rule could reach a straightforward outcome. Tier A is not permission
+  to activate.
+- **Tier B — factual question required:** one or more plain factual answers are
+  material before a conclusion. WriteOffs asks facts, never a Schedule C line or
+  deduction percentage.
+- **Tier C — special/annual calculation:** trip-, recipient-, asset-, vehicle-,
+  election-, carryover-, basis-, or taxpayer-level calculation is required. A
+  transaction may be flagged and prepared, but an ordinary transaction rule must
+  not claim a deductible amount.
+- **Tier D — manual/unsupported for v1:** the facts or legal/product boundary make
+  automated treatment inappropriate. Preserve the economics and evidence; leave
+  tax preparation unresolved unless a reviewed zero-deduction rule is later
+  explicitly approved.
+
+The matrix proposes 32 universal candidates: 7 Tier A, 15 Tier B, 7 Tier C, and
+3 Tier D. These counts describe review priority, not executable coverage.
+
+## Evidence, conflicts, and substantiation
+
+Required facts are qualification inputs. Supporting records are substantiation;
+they are related but not interchangeable. A receipt does not prove business purpose,
+and a lost receipt does not rewrite bookkeeping or automatically disallow a tax
+treatment. Travel, gifts, meals, and listed-property facts require heightened
+records under section 274 and Publication 463.
+
+When required facts are missing, the rule returns unresolved and may request the
+minimum factual answer. When facts materially conflict, no rule wins by confidence
+score: preserve both evidence streams, ask the simplest resolving question, or
+remain unresolved. Multiple applicable rules also fail closed.
+
+For an eventual conclusion, retain: source amount/date/description; current and
+historical business-use decisions; exact allocations; purpose and relevant factual
+answers; evidence/document history; rule key/version/year; authority identifiers;
+qualification snapshot; calculation/adjustment; explanation; and correction chain.
+
+## Question-contract findings
+
+Existing contracts are sufficient for transaction nature, Business/Personal/Both,
+exact mixed-use personal dollars, plain-language business purpose, Not sure, Do this
+later, conflicts, and append-only corrections. They are enough for many Tier A
+candidates once an approved factual interpretation exists.
+
+Candidate contracts needing product/legal approval before relevant rules can run:
+
+| Fact needed | Candidate plain-language question | Used by |
 |---|---|---|
-| Transaction nature | Existing factual transaction-type contract | None for current semantic types |
-| Business/personal use | Existing explicit Business, Personal, Both contract | Personal remains customer-only |
-| Personal amount | Existing exact-dollar mixed-use follow-up | None for transaction allocation |
-| Business purpose | Existing plain-language purpose contract | Structured purpose interpretation remains trusted processing |
-| Merchant/service type | Extraction and source descriptions can provide evidence | No approved factual-normalization catalog |
-| Receipt present | Canonical document links/history | Documentation does not establish deductibility |
-| Date/tax year | Canonical immutable source date | Missing dates remain unresolved |
-| Asset/equipment indicator | Not an approved customer contract | Candidate question; likely special treatment |
-| Travel-away-from-home facts | Missing | Candidate factual contract; do not infer from merchant |
-| Meal business context | Missing | Candidate factual contract |
-| Gift recipient/year facts | Missing | Candidate factual contract and annual aggregation |
-| Home-office qualification | Some onboarding facts exist | Not yet canonical tax evidence; needs separate approval |
-| Vehicle-use/election facts | Vehicle intake foundation only | Future Vehicle milestone; special treatment |
-| Reimbursement status | Missing | Candidate factual contract where materially required |
+| Durable property | “Is this something you expect to use for more than one year?” | equipment, repairs |
+| Placed in service | “When did you start using it for your business?” | depreciation, Section 179 |
+| Legal/professional matter | “What was the professional help for?” | legal/professional |
+| Insurance coverage | “What did this policy cover?” | insurance |
+| Rent/equity | “Was this payment only for the right to use the property?” | rent/lease |
+| Repair character | “Did this restore what you already had, or add/improve it?” | repairs/improvements |
+| Trip context | “Was this trip overnight and away from your usual work area?” | travel |
+| Trip details | “Where did you go, when, and what was the business purpose?” | travel |
+| Meal context | “Who was present, and what was the business purpose?” | meals |
+| Entertainment separation | “Were food and drinks purchased or listed separately?” | meals/entertainment |
+| Gift recipient | “Who was this gift for, and what was the business reason?” | gifts |
+| Education relationship | “Was this for your current work, or to qualify for a new kind of work?” | education |
+| Government payment | “What tax, license, fee, fine, or penalty was this?” | taxes/licenses/fines |
+| Reimbursement | “Were you reimbursed, or do you expect to be reimbursed?” | travel, meals, client costs |
+| Business start | “When did this business begin operating?” | startup costs |
 
-Do not create all missing questions at once. A question should be added only when
-an approved rule proves the fact is material and the answer can change an outcome.
+Vehicle method elections, home-office qualification/calculation, depreciation,
+Section 179, recipient-year gift aggregation, and startup amortization are too
+complex for a single transaction question. They remain Tier C even if some facts
+are collected.
 
-Business profile is optional factual context supplied to that same evaluator. A
-Realtor profile may strengthen evidence about a merchant, item, or likely purpose,
-but it neither selects a different catalog nor satisfies business-use or other
-material facts by itself. “General” means that no more-specific profile context is
-available; it is not a rule namespace, engine, or customer path.
+## Major-rule recommendations
 
-The single path is: source evidence → factual evidence → business-use
-determination → bookkeeping/P&L treatment → canonical tax-treatment evaluation →
-tax-preparation output.
+- **Meals — Tier B:** for 2025, propose the ordinary qualified-meal rule only after
+  taxpayer presence, business purpose/relationship, non-lavish character,
+  entertainment separation, and reimbursement/exception facts are known. The
+  common 50% limitation is downstream from the full bookkeeping business expense.
+  Exceptions must be separate reviewed rules, never an inferred override.
+- **Travel — Tier C:** a hotel or airline charge cannot decide travel treatment.
+  Group expenses by trip and retain tax home, away-from-home status, destination,
+  dates, business purpose, business/personal days, meal separation, reimbursement,
+  and section 274 records. Defer the deductible calculation.
+- **Entertainment — Tier D:** ordinary entertainment is a candidate zero tax
+  outcome, while the economic business expense remains. Separately purchased or
+  separately stated food may enter the meal rule. Statutory exceptions require a
+  later reviewed contract.
+- **Gifts — Tier C:** retain recipient, relationship, purpose, description, date,
+  cost, incidental cost, and direct/indirect recipient. The 2025 $25 limit is per
+  recipient per taxpayer-year, so no isolated transaction rule should calculate it.
+- **Vehicle — Tier C:** preserve vehicle, placed-in-service, ownership/lease,
+  contemporaneous trip purpose and mileage, total annual miles, commuting, business
+  use, and method history. The optional 2025 standard rate is 70 cents per business
+  mile, but method eligibility/elections and actual expenses require a vehicle-year
+  engine. No gas/repair merchant shortcut is acceptable.
+- **Home office — Tier C:** collect qualification, area, time period, method, and
+  direct/indirect expense facts. The 2025 simplified method uses $5 per allowable
+  square foot, generally capped at 300 square feet, but qualification, multiple
+  uses, income limits, actual method, depreciation, and carryovers require an
+  annual calculator.
+- **Equipment, depreciation, and Section 179 — Tier C:** preserve basis, asset,
+  dates, placed-in-service, business use, class, prior use, and disposition. The
+  2025 de minimis safe harbor and Section 179 amounts are elections/annual rules,
+  not a price-based universal expense rule. No candidate says “equipment is fully
+  deductible.”
+- **Startup costs — Tier C:** determine whether the cost fits section 195 and when
+  the active business began. The 2025 framework includes a limited immediate amount,
+  aggregate phaseout, election, and 180-month amortization; therefore a pre-revenue
+  date alone proves nothing.
+- **Education — Tier B:** ask whether education maintains or improves skills in the
+  current business or is required to continue it, and whether it meets minimum
+  requirements or qualifies the customer for a new trade/business. Merchant identity
+  is never enough.
 
-## 5. Universal candidate inventory
+Clear nondeductible-but-business examples include ordinary business entertainment,
+a governmental fine arising from business conduct, the disallowed portion of a
+qualified business meal or gift, and a lobbying/political amount paid for a business
+objective. Their economic business amounts remain in bookkeeping/P&L; only the
+tax-preparation amount is zero or limited.
 
-“Key” is a proposed catalog identity, not an existing active canonical key. Legacy
-categories/rulesets and the old keyword-based `Ask WriteOffs` endpoint are discovery
-inputs only; they are mutable, merchant-driven, and not authoritative.
+## Representative non-executable rule shape
 
-| Candidate / proposed key | Evidence currently possible | Missing material facts | Likely class | Special calculation | Approved now? |
-|---|---|---|---|---|---|
-| Advertising / `tax.advertising` | Purpose, service type, receipt, date, business use | Confirm promotional business purpose when ambiguous | Safe automatic or Ask first | No obvious transaction-level calculation | No |
-| Commissions and fees / `tax.commissions-fees` | Purpose, merchant/service type, amount | Relationship to business revenue/service | Ask first | Possibly annual/report grouping | No |
-| Dues and memberships / `tax.dues-fees` | Organization/service type, purpose, amount | Organization type and business relationship | Ask first | Some memberships may need special review | No |
-| Contract labor / `tax.contract-labor` | Payee description, purpose, amount | Worker/service relationship and information-reporting facts | Ask first | Reporting obligations outside this engine | No |
-| Insurance / `tax.insurance` | Provider/service type, purpose | Policy type, personal coverage, vehicle/health context | Ask first | Some types require special handling | No |
-| Legal/professional / `tax.professional-services` | Provider type, purpose, receipt | Business matter versus personal/capital matter | Ask first | Capital matters may be special | No |
-| Office expense / `tax.office-expense` | Item/service type, purpose, business use | Asset indicator for durable property | Safe automatic or Ask first | Assets are special | No |
-| Rent/lease / `tax.rent-lease` | Payee, purpose, recurring evidence | Property/equipment type, related-party and personal-use facts | Ask first | Some leases require special treatment | No |
-| Repairs/maintenance / `tax.repairs-maintenance` | Service type, purpose, asset context | Repair versus improvement | Ask first | Improvements/capitalization are special | No |
-| Supplies / `tax.supplies` | Item type, receipt, purpose | Asset/inventory indicator where ambiguous | Safe automatic or Ask first | Inventory/assets are special | No |
-| Taxes/licenses / `tax.taxes-licenses` | Agency/payee, purpose, date | Tax/license type and penalties | Ask first | Some amounts may be nondeductible/special | No |
-| Utilities / `tax.utilities` | Provider type, recurring evidence | Business location/use and personal portion | Ask first | Allocation may precede tax rule | No |
-| Software/subscriptions / `tax.software-subscriptions` | Service type, purpose, recurring evidence | Personal portion; acquisition/capital indicator | Safe automatic or Ask first | Some acquisitions may be special | No |
-| Education/training / `tax.education-training` | Provider/course, purpose | Relationship to current business and qualification change | Ask first | No simple universal outcome | No |
-| Travel / `tax.travel` | Merchant type, dates, purpose | Away-from-home, duration, primary purpose, personal portion | Ask first | Trip-level aggregation may be needed | No |
-| Meals / `tax.meals` | Restaurant/service type, date, amount | Business context, attendee/purpose, exceptions | Ask first | Limitation/exception handling | No |
-| Gifts / `tax.gifts` | Item, date, amount, purpose | Recipient identity and annual recipient total | Ask first | Annual per-recipient calculation | No |
-| Vehicle/car / `tax.vehicle` | Vehicle intake and expense/mileage facts | Election, ownership/lease, commuting, complete use facts | Special treatment | Yes | No |
-| Home office / `tax.home-office` | Some onboarding area/use answers | Qualification, method election, household/carryover facts | Special treatment | Yes | No |
-| Equipment/assets / `tax.equipment-assets` | Item, amount, date, purpose | Asset class, placed-in-service, disposition, election facts | Special treatment | Yes | No |
-| Depreciation / `tax.depreciation` | Asset facts when eventually collected | Basis, class life, method, prior depreciation | Special treatment | Yes | No |
-| Section 179 / `tax.section-179` | None sufficient today | Eligibility, election, annual/business-income limits, carryover | Special treatment | Yes | No |
-| Interest / `tax.interest` | Payee, amount, account context | Debt purpose, allocation, capitalization rules | Ask first or special | Sometimes | No |
-| Bank/processing fees / `tax.processing-fees` | Financial account/source and service type | Business-account connection and fee nature | Potential safe automatic | Usually no, subject to review | No |
-| Other ordinary expense / `tax.other-expense` | Purpose and business use | Specific nature/category and special-treatment indicators | Ask first | Depends | No |
+This example is deliberately incomplete and **candidate**, so it cannot execute:
 
-The repository’s `knowledge/irs/canon.json` contains dated snippets for general,
-advertising, meals, travel, vehicle, gifts, and home office. Those snippets and the
-legacy Schedule C mappings are **not approvals**; citations and current tax-year
-revisions must be independently reviewed before any corresponding rule is active.
-The legacy `/api/writeoffs/check` keyword endpoint is therefore fail-closed; it may
-not return merchant-driven tax conclusions while the production catalog is empty.
+```ts
+{
+  key: 'tax.postage-shipping',
+  version: 1,
+  lifecycle: 'candidate',
+  taxYears: { from: 2025, through: 2025 },
+  taxCategoryKey: 'office-expense',
+  automationLevel: 'safe_automatic',
+  requiredFacts: ['transactionNature', 'businessPurpose', 'businessUseTreatment'],
+  conditions: [
+    { fact: 'transactionNature', operator: 'equals', value: 'expense' },
+    { fact: 'businessUseTreatment', operator: 'equals', value: 'business' }
+  ],
+  outcome: { type: 'full_deduction' },
+  explanationTemplate: 'WriteOffs identified shipping used for your business.',
+  authorityReferences: [/* reviewed 2025 Schedule C instructions reference */],
+  approval: null
+}
+```
 
-## 6. Realtor context evidence for universal candidates
+Before activation, authority metadata should also record an official URL, concise
+support statement, and verification date. The current runtime type stores authority,
+identifier, revision, and topic; URL/support/verification can be added when an
+approved rule is encoded. Annual/special candidates use `special_treatment` and do
+not produce a transaction-level deductible amount.
 
-Realtor context can improve factual interpretation, but never turns a merchant into
-a deduction. The rows below map Realtor-flavored evidence to the same universal
-candidate identities above. They are not separate rules, a separate catalog, or a
-separate evaluation path. Each candidate still requires business use and purpose
-support.
+## Explanation standard
 
-| Context example / shared candidate | Contextual evidence | Missing material facts | Likely class | Approved now? |
-|---|---|---|---|---|
-| MLS access / `tax.software-subscriptions` or `tax.dues-fees` | Service identity, recurring charge, Realtor context | Actual service and business purpose if ambiguous | Potential safe automatic | No |
-| Association/board dues / `tax.dues-fees` | Organization/service type and Realtor context | Organization type and business connection | Ask first | No |
-| Lockboxes / `tax.supplies` or `tax.equipment-assets` | Item/service identity and listing purpose | Durable-asset and personal-use facts | Ask first | No |
-| Listing photography/video / `tax.advertising` or `tax.professional-services` | Vendor type and listing purpose | Actual service if ambiguous | Potential safe automatic | No |
-| Signs/flyers/materials / `tax.advertising` or `tax.supplies` | Item and listing/marketing purpose | Asset or personal use when ambiguous | Ask first | No |
-| Digital advertising/leads / `tax.advertising` | Service type and campaign purpose | Business account/use | Potential safe automatic | No |
-| CRM/software / `tax.software-subscriptions` | Service type and Realtor workflow purpose | Personal portion or durable acquisition | Safe automatic or Ask first | No |
-| Transaction coordinator / `tax.contract-labor` or `tax.professional-services` | Provider/service and transaction purpose | Worker/service relationship | Ask first | No |
-| Staging services / `tax.professional-services` or `tax.other-expense` | Vendor and listing purpose | Reimbursement, ownership, capital-property facts | Ask first/special | No |
-| Open-house supplies / `tax.supplies` | Item and event/listing purpose | Personal use, gift, or meal character | Ask first | No |
-| Continuing education / `tax.education-training` | Course/provider and Realtor context | Current-business relationship and qualification effect | Ask first | No |
-| Licensing expense / `tax.taxes-licenses` | Agency/payee, license type, and Realtor context | Initial versus continuing context; penalties | Ask first | No |
-| Mileage/vehicle / `tax.vehicle` | Realtor purpose plus future trip/vehicle facts | Complete trip, commuting, election, and vehicle facts | Special treatment | No |
-| Client/business meals / `tax.meals` | Realtor context, date, and merchant | Attendees, business discussion, exception facts | Ask first/special | No |
-| Business gifts / `tax.gifts` | Realtor context, item, and date | Recipient and annual aggregation | Ask first/special | No |
-| Home office / `tax.home-office` | Realtor context and onboarding facts | Full qualification, method, carryover facts | Special treatment | No |
+Customer explanations should distinguish four ideas without tax jargon:
 
-## 7. Explanation and authority model
+1. **What happened:** “This was a $100 business meal.”
+2. **Why WriteOffs believes it:** “You said it was dinner with a prospective client.”
+3. **Bookkeeping:** “The full $100 remains a business expense in your books.”
+4. **Tax preparation:** “Federal rules may limit the amount used in tax preparation.”
 
-An eventual customer explanation should combine the factual basis and reviewed
-template, for example: “WriteOffs treated this as an office expense because you
-identified it as supplies used for your business.” It should not mention confidence,
-internal rule IDs, or claim that AI decided the result. Support/audit views may use
-rule key, version, tax year, approval reference, and compact authority references.
-Do not store copied publications or instructions.
+If unresolved: “We have kept the expense in your books, but need one fact before
+we can prepare its tax treatment.” Normal UI should not expose rule IDs, confidence,
+Code citations, or internal adjustment machinery. CPA/support output may expose the
+full amount, personal portion, proposed category, deductible amount, adjustment,
+rule version/year, factual basis, answers, documentation status, unresolved facts,
+corrections, and authority references.
 
-## 8. Special-treatment boundary
+## Fail-closed standard
 
-Vehicle methods, depreciation, Section 179, home office, gifts, and any other
-annual limit, election, basis, carryover, or cross-transaction calculation must
-produce `special_treatment` until a separately approved calculator exists. A
-special result has no transaction-level deductible amount and cannot make Estimated
-Deductions appear complete.
+No deduction may be produced when there is no active approved rule, the tax year is
+unsupported, facts are missing or conflict, multiple incompatible rules apply, an
+annual/taxpayer calculation is unavailable, business use is unresolved, the rule is
+retired, authority/approval metadata is invalid, or evidence is below the rule's
+approved threshold. The bookkeeping record and P&L remain intact.
 
-## 9. Unresolved decisions requiring review
+## Product/legal approval gates
 
-Product decisions:
+Before any v1 rule becomes active, Rick and qualified tax/legal review must approve:
 
-- Which internal category taxonomy is stable enough to become canonical Tax Rules v1?
-- Which minimal factual questions are acceptable for each Ask-first rule?
-- Whether and how incomplete tax estimates should be shown outside internal reports.
-- When business-profile context is sufficiently reliable and material to strengthen
-  evidence for a shared rule, without replacing required transaction facts.
+1. the 2025 universal taxonomy and exact Schedule C mappings;
+2. which Tier A candidates truly qualify for automatic treatment and their required
+   evidence thresholds;
+3. each Tier B question contract and whether unanswered items remain unresolved;
+4. the standard meal rule, exceptions, reimbursement handling, and rounding;
+5. the boundary between transaction travel and trip-level processing;
+6. explicit zero-deduction rules for entertainment, government fines/penalties,
+   political spending, and charitable payments without labeling them Personal;
+7. which professional dues are eligible and how lobbying notices are represented;
+8. which tangible-property safe harbors/elections, if any, WriteOffs will support;
+9. that gifts, vehicles, home office, depreciation/Section 179, and startup costs
+   remain special until separately approved calculators exist;
+10. the authority-reference schema extension and verification/review workflow;
+11. customer explanation language and incomplete-estimate disclosure; and
+12. a per-rule activation PR containing an external authority, review reference,
+    tests, and explicit effective year.
 
-Tax/legal review decisions:
-
-- Current authoritative source and tax-year revision for every candidate.
-- Exact qualification, exception, limitation, rounding, annual aggregation, election,
-  carryover, and substantiation requirements.
-- Which candidates truly qualify for safe automation.
-- Whether any transaction-level conclusion requires practitioner review.
-
-## 10. Proposed phased rollout
-
-1. Review and approve the canonical category taxonomy and authority-source format.
-2. Select a very small set of fact-complete, non-special candidates for legal review.
-3. Approve exact factual contracts and rule versions for one tax year.
-4. Add reviewed rules as `approved`, test shadow evaluation, and inspect explanations.
-5. Explicitly promote individual versions to `active`; never activate the entire
-   catalog or a group of candidates by default.
-6. Add Ask-first contracts only where shadow evidence proves they are material.
-7. Build special calculators as separate milestones with annual-level tests.
-
-Until those approvals occur, production remains unresolved and Estimated Deductions
-remains unavailable except for independently persisted, previously trusted canonical
-treatments.
+Estimated Deductions remains unavailable unless independently persisted trusted
+treatments cover the relevant activity. Estimated Taxable Income remains unsupported.
