@@ -3,7 +3,7 @@ import { PRODUCTION_TAX_RULE_CATALOG, validateTaxRuleCatalog } from '../../app/l
 import { evaluateFixtureTaxRules, evaluateProductionTaxRules } from '../../app/lib/bookkeeping/tax-rule-engine'
 import { FICTIONAL_TAX_RULE_CATALOG } from '../fixtures/tax-rule-catalog'
 
-const input = (category: string, extra: Record<string, unknown> = {}) => ({ profile: 'general' as const,
+const input = (category: string, extra: Record<string, unknown> = {}) => ({
   taxYear: 2026, taxCategoryKey: category, businessAllocationAmountCents: -10_000,
   facts: { businessPurpose: 'Synthetic test fact' }, ...extra })
 
@@ -35,7 +35,7 @@ describe('versioned tax-rule engine', () => {
       .toMatchObject({ status: 'unresolved', reason: 'missing_evidence', missingFacts: ['assetIndicator'] })
     expect(evaluateFixtureTaxRules(FICTIONAL_TAX_RULE_CATALOG,
       input('fixture-potential', { facts: { businessPurpose: 'Synthetic test fact', assetIndicator: false } })))
-      .toMatchObject({ status: 'resolved', ruleKey: 'shared.fixture-potential-ready' })
+      .toMatchObject({ status: 'resolved', ruleKey: 'tax.fixture-potential-ready' })
     expect(evaluateFixtureTaxRules(FICTIONAL_TAX_RULE_CATALOG, input('fixture-retired')))
       .toMatchObject({ status: 'unresolved', reason: 'no_active_rule' })
     expect(evaluateFixtureTaxRules(FICTIONAL_TAX_RULE_CATALOG, input('fixture-approved')))
@@ -46,7 +46,7 @@ describe('versioned tax-rule engine', () => {
 
   it('pins the conclusion to the active tax-year rule version without reviving retired history', () => {
     expect(evaluateFixtureTaxRules(FICTIONAL_TAX_RULE_CATALOG, input('fixture-versioned')))
-      .toMatchObject({ status: 'resolved', ruleKey: 'shared.fixture-versioned', ruleVersion: 2, taxYear: 2026 })
+      .toMatchObject({ status: 'resolved', ruleKey: 'tax.fixture-versioned', ruleVersion: 2, taxYear: 2026 })
     expect(evaluateFixtureTaxRules(FICTIONAL_TAX_RULE_CATALOG,
       input('fixture-versioned', { taxYear: 2025 }))).toMatchObject({ status: 'unresolved', reason: 'unsupported_tax_year' })
   })
@@ -64,9 +64,18 @@ describe('versioned tax-rule engine', () => {
       rules: [FICTIONAL_TAX_RULE_CATALOG.rules[0]] })).toThrow(/external authority/i)
   })
 
-  it('keeps General and Realtor namespaces scoped to their matching profiles', () => {
+  it('uses one tax namespace and treats business profile only as optional factual context', () => {
     expect(() => validateTaxRuleCatalog({ kind: 'test_fixture', catalogVersion: 1,
-      rules: [{ ...FICTIONAL_TAX_RULE_CATALOG.rules[0], key: 'realtor.fixture', profiles: ['general'] }] }))
-      .toThrow(/Realtor profile/i)
+      rules: [{ ...FICTIONAL_TAX_RULE_CATALOG.rules[0], key: 'realtor.fixture' as 'tax.fixture' }] }))
+      .toThrow(/Invalid tax-rule key/i)
+    expect(FICTIONAL_TAX_RULE_CATALOG.rules.every((rule) => !('profiles' in rule))).toBe(true)
+    expect(evaluateFixtureTaxRules(FICTIONAL_TAX_RULE_CATALOG,
+      input('fixture-profile-context', { facts: { businessPurpose: 'Synthetic test fact',
+        businessProfileContext: 'realtor' } })))
+      .toMatchObject({ status: 'resolved', ruleKey: 'tax.fixture-profile-context' })
+    expect(evaluateFixtureTaxRules(FICTIONAL_TAX_RULE_CATALOG,
+      input('fixture-profile-context')))
+      .toMatchObject({ status: 'unresolved', reason: 'missing_evidence',
+        missingFacts: ['businessProfileContext'] })
   })
 })

@@ -119,7 +119,7 @@ describe('canonical reporting read model', () => {
         kind: 'business', amountCents: -10_000, taxCategoryKey: 'fixture-half', taxTreatments: [{
           id: 'limited-tax', allocationId: 'limited-business', supersedesTaxTreatmentId: null,
           status: 'deductible', deductibleAmountCents: -5_000, taxCategoryKey: 'fixture-half',
-          ruleKey: 'shared.fixture-half', ruleVersion: 1, reason: 'Fictional test limitation.',
+          ruleKey: 'tax.fixture-half', ruleVersion: 1, reason: 'Fictional test limitation.',
           provenance: 'system', confidence: null,
         }] }] }] })
     const result = report([limited])
@@ -134,7 +134,7 @@ describe('canonical reporting read model', () => {
         { id: 'mixed-tax-business', kind: 'business', amountCents: -7_000, taxCategoryKey: 'fixture-half',
           taxTreatments: [{ id: 'mixed-tax', allocationId: 'mixed-tax-business', supersedesTaxTreatmentId: null,
             status: 'deductible', deductibleAmountCents: -3_500, taxCategoryKey: 'fixture-half',
-            ruleKey: 'shared.fixture-half', ruleVersion: 1, reason: 'Fictional test limitation.',
+            ruleKey: 'tax.fixture-half', ruleVersion: 1, reason: 'Fictional test limitation.',
             provenance: 'system', confidence: null }] },
         { id: 'mixed-tax-personal', kind: 'personal', amountCents: -3_000 },
       ] }] })

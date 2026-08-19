@@ -21,7 +21,7 @@ describe('canonical tax-treatment domain', () => {
   it('represents missing-fact and special-calculation states without a deduction', () => {
     for (const status of ['requires_facts', 'special_treatment'] as const) {
       expect(() => validateTrustedTaxTreatment({ allocationAmountCents: -10_000, status,
-        deductibleAmountCents: null, taxCategoryKey: 'fixture-special', ruleKey: 'shared.fixture-special',
+        deductibleAmountCents: null, taxCategoryKey: 'fixture-special', ruleKey: 'tax.fixture-special',
         ruleVersion: 1, reason: 'Fictional pending treatment.' })).not.toThrow()
     }
   })

@@ -84,7 +84,7 @@ suite('canonical tax treatment against local PostgreSQL', () => {
     await appendTrustedTaxTreatment({ supabase: admin, businessId: owner.businessId,
       allocationId: allocation!.id, expectedCurrentTaxTreatmentId: null,
       conclusionKey: 'special-test:v1', status: 'special_treatment', deductibleAmountCents: null,
-      taxCategoryKey: 'special-test', ruleKey: 'shared.fixture-special', ruleVersion: 1,
+      taxCategoryKey: 'special-test', ruleKey: 'tax.fixture-special', ruleVersion: 1,
       reason: 'Fictional annual calculation required.', provenance: 'system', taxYear: 2026,
       outcomeType: 'special_treatment', adjustmentMethod: 'special_calculation',
       factualBasis: { assetIndicator: true },

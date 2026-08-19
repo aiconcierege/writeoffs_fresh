@@ -474,8 +474,8 @@ Excluded allocation, changes a source amount, or changes bookkeeping expense or
 profit. Reporting calculates income, expense, and profit before reading tax
 treatments. Estimated Deductions alone reads the separate deductible amount.
 
-Tax rules use stable General, Realtor, or shared namespaces; immutable versions;
-tax-year ranges; candidate, approved, active, and retired lifecycles; explicit
+Tax rules use one stable `tax.*` namespace and one canonical evaluator; immutable
+versions; tax-year ranges; candidate, approved, active, and retired lifecycles; explicit
 automation levels; required factual evidence; outcomes; explanation templates;
 and compact authority/approval metadata. Only active rules execute. Missing facts,
 unsupported years, conflicts, and absent active rules fail closed. The production
@@ -489,6 +489,12 @@ record why a calculation is incomplete without inventing a transaction-level
 deduction. Historical conclusions remain pinned to their original rule version;
 there is no automatic historical reprocessing.
 
-Candidate General and Realtor concepts, question gaps, and proposed rollout are
-documented in `TAX_RULES_V1_PROPOSAL.md`. That inventory is not executable and is
-not legal or product approval.
+Business profile is optional factual context in that one evaluator. It can
+strengthen merchant or purpose evidence when a rule declares it as a prerequisite,
+but it cannot select another catalog or replace business-use facts. General means
+the absence of more-specific profile context; Realtor does not create a separate
+bookkeeping, tax, question, reporting, or customer path.
+
+Universal candidate concepts, optional business-profile context, question gaps,
+and proposed rollout are documented in `TAX_RULES_V1_PROPOSAL.md`. That inventory
+is not executable and is not legal or product approval.

@@ -21,8 +21,8 @@ treatment.
 
 ## 2. Rule lifecycle and versioning
 
-Rules have stable `general.*`, `realtor.*`, or `shared.*` keys and an immutable
-positive version. Their lifecycle is `candidate`, `approved`, `active`, or
+There is one canonical rule catalog and one evaluator. Rules have stable `tax.*`
+keys and an immutable positive version. Their lifecycle is `candidate`, `approved`, `active`, or
 `retired`. Only `active` rules can execute. An active production rule must have an
 approval reference and external authority metadata. A tax-year range selects a
 version prospectively; historical treatments retain their exact rule key, version,
@@ -75,38 +75,49 @@ transaction allocation.
 Do not create all missing questions at once. A question should be added only when
 an approved rule proves the fact is material and the answer can change an outcome.
 
-## 5. General candidate inventory
+Business profile is optional factual context supplied to that same evaluator. A
+Realtor profile may strengthen evidence about a merchant, item, or likely purpose,
+but it neither selects a different catalog nor satisfies business-use or other
+material facts by itself. “General” means that no more-specific profile context is
+available; it is not a rule namespace, engine, or customer path.
 
-“Key” is a proposed namespace, not an existing active canonical key. Legacy
+The single path is: source evidence → factual evidence → business-use
+determination → bookkeeping/P&L treatment → canonical tax-treatment evaluation →
+tax-preparation output.
+
+## 5. Universal candidate inventory
+
+“Key” is a proposed catalog identity, not an existing active canonical key. Legacy
 categories/rulesets and the old keyword-based `Ask WriteOffs` endpoint are discovery
 inputs only; they are mutable, merchant-driven, and not authoritative.
 
 | Candidate / proposed key | Evidence currently possible | Missing material facts | Likely class | Special calculation | Approved now? |
 |---|---|---|---|---|---|
-| Advertising / `general.advertising` | Purpose, service type, receipt, date, business use | Confirm promotional business purpose when ambiguous | Safe automatic or Ask first | No obvious transaction-level calculation | No |
-| Commissions and fees / `general.commissions-fees` | Purpose, merchant/service type, amount | Relationship to business revenue/service | Ask first | Possibly annual/report grouping | No |
-| Contract labor / `general.contract-labor` | Payee description, purpose, amount | Worker/service relationship and information-reporting facts | Ask first | Reporting obligations outside this engine | No |
-| Insurance / `general.insurance` | Provider/service type, purpose | Policy type, personal coverage, vehicle/health context | Ask first | Some types require special handling | No |
-| Legal/professional / `general.professional-services` | Provider type, purpose, receipt | Business matter versus personal/capital matter | Ask first | Capital matters may be special | No |
-| Office expense / `general.office-expense` | Item/service type, purpose, business use | Asset indicator for durable property | Safe automatic or Ask first | Assets are special | No |
-| Rent/lease / `general.rent-lease` | Payee, purpose, recurring evidence | Property/equipment type, related-party and personal-use facts | Ask first | Some leases require special treatment | No |
-| Repairs/maintenance / `general.repairs-maintenance` | Service type, purpose, asset context | Repair versus improvement | Ask first | Improvements/capitalization are special | No |
-| Supplies / `general.supplies` | Item type, receipt, purpose | Asset/inventory indicator where ambiguous | Safe automatic or Ask first | Inventory/assets are special | No |
-| Taxes/licenses / `general.taxes-licenses` | Agency/payee, purpose, date | Tax/license type and penalties | Ask first | Some amounts may be nondeductible/special | No |
-| Utilities / `general.utilities` | Provider type, recurring evidence | Business location/use and personal portion | Ask first | Allocation may precede tax rule | No |
-| Software/subscriptions / `general.software-subscriptions` | Service type, purpose, recurring evidence | Personal portion; acquisition/capital indicator | Safe automatic or Ask first | Some acquisitions may be special | No |
-| Education/training / `general.education-training` | Provider/course, purpose | Relationship to current business and qualification change | Ask first | No simple universal outcome | No |
-| Travel / `general.travel` | Merchant type, dates, purpose | Away-from-home, duration, primary purpose, personal portion | Ask first | Trip-level aggregation may be needed | No |
-| Meals / `general.meals` | Restaurant/service type, date, amount | Business context, attendee/purpose, exceptions | Ask first | Limitation/exception handling | No |
-| Gifts / `general.gifts` | Item, date, amount, purpose | Recipient identity and annual recipient total | Ask first | Annual per-recipient calculation | No |
-| Vehicle/car / `general.vehicle` | Vehicle intake and expense/mileage facts | Election, ownership/lease, commuting, complete use facts | Special treatment | Yes | No |
-| Home office / `general.home-office` | Some onboarding area/use answers | Qualification, method election, household/carryover facts | Special treatment | Yes | No |
-| Equipment/assets / `general.equipment-assets` | Item, amount, date, purpose | Asset class, placed-in-service, disposition, election facts | Special treatment | Yes | No |
-| Depreciation / `general.depreciation` | Asset facts when eventually collected | Basis, class life, method, prior depreciation | Special treatment | Yes | No |
-| Section 179 / `general.section-179` | None sufficient today | Eligibility, election, annual/business-income limits, carryover | Special treatment | Yes | No |
-| Interest / `general.interest` | Payee, amount, account context | Debt purpose, allocation, capitalization rules | Ask first or special | Sometimes | No |
-| Bank/processing fees / `general.processing-fees` | Financial account/source and service type | Business-account connection and fee nature | Potential safe automatic | Usually no, subject to review | No |
-| Other ordinary expense / `general.other-expense` | Purpose and business use | Specific nature/category and special-treatment indicators | Ask first | Depends | No |
+| Advertising / `tax.advertising` | Purpose, service type, receipt, date, business use | Confirm promotional business purpose when ambiguous | Safe automatic or Ask first | No obvious transaction-level calculation | No |
+| Commissions and fees / `tax.commissions-fees` | Purpose, merchant/service type, amount | Relationship to business revenue/service | Ask first | Possibly annual/report grouping | No |
+| Dues and memberships / `tax.dues-fees` | Organization/service type, purpose, amount | Organization type and business relationship | Ask first | Some memberships may need special review | No |
+| Contract labor / `tax.contract-labor` | Payee description, purpose, amount | Worker/service relationship and information-reporting facts | Ask first | Reporting obligations outside this engine | No |
+| Insurance / `tax.insurance` | Provider/service type, purpose | Policy type, personal coverage, vehicle/health context | Ask first | Some types require special handling | No |
+| Legal/professional / `tax.professional-services` | Provider type, purpose, receipt | Business matter versus personal/capital matter | Ask first | Capital matters may be special | No |
+| Office expense / `tax.office-expense` | Item/service type, purpose, business use | Asset indicator for durable property | Safe automatic or Ask first | Assets are special | No |
+| Rent/lease / `tax.rent-lease` | Payee, purpose, recurring evidence | Property/equipment type, related-party and personal-use facts | Ask first | Some leases require special treatment | No |
+| Repairs/maintenance / `tax.repairs-maintenance` | Service type, purpose, asset context | Repair versus improvement | Ask first | Improvements/capitalization are special | No |
+| Supplies / `tax.supplies` | Item type, receipt, purpose | Asset/inventory indicator where ambiguous | Safe automatic or Ask first | Inventory/assets are special | No |
+| Taxes/licenses / `tax.taxes-licenses` | Agency/payee, purpose, date | Tax/license type and penalties | Ask first | Some amounts may be nondeductible/special | No |
+| Utilities / `tax.utilities` | Provider type, recurring evidence | Business location/use and personal portion | Ask first | Allocation may precede tax rule | No |
+| Software/subscriptions / `tax.software-subscriptions` | Service type, purpose, recurring evidence | Personal portion; acquisition/capital indicator | Safe automatic or Ask first | Some acquisitions may be special | No |
+| Education/training / `tax.education-training` | Provider/course, purpose | Relationship to current business and qualification change | Ask first | No simple universal outcome | No |
+| Travel / `tax.travel` | Merchant type, dates, purpose | Away-from-home, duration, primary purpose, personal portion | Ask first | Trip-level aggregation may be needed | No |
+| Meals / `tax.meals` | Restaurant/service type, date, amount | Business context, attendee/purpose, exceptions | Ask first | Limitation/exception handling | No |
+| Gifts / `tax.gifts` | Item, date, amount, purpose | Recipient identity and annual recipient total | Ask first | Annual per-recipient calculation | No |
+| Vehicle/car / `tax.vehicle` | Vehicle intake and expense/mileage facts | Election, ownership/lease, commuting, complete use facts | Special treatment | Yes | No |
+| Home office / `tax.home-office` | Some onboarding area/use answers | Qualification, method election, household/carryover facts | Special treatment | Yes | No |
+| Equipment/assets / `tax.equipment-assets` | Item, amount, date, purpose | Asset class, placed-in-service, disposition, election facts | Special treatment | Yes | No |
+| Depreciation / `tax.depreciation` | Asset facts when eventually collected | Basis, class life, method, prior depreciation | Special treatment | Yes | No |
+| Section 179 / `tax.section-179` | None sufficient today | Eligibility, election, annual/business-income limits, carryover | Special treatment | Yes | No |
+| Interest / `tax.interest` | Payee, amount, account context | Debt purpose, allocation, capitalization rules | Ask first or special | Sometimes | No |
+| Bank/processing fees / `tax.processing-fees` | Financial account/source and service type | Business-account connection and fee nature | Potential safe automatic | Usually no, subject to review | No |
+| Other ordinary expense / `tax.other-expense` | Purpose and business use | Specific nature/category and special-treatment indicators | Ask first | Depends | No |
 
 The repository’s `knowledge/irs/canon.json` contains dated snippets for general,
 advertising, meals, travel, vehicle, gifts, and home office. Those snippets and the
@@ -115,29 +126,32 @@ revisions must be independently reviewed before any corresponding rule is active
 The legacy `/api/writeoffs/check` keyword endpoint is therefore fail-closed; it may
 not return merchant-driven tax conclusions while the production catalog is empty.
 
-## 6. Realtor candidate inventory
+## 6. Realtor context evidence for universal candidates
 
 Realtor context can improve factual interpretation, but never turns a merchant into
-a deduction. Each candidate still requires business use and purpose support.
+a deduction. The rows below map Realtor-flavored evidence to the same universal
+candidate identities above. They are not separate rules, a separate catalog, or a
+separate evaluation path. Each candidate still requires business use and purpose
+support.
 
-| Candidate / proposed key | Contextual evidence | Missing material facts | Likely class | Approved now? |
+| Context example / shared candidate | Contextual evidence | Missing material facts | Likely class | Approved now? |
 |---|---|---|---|---|
-| MLS access / `realtor.mls-access` | Service identity, recurring charge, Realtor profile | Business use/purpose if account is ambiguous | Potential safe automatic | No |
-| Association/board dues / `realtor.association-dues` | Organization/service type | Organization type, business connection | Ask first | No |
-| Lockboxes / `realtor.lockboxes` | Item/service identity, listing purpose | Personal/asset use where applicable | Potential safe automatic | No |
-| Listing photography/video / `realtor.listing-media` | Vendor type, listing purpose | Which business/listing if ambiguous | Potential safe automatic | No |
-| Signs/flyers/materials / `realtor.listing-materials` | Item and listing/marketing purpose | Asset or personal use when ambiguous | Potential safe automatic | No |
-| Digital advertising/leads / `realtor.lead-generation` | Service type, campaign purpose | Business account/use | Potential safe automatic | No |
-| CRM/software / `realtor.software` | Service type and Realtor workflow purpose | Personal portion or durable acquisition | Safe automatic or Ask first | No |
-| Transaction coordinator / `realtor.transaction-coordinator` | Provider/service and transaction purpose | Worker/service relationship | Ask first | No |
-| Staging services / `realtor.staging-services` | Vendor and listing purpose | Reimbursement, ownership, capital property | Ask first/special | No |
-| Open-house supplies / `realtor.open-house-supplies` | Item, event/listing purpose | Personal use, gift/meal character | Ask first | No |
-| Continuing education / `realtor.education` | Course/provider and Realtor profile | Current-business relationship and qualification effect | Ask first | No |
-| Licensing expense / `realtor.licensing` | Agency/payee and license type | Initial versus continuing context; penalties | Ask first | No |
-| Mileage/vehicle / `realtor.vehicle` | Realtor purpose plus future trip/vehicle facts | Complete trip, commuting, election and vehicle facts | Special treatment | No |
-| Client/business meals / `realtor.meals` | Realtor context, date, merchant | Attendees, business discussion, exception facts | Ask first/special | No |
-| Business gifts / `realtor.gifts` | Realtor context, item, date | Recipient and annual aggregation | Ask first/special | No |
-| Home office / `realtor.home-office` | Realtor profile and onboarding facts | Full qualification, method, carryover facts | Special treatment | No |
+| MLS access / `tax.software-subscriptions` or `tax.dues-fees` | Service identity, recurring charge, Realtor context | Actual service and business purpose if ambiguous | Potential safe automatic | No |
+| Association/board dues / `tax.dues-fees` | Organization/service type and Realtor context | Organization type and business connection | Ask first | No |
+| Lockboxes / `tax.supplies` or `tax.equipment-assets` | Item/service identity and listing purpose | Durable-asset and personal-use facts | Ask first | No |
+| Listing photography/video / `tax.advertising` or `tax.professional-services` | Vendor type and listing purpose | Actual service if ambiguous | Potential safe automatic | No |
+| Signs/flyers/materials / `tax.advertising` or `tax.supplies` | Item and listing/marketing purpose | Asset or personal use when ambiguous | Ask first | No |
+| Digital advertising/leads / `tax.advertising` | Service type and campaign purpose | Business account/use | Potential safe automatic | No |
+| CRM/software / `tax.software-subscriptions` | Service type and Realtor workflow purpose | Personal portion or durable acquisition | Safe automatic or Ask first | No |
+| Transaction coordinator / `tax.contract-labor` or `tax.professional-services` | Provider/service and transaction purpose | Worker/service relationship | Ask first | No |
+| Staging services / `tax.professional-services` or `tax.other-expense` | Vendor and listing purpose | Reimbursement, ownership, capital-property facts | Ask first/special | No |
+| Open-house supplies / `tax.supplies` | Item and event/listing purpose | Personal use, gift, or meal character | Ask first | No |
+| Continuing education / `tax.education-training` | Course/provider and Realtor context | Current-business relationship and qualification effect | Ask first | No |
+| Licensing expense / `tax.taxes-licenses` | Agency/payee, license type, and Realtor context | Initial versus continuing context; penalties | Ask first | No |
+| Mileage/vehicle / `tax.vehicle` | Realtor purpose plus future trip/vehicle facts | Complete trip, commuting, election, and vehicle facts | Special treatment | No |
+| Client/business meals / `tax.meals` | Realtor context, date, and merchant | Attendees, business discussion, exception facts | Ask first/special | No |
+| Business gifts / `tax.gifts` | Realtor context, item, and date | Recipient and annual aggregation | Ask first/special | No |
+| Home office / `tax.home-office` | Realtor context and onboarding facts | Full qualification, method, carryover facts | Special treatment | No |
 
 ## 7. Explanation and authority model
 
@@ -163,8 +177,8 @@ Product decisions:
 - Which internal category taxonomy is stable enough to become canonical Tax Rules v1?
 - Which minimal factual questions are acceptable for each Ask-first rule?
 - Whether and how incomplete tax estimates should be shown outside internal reports.
-- Whether General and Realtor share rules with profile-specific factual interpretation
-  or require separately approved outcomes.
+- When business-profile context is sufficiently reliable and material to strengthen
+  evidence for a shared rule, without replacing required transaction facts.
 
 Tax/legal review decisions:
 
@@ -180,8 +194,8 @@ Tax/legal review decisions:
 2. Select a very small set of fact-complete, non-special candidates for legal review.
 3. Approve exact factual contracts and rule versions for one tax year.
 4. Add reviewed rules as `approved`, test shadow evaluation, and inspect explanations.
-5. Explicitly promote individual versions to `active`; never activate an entire
-   candidate namespace by default.
+5. Explicitly promote individual versions to `active`; never activate the entire
+   catalog or a group of candidates by default.
 6. Add Ask-first contracts only where shadow evidence proves they are material.
 7. Build special calculators as separate milestones with annual-level tests.
 

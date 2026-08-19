@@ -4,7 +4,6 @@ import type {
 import { PRODUCTION_TAX_RULE_CATALOG, validateTaxRuleCatalog } from './tax-rule-catalog'
 
 export type TaxRuleEvaluationInput = {
-  profile: 'general' | 'realtor'
   taxYear: number
   taxCategoryKey: string
   businessAllocationAmountCents: number
@@ -59,16 +58,16 @@ function evaluate(catalog: TaxRuleCatalog, input: TaxRuleEvaluationInput): TaxRu
     || input.businessAllocationAmountCents === 0) {
     throw new Error('Tax evaluation requires a valid year and nonzero canonical business allocation.')
   }
-  const profileAndCategory = catalog.rules.filter((rule) => rule.lifecycle === 'active'
-    && rule.profiles.includes(input.profile) && rule.taxCategoryKey === input.taxCategoryKey)
-  if (!profileAndCategory.length) {
+  const categoryRules = catalog.rules.filter((rule) => rule.lifecycle === 'active'
+    && rule.taxCategoryKey === input.taxCategoryKey)
+  if (!categoryRules.length) {
     return { status: 'unresolved', reason: 'no_active_rule', missingFacts: [], ruleIdentities: [] }
   }
-  const inYear = profileAndCategory.filter((rule) => input.taxYear >= rule.taxYears.from
+  const inYear = categoryRules.filter((rule) => input.taxYear >= rule.taxYears.from
     && input.taxYear <= rule.taxYears.through)
   if (!inYear.length) {
     return { status: 'unresolved', reason: 'unsupported_tax_year', missingFacts: [],
-      ruleIdentities: profileAndCategory.map((rule) => `${rule.key}@${rule.version}`) }
+      ruleIdentities: categoryRules.map((rule) => `${rule.key}@${rule.version}`) }
   }
   const potential = inYear.filter((rule) => conditionNotDisproved(rule, input.facts))
   const missingByRule = potential.map((rule) => ({ rule, missing: requiredMissing(rule, input.facts) }))

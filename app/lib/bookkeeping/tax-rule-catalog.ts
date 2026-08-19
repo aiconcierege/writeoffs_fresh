@@ -9,6 +9,7 @@ export const TAX_RULE_FACT_KEYS = [
   'merchantServiceType', 'receiptPresent', 'occurredOn', 'assetIndicator',
   'travelAwayFromHome', 'mealBusinessContext', 'giftRecipientKnown',
   'homeOfficeQualified', 'vehicleUseFactsComplete', 'reimbursementStatus',
+  'businessProfileContext',
 ] as const
 export type TaxRuleFactKey = typeof TAX_RULE_FACT_KEYS[number]
 export type TaxRuleFactValue = string | number | boolean
@@ -34,11 +35,10 @@ export type TaxRuleOutcome =
   | { type: 'special_treatment'; treatmentKey: string }
 
 export type TaxRuleDefinition = {
-  key: `${'general' | 'realtor' | 'shared'}.${string}`
+  key: `tax.${string}`
   version: number
   lifecycle: TaxRuleLifecycle
   taxYears: { from: number; through: number }
-  profiles: Array<'general' | 'realtor'>
   taxCategoryKey: string
   automationLevel: TaxRuleAutomationLevel
   requiredFacts: TaxRuleFactKey[]
@@ -64,7 +64,7 @@ export function validateTaxRuleCatalog(catalog: TaxRuleCatalog) {
   if (catalog.catalogVersion < 1) throw new Error('Tax-rule catalog version must be positive.')
   const identities = new Set<string>()
   for (const rule of catalog.rules) {
-    if (!/^(general|realtor|shared)\.[a-z0-9][a-z0-9._-]*$/.test(rule.key)) {
+    if (!/^tax\.[a-z0-9][a-z0-9._-]*$/.test(rule.key)) {
       throw new Error(`Invalid tax-rule key: ${rule.key}`)
     }
     assertInteger(rule.version, `Tax-rule version must be an integer: ${rule.key}`)
@@ -76,14 +76,8 @@ export function validateTaxRuleCatalog(catalog: TaxRuleCatalog) {
     const identity = `${rule.key}@${rule.version}`
     if (identities.has(identity)) throw new Error(`Duplicate tax-rule identity: ${identity}`)
     identities.add(identity)
-    if (!rule.profiles.length || !rule.taxCategoryKey.trim() || !rule.explanationTemplate.trim()) {
+    if (!rule.taxCategoryKey.trim() || !rule.explanationTemplate.trim()) {
       throw new Error(`Tax rule is missing required catalog metadata: ${identity}`)
-    }
-    if (rule.key.startsWith('general.') && (rule.profiles.length !== 1 || rule.profiles[0] !== 'general')) {
-      throw new Error(`General tax-rule namespace must use only the General profile: ${identity}`)
-    }
-    if (rule.key.startsWith('realtor.') && (rule.profiles.length !== 1 || rule.profiles[0] !== 'realtor')) {
-      throw new Error(`Realtor tax-rule namespace must use only the Realtor profile: ${identity}`)
     }
     if (new Set(rule.requiredFacts).size !== rule.requiredFacts.length) {
       throw new Error(`Tax rule repeats a factual requirement: ${identity}`)
