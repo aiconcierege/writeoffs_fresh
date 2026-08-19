@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../utils/supabase/server'
-import { recommendOnboardingPlan } from '../../../lib/onboarding/plan-recommendation'
 import { validateCompleteOnboarding } from '../../../lib/onboarding/validation'
 
 const BUSINESS_COMPLETION_FIELDS =
-  'id, business_description, legal_structure, federal_tax_reporting_type, business_start_month, has_qualifying_home_office, home_office_square_feet, uses_vehicle_for_business, expected_financial_account_count, expected_financial_account_use, onboarding_start_method'
+  'id, business_description, business_profile_context, schedule_c_eligibility, business_stage, business_start_month, uses_customer_job_materials, keeps_future_sale_merchandise, prior_materials_handling, catch_up_start_date, onboarding_start_method, v1_support_status, v1_support_reason, onboarding_state, onboarding_version, onboarding_completed_at'
 
 export async function POST() {
   const supabase = await createServerSupabase()
@@ -33,18 +32,7 @@ export async function POST() {
     )
   }
 
-  const { data: activeVehicles, error: vehiclesError } = await supabase
-    .from('business_vehicles')
-    .select('slot, display_name, vehicle_year, make, model, is_mixed_use')
-    .eq('business_id', business.id)
-    .is('archived_at', null)
-    .order('slot')
-
-  if (vehiclesError) {
-    return NextResponse.json({ error: vehiclesError.message }, { status: 400 })
-  }
-
-  const validation = validateCompleteOnboarding(business, activeVehicles)
+  const validation = validateCompleteOnboarding(business)
   if (!validation.ok) {
     return NextResponse.json(
       { error: 'onboarding is incomplete', validation },
@@ -52,18 +40,16 @@ export async function POST() {
     )
   }
 
-  const recommendation = recommendOnboardingPlan({
-    expected_financial_account_count:
-      business.expected_financial_account_count,
-    onboarding_start_method: business.onboarding_start_method,
-  })
+  if (business.onboarding_state === 'completed' && business.onboarding_version === 3) {
+    return NextResponse.json({ ok: true, completedAt: business.onboarding_completed_at, destination: '/home' })
+  }
   const completedAt = new Date().toISOString()
   const { error: updateError, count } = await supabase
     .from('businesses')
     .update(
       {
         onboarding_state: 'completed',
-        onboarding_version: 2,
+        onboarding_version: 3,
         onboarding_completed_at: completedAt,
       },
       { count: 'exact' }
@@ -84,7 +70,6 @@ export async function POST() {
   return NextResponse.json({
     ok: true,
     completedAt,
-    recommendation,
     destination: '/home',
   })
 }

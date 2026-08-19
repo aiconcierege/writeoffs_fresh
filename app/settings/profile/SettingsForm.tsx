@@ -50,9 +50,9 @@ export default function SettingsForm({ initial }: { initial: SettingsInitial }) 
     <form onSubmit={onSubmit} className="rounded-2xl border p-5">
       <div className="text-base font-semibold">Profile</div>
 
-      {/* Pack */}
+      {/* Optional business context; both choices use the same product path. */}
       <div className="mt-4">
-        <label className="block text-sm font-medium">Industry pack</label>
+        <label className="block text-sm font-medium">Business profile</label>
         <div className="mt-2 grid grid-cols-2 gap-2">
           {(['general','realtor'] as const).map(p => (
             <button
@@ -68,7 +68,7 @@ export default function SettingsForm({ initial }: { initial: SettingsInitial }) 
           ))}
         </div>
         <p className="mt-1 text-xs text-neutral-600">
-          Packs extend <strong>General</strong> with a few tailored rules (no data loss when switching).
+          Real estate context can help WriteOffs understand your activity. It does not change the bookkeeping or tax-rule path.
         </p>
       </div>
 

@@ -1,79 +1,38 @@
-export const LEGAL_STRUCTURES = [
-  'sole_proprietor',
-  'single_member_llc',
-  'partnership_multi_member_llc',
-  'corporation',
-  'not_sure',
+export const BUSINESS_PROFILES = ['general', 'realtor'] as const
+export const THREE_WAY_ANSWERS = ['yes', 'no', 'not_sure'] as const
+export const BUSINESS_STAGES = ['new', 'existing'] as const
+export const MATERIALS_HANDLING_ANSWERS = [
+  'deduct_purchases', 'count_year_end', 'accountant_handles', 'not_sure',
 ] as const
-
-export const FEDERAL_TAX_REPORTING_TYPES = [
-  'schedule_c',
-  's_corporation',
-  'c_corporation',
-  'partnership',
-  'not_sure',
-] as const
-
-export const EXPECTED_FINANCIAL_ACCOUNT_USES = [
-  'primarily_business',
-  'mixed_use',
-] as const
-
-export const ONBOARDING_START_METHODS = [
-  'receipts',
-  'connected_financial_accounts',
-  'statement_uploads',
-] as const
-
+export const ONBOARDING_START_METHODS = ['statement_uploads', 'receipts'] as const
 export const ONBOARDING_BUSINESS_STEPS = [
-  'business',
-  'organization',
-  'start_date',
-  'home_office',
-  'vehicles',
-  'accounts',
-  'starting_method',
+  'business', 'eligibility', 'history', 'operations', 'materials_history', 'catch_up', 'starting_method',
 ] as const
 
 export type OnboardingBusinessStep = (typeof ONBOARDING_BUSINESS_STEPS)[number]
-
-export type OnboardingBusinessUpdate = Record<
-  string,
-  string | number | boolean | null
->
-
+export type OnboardingBusinessUpdate = Record<string, string | number | boolean | null>
 export type ValidationResult =
-  | { ok: true; step: OnboardingBusinessStep; update: OnboardingBusinessUpdate }
+  | { ok: true; step: OnboardingBusinessStep; update: OnboardingBusinessUpdate; profile?: 'general' | 'realtor' }
   | { ok: false; error: string }
-
+export type CompleteOnboardingValidationResult =
+  | { ok: true }
+  | { ok: false; errors: string[] }
 export type OnboardingVehicleUpdate = {
-  display_name: string
-  vehicle_year: number | null
-  make: string | null
-  model: string | null
-  is_mixed_use: boolean
+  display_name: string; vehicle_year: number | null; make: string | null
+  model: string | null; is_mixed_use: boolean
 }
-
 export type VehicleValidationResult =
   | { ok: true; update: OnboardingVehicleUpdate }
   | { ok: false; error: string }
 
-export type CompleteOnboardingValidationResult =
-  | { ok: true }
-  | { ok: false; errors: string[] }
-
-const BUSINESS_NAME_MAX_LENGTH = 200
-const BUSINESS_DESCRIPTION_MAX_LENGTH = 2000
-const HOME_OFFICE_SQUARE_FEET_MAX = 10000
+const NAME_MAX = 200
+const DESCRIPTION_MAX = 2000
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function isOneOf<T extends readonly string[]>(
-  value: unknown,
-  allowed: T
-): value is T[number] {
+function isOneOf<T extends readonly string[]>(value: unknown, allowed: T): value is T[number] {
   return typeof value === 'string' && allowed.includes(value as T[number])
 }
 
@@ -81,414 +40,150 @@ function hasOnlyKeys(value: Record<string, unknown>, allowed: readonly string[])
   return Object.keys(value).every((key) => allowed.includes(key))
 }
 
-function invalid(error: string): ValidationResult {
-  return { ok: false, error }
-}
+function invalid(error: string): ValidationResult { return { ok: false, error } }
 
-function invalidVehicle(error: string): VehicleValidationResult {
-  return { ok: false, error }
-}
-
-function optionalTrimmedText(value: unknown, field: string) {
-  if (value === undefined || value === null) {
-    return { ok: true as const, value: null }
+// Retained for the existing Settings-compatible vehicle endpoints. Vehicles are no
+// longer required by onboarding v3, but the historical API remains usable.
+export function validateOnboardingVehicle(input: unknown): VehicleValidationResult {
+  if (!isRecord(input) || !hasOnlyKeys(input, ['display_name', 'vehicle_year', 'make', 'model', 'is_mixed_use'])) {
+    return { ok: false, error: 'vehicle contains unsupported fields' }
   }
-  if (typeof value !== 'string') {
-    return { ok: false as const, error: `${field} must be a string or null` }
+  const displayName = typeof input.display_name === 'string' ? input.display_name.trim() : ''
+  if (!displayName || displayName.length > 120) return { ok: false, error: 'display_name is required and must be 120 characters or fewer' }
+  if (input.vehicle_year != null && (!Number.isInteger(input.vehicle_year) || Number(input.vehicle_year) < 1900 || Number(input.vehicle_year) > 2100)) {
+    return { ok: false, error: 'vehicle_year must be a whole number from 1900 to 2100' }
   }
-  return { ok: true as const, value: value.trim() || null }
-}
-
-export function validateOnboardingVehicle(
-  input: unknown
-): VehicleValidationResult {
-  if (
-    !isRecord(input) ||
-    !hasOnlyKeys(input, [
-      'display_name',
-      'vehicle_year',
-      'make',
-      'model',
-      'is_mixed_use',
-    ])
-  ) {
-    return invalidVehicle('vehicle contains unsupported fields')
+  if (typeof input.is_mixed_use !== 'boolean') return { ok: false, error: 'is_mixed_use is required' }
+  for (const field of ['make', 'model'] as const) {
+    if (input[field] != null && typeof input[field] !== 'string') return { ok: false, error: `${field} must be a string or null` }
   }
-
-  if (typeof input.display_name !== 'string') {
-    return invalidVehicle('display_name is required')
-  }
-  const displayName = input.display_name.trim()
-  if (!displayName) return invalidVehicle('display_name is required')
-  if (displayName.length > 120) {
-    return invalidVehicle('display_name must be 120 characters or fewer')
-  }
-
-  const year = input.vehicle_year
-  if (
-    year !== undefined &&
-    year !== null &&
-    (!Number.isInteger(year) || Number(year) < 1900 || Number(year) > 2100)
-  ) {
-    return invalidVehicle('vehicle_year must be a whole number from 1900 to 2100')
-  }
-
-  const make = optionalTrimmedText(input.make, 'make')
-  if (!make.ok) return invalidVehicle(make.error)
-  const model = optionalTrimmedText(input.model, 'model')
-  if (!model.ok) return invalidVehicle(model.error)
-
-  if (typeof input.is_mixed_use !== 'boolean') {
-    return invalidVehicle('is_mixed_use is required')
-  }
-
-  return {
-    ok: true,
-    update: {
-      display_name: displayName,
-      vehicle_year: year === undefined || year === null ? null : Number(year),
-      make: make.value,
-      model: model.value,
-      is_mixed_use: input.is_mixed_use,
-    },
-  }
+  return { ok: true, update: {
+    display_name: displayName,
+    vehicle_year: input.vehicle_year == null ? null : Number(input.vehicle_year),
+    make: typeof input.make === 'string' ? input.make.trim() || null : null,
+    model: typeof input.model === 'string' ? input.model.trim() || null : null,
+    is_mixed_use: input.is_mixed_use,
+  } }
 }
 
 function validateBusiness(data: Record<string, unknown>): ValidationResult {
-  if (!hasOnlyKeys(data, ['name', 'business_description'])) {
+  if (!hasOnlyKeys(data, ['name', 'business_description', 'business_profile_context'])) {
     return invalid('business step contains unsupported fields')
   }
-
-  const update: OnboardingBusinessUpdate = {}
-  if ('name' in data) {
-    if (data.name !== null && typeof data.name !== 'string') {
-      return invalid('name must be a string or null')
-    }
-    const name = typeof data.name === 'string' ? data.name.trim() : ''
-    if (name.length > BUSINESS_NAME_MAX_LENGTH) {
-      return invalid('name must be 200 characters or fewer')
-    }
-    update.name = name || null
+  const name = typeof data.name === 'string' ? data.name.trim() : ''
+  const description = typeof data.business_description === 'string'
+    ? data.business_description.trim() : ''
+  if (data.name !== null && data.name !== undefined && typeof data.name !== 'string') {
+    return invalid('name must be a string or null')
   }
-
-  if (typeof data.business_description !== 'string') {
-    return invalid('business_description is required')
-  }
-  const description = data.business_description.trim()
+  if (name.length > NAME_MAX) return invalid('name must be 200 characters or fewer')
   if (!description) return invalid('business_description is required')
-  if (description.length > BUSINESS_DESCRIPTION_MAX_LENGTH) {
+  if (description.length > DESCRIPTION_MAX) {
     return invalid('business_description must be 2000 characters or fewer')
   }
-  update.business_description = description
-
-  return { ok: true, step: 'business', update }
+  if (!isOneOf(data.business_profile_context, BUSINESS_PROFILES)) {
+    return invalid('business_profile_context is invalid')
+  }
+  return { ok: true, step: 'business', profile: data.business_profile_context,
+    update: { name: name || null, business_description: description,
+      business_profile_context: data.business_profile_context } }
 }
 
-function validateOrganization(data: Record<string, unknown>): ValidationResult {
-  if (!hasOnlyKeys(data, ['legal_structure', 'federal_tax_reporting_type'])) {
-    return invalid('organization step contains unsupported fields')
-  }
-  if (!isOneOf(data.legal_structure, LEGAL_STRUCTURES)) {
-    return invalid('legal_structure is invalid')
-  }
-  if (!isOneOf(data.federal_tax_reporting_type, FEDERAL_TAX_REPORTING_TYPES)) {
-    return invalid('federal_tax_reporting_type is invalid')
-  }
-
-  return {
-    ok: true,
-    step: 'organization',
-    update: {
-      legal_structure: data.legal_structure,
-      federal_tax_reporting_type: data.federal_tax_reporting_type,
-    },
-  }
+function validateEligibility(data: Record<string, unknown>): ValidationResult {
+  if (!hasOnlyKeys(data, ['schedule_c_eligibility'])) return invalid('eligibility step contains unsupported fields')
+  if (!isOneOf(data.schedule_c_eligibility, THREE_WAY_ANSWERS)) return invalid('schedule_c_eligibility is invalid')
+  return { ok: true, step: 'eligibility', update: { schedule_c_eligibility: data.schedule_c_eligibility } }
 }
 
-function validateStartDate(
-  data: Record<string, unknown>,
-  now: Date
-): ValidationResult {
-  if (!hasOnlyKeys(data, ['business_start_month'])) {
-    return invalid('start_date step contains unsupported fields')
-  }
-  if (
-    typeof data.business_start_month !== 'string' ||
-    !/^\d{4}-(0[1-9]|1[0-2])$/.test(data.business_start_month)
-  ) {
+function validateHistory(data: Record<string, unknown>, now: Date): ValidationResult {
+  if (!hasOnlyKeys(data, ['business_stage', 'business_start_month'])) return invalid('history step contains unsupported fields')
+  if (!isOneOf(data.business_stage, BUSINESS_STAGES)) return invalid('business_stage is invalid')
+  if (typeof data.business_start_month !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(data.business_start_month)) {
     return invalid('business_start_month must use YYYY-MM format')
   }
-
-  const currentMonth = `${now.getUTCFullYear()}-${String(
-    now.getUTCMonth() + 1
-  ).padStart(2, '0')}`
-  if (data.business_start_month > currentMonth) {
-    return invalid('business_start_month cannot be later than the current month')
-  }
-
-  return {
-    ok: true,
-    step: 'start_date',
-    update: { business_start_month: `${data.business_start_month}-01` },
-  }
+  const currentMonth = now.toISOString().slice(0, 7)
+  if (data.business_start_month > currentMonth) return invalid('business_start_month cannot be later than the current month')
+  return { ok: true, step: 'history', update: {
+    business_stage: data.business_stage,
+    business_start_month: `${data.business_start_month}-01`,
+    ...(data.business_stage === 'new' ? { prior_materials_handling: null } : {}),
+  } }
 }
 
-function validateHomeOffice(data: Record<string, unknown>): ValidationResult {
-  if (
-    !hasOnlyKeys(data, [
-      'has_qualifying_home_office',
-      'home_office_square_feet',
-    ])
-  ) {
-    return invalid('home_office step contains unsupported fields')
+function validateOperations(data: Record<string, unknown>): ValidationResult {
+  if (!hasOnlyKeys(data, ['uses_customer_job_materials', 'keeps_future_sale_merchandise', 'schedule_c_eligibility'])) {
+    return invalid('operations step contains unsupported fields')
   }
-  if (typeof data.has_qualifying_home_office !== 'boolean') {
-    return invalid('has_qualifying_home_office is required')
-  }
-
-  if (!data.has_qualifying_home_office) {
-    return {
-      ok: true,
-      step: 'home_office',
-      update: {
-        has_qualifying_home_office: false,
-        home_office_square_feet: null,
-      },
-    }
-  }
-
-  if (
-    !Number.isInteger(data.home_office_square_feet) ||
-    Number(data.home_office_square_feet) < 1 ||
-    Number(data.home_office_square_feet) > HOME_OFFICE_SQUARE_FEET_MAX
-  ) {
-    return invalid('home_office_square_feet must be a whole number from 1 to 10000')
-  }
-
-  return {
-    ok: true,
-    step: 'home_office',
-    update: {
-      has_qualifying_home_office: true,
-      home_office_square_feet: Number(data.home_office_square_feet),
-    },
-  }
+  if (!isOneOf(data.uses_customer_job_materials, THREE_WAY_ANSWERS)) return invalid('uses_customer_job_materials is invalid')
+  if (!isOneOf(data.keeps_future_sale_merchandise, THREE_WAY_ANSWERS)) return invalid('keeps_future_sale_merchandise is invalid')
+  if (data.schedule_c_eligibility !== 'yes') return invalid('Schedule C eligibility must be established first')
+  return { ok: true, step: 'operations', update: {
+    uses_customer_job_materials: data.uses_customer_job_materials,
+    keeps_future_sale_merchandise: data.keeps_future_sale_merchandise,
+    ...(data.uses_customer_job_materials !== 'yes' ? { prior_materials_handling: null } : {}),
+  } }
 }
 
-function validateVehicles(data: Record<string, unknown>): ValidationResult {
-  if (!hasOnlyKeys(data, ['uses_vehicle_for_business'])) {
-    return invalid('vehicles step contains unsupported fields')
-  }
-  if (typeof data.uses_vehicle_for_business !== 'boolean') {
-    return invalid('uses_vehicle_for_business is required')
-  }
-  return {
-    ok: true,
-    step: 'vehicles',
-    update: { uses_vehicle_for_business: data.uses_vehicle_for_business },
-  }
+function validateMaterialsHistory(data: Record<string, unknown>): ValidationResult {
+  if (!hasOnlyKeys(data, ['prior_materials_handling'])) return invalid('materials_history step contains unsupported fields')
+  if (!isOneOf(data.prior_materials_handling, MATERIALS_HANDLING_ANSWERS)) return invalid('prior_materials_handling is invalid')
+  return { ok: true, step: 'materials_history', update: { prior_materials_handling: data.prior_materials_handling } }
 }
 
-function validateAccounts(data: Record<string, unknown>): ValidationResult {
-  if (
-    !hasOnlyKeys(data, [
-      'expected_financial_account_count',
-      'expected_financial_account_use',
-    ])
-  ) {
-    return invalid('accounts step contains unsupported fields')
+function validateCatchUp(data: Record<string, unknown>, now: Date): ValidationResult {
+  if (!hasOnlyKeys(data, ['catch_up_start_date'])) return invalid('catch_up step contains unsupported fields')
+  if (typeof data.catch_up_start_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(data.catch_up_start_date)) {
+    return invalid('catch_up_start_date must use YYYY-MM-DD format')
   }
-
-  const count = data.expected_financial_account_count
-  if (!Number.isInteger(count) || Number(count) < 0 || Number(count) > 6) {
-    return invalid('expected_financial_account_count must be an integer from 0 to 6')
+  const parsed = new Date(`${data.catch_up_start_date}T00:00:00Z`)
+  if (Number.isNaN(parsed.valueOf()) || parsed.toISOString().slice(0, 10) !== data.catch_up_start_date) {
+    return invalid('catch_up_start_date is invalid')
   }
-
-  if (count === 0) {
-    return {
-      ok: true,
-      step: 'accounts',
-      update: {
-        expected_financial_account_count: 0,
-        expected_financial_account_use: null,
-      },
-    }
-  }
-  if (!isOneOf(data.expected_financial_account_use, EXPECTED_FINANCIAL_ACCOUNT_USES)) {
-    return invalid('expected_financial_account_use is required')
-  }
-
-  return {
-    ok: true,
-    step: 'accounts',
-    update: {
-      expected_financial_account_count: Number(count),
-      expected_financial_account_use: data.expected_financial_account_use,
-    },
-  }
+  if (data.catch_up_start_date > now.toISOString().slice(0, 10)) return invalid('catch_up_start_date cannot be in the future')
+  return { ok: true, step: 'catch_up', update: { catch_up_start_date: data.catch_up_start_date } }
 }
 
 function validateStartingMethod(data: Record<string, unknown>): ValidationResult {
-  if (!hasOnlyKeys(data, ['onboarding_start_method'])) {
-    return invalid('starting_method step contains unsupported fields')
-  }
-  if (!isOneOf(data.onboarding_start_method, ONBOARDING_START_METHODS)) {
-    return invalid('onboarding_start_method is invalid')
-  }
-  return {
-    ok: true,
-    step: 'starting_method',
-    update: { onboarding_start_method: data.onboarding_start_method },
-  }
+  if (!hasOnlyKeys(data, ['onboarding_start_method'])) return invalid('starting_method step contains unsupported fields')
+  if (!isOneOf(data.onboarding_start_method, ONBOARDING_START_METHODS)) return invalid('onboarding_start_method is invalid')
+  return { ok: true, step: 'starting_method', update: { onboarding_start_method: data.onboarding_start_method } }
 }
 
-export function validateOnboardingBusinessPatch(
-  input: unknown,
-  now = new Date()
-): ValidationResult {
-  if (!isRecord(input) || !hasOnlyKeys(input, ['step', 'data'])) {
-    return invalid('request contains unsupported fields')
-  }
-  if (!isOneOf(input.step, ONBOARDING_BUSINESS_STEPS)) {
-    return invalid('onboarding step is invalid')
-  }
+export function validateOnboardingBusinessPatch(input: unknown, now = new Date()): ValidationResult {
+  if (!isRecord(input) || !hasOnlyKeys(input, ['step', 'data'])) return invalid('request contains unsupported fields')
+  if (!isOneOf(input.step, ONBOARDING_BUSINESS_STEPS)) return invalid('onboarding step is invalid')
   if (!isRecord(input.data)) return invalid('step data is required')
-
   switch (input.step) {
-    case 'business':
-      return validateBusiness(input.data)
-    case 'organization':
-      return validateOrganization(input.data)
-    case 'start_date':
-      return validateStartDate(input.data, now)
-    case 'home_office':
-      return validateHomeOffice(input.data)
-    case 'vehicles':
-      return validateVehicles(input.data)
-    case 'accounts':
-      return validateAccounts(input.data)
-    case 'starting_method':
-      return validateStartingMethod(input.data)
+    case 'business': return validateBusiness(input.data)
+    case 'eligibility': return validateEligibility(input.data)
+    case 'history': return validateHistory(input.data, now)
+    case 'operations': return validateOperations(input.data)
+    case 'materials_history': return validateMaterialsHistory(input.data)
+    case 'catch_up': return validateCatchUp(input.data, now)
+    case 'starting_method': return validateStartingMethod(input.data)
   }
 }
 
-export function validateCompleteOnboarding(
-  business: unknown,
-  activeVehicles: unknown,
-  now = new Date()
-): CompleteOnboardingValidationResult {
-  if (!isRecord(business)) {
-    return { ok: false, errors: ['business profile is unavailable'] }
-  }
-
+export function validateCompleteOnboarding(business: unknown, now = new Date()): CompleteOnboardingValidationResult {
+  if (!isRecord(business)) return { ok: false, errors: ['business profile is unavailable'] }
   const errors: string[] = []
-  const description = business.business_description
-  if (
-    typeof description !== 'string' ||
-    !description.trim() ||
-    description.trim().length > BUSINESS_DESCRIPTION_MAX_LENGTH
-  ) {
-    errors.push('business_description is required and must be 2000 characters or fewer')
+  const description = typeof business.business_description === 'string' ? business.business_description.trim() : ''
+  if (!description || description.length > DESCRIPTION_MAX) errors.push('business description is required')
+  if (!isOneOf(business.business_profile_context, BUSINESS_PROFILES)) errors.push('business profile is required')
+  if (business.schedule_c_eligibility !== 'yes') errors.push('Schedule C eligibility must be confirmed')
+  if (!isOneOf(business.business_stage, BUSINESS_STAGES)) errors.push('business stage is required')
+  if (typeof business.business_start_month !== 'string' || !/^\d{4}-\d{2}-01$/.test(business.business_start_month)
+    || business.business_start_month.slice(0, 7) > now.toISOString().slice(0, 7)) errors.push('business start month is required')
+  if (!isOneOf(business.uses_customer_job_materials, THREE_WAY_ANSWERS)) errors.push('customer-job materials answer is required')
+  if (business.keeps_future_sale_merchandise !== 'no') errors.push('future-sale merchandise eligibility must be resolved')
+  if (business.v1_support_status !== 'eligible' || business.v1_support_reason !== null) errors.push('business is not currently eligible for v1 completion')
+  const needsHistory = business.business_stage === 'existing' && business.uses_customer_job_materials === 'yes'
+  if (needsHistory && !isOneOf(business.prior_materials_handling, MATERIALS_HANDLING_ANSWERS)) {
+    errors.push('prior materials handling is required')
   }
-  if (!isOneOf(business.legal_structure, LEGAL_STRUCTURES)) {
-    errors.push('legal_structure is required')
-  }
-  if (
-    !isOneOf(
-      business.federal_tax_reporting_type,
-      FEDERAL_TAX_REPORTING_TYPES
-    )
-  ) {
-    errors.push('federal_tax_reporting_type is required')
-  }
-
-  const startMonth = business.business_start_month
-  const currentMonth = `${now.getUTCFullYear()}-${String(
-    now.getUTCMonth() + 1
-  ).padStart(2, '0')}`
-  if (
-    typeof startMonth !== 'string' ||
-    !/^\d{4}-(0[1-9]|1[0-2])-01$/.test(startMonth) ||
-    startMonth.slice(0, 7) > currentMonth
-  ) {
-    errors.push('business_start_month must be a valid month that is not in the future')
-  }
-
-  if (typeof business.has_qualifying_home_office !== 'boolean') {
-    errors.push('has_qualifying_home_office is required')
-  } else if (business.has_qualifying_home_office) {
-    if (
-      !Number.isInteger(business.home_office_square_feet) ||
-      Number(business.home_office_square_feet) < 1 ||
-      Number(business.home_office_square_feet) > HOME_OFFICE_SQUARE_FEET_MAX
-    ) {
-      errors.push('home_office_square_feet must be a whole number from 1 to 10000')
-    }
-  } else if (business.home_office_square_feet !== null) {
-    errors.push('home_office_square_feet must be empty when there is no home office')
-  }
-
-  const vehicles = Array.isArray(activeVehicles) ? activeVehicles : []
-  if (!Array.isArray(activeVehicles)) {
-    errors.push('active vehicle records are unavailable')
-  }
-  if (typeof business.uses_vehicle_for_business !== 'boolean') {
-    errors.push('uses_vehicle_for_business is required')
-  } else if (business.uses_vehicle_for_business) {
-    if (vehicles.length < 1 || vehicles.length > 2) {
-      errors.push('one or two active vehicles are required')
-    }
-  } else if (vehicles.length !== 0) {
-    errors.push('active vehicles must be archived when vehicle use is false')
-  }
-
-  const seenSlots = new Set<number>()
-  for (const [index, vehicle] of vehicles.entries()) {
-    if (!isRecord(vehicle)) {
-      errors.push(`vehicle ${index + 1} is invalid`)
-      continue
-    }
-    const slot = vehicle.slot
-    if ((slot !== 1 && slot !== 2) || seenSlots.has(slot)) {
-      errors.push(`vehicle ${index + 1} has an invalid or duplicate slot`)
-    } else {
-      seenSlots.add(slot)
-    }
-    const validation = validateOnboardingVehicle({
-      display_name: vehicle.display_name,
-      vehicle_year: vehicle.vehicle_year,
-      make: vehicle.make,
-      model: vehicle.model,
-      is_mixed_use: vehicle.is_mixed_use,
-    })
-    if (!validation.ok) {
-      errors.push(`vehicle ${index + 1}: ${validation.error}`)
-    }
-  }
-
-  const accountCount = business.expected_financial_account_count
-  if (
-    !Number.isInteger(accountCount) ||
-    Number(accountCount) < 0 ||
-    Number(accountCount) > 6
-  ) {
-    errors.push('expected_financial_account_count must be an integer from 0 to 6')
-  } else if (accountCount === 0) {
-    if (business.expected_financial_account_use !== null) {
-      errors.push('expected_financial_account_use must be empty when account count is zero')
-    }
-  } else if (
-    !isOneOf(
-      business.expected_financial_account_use,
-      EXPECTED_FINANCIAL_ACCOUNT_USES
-    )
-  ) {
-    errors.push('expected_financial_account_use is required when account count is greater than zero')
-  }
-
-  if (!isOneOf(business.onboarding_start_method, ONBOARDING_START_METHODS)) {
-    errors.push('onboarding_start_method is required')
-  }
-
-  return errors.length === 0 ? { ok: true } : { ok: false, errors }
+  if (!needsHistory && business.prior_materials_handling !== null) errors.push('prior materials handling must be empty when not applicable')
+  if (typeof business.catch_up_start_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(business.catch_up_start_date)
+    || business.catch_up_start_date > now.toISOString().slice(0, 10)) errors.push('catch-up start date is required')
+  if (!isOneOf(business.onboarding_start_method, ONBOARDING_START_METHODS)) errors.push('starting choice is required')
+  return errors.length ? { ok: false, errors } : { ok: true }
 }

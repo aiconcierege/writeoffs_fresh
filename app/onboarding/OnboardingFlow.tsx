@@ -1,831 +1,167 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { validateOnboardingBusinessPatch } from '../lib/onboarding/validation'
 import {
-  FEDERAL_TAX_REPORTING_TYPES,
-  LEGAL_STRUCTURES,
-  validateOnboardingBusinessPatch,
-  validateOnboardingVehicle,
-} from '../lib/onboarding/validation'
-import {
-  ONBOARDING_PLANS,
-  recommendOnboardingPlan,
-} from '../lib/onboarding/plan-recommendation'
-import {
-  ONBOARDING_UI_STEPS,
-  getFirstIncompleteOnboardingStep,
-  type OnboardingBusinessData,
-  type OnboardingUiStep,
-  type OnboardingVehicleData,
+  activeOnboardingSteps, getFirstIncompleteOnboardingStep,
+  type OnboardingBusinessData, type OnboardingUiStep,
 } from '../lib/onboarding/progress'
 
-const STEP_TITLES: Record<OnboardingUiStep, string> = {
-  business: 'Your business',
-  organization: 'Organization',
-  start_date: 'Business start',
-  home_office: 'Home office',
-  vehicles: 'Vehicles',
-  accounts: 'Financial accounts',
-  starting_method: 'How to start',
-  recommendation: 'Plan recommendation',
-  review: 'Review and complete',
+const TITLES: Record<OnboardingUiStep, string> = {
+  business: 'Your business', eligibility: 'Product fit', history: 'Business history',
+  operations: 'How you work', materials_history: 'Past materials handling',
+  catch_up: 'Starting point', starting_method: 'First activity', review: 'Review',
 }
+const FIELD = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base text-slate-950 outline-none focus:border-[#243186] focus:ring-2 focus:ring-[#243186]/20'
 
-const FIELD_CLASS =
-  'w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#243186] focus:ring-2 focus:ring-[#243186]/20'
-
-const LEGAL_LABELS: Record<(typeof LEGAL_STRUCTURES)[number], [string, string]> = {
-  sole_proprietor: ['Sole proprietor', 'You operate the business personally without forming a separate company.'],
-  single_member_llc: ['Single-member LLC', 'An LLC with one owner.'],
-  partnership_multi_member_llc: ['Partnership / multi-member LLC', 'A business with two or more owners.'],
-  corporation: ['Corporation (S or C)', 'A business legally formed as a corporation.'],
-  not_sure: ['I’m not sure', 'You can confirm this later with a tax professional.'],
-}
-
-const FEDERAL_LABELS: Record<(typeof FEDERAL_TAX_REPORTING_TYPES)[number], string> = {
-  schedule_c: 'Schedule C',
-  s_corporation: 'S Corporation',
-  c_corporation: 'C Corporation',
-  partnership: 'Partnership',
-  not_sure: 'I’m not sure',
-}
-
-const FEDERAL_OPTIONS_BY_LEGAL_STRUCTURE: Record<
-  (typeof LEGAL_STRUCTURES)[number],
-  readonly (typeof FEDERAL_TAX_REPORTING_TYPES)[number][]
-> = {
-  sole_proprietor: ['schedule_c', 's_corporation', 'c_corporation', 'not_sure'],
-  single_member_llc: ['schedule_c', 's_corporation', 'c_corporation', 'not_sure'],
-  partnership_multi_member_llc: ['partnership', 's_corporation', 'c_corporation', 'not_sure'],
-  corporation: ['s_corporation', 'c_corporation', 'not_sure'],
-  not_sure: ['schedule_c', 'partnership', 's_corporation', 'c_corporation', 'not_sure'],
-}
-
-const emptyVehicle = (slot: 1 | 2): OnboardingVehicleData => ({
-  slot,
-  display_name: '',
-  vehicle_year: null,
-  make: null,
-  model: null,
-  is_mixed_use: null,
-})
-
-export default function OnboardingFlow({
-  initialBusiness,
-  initialVehicles,
-}: {
-  initialBusiness: OnboardingBusinessData
-  initialVehicles: OnboardingVehicleData[]
-}) {
+export default function OnboardingFlow({ initialBusiness }: { initialBusiness: OnboardingBusinessData }) {
   const router = useRouter()
-  const [business, setBusiness] = useState(initialBusiness)
-  const [vehicles, setVehicles] = useState<OnboardingVehicleData[]>(
-    initialVehicles.length ? initialVehicles : [emptyVehicle(1)]
-  )
-  const firstStep = getFirstIncompleteOnboardingStep(
-    initialBusiness,
-    initialVehicles
-  )
-  const [step, setStep] = useState<OnboardingUiStep>(firstStep)
+  const [business, setBusiness] = useState(() => ({
+    ...initialBusiness,
+    catch_up_start_date: initialBusiness.catch_up_start_date ?? `${new Date().getFullYear()}-01-01`,
+  }))
+  const [step, setStep] = useState<OnboardingUiStep>(() => getFirstIncompleteOnboardingStep(initialBusiness))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const contentRef = useRef<HTMLElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
-
-  const stepIndex = ONBOARDING_UI_STEPS.indexOf(step)
-  const recommendation = useMemo(() => {
-    try {
-      return recommendOnboardingPlan({
-        expected_financial_account_count:
-          business.expected_financial_account_count,
-        onboarding_start_method: business.onboarding_start_method,
-      })
-    } catch {
-      return null
-    }
-  }, [business.expected_financial_account_count, business.onboarding_start_method])
+  const steps = activeOnboardingSteps(business)
+  const stepIndex = Math.max(0, steps.indexOf(step))
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      const reduceMotion = window.matchMedia(
-        '(prefers-reduced-motion: reduce)'
-      ).matches
-      contentRef.current?.scrollIntoView({
-        behavior: reduceMotion ? 'auto' : 'smooth',
-        block: 'start',
-      })
-      headingRef.current?.focus({ preventScroll: true })
-    })
-    return () => window.cancelAnimationFrame(frame)
+    headingRef.current?.focus({ preventScroll: false })
   }, [step])
 
-  function updateBusiness<K extends keyof OnboardingBusinessData>(
-    field: K,
-    value: OnboardingBusinessData[K]
-  ) {
+  function update<K extends keyof OnboardingBusinessData>(field: K, value: OnboardingBusinessData[K]) {
     setBusiness((current) => ({ ...current, [field]: value }))
   }
 
-  function updateVehicle(slot: 1 | 2, patch: Partial<OnboardingVehicleData>) {
-    setVehicles((current) => {
-      if (!current.some((vehicle) => vehicle.slot === slot)) {
-        return [...current, { ...emptyVehicle(slot), ...patch }]
-      }
-      return current.map((vehicle) =>
-        vehicle.slot === slot ? { ...vehicle, ...patch } : vehicle
-      )
+  async function save(stepToSave: Exclude<OnboardingUiStep, 'review'>, data: Record<string, unknown>) {
+    const checked = validateOnboardingBusinessPatch({ step: stepToSave, data })
+    if (!checked.ok) throw new Error(checked.error)
+    const response = await fetch('/api/onboarding/business', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ step: stepToSave, data }),
     })
+    const body = await response.json().catch(() => ({}))
+    if (response.status === 401) throw new Error('Your session expired. Log in again to continue.')
+    if (!response.ok) throw new Error(body.error || 'We couldn’t save this answer.')
+    setBusiness((current) => ({ ...current, ...checked.update,
+      onboarding_state: current.onboarding_state === 'completed' ? 'completed' : 'in_progress',
+      onboarding_version: 3 }))
   }
 
-  async function requestJson(url: string, init: RequestInit) {
-    const response = await fetch(url, init)
-    const data = await response.json().catch(() => ({}))
-    if (response.status === 401) {
-      throw new Error('Your session has expired. Log in again to continue.')
-    }
-    if (!response.ok) throw new Error(data?.error || 'We couldn’t save this step.')
-    return data
-  }
-
-  async function saveBusinessStep(
-    businessStep: Exclude<OnboardingUiStep, 'recommendation' | 'review'>,
-    data: Record<string, unknown>
-  ) {
-    const validation = validateOnboardingBusinessPatch({
-      step: businessStep,
-      data,
-    })
-    if (!validation.ok) throw new Error(validation.error)
-    await requestJson('/api/onboarding/business', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ step: businessStep, data }),
-    })
-    setBusiness((current) => ({
-      ...current,
-      ...validation.update,
-      onboarding_state:
-        current.onboarding_state === 'completed' ? 'completed' : 'in_progress',
-      onboarding_version: 2,
-    }))
-  }
-
-  async function saveVehicle(vehicle: OnboardingVehicleData) {
-    const payload = {
-      display_name: vehicle.display_name,
-      vehicle_year: vehicle.vehicle_year,
-      make: vehicle.make,
-      model: vehicle.model,
-      is_mixed_use: vehicle.is_mixed_use,
-    }
-    const validation = validateOnboardingVehicle(payload)
-    if (!validation.ok) throw new Error(`Vehicle ${vehicle.slot}: ${validation.error}`)
-    await requestJson(`/api/onboarding/vehicles/${vehicle.slot}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    return { slot: vehicle.slot, ...validation.update } as OnboardingVehicleData
-  }
-
-  async function archiveVehicle(slot: 1 | 2) {
-    await requestJson(`/api/onboarding/vehicles/${slot}/archive`, {
-      method: 'PATCH',
-    })
-  }
-
-  function advance() {
-    const next = ONBOARDING_UI_STEPS[stepIndex + 1]
-    if (next) setStep(next)
+  function nextStep() {
+    const currentSteps = activeOnboardingSteps(business)
+    const index = currentSteps.indexOf(step)
+    if (currentSteps[index + 1]) setStep(currentSteps[index + 1])
   }
 
   async function continueStep() {
-    setSaving(true)
-    setError(null)
+    setSaving(true); setError(null)
     try {
-      switch (step) {
-        case 'business':
-          await saveBusinessStep('business', {
-            name: business.name,
-            business_description: business.business_description,
-          })
-          break
-        case 'organization':
-          await saveBusinessStep('organization', {
-            legal_structure: business.legal_structure,
-            federal_tax_reporting_type: business.federal_tax_reporting_type,
-          })
-          break
-        case 'start_date':
-          await saveBusinessStep('start_date', {
-            business_start_month: business.business_start_month?.slice(0, 7),
-          })
-          break
-        case 'home_office':
-          await saveBusinessStep('home_office', {
-            has_qualifying_home_office:
-              business.has_qualifying_home_office,
-            home_office_square_feet: business.home_office_square_feet,
-          })
-          break
-        case 'vehicles': {
-          if (business.uses_vehicle_for_business === null) {
-            throw new Error('Choose whether you use a vehicle for business.')
-          }
-          if (!business.uses_vehicle_for_business) {
-            await archiveVehicle(1)
-            await archiveVehicle(2)
-            await saveBusinessStep('vehicles', {
-              uses_vehicle_for_business: false,
-            })
-            setVehicles([])
-          } else {
-            const active = vehicles.length ? vehicles : [emptyVehicle(1)]
-            const saved: OnboardingVehicleData[] = []
-            for (const vehicle of active) saved.push(await saveVehicle(vehicle))
-            if (!active.some((vehicle) => vehicle.slot === 2)) {
-              await archiveVehicle(2)
-            }
-            await saveBusinessStep('vehicles', {
-              uses_vehicle_for_business: true,
-            })
-            setVehicles(saved)
-          }
-          break
-        }
-        case 'accounts':
-          await saveBusinessStep('accounts', {
-            expected_financial_account_count:
-              business.expected_financial_account_count,
-            expected_financial_account_use:
-              business.expected_financial_account_use,
-          })
-          break
-        case 'starting_method':
-          await saveBusinessStep('starting_method', {
-            onboarding_start_method: business.onboarding_start_method,
-          })
-          break
-        case 'recommendation':
-          if (!recommendation) throw new Error('Complete your account preferences first.')
-          break
-        case 'review':
-          return
+      if (step === 'business') await save('business', {
+        name: business.name, business_description: business.business_description,
+        business_profile_context: business.business_profile_context,
+      })
+      if (step === 'eligibility') {
+        await save('eligibility', { schedule_c_eligibility: business.schedule_c_eligibility })
+        if (business.schedule_c_eligibility !== 'yes') return
       }
-      advance()
+      if (step === 'history') await save('history', {
+        business_stage: business.business_stage,
+        business_start_month: business.business_start_month?.slice(0, 7),
+      })
+      if (step === 'operations') {
+        await save('operations', {
+          schedule_c_eligibility: business.schedule_c_eligibility,
+          uses_customer_job_materials: business.uses_customer_job_materials,
+          keeps_future_sale_merchandise: business.keeps_future_sale_merchandise,
+        })
+        if (business.keeps_future_sale_merchandise !== 'no') return
+      }
+      if (step === 'materials_history') await save('materials_history', {
+        prior_materials_handling: business.prior_materials_handling,
+      })
+      if (step === 'catch_up') await save('catch_up', { catch_up_start_date: business.catch_up_start_date })
+      if (step === 'starting_method') await save('starting_method', { onboarding_start_method: business.onboarding_start_method })
+      nextStep()
     } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : 'We couldn’t save this step. Your answers are still here.'
-      )
-    } finally {
-      setSaving(false)
-    }
+      setError(caught instanceof Error ? caught.message : 'We couldn’t save this answer.')
+    } finally { setSaving(false) }
   }
 
-  async function completeOnboarding() {
-    setSaving(true)
-    setError(null)
+  async function complete() {
+    setSaving(true); setError(null)
     try {
       const response = await fetch('/api/onboarding/complete', { method: 'POST' })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) {
-        const validationErrors: string[] = Array.isArray(data?.validation?.errors)
-          ? data.validation.errors
-          : []
-        const incompleteStep = stepForCompletionErrors(validationErrors)
-        if (incompleteStep) setStep(incompleteStep)
-        const details = validationErrors.length
-          ? ` ${validationErrors.join(' ')}`
-          : ''
-        throw new Error(
-          `${data?.error || 'A few details still need attention before setup can be completed.'}${details}`
-        )
-      }
-      if (
-        typeof data.destination !== 'string' ||
-        !data.destination.startsWith('/') ||
-        data.destination.startsWith('//')
-      ) {
-        throw new Error('Onboarding completed, but the destination was invalid.')
-      }
-      router.push(data.destination)
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(body.error || 'A required answer still needs attention.')
+      router.push('/home')
+      router.refresh()
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'We couldn’t complete onboarding.')
-    } finally {
-      setSaving(false)
-    }
+      setError(caught instanceof Error ? caught.message : 'We couldn’t complete setup.')
+    } finally { setSaving(false) }
   }
 
-  function goBack() {
-    setError(null)
-    const previous = ONBOARDING_UI_STEPS[stepIndex - 1]
+  function back() {
+    const currentSteps = activeOnboardingSteps(business)
+    const previous = currentSteps[currentSteps.indexOf(step) - 1]
     if (previous) setStep(previous)
   }
 
+  const blocked = (step === 'eligibility' && business.schedule_c_eligibility !== 'yes' && business.schedule_c_eligibility !== null)
+    || (step === 'operations' && business.keeps_future_sale_merchandise !== 'no' && business.keeps_future_sale_merchandise !== null)
+
   return (
-    <section ref={contentRef} className="mx-auto max-w-2xl scroll-mt-24 py-6 sm:py-10">
+    <section className="mx-auto max-w-2xl py-6 sm:py-10">
       <div className="mb-5 px-1">
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-semibold text-[#243186]">
-            Step {stepIndex + 1} of {ONBOARDING_UI_STEPS.length}
-          </span>
-          <span className="text-slate-600">{STEP_TITLES[step]}</span>
-        </div>
-        <div
-          className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200"
-          role="progressbar"
-          aria-valuemin={1}
-          aria-valuemax={ONBOARDING_UI_STEPS.length}
-          aria-valuenow={stepIndex + 1}
-          aria-label="Onboarding progress"
-        >
-          <div
-            className="h-full rounded-full bg-[#00d0a6] transition-[width] motion-reduce:transition-none"
-            style={{ width: `${((stepIndex + 1) / ONBOARDING_UI_STEPS.length) * 100}%` }}
-          />
-        </div>
+        <div className="flex items-center justify-between text-sm"><span className="font-semibold text-[#243186]">Step {stepIndex + 1} of {steps.length}</span><span className="text-slate-600">{TITLES[step]}</span></div>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={stepIndex + 1} aria-label="Onboarding progress"><div className="h-full rounded-full bg-[#00d0a6]" style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }} /></div>
       </div>
-
       <div className="card overflow-hidden">
-        <form
-          onSubmit={(event) => {
-            event.preventDefault()
-            if (step === 'review') void completeOnboarding()
-            else void continueStep()
-          }}
-        >
+        <form onSubmit={(event) => { event.preventDefault(); void (step === 'review' ? complete() : continueStep()) }}>
           <div className="p-5 sm:p-8">
-            <h1 className="text-sm font-semibold uppercase tracking-wide text-[#243186]">
-              Set up WriteOffs
-            </h1>
-            <div className="mt-4">
-              <StepContent
-                step={step}
-                business={business}
-                vehicles={vehicles}
-                recommendation={recommendation}
-                headingRef={headingRef}
-                updateBusiness={updateBusiness}
-                updateVehicle={updateVehicle}
-                addSecondVehicle={() =>
-                  setVehicles((current) =>
-                    current.some((vehicle) => vehicle.slot === 2)
-                      ? current
-                      : [...current, emptyVehicle(2)]
-                  )
-                }
-                removeSecondVehicle={() =>
-                  setVehicles((current) =>
-                    current.filter((vehicle) => vehicle.slot !== 2)
-                  )
-                }
-                editStep={setStep}
-              />
-            </div>
-
-            {error && (
-              <div
-                className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-                role="alert"
-                aria-live="polite"
-              >
-                <p className="font-semibold">We couldn’t finish that action.</p>
-                <p className="mt-1">{error}</p>
-                <p className="mt-1">Your answers are still here. Try again when you’re ready.</p>
-              </div>
-            )}
+            <p className="text-sm font-semibold uppercase tracking-wide text-[#243186]">Set up WriteOffs</p>
+            <div className="mt-4"><Step step={step} business={business} update={update} headingRef={headingRef} edit={setStep} /></div>
+            {error && <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>}
           </div>
-
-          <div className="sticky bottom-0 flex items-center gap-3 border-t border-slate-200 bg-white/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur sm:justify-between sm:px-8">
-            <button
-              type="button"
-              onClick={goBack}
-              disabled={saving || stepIndex === 0}
-              className="btn btn-secondary min-h-11 flex-1 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none sm:px-5"
-            >
-              Back
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="btn btn-primary min-h-11 flex-[2] px-5 disabled:cursor-wait disabled:opacity-60 sm:flex-none"
-            >
-              {saving
-                ? step === 'review'
-                  ? 'Completing…'
-                  : 'Saving…'
-                : error
-                  ? 'Try again'
-                : step === 'review'
-                  ? 'Complete onboarding'
-                  : step === 'recommendation'
-                    ? 'Continue to review'
-                    : 'Continue'}
-            </button>
+          <div className="sticky bottom-0 flex gap-3 border-t border-slate-200 bg-white/95 p-4 sm:justify-between sm:px-8">
+            <button type="button" onClick={back} disabled={saving || stepIndex === 0} className="btn btn-secondary min-h-11 flex-1 disabled:opacity-40 sm:flex-none">Back</button>
+            {!blocked && <button type="submit" disabled={saving} className="btn btn-primary min-h-11 flex-[2] px-5 disabled:opacity-60 sm:flex-none">{saving ? 'Saving…' : step === 'review' ? 'Finish setup' : 'Continue'}</button>}
           </div>
         </form>
       </div>
-      <p className="mt-5 text-center text-xs text-slate-500">
-        Your progress is saved after each completed step.
-      </p>
+      <p className="mt-5 text-center text-xs text-slate-500">Your progress is saved after every answer.</p>
     </section>
   )
 }
 
-type StepContentProps = {
-  step: OnboardingUiStep
-  business: OnboardingBusinessData
-  vehicles: OnboardingVehicleData[]
-  recommendation: ReturnType<typeof recommendOnboardingPlan> | null
-  headingRef: React.RefObject<HTMLHeadingElement | null>
-  updateBusiness: <K extends keyof OnboardingBusinessData>(
-    field: K,
-    value: OnboardingBusinessData[K]
-  ) => void
-  updateVehicle: (slot: 1 | 2, patch: Partial<OnboardingVehicleData>) => void
-  addSecondVehicle: () => void
-  removeSecondVehicle: () => void
-  editStep: (step: OnboardingUiStep) => void
+type StepProps = {
+  step: OnboardingUiStep; business: OnboardingBusinessData
+  update: <K extends keyof OnboardingBusinessData>(field: K, value: OnboardingBusinessData[K]) => void
+  headingRef: React.RefObject<HTMLHeadingElement | null>; edit: (step: OnboardingUiStep) => void
 }
 
-function StepContent(props: StepContentProps) {
-  const { step, business, headingRef } = props
-  const headingClass = 'text-2xl font-bold text-slate-950 outline-none sm:text-3xl'
-
-  if (step === 'business') {
-    return (
-      <div>
-        <h2 ref={headingRef} tabIndex={-1} className={headingClass}>First, tell us about your business.</h2>
-        <div className="mt-7 space-y-5">
-          <Field label="Business name" hint="Optional">
-            <input
-              value={business.name ?? ''}
-              onChange={(event) => props.updateBusiness('name', event.target.value)}
-              maxLength={200}
-              placeholder="Acme Design Studio"
-              className={FIELD_CLASS}
-            />
-          </Field>
-          <Field
-            label="What does your business do?"
-            description="Describe your work in your own words. WriteOffs uses this to understand the kinds of expenses your business may have."
-          >
-            <textarea
-              required
-              value={business.business_description ?? ''}
-              onChange={(event) =>
-                props.updateBusiness('business_description', event.target.value)
-              }
-              maxLength={2000}
-              rows={5}
-              placeholder="I design websites and provide brand consulting for small businesses."
-              className={`${FIELD_CLASS} resize-y`}
-            />
-            <div className="mt-1 text-right text-xs text-slate-500">
-              {(business.business_description ?? '').length}/2000
-            </div>
-          </Field>
-        </div>
-      </div>
-    )
-  }
-
-  if (step === 'organization') {
-    const legalStructure = LEGAL_STRUCTURES.find(
-      (value) => value === business.legal_structure
-    )
-    const federalOptions = legalStructure
-      ? FEDERAL_OPTIONS_BY_LEGAL_STRUCTURE[legalStructure]
-      : []
-    return (
-      <div>
-        <h2 ref={headingRef} tabIndex={-1} className={headingClass}>How is your business organized?</h2>
-        <p className="mt-3 text-sm leading-6 text-slate-600">
-          Legal structure and federal tax reporting are related, but they are not always the same. Choose each answer separately.
-        </p>
-        <ChoiceGroup legend="What is your legal structure?">
-          {LEGAL_STRUCTURES.map((value) => (
-            <Choice
-              key={value}
-              name="legal_structure"
-              checked={business.legal_structure === value}
-              onChange={() => {
-                props.updateBusiness('legal_structure', value)
-                const allowed = FEDERAL_OPTIONS_BY_LEGAL_STRUCTURE[value]
-                if (
-                  business.federal_tax_reporting_type &&
-                  !allowed.includes(
-                    business.federal_tax_reporting_type as (typeof FEDERAL_TAX_REPORTING_TYPES)[number]
-                  )
-                ) {
-                  props.updateBusiness('federal_tax_reporting_type', null)
-                }
-              }}
-              label={LEGAL_LABELS[value][0]}
-              description={LEGAL_LABELS[value][1]}
-            />
-          ))}
-        </ChoiceGroup>
-        {legalStructure ? (
-          <ChoiceGroup legend="How does your business report federal taxes?">
-            {federalOptions.map((value) => (
-              <Choice
-                key={value}
-                name="federal_tax_reporting_type"
-                checked={business.federal_tax_reporting_type === value}
-                onChange={() =>
-                  props.updateBusiness('federal_tax_reporting_type', value)
-                }
-                label={FEDERAL_LABELS[value]}
-              />
-            ))}
-          </ChoiceGroup>
-        ) : (
-          <InfoBox>Choose a legal structure first. We’ll then show the federal reporting choices that commonly fit it.</InfoBox>
-        )}
-        {business.federal_tax_reporting_type &&
-          business.federal_tax_reporting_type !== 'schedule_c' && (
-            <InfoBox>
-              WriteOffs is primarily designed around Schedule C expense records, but you can still use it to track and document individual business expenses.
-            </InfoBox>
-          )}
-      </div>
-    )
-  }
-
-  if (step === 'start_date') {
-    const currentMonth = new Date().toISOString().slice(0, 7)
-    return (
-      <div>
-        <h2 ref={headingRef} tabIndex={-1} className={headingClass}>When did your business start?</h2>
-        <p className="mt-3 text-sm text-slate-600">This helps WriteOffs understand which months belong to this business.</p>
-        <div className="mt-7 max-w-sm">
-          <Field label="Date business started (Month/Year)">
-            <input
-              type="month"
-              required
-              max={currentMonth}
-              value={business.business_start_month?.slice(0, 7) ?? ''}
-              onChange={(event) =>
-                props.updateBusiness('business_start_month', event.target.value)
-              }
-              className={FIELD_CLASS}
-            />
-            <span className="mt-2 block text-xs text-slate-500">
-              You can choose any past month and year. Future months are not allowed.
-            </span>
-          </Field>
-        </div>
-      </div>
-    )
-  }
-
-  if (step === 'home_office') {
-    return (
-      <div>
-        <h2 ref={headingRef} tabIndex={-1} className={headingClass}>Do you use part of your home for your business?</h2>
-        <p className="mt-3 text-sm leading-6 text-slate-600">
-          The IRS generally requires the space to be used regularly and exclusively for business. WriteOffs uses the simplified method, based on the business-use square footage you provide. Your tax professional can confirm eligibility.
-        </p>
-        <ChoiceGroup legend="Does your home workspace meet this description?">
-          <Choice name="home_office" checked={business.has_qualifying_home_office === true} onChange={() => props.updateBusiness('has_qualifying_home_office', true)} label="Yes" />
-          <Choice name="home_office" checked={business.has_qualifying_home_office === false} onChange={() => { props.updateBusiness('has_qualifying_home_office', false); props.updateBusiness('home_office_square_feet', null) }} label="No" />
-        </ChoiceGroup>
-        {business.has_qualifying_home_office === true && (
-          <div className="mt-6 max-w-sm">
-            <Field label="How many square feet are used for the home office?" description="Enter the business-use area only.">
-              <input type="number" required min={1} max={10000} step={1} value={business.home_office_square_feet ?? ''} onChange={(event) => props.updateBusiness('home_office_square_feet', event.target.value ? Number(event.target.value) : null)} className={FIELD_CLASS} />
-            </Field>
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  if (step === 'vehicles') {
-    const activeVehicles = props.vehicles.length ? props.vehicles : [emptyVehicle(1)]
-    return (
-      <div>
-        <h2 ref={headingRef} tabIndex={-1} className={headingClass}>Do you use a vehicle for business?</h2>
-        <ChoiceGroup legend="Business vehicle use">
-          <Choice name="vehicle_use" checked={business.uses_vehicle_for_business === true} onChange={() => { props.updateBusiness('uses_vehicle_for_business', true); if (!props.vehicles.length) props.updateVehicle(1, {}) }} label="Yes" />
-          <Choice name="vehicle_use" checked={business.uses_vehicle_for_business === false} onChange={() => props.updateBusiness('uses_vehicle_for_business', false)} label="No" />
-        </ChoiceGroup>
-        {business.uses_vehicle_for_business === true && (
-          <div className="mt-7 space-y-6">
-            {activeVehicles.map((vehicle) => (
-              <VehicleEditor key={vehicle.slot} vehicle={vehicle} update={(patch) => props.updateVehicle(vehicle.slot, patch)} removable={vehicle.slot === 2} remove={props.removeSecondVehicle} />
-            ))}
-            {!activeVehicles.some((vehicle) => vehicle.slot === 2) && (
-              <button type="button" onClick={props.addSecondVehicle} className="btn btn-secondary min-h-11">Add another vehicle</button>
-            )}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  if (step === 'accounts') {
-    return (
-      <div>
-        <h2 ref={headingRef} tabIndex={-1} className={headingClass}>How many bank accounts and credit cards will you be adding to WriteOffs for bookkeeping?</h2>
-        <p className="mt-3 text-sm leading-6 text-slate-600">
-          We recommend using one checking account and one credit card primarily for business whenever possible. Personal and mixed-use accounts are okay too—we’ll help you sort the business transactions during your weekly review.
-        </p>
-        <ChoiceGroup legend="Number of accounts and cards" columns>
-          {Array.from({ length: 7 }, (_, count) => (
-            <Choice key={count} name="account_count" checked={business.expected_financial_account_count === count} onChange={() => { props.updateBusiness('expected_financial_account_count', count); if (count === 0) props.updateBusiness('expected_financial_account_use', null) }} label={String(count)} compact />
-          ))}
-        </ChoiceGroup>
-        {Number(business.expected_financial_account_count) > 0 ? (
-          <ChoiceGroup legend="Are any of these accounts or cards also used for personal expenses?">
-            <Choice name="account_use" checked={business.expected_financial_account_use === 'primarily_business'} onChange={() => props.updateBusiness('expected_financial_account_use', 'primarily_business')} label="No, they’re primarily for business" />
-            <Choice name="account_use" checked={business.expected_financial_account_use === 'mixed_use'} onChange={() => props.updateBusiness('expected_financial_account_use', 'mixed_use')} label="Yes, at least one is mixed business and personal" />
-          </ChoiceGroup>
-        ) : business.expected_financial_account_count === 0 ? (
-          <InfoBox>That’s okay. You can use WriteOffs for receipts, manual expenses, and mileage without connecting an account.</InfoBox>
-        ) : null}
-      </div>
-    )
-  }
-
-  if (step === 'starting_method') {
-    return (
-      <div>
-        <h2 ref={headingRef} tabIndex={-1} className={headingClass}>How would you like to get started?</h2>
-        <ChoiceGroup legend="Choose how to get started" visuallyHiddenLegend>
-          <Choice name="start_method" checked={business.onboarding_start_method === 'connected_financial_accounts'} onChange={() => props.updateBusiness('onboarding_start_method', 'connected_financial_accounts')} label="Connect my accounts" description="Let WriteOffs use activity from your accounts to help organize your business finances." badge="Recommended" />
-          <Choice name="start_method" checked={business.onboarding_start_method === 'receipts'} onChange={() => props.updateBusiness('onboarding_start_method', 'receipts')} label="Start with receipts" description="Take photos or upload receipts and let WriteOffs start organizing your expenses." />
-          <Choice name="start_method" checked={business.onboarding_start_method === 'statement_uploads'} onChange={() => props.updateBusiness('onboarding_start_method', 'statement_uploads')} label="Upload statements" description="Upload existing statements to bring in past activity." />
-        </ChoiceGroup>
-        <p className="mt-5 text-sm text-slate-600">You can add or change these later.</p>
-      </div>
-    )
-  }
-
-  if (step === 'recommendation') {
-    return (
-      <div>
-        <h2 ref={headingRef} tabIndex={-1} className={headingClass}>Here’s the plan that best fits your answers.</h2>
-        <p className="mt-3 text-sm text-slate-600">This recommendation is informational. You won’t be charged and no subscription will be created today.</p>
-        {props.recommendation && <InfoBox><strong>Why this plan:</strong> {recommendationReason(props.recommendation.id)}</InfoBox>}
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          {Object.values(ONBOARDING_PLANS).map((plan) => {
-            const bestMatch = props.recommendation?.id === plan.id
-            return (
-              <div key={plan.id} className={`rounded-2xl border p-4 ${bestMatch ? 'border-[#00b392] bg-emerald-50/60 ring-2 ring-[#00d0a6]/20' : 'border-slate-200 bg-white'}`}>
-                {bestMatch && <div className="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-800">Best match for your answers</div>}
-                {plan.generallyRecommended && <div className="mb-2 inline-flex rounded-full bg-[#243186] px-2 py-1 text-xs font-semibold text-white">Recommended</div>}
-                <h3 className="font-bold text-slate-950">{plan.name}</h3>
-                <p className="mt-1 text-xl font-bold">${plan.monthlyPrice.toFixed(2)}<span className="text-sm font-normal text-slate-600">/month</span></p>
-                <p className="mt-3 text-xs leading-5 text-slate-600">{plan.id === 'essential' ? 'Receipt and manual-expense tracking, plus mileage.' : plan.id === 'premium' ? 'Financial-account and statement workflows for up to two expected accounts.' : 'Designed for three to six expected financial accounts.'}</p>
-                <p className="mt-3 text-xs font-medium text-slate-700">{plan.trialDays ? '30-day free trial. No credit card required.' : 'No free trial.'}</p>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <ReviewStep
-      headingRef={headingRef}
-      business={business}
-      vehicles={props.vehicles}
-      recommendation={props.recommendation}
-      editStep={props.editStep}
-    />
-  )
+function Step({ step, business, update, headingRef, edit }: StepProps) {
+  const heading = 'text-2xl font-bold text-slate-950 outline-none sm:text-3xl'
+  if (step === 'business') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>Tell us about your business.</h1><p className="mt-3 text-sm leading-6 text-slate-600">A few basics help WriteOffs understand your work. Everyone uses the same bookkeeping experience.</p><div className="mt-7 space-y-5"><Field label="Business name" optional><input className={FIELD} value={business.name ?? ''} maxLength={200} onChange={(e) => update('name', e.target.value)} /></Field><Field label="What does your business do?"><textarea required rows={4} maxLength={2000} className={FIELD} value={business.business_description ?? ''} onChange={(e) => update('business_description', e.target.value)} placeholder="I install and service residential heating and cooling systems." /></Field><Choices legend="Which description fits best?"><Choice name="profile" selected={business.business_profile_context === 'general'} onClick={() => update('business_profile_context', 'general')} label="My business" detail="Use the standard WriteOffs experience." /><Choice name="profile" selected={business.business_profile_context === 'realtor'} onClick={() => update('business_profile_context', 'realtor')} label="Real estate professional" detail="Adds useful context about your work without changing the product path." /></Choices></div></div>
+  if (step === 'eligibility') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>Is this business reported on Schedule C with your personal tax return?</h1><p className="mt-3 text-sm leading-6 text-slate-600">WriteOffs v1 is built for self-employed businesses reported this way.</p><Choices legend="Schedule C reporting"><Choice name="schedule" selected={business.schedule_c_eligibility === 'yes'} onClick={() => update('schedule_c_eligibility', 'yes')} label="Yes" /><Choice name="schedule" selected={business.schedule_c_eligibility === 'no'} onClick={() => update('schedule_c_eligibility', 'no')} label="No" /><Choice name="schedule" selected={business.schedule_c_eligibility === 'not_sure'} onClick={() => update('schedule_c_eligibility', 'not_sure')} label="I’m not sure" /></Choices>{business.schedule_c_eligibility === 'no' && <Unsupported title="This setup isn’t supported yet">WriteOffs v1 does not yet provide entity-level books for partnerships or corporations. This is only a product limitation.</Unsupported>}{business.schedule_c_eligibility === 'not_sure' && <Unsupported title="Confirm this before continuing">A tax professional can tell you whether this business is reported on Schedule C. We’ll keep your saved answers here.</Unsupported>}</div>
+  if (step === 'history') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>Are you starting fresh or bringing in an existing business?</h1><Choices legend="Business history"><Choice name="stage" selected={business.business_stage === 'new'} onClick={() => update('business_stage', 'new')} label="I’m starting a new business" /><Choice name="stage" selected={business.business_stage === 'existing'} onClick={() => update('business_stage', 'existing')} label="This business already exists" /></Choices><div className="mt-6 max-w-sm"><Field label="When did the business start?"><input type="month" required max={new Date().toISOString().slice(0, 7)} className={FIELD} value={business.business_start_month?.slice(0, 7) ?? ''} onChange={(e) => update('business_start_month', e.target.value)} /></Field></div></div>
+  if (step === 'operations') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>Does your business buy parts or materials for customer jobs?</h1><p className="mt-3 text-sm leading-6 text-slate-600">This includes items you install, use, or provide while completing a customer’s job.</p><Choices legend="Customer-job materials"><Choice name="materials" selected={business.uses_customer_job_materials === 'yes'} onClick={() => update('uses_customer_job_materials', 'yes')} label="Yes" detail="For example, fixtures, parts, paint, wire, equipment, or project materials." /><Choice name="materials" selected={business.uses_customer_job_materials === 'no'} onClick={() => update('uses_customer_job_materials', 'no')} label="No" /><Choice name="materials" selected={business.uses_customer_job_materials === 'not_sure'} onClick={() => update('uses_customer_job_materials', 'not_sure')} label="I’m not sure" /></Choices><div className="mt-8"><h2 className="text-lg font-semibold text-slate-950">Does your business keep a significant amount of products or merchandise in stock to sell later?</h2><p className="mt-2 text-sm leading-6 text-slate-600">Don’t count normal leftover parts or materials you keep for future jobs.</p><Choices legend="Products kept for future sale"><Choice name="inventory" selected={business.keeps_future_sale_merchandise === 'yes'} onClick={() => update('keeps_future_sale_merchandise', 'yes')} label="Yes" /><Choice name="inventory" selected={business.keeps_future_sale_merchandise === 'no'} onClick={() => update('keeps_future_sale_merchandise', 'no')} label="No" /><Choice name="inventory" selected={business.keeps_future_sale_merchandise === 'not_sure'} onClick={() => update('keeps_future_sale_merchandise', 'not_sure')} label="I’m not sure" /></Choices></div>{business.keeps_future_sale_merchandise === 'yes' && <Unsupported title="WriteOffs isn’t the right fit for this setup yet">WriteOffs supports trades and service businesses with job materials and normal leftover parts. It does not yet manage substantial merchandise kept for later sale.</Unsupported>}{business.keeps_future_sale_merchandise === 'not_sure' && <Unsupported title="A little clarification is needed">Normal truck or shop stock is okay. Confirm whether your business primarily maintains substantial merchandise for future customers.</Unsupported>}</div>
+  if (step === 'materials_history') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>How have customer-job materials usually been handled at tax time?</h1><p className="mt-3 text-sm leading-6 text-slate-600">This saves useful history. It does not change how your taxes are handled.</p><Choices legend="Past handling"><Choice name="past" selected={business.prior_materials_handling === 'deduct_purchases'} onClick={() => update('prior_materials_handling', 'deduct_purchases')} label="I usually deduct what I buy during the year" /><Choice name="past" selected={business.prior_materials_handling === 'count_year_end'} onClick={() => update('prior_materials_handling', 'count_year_end')} label="I count what I still have at year-end" /><Choice name="past" selected={business.prior_materials_handling === 'accountant_handles'} onClick={() => update('prior_materials_handling', 'accountant_handles')} label="My accountant handles this" /><Choice name="past" selected={business.prior_materials_handling === 'not_sure'} onClick={() => update('prior_materials_handling', 'not_sure')} label="I’m not sure" /></Choices><p className="mt-5 rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">You can keep using WriteOffs while this is clarified. Customer-job material tax timing stays unresolved rather than being guessed.</p></div>
+  if (step === 'catch_up') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>When should WriteOffs start organizing your activity?</h1><p className="mt-3 text-sm leading-6 text-slate-600">Starting January 1 of this year is usually the simplest choice. You can bring in earlier records later if needed.</p><div className="mt-7 max-w-sm"><Field label="Start date"><input type="date" required max={new Date().toISOString().slice(0, 10)} className={FIELD} value={business.catch_up_start_date ?? ''} onChange={(e) => update('catch_up_start_date', e.target.value)} /></Field></div></div>
+  if (step === 'starting_method') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>What would you like to add first?</h1><p className="mt-3 text-sm leading-6 text-slate-600">You can use both options later. Bank connections are not required.</p><Choices legend="First activity"><Choice name="start" selected={business.onboarding_start_method === 'statement_uploads'} onClick={() => update('onboarding_start_method', 'statement_uploads')} label="Import a CSV" detail="Bring in bank or card activity from a downloaded CSV file." /><Choice name="start" selected={business.onboarding_start_method === 'receipts'} onClick={() => update('onboarding_start_method', 'receipts')} label="Upload receipts" detail="Start preserving receipts and expense evidence." /></Choices></div>
+  return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>You’re ready to use WriteOffs.</h1><p className="mt-3 text-sm leading-6 text-slate-600">WriteOffs will keep the accounting work in the background and ask simple factual questions only when they matter.</p><dl className="mt-7 divide-y divide-slate-200 rounded-xl border border-slate-200">{[
+    ['Business', business.name || business.business_description || 'Your business', 'business'],
+    ['Business profile', business.business_profile_context === 'realtor' ? 'Real estate professional' : 'Standard', 'business'],
+    ['Start organizing', formatDate(business.catch_up_start_date), 'catch_up'],
+    ['First activity', business.onboarding_start_method === 'receipts' ? 'Upload receipts' : 'Import a CSV', 'starting_method'],
+  ].map(([label, value, target]) => <div key={label} className="flex items-center justify-between gap-4 p-4"><div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</dt><dd className="mt-1 text-sm text-slate-900">{value}</dd></div><button type="button" className="text-sm font-semibold text-[#243186]" onClick={() => edit(target as OnboardingUiStep)}>Edit</button></div>)}</dl><p className="mt-6 text-sm text-slate-600">After setup, you’ll go to Home. From there you can import activity or upload receipts.</p></div>
 }
 
-function VehicleEditor({ vehicle, update, removable, remove }: { vehicle: OnboardingVehicleData; update: (patch: Partial<OnboardingVehicleData>) => void; removable: boolean; remove: () => void }) {
-  return (
-    <fieldset className="rounded-2xl border border-slate-200 p-4 sm:p-5">
-      <legend className="px-1 font-semibold text-slate-950">Vehicle {vehicle.slot}</legend>
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm text-slate-600">Tell us enough to recognize this vehicle.</span>
-        {removable && <button type="button" onClick={remove} className="text-sm font-semibold text-red-700 underline underline-offset-4">Remove Vehicle 2</button>}
-      </div>
-      <div className="mt-4 space-y-4">
-        <Field label="Vehicle nickname"><input required maxLength={120} value={vehicle.display_name} onChange={(event) => update({ display_name: event.target.value })} placeholder="Work car" className={FIELD_CLASS} /></Field>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Year" hint="Optional"><input type="number" min={1900} max={2100} step={1} value={vehicle.vehicle_year ?? ''} onChange={(event) => update({ vehicle_year: event.target.value ? Number(event.target.value) : null })} className={FIELD_CLASS} /></Field>
-          <Field label="Make" hint="Optional"><input value={vehicle.make ?? ''} onChange={(event) => update({ make: event.target.value })} placeholder="Toyota" className={FIELD_CLASS} /></Field>
-          <Field label="Model" hint="Optional"><input value={vehicle.model ?? ''} onChange={(event) => update({ model: event.target.value })} placeholder="Camry" className={FIELD_CLASS} /></Field>
-        </div>
-        <ChoiceGroup legend="Do you also use this vehicle personally?">
-          <Choice name={`mixed_${vehicle.slot}`} checked={vehicle.is_mixed_use === true} onChange={() => update({ is_mixed_use: true })} label="Yes, business and personal" />
-          <Choice name={`mixed_${vehicle.slot}`} checked={vehicle.is_mixed_use === false} onChange={() => update({ is_mixed_use: false })} label="No, business only" />
-        </ChoiceGroup>
-      </div>
-    </fieldset>
-  )
-}
-
-function ReviewStep({ headingRef, business, vehicles, recommendation, editStep }: { headingRef: React.RefObject<HTMLHeadingElement | null>; business: OnboardingBusinessData; vehicles: OnboardingVehicleData[]; recommendation: ReturnType<typeof recommendOnboardingPlan> | null; editStep: (step: OnboardingUiStep) => void }) {
-  const rows: Array<[string, string, OnboardingUiStep]> = [
-    ['Business', `${business.name || 'No business name'} — ${business.business_description}`, 'business'],
-    ['Organization', `${labelFor(LEGAL_LABELS, business.legal_structure)}; ${labelFor(FEDERAL_LABELS, business.federal_tax_reporting_type)}`, 'organization'],
-    ['Date business started', formatMonth(business.business_start_month), 'start_date'],
-    ['Home office', business.has_qualifying_home_office ? `Yes — ${business.home_office_square_feet} sq. ft.` : 'No', 'home_office'],
-    ['Vehicles', business.uses_vehicle_for_business ? vehicles.map(formatVehicle).join('; ') : 'No business vehicle', 'vehicles'],
-    ['Bank accounts & credit cards', formatAccountSummary(business), 'accounts'],
-    ['How you’ll get started', business.onboarding_start_method === 'receipts' ? 'Start with receipts' : business.onboarding_start_method === 'connected_financial_accounts' ? 'Connect my accounts' : 'Upload statements', 'starting_method'],
-    ['Plan recommendation', recommendation?.name ?? 'Unavailable', 'recommendation'],
-  ]
-  return (
-    <div>
-      <h2 ref={headingRef} tabIndex={-1} className="text-2xl font-bold text-slate-950 outline-none sm:text-3xl">Review your setup.</h2>
-      <p className="mt-3 text-sm text-slate-600">Make sure these details look right. You can go back and change anything before finishing.</p>
-      <dl className="mt-6 divide-y divide-slate-200 rounded-2xl border border-slate-200">
-        {rows.map(([label, value, edit]) => (
-          <div key={label} className="flex items-start justify-between gap-4 p-4">
-            <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</dt><dd className="mt-1 text-sm text-slate-800">{value}</dd></div>
-            <button type="button" onClick={() => editStep(edit)} className="min-h-11 px-2 text-sm font-semibold text-[#243186] underline underline-offset-4">Edit</button>
-          </div>
-        ))}
-      </dl>
-      <InfoBox>Completing setup does not connect an account, start a subscription, or charge you.</InfoBox>
-    </div>
-  )
-}
-
-function Field({ label, hint, description, children }: { label: string; hint?: string; description?: string; children: React.ReactNode }) {
-  return <label className="block"><span className="text-sm font-semibold text-slate-800">{label}</span>{hint && <span className="ml-2 text-xs font-normal text-slate-500">{hint}</span>}{description && <span className="mt-1 block text-sm leading-5 text-slate-600">{description}</span>}<span className="mt-2 block">{children}</span></label>
-}
-
-function ChoiceGroup({ legend, columns = false, visuallyHiddenLegend = false, children }: { legend: string; columns?: boolean; visuallyHiddenLegend?: boolean; children: React.ReactNode }) {
-  return <fieldset className="mt-7"><legend className={visuallyHiddenLegend ? 'sr-only' : 'text-sm font-semibold text-slate-800'}>{legend}</legend><div className={`grid gap-3 ${visuallyHiddenLegend ? '' : 'mt-3'} ${columns ? 'grid-cols-4 sm:grid-cols-7' : 'sm:grid-cols-2'}`}>{children}</div></fieldset>
-}
-
-function Choice({ name, checked, onChange, label, description, compact = false, badge }: { name: string; checked: boolean; onChange: () => void; label: string; description?: string; compact?: boolean; badge?: string }) {
-  return <label className={`relative flex min-h-11 cursor-pointer gap-3 rounded-xl border p-3 transition focus-within:ring-2 focus-within:ring-[#243186] focus-within:ring-offset-2 ${checked ? 'border-[#243186] bg-indigo-50' : 'border-slate-200 bg-white hover:border-slate-300'} ${compact ? 'items-center justify-center' : 'items-start'}`}><input type="radio" name={name} checked={checked} onChange={onChange} className={compact ? 'sr-only' : 'mt-1 h-4 w-4 accent-[#243186]'} /><span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><span className="block text-sm font-semibold text-slate-900">{label}</span>{badge && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-emerald-800">{badge}</span>}</span>{description && <span className="mt-1 block text-xs leading-5 text-slate-600">{description}</span>}</span></label>
-}
-
-function InfoBox({ children }: { children: React.ReactNode }) {
-  return <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-slate-700">{children}</div>
-}
-
-function recommendationReason(id: string) {
-  if (id === 'essential') return 'You plan to start with receipts and don’t expect WriteOffs to work with connected financial accounts.'
-  if (id === 'premium_plus') return 'You expect WriteOffs to work with more than two financial accounts.'
-  return 'You expect WriteOffs to work with up to two accounts or want to begin with connected activity or statements.'
-}
-
-function stepForCompletionErrors(errors: string[]): OnboardingUiStep | null {
-  const joined = errors.join(' ')
-  if (joined.includes('business_description')) return 'business'
-  if (joined.includes('legal_structure') || joined.includes('federal_tax_reporting_type')) return 'organization'
-  if (joined.includes('business_start_month')) return 'start_date'
-  if (joined.includes('home_office') || joined.includes('has_qualifying_home_office')) return 'home_office'
-  if (joined.includes('vehicle')) return 'vehicles'
-  if (joined.includes('expected_financial_account')) return 'accounts'
-  if (joined.includes('onboarding_start_method')) return 'starting_method'
-  return null
-}
-
-function labelFor(labels: Record<string, string | [string, string]>, value: string | null) {
-  if (!value) return 'Not answered'
-  const label = labels[value]
-  return Array.isArray(label) ? label[0] : label || value
-}
-
-function formatMonth(value: string | null) {
-  if (!value) return 'Not answered'
-  const [year, month] = value.split('-').map(Number)
-  return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(year, month - 1, 1)))
-}
-
-function formatVehicle(vehicle: OnboardingVehicleData) {
-  const identification = [
-    vehicle.vehicle_year ? String(vehicle.vehicle_year) : null,
-    vehicle.make?.trim() || null,
-    vehicle.model?.trim() || null,
-  ]
-    .filter(Boolean)
-    .join(' ')
-  const usage =
-    vehicle.is_mixed_use === true
-      ? 'business & personal use'
-      : vehicle.is_mixed_use === false
-        ? 'business use only'
-        : null
-  return [vehicle.display_name, identification || null, usage]
-    .filter(Boolean)
-    .join(' — ')
-}
-
-function formatAccountSummary(business: OnboardingBusinessData) {
-  const count = business.expected_financial_account_count ?? 0
-  const noun = count === 1 ? 'account/card' : 'accounts/cards'
-  if (count === 0) return '0 accounts/cards — using WriteOffs without connected accounts'
-  const use =
-    business.expected_financial_account_use === 'mixed_use'
-      ? 'at least one is mixed business and personal'
-      : 'primarily used for business'
-  return `${count} ${noun} — ${use}`
-}
+function Field({ label, optional, children }: { label: string; optional?: boolean; children: React.ReactNode }) { return <label className="block"><span className="text-sm font-semibold text-slate-900">{label}</span>{optional && <span className="ml-2 text-xs text-slate-500">Optional</span>}<span className="mt-2 block">{children}</span></label> }
+function Choices({ legend, children }: { legend: string; children: React.ReactNode }) { return <fieldset className="mt-6 space-y-3"><legend className="sr-only">{legend}</legend>{children}</fieldset> }
+function Choice({ name, selected, onClick, label, detail }: { name: string; selected: boolean; onClick: () => void; label: string; detail?: string }) { return <label className={`flex cursor-pointer gap-3 rounded-xl border p-4 ${selected ? 'border-[#243186] bg-indigo-50/50 ring-1 ring-[#243186]' : 'border-slate-200'}`}><input type="radio" name={name} checked={selected} onChange={onClick} className="mt-1" /><span><span className="block font-semibold text-slate-950">{label}</span>{detail && <span className="mt-1 block text-sm leading-5 text-slate-600">{detail}</span>}</span></label> }
+function Unsupported({ title, children }: { title: string; children: React.ReactNode }) { return <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-5"><h2 className="font-semibold text-amber-950">{title}</h2><p className="mt-2 text-sm leading-6 text-amber-900">{children}</p></div> }
+function formatDate(value: string | null) { if (!value) return 'Not set'; return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`)) }

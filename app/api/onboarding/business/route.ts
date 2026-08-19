@@ -45,7 +45,7 @@ export async function PATCH(request: Request) {
     ...validation.update,
     onboarding_state:
       business.onboarding_state === 'completed' ? 'completed' : 'in_progress',
-    onboarding_version: 2,
+    onboarding_version: 3,
   }
 
   const { error: updateError, count } = await supabase
@@ -62,6 +62,15 @@ export async function PATCH(request: Request) {
       { error: 'business profile is unavailable' },
       { status: 409 }
     )
+  }
+
+  if (validation.profile) {
+    const { error: profileError, count: profileCount } = await supabase
+      .from('profiles')
+      .update({ vertical: validation.profile }, { count: 'exact' })
+      .eq('id', user.id)
+    if (profileError) return NextResponse.json({ error: profileError.message }, { status: 400 })
+    if (profileCount !== 1) return NextResponse.json({ error: 'profile is unavailable' }, { status: 409 })
   }
 
   return NextResponse.json({ ok: true, step: validation.step })

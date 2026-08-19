@@ -1,153 +1,43 @@
 import { describe, expect, it } from 'vitest'
-import {
-  getFirstIncompleteOnboardingStep,
-  type OnboardingBusinessData,
-  type OnboardingVehicleData,
-} from '../../app/lib/onboarding/progress'
+import { activeOnboardingSteps, getFirstIncompleteOnboardingStep, onboardingNeedsFollowUp, type OnboardingBusinessData } from '../../app/lib/onboarding/progress'
 
 function business(overrides: Partial<OnboardingBusinessData> = {}): OnboardingBusinessData {
-  return {
-    name: null,
-    business_description: null,
-    legal_structure: null,
-    federal_tax_reporting_type: null,
-    business_start_month: null,
-    has_qualifying_home_office: null,
-    home_office_square_feet: null,
-    uses_vehicle_for_business: null,
-    expected_financial_account_count: null,
-    expected_financial_account_use: null,
-    onboarding_start_method: null,
-    onboarding_state: 'not_started',
-    onboarding_version: null,
-    onboarding_completed_at: null,
-    ...overrides,
-  }
+  return { id: 'b1', name: null, business_description: null, business_profile_context: null,
+    schedule_c_eligibility: null, business_stage: null, business_start_month: null,
+    uses_customer_job_materials: null, keeps_future_sale_merchandise: null,
+    prior_materials_handling: null, catch_up_start_date: null, onboarding_start_method: null,
+    v1_support_status: 'needs_clarification', v1_support_reason: null,
+    onboarding_state: 'not_started', onboarding_version: null, onboarding_completed_at: null,
+    ...overrides }
 }
+const complete = business({ business_description: 'HVAC service', business_profile_context: 'general',
+  schedule_c_eligibility: 'yes', business_stage: 'existing', business_start_month: '2020-01-01',
+  uses_customer_job_materials: 'yes', keeps_future_sale_merchandise: 'no',
+  prior_materials_handling: 'accountant_handles', catch_up_start_date: '2026-01-01',
+  onboarding_start_method: 'statement_uploads', v1_support_status: 'eligible',
+  onboarding_state: 'completed', onboarding_version: 3 })
 
-const throughOrganization = {
-  business_description: 'Independent design services',
-  legal_structure: 'sole_proprietor',
-  federal_tax_reporting_type: 'schedule_c',
-}
-
-const throughStart = {
-  ...throughOrganization,
-  business_start_month: '2025-01-01',
-}
-
-const throughHomeOffice = {
-  ...throughStart,
-  has_qualifying_home_office: false,
-  home_office_square_feet: null,
-}
-
-const throughVehicles = {
-  ...throughHomeOffice,
-  uses_vehicle_for_business: false,
-}
-
-const throughAccounts = {
-  ...throughVehicles,
-  expected_financial_account_count: 0,
-  expected_financial_account_use: null,
-}
-
-function vehicle(slot: 1 | 2): OnboardingVehicleData {
-  return {
-    slot,
-    display_name: `Vehicle ${slot}`,
-    vehicle_year: 2024,
-    make: 'Toyota',
-    model: 'Camry',
-    is_mixed_use: true,
-  }
-}
-
-describe('v2 onboarding progress', () => {
-  it('starts an empty record at Business and does not require a name', () => {
-    expect(getFirstIncompleteOnboardingStep(business(), [])).toBe('business')
-    expect(
-      getFirstIncompleteOnboardingStep(
-        business({ business_description: 'Consulting', name: null }),
-        []
-      )
-    ).toBe('organization')
+describe('canonical onboarding progress', () => {
+  it('resumes at the first materially incomplete persisted answer', () => {
+    expect(getFirstIncompleteOnboardingStep(business())).toBe('business')
+    expect(getFirstIncompleteOnboardingStep(business({ business_description: 'Trade', business_profile_context: 'general' }))).toBe('eligibility')
+    expect(getFirstIncompleteOnboardingStep(complete)).toBe('review')
   })
 
-  it('selects each first incomplete persisted step in order', () => {
-    expect(getFirstIncompleteOnboardingStep(business(throughOrganization), [])).toBe('start_date')
-    expect(getFirstIncompleteOnboardingStep(business(throughStart), [])).toBe('home_office')
-    expect(getFirstIncompleteOnboardingStep(business(throughHomeOffice), [])).toBe('vehicles')
-    expect(getFirstIncompleteOnboardingStep(business(throughVehicles), [])).toBe('accounts')
-    expect(getFirstIncompleteOnboardingStep(business(throughAccounts), [])).toBe('starting_method')
-    expect(
-      getFirstIncompleteOnboardingStep(
-        business({ ...throughAccounts, onboarding_start_method: 'receipts' }),
-        []
-      )
-    ).toBe('recommendation')
+  it('requires materials history only for an existing business that uses job materials', () => {
+    expect(activeOnboardingSteps(complete)).toContain('materials_history')
+    expect(activeOnboardingSteps({ ...complete, business_stage: 'new' })).not.toContain('materials_history')
+    expect(activeOnboardingSteps({ ...complete, uses_customer_job_materials: 'no' })).not.toContain('materials_history')
   })
 
-  it('enforces home-office consistency', () => {
-    expect(
-      getFirstIncompleteOnboardingStep(
-        business({ ...throughStart, has_qualifying_home_office: false, home_office_square_feet: 100 }),
-        []
-      )
-    ).toBe('home_office')
-    expect(
-      getFirstIncompleteOnboardingStep(
-        business({ ...throughStart, has_qualifying_home_office: true, home_office_square_feet: 100 }),
-        []
-      )
-    ).toBe('vehicles')
+  it('does not restart fully completed v3 users and flags older completed users for minimal follow-up', () => {
+    expect(onboardingNeedsFollowUp(complete)).toBe(false)
+    expect(onboardingNeedsFollowUp({ ...complete, onboarding_version: 2 })).toBe(true)
+    expect(onboardingNeedsFollowUp({ ...complete, uses_customer_job_materials: null })).toBe(true)
   })
 
-  it('requires one or two completed active vehicles for a yes answer', () => {
-    const usesVehicles = business({ ...throughHomeOffice, uses_vehicle_for_business: true })
-    expect(getFirstIncompleteOnboardingStep(usesVehicles, [])).toBe('vehicles')
-    expect(getFirstIncompleteOnboardingStep(usesVehicles, [vehicle(1)])).toBe('accounts')
-    expect(getFirstIncompleteOnboardingStep(usesVehicles, [vehicle(1), vehicle(2)])).toBe('accounts')
-    expect(
-      getFirstIncompleteOnboardingStep(usesVehicles, [
-        vehicle(1),
-        { ...vehicle(2), is_mixed_use: null },
-      ])
-    ).toBe('vehicles')
-  })
-
-  it('requires zero active vehicles for a no answer', () => {
-    const noVehicles = business(throughVehicles)
-    expect(getFirstIncompleteOnboardingStep(noVehicles, [])).toBe('accounts')
-    expect(getFirstIncompleteOnboardingStep(noVehicles, [vehicle(1)])).toBe('vehicles')
-  })
-
-  it('enforces account count and use consistency', () => {
-    expect(
-      getFirstIncompleteOnboardingStep(
-        business({ ...throughVehicles, expected_financial_account_count: 0, expected_financial_account_use: 'mixed_use' }),
-        []
-      )
-    ).toBe('accounts')
-    expect(
-      getFirstIncompleteOnboardingStep(
-        business({ ...throughVehicles, expected_financial_account_count: 2, expected_financial_account_use: 'mixed_use' }),
-        []
-      )
-    ).toBe('starting_method')
-  })
-
-  it('does not branch on legacy Realtor or industry context', () => {
-    const complete = business({
-      ...throughAccounts,
-      onboarding_start_method: 'receipts',
-    })
-    expect(
-      getFirstIncompleteOnboardingStep(
-        { ...complete, vertical: 'realtor', industry: 'realtor' } as OnboardingBusinessData,
-        []
-      )
-    ).toBe('recommendation')
+  it('does not create a Realtor-specific path', () => {
+    expect(activeOnboardingSteps({ ...complete, business_profile_context: 'realtor' }))
+      .toEqual(activeOnboardingSteps({ ...complete, business_profile_context: 'general' }))
   })
 })

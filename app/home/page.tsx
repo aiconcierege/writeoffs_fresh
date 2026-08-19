@@ -5,6 +5,7 @@ import { customerQuestionHeadline } from '../lib/bookkeeping/customer-questions'
 import { getAuthenticatedCanonicalReport } from '../lib/bookkeeping/reporting-service'
 import { HomeGreeting } from './HomeGreeting'
 import { countReceiptsNeedingAttention } from '../lib/bookkeeping/receipt-workflow'
+import { onboardingNeedsFollowUp, type OnboardingBusinessData } from '../lib/onboarding/progress'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -23,6 +24,19 @@ export default async function HomePage() {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const { data: onboardingBusiness } = await supabase
+    .from('businesses')
+    .select('business_description, business_profile_context, schedule_c_eligibility, business_stage, business_start_month, uses_customer_job_materials, keeps_future_sale_merchandise, prior_materials_handling, catch_up_start_date, onboarding_start_method, v1_support_status, onboarding_state, onboarding_version')
+    .eq('owner_user_id', user.id)
+    .maybeSingle()
+  const needsOnboardingFollowUp = onboardingBusiness
+    ? onboardingNeedsFollowUp(onboardingBusiness as Pick<OnboardingBusinessData,
+      'business_description' | 'business_profile_context' | 'schedule_c_eligibility' | 'business_stage' |
+      'business_start_month' | 'uses_customer_job_materials' | 'keeps_future_sale_merchandise' |
+      'prior_materials_handling' | 'catch_up_start_date' | 'onboarding_start_method' |
+      'v1_support_status' | 'onboarding_state' | 'onboarding_version'>)
+    : true
 
   const periodEnd = new Date().toISOString().slice(0, 10)
   const summary = await getAuthenticatedCanonicalReport({
@@ -65,6 +79,14 @@ export default async function HomePage() {
                 : 'Some activity is still being processed.'}
           </p>
         </header>
+
+        {needsOnboardingFollowUp && (
+          <section className="mt-8 rounded-xl border border-indigo-200 bg-indigo-50 p-5" aria-labelledby="setup-heading">
+            <h2 id="setup-heading" className="font-semibold text-slate-950">A few business details need an update</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-700">We’ll only ask for information that helps WriteOffs handle your records safely. Your existing work stays in place.</p>
+            <Link href="/onboarding" className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">Continue setup →</Link>
+          </section>
+        )}
 
         {questionCount > 0 && (
           <section aria-labelledby="attention-heading" className="mt-10 border-y border-slate-200 py-7 sm:mt-11">

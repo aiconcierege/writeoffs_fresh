@@ -47,7 +47,7 @@ function SignupInner() {
       })
     } catch { /* non-blocking */ }
 
-    router.push('/home')
+    router.push('/onboarding')
   }
 
   return (
@@ -58,7 +58,9 @@ function SignupInner() {
         </div>
         <h1 className="text-3xl font-bold">Sign up</h1>
         <p className="mt-2 text-sm text-neutral-700">
-          You’re signing up for the <strong>{vertical === 'realtor' ? 'Realtor Pack' : 'General Pack'}</strong>.
+          {vertical === 'realtor'
+            ? 'We’ll use your real estate work as helpful business context.'
+            : 'You’ll use the standard WriteOffs experience.'}
         </p>
 
         <form onSubmit={handleSignup} className="mt-6 space-y-4">

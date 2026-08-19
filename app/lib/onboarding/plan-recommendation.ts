@@ -1,7 +1,10 @@
-import {
-  ONBOARDING_START_METHODS,
-  type OnboardingBusinessUpdate,
-} from './validation'
+import type { OnboardingBusinessUpdate } from './validation'
+
+// Historical recommendation compatibility only. Canonical onboarding v3 no longer
+// presents plan recommendations or connected-account setup.
+const LEGACY_RECOMMENDATION_START_METHODS = [
+  'receipts', 'connected_financial_accounts', 'statement_uploads',
+] as const
 
 export const ONBOARDING_PLANS = {
   essential: {
@@ -50,8 +53,8 @@ export function recommendOnboardingPlan(
   }
   if (
     typeof method !== 'string' ||
-    !ONBOARDING_START_METHODS.includes(
-      method as (typeof ONBOARDING_START_METHODS)[number]
+    !LEGACY_RECOMMENDATION_START_METHODS.includes(
+      method as (typeof LEGACY_RECOMMENDATION_START_METHODS)[number]
     )
   ) {
     throw new Error('onboarding_start_method is invalid')

@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createServerSupabase } from '../../../utils/supabase/server'
 import SettingsForm, { type SettingsInitial } from './SettingsForm'
 
@@ -49,12 +50,21 @@ export default async function ProfileSettingsPage() {
       <section className="mx-auto max-w-3xl px-6 py-10">
         <h1 className="text-3xl font-bold">Profile &amp; Settings</h1>
         <p className="mt-2 text-sm text-muted">
-          Choose your industry pack, manage business info, and set preferences.
+          Manage your business profile, business information, and preferences.
         </p>
 
         <div className="mt-6 grid gap-4">
           <div className="card p-5">
             <SettingsForm initial={initial} />
+          </div>
+          <div className="card p-5">
+            <div className="text-base font-semibold">Business setup</div>
+            <p className="mt-2 text-sm text-neutral-700">
+              Review how your business operates, including customer-job materials and your starting date.
+            </p>
+            <Link href="/onboarding?edit=1" className="btn btn-secondary mt-3 inline-flex min-h-11 items-center">
+              Review business setup
+            </Link>
           </div>
           <div className="card p-5">
             <BankConnectionsCard />

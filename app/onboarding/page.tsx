@@ -4,16 +4,19 @@ export const runtime = 'nodejs'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createServerSupabase } from '../../utils/supabase/server'
-import type {
-  OnboardingBusinessData,
-  OnboardingVehicleData,
-} from '../lib/onboarding/progress'
+import { onboardingNeedsFollowUp, type OnboardingBusinessData } from '../lib/onboarding/progress'
 import OnboardingFlow from './OnboardingFlow'
 
 const BUSINESS_FIELDS =
-  'id, name, business_description, legal_structure, federal_tax_reporting_type, business_start_month, has_qualifying_home_office, home_office_square_feet, uses_vehicle_for_business, expected_financial_account_count, expected_financial_account_use, onboarding_start_method, onboarding_state, onboarding_version, onboarding_completed_at'
+  'id, name, business_description, business_profile_context, schedule_c_eligibility, business_stage, business_start_month, uses_customer_job_materials, keeps_future_sale_merchandise, prior_materials_handling, catch_up_start_date, onboarding_start_method, v1_support_status, v1_support_reason, onboarding_state, onboarding_version, onboarding_completed_at'
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ edit?: string | string[] }>
+}) {
+  const params = await searchParams
+  const editing = params.edit === '1'
   const supabase = await createServerSupabase()
   const {
     data: { user },
@@ -45,35 +48,11 @@ export default async function OnboardingPage() {
     )
   }
 
-  if (business.onboarding_state === 'completed') redirect('/home')
-
-  const { data: vehicles, error: vehiclesError } = await supabase
-    .from('business_vehicles')
-    .select('slot, display_name, vehicle_year, make, model, is_mixed_use')
-    .eq('business_id', business.id)
-    .is('archived_at', null)
-    .order('slot')
-
-  if (vehiclesError) {
-    return (
-      <section className="mx-auto max-w-xl py-12">
-        <div className="card p-6 sm:p-8" role="alert">
-          <h1 className="text-2xl font-bold text-slate-950">
-            We couldn’t load your vehicles right now.
-          </h1>
-          <p className="mt-3 text-sm text-slate-600">Refresh the page to try again.</p>
-          <Link href="/onboarding" className="btn btn-primary mt-5 inline-flex min-h-11 items-center px-5">
-            Try again
-          </Link>
-        </div>
-      </section>
-    )
-  }
+  if (!editing && !onboardingNeedsFollowUp(business as OnboardingBusinessData)) redirect('/home')
 
   return (
     <OnboardingFlow
       initialBusiness={business as OnboardingBusinessData}
-      initialVehicles={(vehicles ?? []) as OnboardingVehicleData[]}
     />
   )
 }

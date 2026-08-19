@@ -1,166 +1,55 @@
 import { describe, expect, it } from 'vitest'
-import {
-  FEDERAL_TAX_REPORTING_TYPES,
-  LEGAL_STRUCTURES,
-  validateOnboardingBusinessPatch,
-} from '../../app/lib/onboarding/validation'
+import { validateOnboardingBusinessPatch } from '../../app/lib/onboarding/validation'
 
-function validUpdate(input: unknown) {
-  const result = validateOnboardingBusinessPatch(
-    input,
-    new Date('2026-08-14T12:00:00Z')
-  )
-  expect(result.ok).toBe(true)
-  if (!result.ok) throw new Error(result.error)
-  return result.update
-}
+const now = new Date('2026-08-19T12:00:00Z')
+const validate = (step: string, data: Record<string, unknown>) =>
+  validateOnboardingBusinessPatch({ step, data }, now)
 
-describe('v2 onboarding Business validation', () => {
-  it('trims Business text and converts an empty optional name to null', () => {
-    expect(
-      validUpdate({
-        step: 'business',
-        data: { name: '   ', business_description: '  Mobile mechanic  ' },
-      })
-    ).toEqual({ name: null, business_description: 'Mobile mechanic' })
+describe('canonical v1 onboarding validation', () => {
+  it('accepts only plain business basics and one universal profile context', () => {
+    expect(validate('business', { name: ' Smith HVAC ', business_description: ' Installs HVAC systems ', business_profile_context: 'general' }))
+      .toEqual({ ok: true, step: 'business', profile: 'general', update: {
+        name: 'Smith HVAC', business_description: 'Installs HVAC systems', business_profile_context: 'general',
+      } })
+    expect(validate('business', { name: null, business_description: 'Real estate services', business_profile_context: 'realtor' }).ok).toBe(true)
+    expect(validate('business', { business_description: 'Trade', business_profile_context: 'hvac' }).ok).toBe(false)
   })
 
-  it('requires a bounded business description and bounds the optional name', () => {
-    for (const data of [
-      { name: 'x'.repeat(201), business_description: 'Repairs vehicles' },
-      { name: 'Shop', business_description: '  ' },
-      { name: 'Shop', business_description: 'x'.repeat(2001) },
-    ]) {
-      expect(validateOnboardingBusinessPatch({ step: 'business', data }).ok).toBe(false)
+  it('accepts Schedule C facts without allowing the caller to supply derived eligibility', () => {
+    expect(validate('eligibility', { schedule_c_eligibility: 'yes' })).toMatchObject({ ok: true, update: { schedule_c_eligibility: 'yes' } })
+    expect(validate('eligibility', { schedule_c_eligibility: 'no' })).toMatchObject({ ok: true, update: { schedule_c_eligibility: 'no' } })
+    expect(validate('eligibility', { schedule_c_eligibility: 'not_sure' })).toMatchObject({ ok: true, update: { schedule_c_eligibility: 'not_sure' } })
+    expect(validate('eligibility', { schedule_c_eligibility: 'yes', v1_support_status: 'eligible' }).ok).toBe(false)
+  })
+
+  it('captures new/existing state and rejects a future start month', () => {
+    expect(validate('history', { business_stage: 'existing', business_start_month: '2020-04' })).toMatchObject({ ok: true, update: { business_start_month: '2020-04-01' } })
+    expect(validate('history', { business_stage: 'new', business_start_month: '2026-09' }).ok).toBe(false)
+  })
+
+  it('supports job materials while failing closed for future-sale merchandise', () => {
+    expect(validate('operations', { schedule_c_eligibility: 'yes', uses_customer_job_materials: 'yes', keeps_future_sale_merchandise: 'no' })).toMatchObject({ ok: true, update: { uses_customer_job_materials: 'yes' } })
+    expect(validate('operations', { schedule_c_eligibility: 'yes', uses_customer_job_materials: 'yes', keeps_future_sale_merchandise: 'yes' })).toMatchObject({ ok: true, update: { keeps_future_sale_merchandise: 'yes' } })
+    expect(validate('operations', { schedule_c_eligibility: 'no', uses_customer_job_materials: 'yes', keeps_future_sale_merchandise: 'no' }).ok).toBe(false)
+  })
+
+  it('accepts factual materials history without selecting an accounting method', () => {
+    for (const answer of ['deduct_purchases', 'count_year_end', 'accountant_handles', 'not_sure']) {
+      expect(validate('materials_history', { prior_materials_handling: answer }).ok).toBe(true)
     }
+    expect(validate('materials_history', { prior_materials_handling: 'nims' }).ok).toBe(false)
   })
 
-  it('accepts every approved organization value without deriving either answer', () => {
-    for (const legal_structure of LEGAL_STRUCTURES) {
-      for (const federal_tax_reporting_type of FEDERAL_TAX_REPORTING_TYPES) {
-        expect(
-          validUpdate({
-            step: 'organization',
-            data: { legal_structure, federal_tax_reporting_type },
-          })
-        ).toEqual({ legal_structure, federal_tax_reporting_type })
-      }
-    }
+  it('validates catch-up dates and only supported first-use entry points', () => {
+    expect(validate('catch_up', { catch_up_start_date: '2026-01-01' }).ok).toBe(true)
+    expect(validate('catch_up', { catch_up_start_date: '2026-08-20' }).ok).toBe(false)
+    expect(validate('starting_method', { onboarding_start_method: 'statement_uploads' }).ok).toBe(true)
+    expect(validate('starting_method', { onboarding_start_method: 'connected_financial_accounts' }).ok).toBe(false)
   })
 
-  it('rejects unapproved organization and starting-method values', () => {
-    expect(
-      validateOnboardingBusinessPatch({
-        step: 'organization',
-        data: { legal_structure: 'llc', federal_tax_reporting_type: 'schedule_c' },
-      }).ok
-    ).toBe(false)
-    expect(
-      validateOnboardingBusinessPatch({
-        step: 'starting_method',
-        data: { onboarding_start_method: 'plaid' },
-      }).ok
-    ).toBe(false)
-  })
-
-  it('stores a valid start month as its first day and rejects future months', () => {
-    expect(
-      validUpdate({ step: 'start_date', data: { business_start_month: '2026-08' } })
-    ).toEqual({ business_start_month: '2026-08-01' })
-    expect(
-      validateOnboardingBusinessPatch(
-        { step: 'start_date', data: { business_start_month: '2026-09' } },
-        new Date('2026-08-14T12:00:00Z')
-      ).ok
-    ).toBe(false)
-  })
-
-  it.each(['1998-01', '2010-06', '2020-12'])(
-    'accepts the historical business start month %s',
-    (business_start_month) => {
-      expect(
-        validUpdate({ step: 'start_date', data: { business_start_month } })
-      ).toEqual({ business_start_month: `${business_start_month}-01` })
-    }
-  )
-
-  it('requires home-office details when applicable and clears them otherwise', () => {
-    expect(
-      validUpdate({
-        step: 'home_office',
-        data: { has_qualifying_home_office: false, home_office_square_feet: 300 },
-      })
-    ).toEqual({
-      has_qualifying_home_office: false,
-      home_office_square_feet: null,
-    })
-    for (const squareFeet of [0, 1.5, 10001, null]) {
-      expect(
-        validateOnboardingBusinessPatch({
-          step: 'home_office',
-          data: {
-            has_qualifying_home_office: true,
-            home_office_square_feet: squareFeet,
-          },
-        }).ok
-      ).toBe(false)
-    }
-  })
-
-  it('validates only the vehicle intake answer without accepting vehicle data', () => {
-    expect(
-      validUpdate({ step: 'vehicles', data: { uses_vehicle_for_business: true } })
-    ).toEqual({ uses_vehicle_for_business: true })
-    expect(
-      validateOnboardingBusinessPatch({
-        step: 'vehicles',
-        data: { uses_vehicle_for_business: true, vehicles: [{ slot: 1 }] },
-      }).ok
-    ).toBe(false)
-  })
-
-  it('requires account use above zero and clears it at zero', () => {
-    expect(
-      validUpdate({
-        step: 'accounts',
-        data: {
-          expected_financial_account_count: 0,
-          expected_financial_account_use: 'mixed_use',
-        },
-      })
-    ).toEqual({
-      expected_financial_account_count: 0,
-      expected_financial_account_use: null,
-    })
-    expect(
-      validateOnboardingBusinessPatch({
-        step: 'accounts',
-        data: { expected_financial_account_count: 2 },
-      }).ok
-    ).toBe(false)
-    expect(
-      validUpdate({
-        step: 'accounts',
-        data: {
-          expected_financial_account_count: 6,
-          expected_financial_account_use: 'primarily_business',
-        },
-      })
-    ).toEqual({
-      expected_financial_account_count: 6,
-      expected_financial_account_use: 'primarily_business',
-    })
-  })
-
-  it('rejects unknown root and step fields, including protected fields', () => {
-    for (const input of [
-      { step: 'vehicles', business_id: 'other', data: { uses_vehicle_for_business: true } },
-      { step: 'vehicles', data: { uses_vehicle_for_business: true, industry: 'realtor' } },
-      { step: 'business', data: { business_description: 'Work', entity_type: 'llc' } },
-      { step: 'business', data: { business_description: 'Work', owner_user_id: 'other' } },
-      { step: 'business', data: { business_description: 'Work', accounting_method: 'accrual' } },
-    ]) {
-      expect(validateOnboardingBusinessPatch(input).ok).toBe(false)
+  it('rejects caller-controlled protected and accounting fields', () => {
+    for (const field of ['owner_user_id', 'business_id', 'accounting_method', 'tax_category', 'pack', 'v1_support_status']) {
+      expect(validate('business', { business_description: 'Trade', business_profile_context: 'general', [field]: 'bad' }).ok, field).toBe(false)
     }
   })
 })

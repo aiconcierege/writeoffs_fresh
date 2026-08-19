@@ -1,189 +1,61 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-const { createServerSupabase } = vi.hoisted(() => ({
-  createServerSupabase: vi.fn(),
-}))
-
+const { createServerSupabase } = vi.hoisted(() => ({ createServerSupabase: vi.fn() }))
 vi.mock('../../utils/supabase/server', () => ({ createServerSupabase }))
-
 import { PATCH } from '../../app/api/onboarding/business/route'
 
-type BusinessState = 'not_started' | 'in_progress' | 'completed'
+const request = (body: unknown) => new Request('http://localhost/api/onboarding/business', {
+  method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+})
 
-function request(body: unknown) {
-  return new Request('http://localhost/api/onboarding/business', {
-    method: 'PATCH',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-}
-
-function authenticatedClient(state: BusinessState = 'not_started') {
-  const updates: Array<Record<string, unknown>> = []
-  const updateResult = {
-    error: null,
-    count: 1,
-    eq: vi.fn(function () {
-      return updateResult
-    }),
+function client(state = 'not_started', count = 1) {
+  const updates: Record<string, unknown>[] = []
+  const profileUpdates: Record<string, unknown>[] = []
+  const mutation = { error: null, count, eq: vi.fn(function () { return mutation }) }
+  const profileMutation = { error: null, count: 1, eq: vi.fn(function () { return profileMutation }) }
+  const businesses = {
+    select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: { id: 'b1', onboarding_state: state }, error: null })) })) })),
+    update: vi.fn((value) => { updates.push(value); return mutation }),
   }
-  const table = {
-    select: vi.fn(() => ({
-      eq: vi.fn(() => ({
-        maybeSingle: vi.fn(async () => ({
-          data: { id: 'business-1', onboarding_state: state },
-          error: null,
-        })),
-      })),
-    })),
-    update: vi.fn((value: Record<string, unknown>) => {
-      updates.push(value)
-      return updateResult
-    }),
-  }
-  const client = {
-    auth: {
-      getUser: vi.fn(async () => ({
-        data: { user: { id: 'user-1' } },
-        error: null,
-      })),
-    },
-    from: vi.fn((name: string) => {
-      if (name !== 'businesses') throw new Error(`unexpected table: ${name}`)
-      return table
-    }),
-  }
-  return { client, updates, table, updateResult }
+  const profiles = { update: vi.fn((value) => { profileUpdates.push(value); return profileMutation }) }
+  const api = { auth: { getUser: vi.fn(async () => ({ data: { user: { id: 'u1' } }, error: null })) },
+    from: vi.fn((name: string) => name === 'businesses' ? businesses : name === 'profiles' ? profiles : (() => { throw new Error(name) })()) }
+  return { api, updates, profileUpdates, mutation, businesses }
 }
 
 describe('PATCH /api/onboarding/business', () => {
   beforeEach(() => vi.clearAllMocks())
-
-  it('rejects an unauthenticated request before reading or writing tables', async () => {
-    const from = vi.fn()
-    createServerSupabase.mockResolvedValue({
-      auth: {
-        getUser: vi.fn(async () => ({ data: { user: null }, error: null })),
-      },
-      from,
-    })
-
-    const response = await PATCH(request({ step: 'vehicles', data: { uses_vehicle_for_business: true } }))
-
-    expect(response.status).toBe(401)
+  it('requires authentication before database access', async () => {
+    const from = vi.fn(); createServerSupabase.mockResolvedValue({ auth: { getUser: vi.fn(async () => ({ data: { user: null } })) }, from })
+    expect((await PATCH(request({ step: 'eligibility', data: { schedule_c_eligibility: 'yes' } }))).status).toBe(401)
     expect(from).not.toHaveBeenCalled()
   })
 
-  it('resolves the Business from the authenticated user and sets v2 progress state', async () => {
-    const context = authenticatedClient()
-    createServerSupabase.mockResolvedValue(context.client)
-
-    const response = await PATCH(
-      request({ step: 'business', data: { name: '  ', business_description: ' Consulting ' } })
-    )
-
-    expect(response.status).toBe(200)
-    expect(context.updates).toEqual([
-      {
-        name: null,
-        business_description: 'Consulting',
-        onboarding_state: 'in_progress',
-        onboarding_version: 2,
-      },
-    ])
-    expect(context.updateResult.eq).toHaveBeenNthCalledWith(1, 'id', 'business-1')
-    expect(context.updateResult.eq).toHaveBeenNthCalledWith(2, 'owner_user_id', 'user-1')
+  it('resolves one Business from auth and stores server-derived eligibility', async () => {
+    const c = client(); createServerSupabase.mockResolvedValue(c.api)
+    expect((await PATCH(request({ step: 'operations', data: { schedule_c_eligibility: 'yes', uses_customer_job_materials: 'yes', keeps_future_sale_merchandise: 'no' } }))).status).toBe(200)
+    expect(c.updates[0]).toMatchObject({ uses_customer_job_materials: 'yes', keeps_future_sale_merchandise: 'no', onboarding_version: 3 })
+    expect(c.updates[0]).not.toHaveProperty('v1_support_status')
+    expect(c.mutation.eq).toHaveBeenCalledWith('id', 'b1')
+    expect(c.mutation.eq).toHaveBeenCalledWith('owner_user_id', 'u1')
   })
 
-  it('preserves completed state while applying a later save', async () => {
-    const context = authenticatedClient('completed')
-    createServerSupabase.mockResolvedValue(context.client)
-
-    const response = await PATCH(
-      request({ step: 'vehicles', data: { uses_vehicle_for_business: false } })
-    )
-
-    expect(response.status).toBe(200)
-    expect(context.updates[0]).toMatchObject({
-      uses_vehicle_for_business: false,
-      onboarding_state: 'completed',
-      onboarding_version: 2,
-    })
+  it('updates optional profile context without creating a separate path', async () => {
+    const c = client(); createServerSupabase.mockResolvedValue(c.api)
+    await PATCH(request({ step: 'business', data: { name: null, business_description: 'Real estate services', business_profile_context: 'realtor' } }))
+    expect(c.profileUpdates).toEqual([{ vertical: 'realtor' }])
+    expect(c.updates[0]).toMatchObject({ business_profile_context: 'realtor' })
   })
 
-  it('atomically clears home-office square feet when the answer is false', async () => {
-    const context = authenticatedClient()
-    createServerSupabase.mockResolvedValue(context.client)
-
-    await PATCH(
-      request({
-        step: 'home_office',
-        data: { has_qualifying_home_office: false, home_office_square_feet: 500 },
-      })
-    )
-
-    expect(context.updates[0]).toMatchObject({
-      has_qualifying_home_office: false,
-      home_office_square_feet: null,
-    })
-  })
-
-  it('atomically clears expected account use when account count is zero', async () => {
-    const context = authenticatedClient()
-    createServerSupabase.mockResolvedValue(context.client)
-
-    await PATCH(
-      request({
-        step: 'accounts',
-        data: {
-          expected_financial_account_count: 0,
-          expected_financial_account_use: 'mixed_use',
-        },
-      })
-    )
-
-    expect(context.updates[0]).toMatchObject({
-      expected_financial_account_count: 0,
-      expected_financial_account_use: null,
-    })
-  })
-
-  it('rejects protected or unrelated fields without performing an update', async () => {
-    const protectedFields = [
-      'vertical',
-      'industry',
-      'entity_type',
-      'owner_user_id',
-      'accounting_method',
-      'financial_accounts',
-      'financial_transactions',
-    ]
-
-    for (const field of protectedFields) {
-      const context = authenticatedClient()
-      createServerSupabase.mockResolvedValue(context.client)
-      const response = await PATCH(
-        request({
-          step: 'business',
-          data: { business_description: 'Consulting', [field]: 'forbidden' },
-        })
-      )
-      expect(response.status, field).toBe(400)
-      expect(context.table.update, field).not.toHaveBeenCalled()
+  it('rejects caller-controlled ownership, eligibility, and accounting fields', async () => {
+    for (const field of ['owner_user_id', 'business_id', 'accounting_method', 'v1_support_status', 'tax_category']) {
+      const c = client(); createServerSupabase.mockResolvedValue(c.api)
+      const response = await PATCH(request({ step: 'business', data: { business_description: 'Trade', business_profile_context: 'general', [field]: 'bad' } }))
+      expect(response.status, field).toBe(400); expect(c.businesses.update).not.toHaveBeenCalled()
     }
   })
 
-  it('has no Plaid, Stripe, vehicle, or financial-record side effects', async () => {
-    const context = authenticatedClient()
-    createServerSupabase.mockResolvedValue(context.client)
-
-    await PATCH(
-      request({ step: 'vehicles', data: { uses_vehicle_for_business: true } })
-    )
-
-    expect(context.client.from).toHaveBeenCalledTimes(2)
-    expect(context.client.from).toHaveBeenCalledWith('businesses')
-    expect(context.updates[0]).not.toHaveProperty('vertical')
-    expect(context.updates[0]).not.toHaveProperty('industry')
+  it('fails closed if ownership-scoped update does not affect exactly one Business', async () => {
+    const c = client('not_started', 0); createServerSupabase.mockResolvedValue(c.api)
+    expect((await PATCH(request({ step: 'eligibility', data: { schedule_c_eligibility: 'yes' } }))).status).toBe(409)
   })
 })

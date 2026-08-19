@@ -1,138 +1,57 @@
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+const flow = readFileSync('app/onboarding/OnboardingFlow.tsx', 'utf8')
 
-const flow = readFileSync(
-  join(process.cwd(), 'app/onboarding/OnboardingFlow.tsx'),
-  'utf8'
-)
-
-describe('v2 onboarding UI contract', () => {
-  it('contains the nine approved conversational steps', () => {
+describe('canonical v1 onboarding UI', () => {
+  it('asks only the minimum plain-language factual sequence', () => {
     for (const copy of [
-      'First, tell us about your business.',
-      'How is your business organized?',
-      'When did your business start?',
-      'Do you use part of your home for your business?',
-      'Do you use a vehicle for business?',
-      'How many bank accounts and credit cards will you be adding to WriteOffs for bookkeeping?',
-      'How would you like to get started?',
-      'Here’s the plan that best fits your answers.',
-      'Review your setup.',
-    ]) {
-      expect(flow).toContain(copy)
+      'Tell us about your business.',
+      'Is this business reported on Schedule C with your personal tax return?',
+      'Are you starting fresh or bringing in an existing business?',
+      'Does your business buy parts or materials for customer jobs?',
+      'Does your business keep a significant amount of products or merchandise in stock to sell later?',
+      'How have customer-job materials usually been handled at tax time?',
+      'When should WriteOffs start organizing your activity?',
+      'What would you like to add first?',
+      'You’re ready to use WriteOffs.',
+    ]) expect(flow).toContain(copy)
+  })
+
+  it('keeps Realtor as context in the same path without Pack language', () => {
+    expect(flow).toContain('Real estate professional')
+    expect(flow).toContain('without changing the product path')
+    expect(flow).not.toMatch(/Realtor Pack|General Pack|industry pack/i)
+  })
+
+  it('supports trades and distinguishes ordinary leftovers from substantial merchandise', () => {
+    expect(flow).toContain('fixtures, parts, paint, wire, equipment, or project materials')
+    expect(flow).toContain('Don’t count normal leftover parts or materials you keep for future jobs.')
+    expect(flow).toContain('supports trades and service businesses with job materials')
+  })
+
+  it('does not ask customers to configure accounting or legacy product concepts', () => {
+    for (const forbidden of ['COGS', '§471', 'NIMS', 'chart of accounts', 'reconciliation', 'Plan recommendation', 'Home office', 'Add another vehicle', 'Connect my accounts']) {
+      expect(flow).not.toContain(forbidden)
     }
   })
 
-  it('uses only the committed onboarding endpoints', () => {
-    expect(flow).toContain("requestJson('/api/onboarding/business'")
-    expect(flow).toContain('`/api/onboarding/vehicles/${vehicle.slot}`')
-    expect(flow).toContain('`/api/onboarding/vehicles/${slot}/archive`')
-    expect(flow).toContain("fetch('/api/onboarding/complete'")
-    expect(flow).not.toMatch(/\/api\/(checkout|stripe|plaid|financial)/i)
+  it('keeps uncertain materials history usable without inventing tax timing', () => {
+    expect(flow).toContain('My accountant handles this')
+    expect(flow).toContain('I’m not sure')
+    expect(flow).toContain('tax timing stays unresolved rather than being guessed')
   })
 
-  it('keeps recommendations informational and uses the deterministic helper', () => {
-    expect(flow).toContain('recommendOnboardingPlan')
-    expect(flow).toContain('This recommendation is informational.')
-    expect(flow).toContain('no subscription will be created today')
-    expect(flow).not.toContain('/api/checkout')
+  it('offers current canonical ingestion paths and no Plaid workflow', () => {
+    expect(flow).toContain('Import a CSV')
+    expect(flow).toContain('Upload receipts')
+    expect(flow).toContain('Bank connections are not required.')
+    expect(flow).not.toMatch(/\/api\/(plaid|stripe|checkout)/i)
   })
 
-  it('does not offer or branch on legacy industry paths', () => {
-    expect(flow).not.toMatch(/\brealtor\b/i)
-    expect(flow).not.toMatch(/\bvertical\b/i)
-    expect(flow).not.toMatch(/\bindustry\b/i)
-    expect(flow).not.toContain('General Pack')
-    expect(flow).not.toContain('Realtor Pack')
-  })
-
-  it('uses the approved home-office copy and omits commuting education', () => {
-    expect(flow).toContain('Do you use part of your home for your business?')
-    expect(flow).not.toContain('Do you have a qualifying home office?')
-    expect(flow).toContain('regularly and exclusively for business')
-    expect(flow).toContain('simplified method')
-    expect(flow).toContain('Does your home workspace meet this description?')
-    expect(flow).not.toMatch(/commut/i)
-  })
-
-  it('restores scroll position and accessible heading focus whenever the step changes', () => {
-    expect(flow).toContain("contentRef.current?.scrollIntoView")
-    expect(flow).toContain("block: 'start'")
-    expect(flow).toContain("headingRef.current?.focus({ preventScroll: true })")
-    expect(flow).toContain("'(prefers-reduced-motion: reduce)'")
-    expect(flow).toContain('}, [step])')
-    expect(flow).toContain('if (next) setStep(next)')
-    expect(flow).toContain('if (previous) setStep(previous)')
-    expect(flow).toContain('editStep={setStep}')
-  })
-
-  it('uses the revised start, vehicle, and bank/card language', () => {
-    expect(flow).toContain('Date business started (Month/Year)')
-    expect(flow).toContain('Add another vehicle')
-    expect(flow).not.toContain('Add a second vehicle')
-    expect(flow).toContain('Number of accounts and cards')
-    expect(flow).toContain('Are any of these accounts or cards also used for personal expenses?')
-    expect(flow).toContain('No, they’re primarily for business')
-    expect(flow).toContain('Yes, at least one is mixed business and personal')
-    expect(flow).toContain("'primarily_business'")
-    expect(flow).toContain("'mixed_use'")
-  })
-
-  it('keeps legal and federal reporting separate while filtering confusing choices', () => {
-    expect(flow).toContain("corporation: ['Corporation (S or C)'")
-    expect(flow).toContain("sole_proprietor: ['schedule_c', 's_corporation', 'c_corporation', 'not_sure']")
-    expect(flow).toContain("single_member_llc: ['schedule_c', 's_corporation', 'c_corporation', 'not_sure']")
-    expect(flow).toContain("partnership_multi_member_llc: ['partnership', 's_corporation', 'c_corporation', 'not_sure']")
-    expect(flow).toContain("corporation: ['s_corporation', 'c_corporation', 'not_sure']")
-    expect(flow).toContain("not_sure: ['schedule_c', 'partnership', 's_corporation', 'c_corporation', 'not_sure']")
-    expect(flow).toContain("props.updateBusiness('federal_tax_reporting_type', null)")
-    expect(flow).toContain("props.updateBusiness('legal_structure', value)")
-    expect(flow).not.toMatch(/updateBusiness\('federal_tax_reporting_type',\s*(value|['"]\w+['"])\).*updateBusiness\('legal_structure'/s)
-  })
-
-  it('allows historical month/year input with only a future-date boundary', () => {
-    expect(flow).toContain('type="month"')
-    expect(flow).toContain('max={currentMonth}')
-    expect(flow).not.toMatch(/<input[^>]+type="month"[^>]+min=/s)
-    expect(flow).toContain('You can choose any past month and year.')
-  })
-
-  it('uses the revised starting choices without launching their workflows', () => {
-    expect(flow).toContain('Start with receipts')
-    expect(flow).toContain('Take photos or upload receipts and let WriteOffs start organizing your expenses.')
-    expect(flow).toContain('Connect my accounts')
-    expect(flow).toContain('Let WriteOffs use activity from your accounts to help organize your business finances.')
-    expect(flow).toContain('Upload existing statements to bring in past activity.')
-    expect(flow).toContain('You can add or change these later.')
-    expect(flow).not.toContain('Starting workflow')
-    expect(flow).not.toMatch(/\/api\/(plaid|stripe|upload|receipts?)/i)
-    const connected = flow.indexOf('label="Connect my accounts"')
-    const receipts = flow.indexOf('label="Start with receipts"')
-    const statements = flow.indexOf('label="Upload statements"')
-    expect(connected).toBeGreaterThan(-1)
-    expect(connected).toBeLessThan(receipts)
-    expect(receipts).toBeLessThan(statements)
-    expect(flow.slice(connected, receipts)).toContain('badge="Recommended"')
-    expect(flow).not.toMatch(/useState\([^)]*connected_financial_accounts/)
-  })
-
-  it('uses plain-language Review labels and summaries', () => {
-    expect(flow).toContain("['Date business started'")
-    expect(flow).toContain("['Bank accounts & credit cards'")
-    expect(flow).toContain("['How you’ll get started'")
-    expect(flow).toContain('primarily used for business')
-    expect(flow).toContain('at least one is mixed business and personal')
-    expect(flow).toContain('business & personal use')
-    expect(flow).toContain('business use only')
-  })
-
-  it('supports incremental saves, retry-safe errors, progress, and returned navigation', () => {
-    expect(flow).toContain("method: 'PATCH'")
-    expect(flow).toContain("method: 'PUT'")
-    expect(flow).toContain('Your answers are still here.')
+  it('has accessible progress, focus, error, and mobile-sized actions', () => {
     expect(flow).toContain('role="progressbar"')
-    expect(flow).toContain('aria-live="polite"')
-    expect(flow).toContain('router.push(data.destination)')
+    expect(flow).toContain('headingRef.current?.focus')
+    expect(flow).toContain('role="alert"')
+    expect(flow).toContain('min-h-11')
   })
 })
