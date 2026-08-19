@@ -16,7 +16,23 @@ export type TransactionReadRow = {
   decisionReason: string | null
   decisionProvenance: string | null
   correctionCount: number
+  recordId: string | null
+  currentDecisionId: string | null
+  bookkeepingNature: string | null
+  treatment: string | null
+  history: TransactionHistoryItem[]
+  evidenceLinks: TransactionEvidenceLink[]
+  receiptLost: boolean
 }
+
+export type TransactionHistoryItem = {
+  id: string
+  summary: string
+  explanation: string | null
+  createdAt: string
+}
+
+export type TransactionEvidenceLink = { id: string; receiptId: string; attachedAt: string }
 
 type Row = Record<string, unknown>
 
@@ -28,7 +44,7 @@ function number(row: Row, key: string) {
   return typeof row[key] === 'number' ? row[key] as number : Number(row[key] ?? 0)
 }
 
-function treatmentLabel(decision: Row | undefined) {
+export function customerTreatmentLabel(decision: Row | undefined) {
   if (!decision || text(decision, 'treatment') === 'unresolved') return 'Still being worked on'
   switch (text(decision, 'treatment')) {
     case 'business': return 'Business'
@@ -44,6 +60,7 @@ export async function listTransactionReadModel(input: {
   userId: string
   year?: number | null
   limit?: number
+  transactionId?: string
 }): Promise<TransactionReadRow[]> {
   const { data: business, error: businessError } = await input.supabase.from('businesses')
     .select('id').eq('owner_user_id', input.userId).single()
@@ -53,10 +70,20 @@ export async function listTransactionReadModel(input: {
   const start = input.year ? `${input.year}-01-01` : null
   const end = input.year ? `${input.year}-12-31` : null
 
+  let canonicalRecordId: string | null = null
+  if (input.transactionId) {
+    const { data } = await input.supabase.from('bookkeeping_financial_sources')
+      .select('bookkeeping_record_id').eq('business_id', businessId)
+      .eq('financial_transaction_id', input.transactionId).is('revoked_at', null).maybeSingle()
+    canonicalRecordId = data?.bookkeeping_record_id ?? null
+  }
   let recordQuery = input.supabase.from('bookkeeping_records')
     .select('id,amount_cents,currency,occurred_on').eq('business_id', businessId)
     .order('occurred_on', { ascending: false }).limit(limit)
   if (start && end) recordQuery = recordQuery.gte('occurred_on', start).lte('occurred_on', end)
+  if (input.transactionId) {
+    recordQuery = canonicalRecordId ? recordQuery.eq('id', canonicalRecordId) : recordQuery.eq('id', input.transactionId)
+  }
   const { data: records, error: recordError } = await recordQuery
   if (recordError) throw new Error('Could not list canonical transactions.')
   const recordRows = (records ?? []) as Row[]
@@ -71,11 +98,11 @@ export async function listTransactionReadModel(input: {
         .select('bookkeeping_record_id,financial_transaction_id').eq('business_id', businessId)
         .in('bookkeeping_record_id', recordIds).is('revoked_at', null),
       input.supabase.from('bookkeeping_decisions')
-        .select('id,bookkeeping_record_id,supersedes_decision_id,treatment,reason,provenance,created_at')
+        .select('id,bookkeeping_record_id,supersedes_decision_id,bookkeeping_nature,treatment,review_status,reason,provenance,created_at')
         .eq('business_id', businessId).in('bookkeeping_record_id', recordIds)
         .order('created_at', { ascending: false }),
       input.supabase.from('bookkeeping_document_links')
-        .select('bookkeeping_record_id').eq('business_id', businessId)
+        .select('id,bookkeeping_record_id,receipt_id,linked_at').eq('business_id', businessId)
         .in('bookkeeping_record_id', recordIds).is('revoked_at', null),
     ])
     if (sourceResult.error || decisionResult.error || documentResult.error) {
@@ -104,6 +131,16 @@ export async function listTransactionReadModel(input: {
     decisionHistory.set(recordId, [...(decisionHistory.get(recordId) ?? []), decision])
   }
   const documented = new Set(documentLinks.map((row) => text(row, 'bookkeeping_record_id')))
+  let documentationEvents: Row[] = []
+  if (recordIds.length) {
+    const { data } = await input.supabase.from('bookkeeping_documentation_events')
+      .select('bookkeeping_record_id,event_type').eq('business_id', businessId)
+      .in('bookkeeping_record_id', recordIds)
+    documentationEvents = (data ?? []) as Row[]
+  }
+  const receiptLostRecords = new Set(documentationEvents
+    .filter((row) => text(row, 'event_type') === 'receipt_lost')
+    .map((row) => text(row, 'bookkeeping_record_id')))
   const canonical: TransactionReadRow[] = recordRows.flatMap((record) => {
     const recordId = text(record, 'id')!
     const source = sourceByRecord.get(recordId)
@@ -120,9 +157,20 @@ export async function listTransactionReadModel(input: {
       description: text(financial, 'original_description'), amount: amountCents / 100,
       amountCents, currency: text(financial, 'currency') ?? 'USD', category_key: null,
       has_receipt: documented.has(recordId), receipt_waived: false,
-      treatmentLabel: treatmentLabel(current), decisionReason: current ? text(current, 'reason') : null,
+      treatmentLabel: customerTreatmentLabel(current), decisionReason: current ? text(current, 'reason') : null,
       decisionProvenance: current ? text(current, 'provenance') : null,
       correctionCount: Math.max(0, history.length - 1),
+      recordId, currentDecisionId: current ? text(current, 'id') : null,
+      bookkeepingNature: current ? text(current, 'bookkeeping_nature') : null,
+      treatment: current ? text(current, 'treatment') : null,
+      history: history.map((decision) => ({
+        id: text(decision, 'id')!, summary: customerTreatmentLabel(decision),
+        explanation: text(decision, 'reason'), createdAt: text(decision, 'created_at')!,
+      })),
+      evidenceLinks: documentLinks.filter((link) => text(link, 'bookkeeping_record_id') === recordId)
+        .map((link) => ({ id: text(link, 'id')!, receiptId: text(link, 'receipt_id')!,
+          attachedAt: text(link, 'linked_at')! })),
+      receiptLost: receiptLostRecords.has(recordId),
     }]
   })
 
@@ -131,6 +179,7 @@ export async function listTransactionReadModel(input: {
     .eq('user_id', input.userId).is('canonical_financial_transaction_id', null)
     .order('date', { ascending: false }).limit(limit)
   if (start && end) legacyQuery = legacyQuery.gte('date', start).lte('date', end)
+  if (input.transactionId) legacyQuery = legacyQuery.eq('id', input.transactionId)
   const { data: legacyData, error: legacyError } = await legacyQuery
   if (legacyError) throw new Error('Could not list legacy transactions.')
   const legacyRows = (legacyData ?? []) as Row[]
@@ -153,7 +202,19 @@ export async function listTransactionReadModel(input: {
       receipt_waived: row.receipt_waived === true,
       treatmentLabel: text(row, 'category_key') ? 'Legacy category recorded' : 'Legacy record',
       decisionReason: null, decisionProvenance: null, correctionCount: 0,
+      recordId: null, currentDecisionId: null, bookkeepingNature: null,
+      treatment: null, history: [], evidenceLinks: [], receiptLost: row.receipt_waived === true,
     }
   })
   return [...canonical, ...legacy].sort((a, b) => b.date.localeCompare(a.date)).slice(0, limit)
+}
+
+export async function getTransactionDetailReadModel(input: {
+  supabase: SupabaseClient
+  userId: string
+  transactionId: string
+}) {
+  const rows = await listTransactionReadModel({ supabase: input.supabase,
+    userId: input.userId, limit: 1, transactionId: input.transactionId })
+  return rows.find((row) => row.id === input.transactionId) ?? null
 }

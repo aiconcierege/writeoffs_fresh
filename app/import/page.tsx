@@ -172,8 +172,8 @@ export default function ImportPage() {
               Drop a CSV exported from your bank/credit card or broker fees. We’ll map columns and import your expenses.
             </p>
           </div>
-          <Link href="/review" className="text-sm underline">
-            Go to review
+          <Link href="/transactions" className="text-sm underline">
+            View transactions
           </Link>
         </div>
 

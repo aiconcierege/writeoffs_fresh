@@ -60,3 +60,13 @@ export async function createLocalReceipt(input: {
   { stdio: 'pipe' })
   return id
 }
+
+export function createLocalLegacyTransaction(userId: string) {
+  const id = crypto.randomUUID()
+  execFileSync('docker', ['exec', 'supabase_db_writeoffs_fresh', 'psql',
+    '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c',
+    `insert into public.transactions (id,user_id,date,vendor,amount,amount_cents,currency,source,dedupe_hash)
+     values ('${id}','${userId}','2025-01-02','Historical Vendor',-12.34,-1234,'USD','legacy','${crypto.randomUUID()}')`],
+  { stdio: 'pipe' })
+  return id
+}

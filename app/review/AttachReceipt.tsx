@@ -32,12 +32,14 @@ export default function AttachReceipt({
   txAmount,   // number (negative = expense)
   txVendor,   // string | null
   onAttached
+  ,canonical = false
 }: {
   transactionId: string
   txDate?: string | null
   txAmount?: number | null
   txVendor?: string | null
   onAttached?: () => void
+  canonical?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -112,10 +114,14 @@ export default function AttachReceipt({
     setLinkingId(id)
     setError(null)
     try {
-      const res = await fetch('/api/receipts', {
+      const res = await fetch(canonical
+        ? `/api/bookkeeping/financial-transactions/${transactionId}/receipts`
+        : '/api/receipts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ receipt_id: id, transaction_id: transactionId })
+        body: JSON.stringify(canonical
+          ? { receipt_id: id }
+          : { receipt_id: id, transaction_id: transactionId })
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Failed to attach receipt')

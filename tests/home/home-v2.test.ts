@@ -66,7 +66,7 @@ describe('WriteOffs Home v2', () => {
 
   it('limits primary navigation to Home, Transactions, and Reports', () => {
     expect(header).toContain('{ name: "Home", href: "/home" }')
-    expect(header).toContain('{ name: "Transactions", href: "/review" }')
+    expect(header).toContain('{ name: "Transactions", href: "/transactions" }')
     expect(header).toContain('{ name: "Reports", href: "/reports/summary" }')
     expect(header).not.toContain('{ name: "Review"')
     expect(header).not.toContain('{ name: "Import"')

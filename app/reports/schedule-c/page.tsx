@@ -6,6 +6,7 @@
  *  - Shows transaction count using `txnCount` (from safeData)
  */
 import { redirect } from "next/navigation"
+import Link from "next/link"
 import { createServerSupabase } from "../../../utils/supabase/server"
 import type { ReactNode } from "react"
 
@@ -179,9 +180,9 @@ export default async function ScheduleCSummary({
           <a href="/export" className="rounded-xl border px-3 py-1.5 text-sm">
             Export CSV
           </a>
-          <a href="/review" className="rounded-xl border px-3 py-1.5 text-sm">
-            Back to Review
-          </a>
+          <Link href="/transactions" className="rounded-xl border px-3 py-1.5 text-sm">
+            Back to Transactions
+          </Link>
         </div>
       </section>
     </main>

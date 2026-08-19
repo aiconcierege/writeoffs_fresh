@@ -289,7 +289,7 @@ export default function ReceiptsInner() {
         <div className="mb-2 inline-block w-12 border-b-4" style={{ borderColor: 'var(--mint-500)' }} />
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Receipts</h1>
-          <Link href="/review" className="btn btn-secondary">Back to Review</Link>
+          <Link href="/transactions" className="btn btn-secondary">Back to Transactions</Link>
         </div>
         <p className="mt-2 text-sm text-muted">
           Upload images/PDFs, run OCR, and link receipts to transactions.

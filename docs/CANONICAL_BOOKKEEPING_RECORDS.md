@@ -150,6 +150,32 @@ controls are disabled for canonical rows. Legacy-only category, waiver, approval
 delete, OCR, export, and report write/read paths still require later explicit
 canonical replacement.
 
+The customer Transactions surface and detail view both consume this same adapter.
+The detail model resolves one tenant-owned canonical financial transaction directly
+(rather than depending on list pagination), summarizes the current decision and
+its predecessor chain in plain language, and reports active canonical receipt links
+plus immutable Receipt Lost history. Database identifiers, allocations, confidence,
+and internal provenance are not presented as customer choices. A legacy-only row
+uses the same customer shell but has no fabricated canonical explanation or history.
+
+For an established canonical expense, “Correct this” accepts only the factual use
+choices Business, Personal, or Both. Both accepts a positive personal amount in
+whole cents; PostgreSQL applies the immutable source amount's sign and derives the
+business remainder by subtraction. One authenticated, record-locked operation
+checks the expected current decision, preserves trusted purpose/category facts,
+and appends a new user-provenance decision with null automated confidence. A
+request UUID makes retries idempotent. Unresolved activity and non-expense natures
+are rejected and remain in the focused factual-question/agent workflow. Financial
+amount, currency, description, and date are never edited by this correction.
+
+Canonical receipt attachment, removal, and Receipt Lost actions continue through
+the canonical document/documentation operations. Removal revokes a link rather
+than deleting evidence history. Receipt Lost is available only for an outstanding
+typed documentation request and changes no bookkeeping decision. Canonical source
+transactions expose no destructive delete; immutable import mistakes still require
+a separately approved suppression/reversal design. Legacy-only rows remain readable
+and retain their old API compatibility paths outside the new Transactions surface.
+
 The current foundation does not implement provider synchronization, tax-return
 preparation, official tax forms, or a canonical tax-treatment layer.
 

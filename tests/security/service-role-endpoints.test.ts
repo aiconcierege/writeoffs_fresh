@@ -87,6 +87,9 @@ describe('customer endpoint isolation', () => {
       ...authenticatedRoutes,
       'app/api/export/csv/route.ts',
       'app/api/reports/summary/route.ts',
+      'app/api/bookkeeping/transactions/[id]/correction/route.ts',
+      'app/api/bookkeeping/transactions/[id]/receipt-lost/route.ts',
+      'app/api/bookkeeping/transactions/[id]/receipts/[linkId]/route.ts',
     ]
 
     for (const route of routes) {

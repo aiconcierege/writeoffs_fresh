@@ -6,6 +6,7 @@ import {
   type PreparedCsvFinancialRow,
 } from '../../app/lib/bookkeeping/csv-ingestion'
 import { listTransactionReadModel } from '../../app/lib/bookkeeping/transaction-read-model'
+import { createLocalLegacyTransaction } from '../helpers/local-canonical'
 
 const url = process.env.LOCAL_SUPABASE_URL
 const anonKey = process.env.LOCAL_SUPABASE_ANON_KEY
@@ -185,6 +186,12 @@ describe.skipIf(!runLocal)('canonical CSV ingestion on local Supabase', () => {
       sourceModel: 'canonical', amountCents: -4_210,
       treatmentLabel: 'Still being worked on', has_receipt: false,
     })])
+    createLocalLegacyTransaction(owner.id)
+    const withLegacyFallback = await listTransactionReadModel({
+      supabase: owner.client, userId: owner.id,
+    })
+    expect(withLegacyFallback.map((item) => item.sourceModel).sort())
+      .toEqual(['canonical', 'legacy'])
 
     const { error: legacyMutationError } = await owner.client.from('transactions')
       .update({ category_key: 'supplies' }).eq('user_id', owner.id)

@@ -23,7 +23,8 @@ describe('canonical-first transaction read path', () => {
   })
 
   it('uses the same compatibility adapter for the page and list API', () => {
-    expect(source('app/review/page.tsx')).toContain('listTransactionReadModel')
+    expect(source('app/transactions/page.tsx')).toContain('listTransactionReadModel')
+    expect(source('app/transactions/[id]/page.tsx')).toContain('getTransactionDetailReadModel')
     expect(source('app/api/transactions/list/route.ts')).toContain('listTransactionReadModel')
   })
 })
