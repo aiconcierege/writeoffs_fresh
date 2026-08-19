@@ -6,6 +6,7 @@ type SummaryData = {
   businessIncomeCents: number
   businessExpensesCents: number
   businessProfitCents: number
+  estimatedDeductionsCents: number | null
   categoryTotals: { categoryKey: string; categoryLabel: string; amountCents: number; transactionCount: number }[]
   completeness: { isComplete: boolean; unresolvedRecordCount: number }
 }
@@ -23,6 +24,7 @@ export default function ReportsSummary() {
   const metrics = [
     ['Business income', data.businessIncomeCents], ['Business expenses', data.businessExpensesCents],
     ['Business profit', data.businessProfitCents],
+    ...(data.estimatedDeductionsCents == null ? [] : [['Estimated deductions', data.estimatedDeductionsCents] as const]),
   ] as const
   return <main className="mx-auto max-w-4xl space-y-9 px-2 py-8 sm:px-6">
     <header><p className="text-xs font-semibold tracking-[0.16em] text-slate-500">YEAR TO DATE</p>

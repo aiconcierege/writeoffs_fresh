@@ -3,6 +3,7 @@ export type CanonicalSummaryAllocation = {
   kind: 'business' | 'personal' | 'excluded'
   amountCents: number
   taxCategoryKey?: string | null
+  taxTreatments?: import('./tax-treatment-model').CanonicalTaxTreatment[]
 }
 
 export type CanonicalSummaryDecision = {

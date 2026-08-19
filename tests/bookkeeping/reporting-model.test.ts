@@ -70,6 +70,7 @@ describe('canonical reporting read model', () => {
       bookkeepingNature: null, treatment: 'unresolved', allocations: [] }] })])
     expect(result.businessExpensesCents).toBe(0)
     expect(result.completeness).toMatchObject({ isComplete: false, unresolvedRecordCount: 1 })
+    expect(result.estimatedDeductionsCents).toBeNull()
   })
 
   it('uses legacy-only categorized fallback but does not invent unresolved classification', () => {
@@ -78,6 +79,7 @@ describe('canonical reporting read model', () => {
       { id: 'legacy-b', occurredOn: '2026-02-02', amountCents: 9_000, currency: 'USD', merchant: 'Unknown', description: null, categoryKey: null, hasEvidence: false, receiptLost: false },
     ] })
     expect(result.businessExpensesCents).toBe(2_500)
+    expect(result.estimatedDeductionsCents).toBeNull()
     expect(result.completeness).toMatchObject({ legacyFallbackCount: 2, unresolvedRecordCount: 1 })
   })
 
@@ -96,5 +98,24 @@ describe('canonical reporting read model', () => {
     expect(csv).toContain('Receipt only')
     expect(csv).not.toContain('record-')
     expect(csv).not.toContain('decision-')
+  })
+
+  it('includes only trusted current tax treatments in estimated deductions', () => {
+    const supported = record({ decisions: [{ id: 'tax-decision', supersedesDecisionId: null,
+      bookkeepingNature: 'expense', treatment: 'business', allocations: [{ id: 'tax-allocation',
+        kind: 'business', amountCents: -10_000, taxCategoryKey: 'supplies', taxTreatments: [{
+          id: 'tax-treatment', allocationId: 'tax-allocation', supersedesTaxTreatmentId: null,
+          status: 'deductible', deductibleAmountCents: -8_000, taxCategoryKey: 'supplies',
+          ruleKey: 'approved:test-rule', ruleVersion: 1, reason: 'Supported test conclusion.',
+          provenance: 'system', confidence: null,
+        }] }] }] })
+    expect(report([supported]).estimatedDeductionsCents).toBe(8_000)
+    expect(report([record()]).estimatedDeductionsCents).toBeNull()
+  })
+
+  it('does not fabricate estimated taxable income or tax liability', () => {
+    const result = report([record()])
+    expect(result.estimatedTaxableIncomeCents).toBeNull()
+    expect(result).not.toHaveProperty('taxLiabilityCents')
   })
 })

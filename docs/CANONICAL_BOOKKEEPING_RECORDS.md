@@ -418,3 +418,50 @@ an uncategorized legacy row remains unresolved and is not guessed into totals. N
 legacy category is copied into a canonical decision and report reads never mutate
 either model. Historical records have not been bulk migrated, so the legacy fallback
 remains a compatibility risk until a separately approved migration policy exists.
+
+## Canonical decision and tax-treatment boundary
+
+The customer-answerable factual contracts are deliberately finite. Business use
+accepts Business, Personal, or Both; mixed use accepts an exact dollar fact;
+business purpose accepts plain-language factual text; transaction type accepts one
+of the approved semantic activities; and conflicting evidence accepts only a
+trusted factual option. `Not sure` preserves a user fact, while `Do this later`
+creates no evidence. Receipt Keep/Discard and transaction corrections remain their
+own narrow factual contracts. None accepts a category, deduction, confidence,
+provenance, allocation, or tax outcome.
+
+The current customer queue remains the leaf projection of stable review issues.
+It has no weekly batch identity. Reprocessing an unchanged issue is idempotent,
+deferral leaves it active, resolution removes it, and stale or concurrent answers
+cannot branch decision or event history. Receipt-only and financial-source records
+enter the same queue projection. Documentation requests remain a separate queue
+and do not become accounting questions.
+
+`bookkeeping_decisions` remains the source of economic nature, business/personal
+use, exact allocations, purpose, and current correction precedence. Automation may
+append a decision only through the existing deterministic basis checks. It cannot
+claim Personal treatment, customer provenance, or an unsupported category.
+
+`bookkeeping_tax_treatments` is a narrower append-only conclusion chain for one
+exact business allocation on one decision. A category key alone never establishes
+deductibility. A resolved tax treatment requires a matching canonical allocation
+category, an explicit versioned trusted rule, a reason, and a signed deductible
+amount no larger than the allocation. Customer sessions can read their Business's
+treatments through RLS but cannot insert, update, or delete them. Trusted background
+processing may append `unresolved`, `deductible`, or `not_deductible`; this milestone
+adds no new tax rules and therefore does not automatically classify existing data.
+
+Estimated Deductions is available only when every relevant current-decision
+business-expense allocation in the period has a resolved trusted tax treatment.
+It sums only signed `deductible` conclusions, excludes personal allocations, and
+becomes unavailable after a correction until the new allocations are separately
+treated. Unresolved financial activity and unsupported currencies also keep the
+estimate unavailable rather than presenting a misleading zero. Legacy fallback
+rows also keep it unavailable because their category is not canonical tax
+evidence. Missing documentation and Receipt Lost do not alter the calculation.
+
+Estimated Taxable Income remains unavailable. The approved repository material
+does not yet establish that a business-level income-minus-deductions figure is an
+adequate customer definition, and canonical legacy income coverage and personal
+tax assumptions are incomplete. No tax liability, tax rate, or filed-form output
+is derived.

@@ -3,6 +3,7 @@ import type {
   CanonicalSummaryDecision,
   CanonicalSummaryRecord,
 } from './financial-summary'
+import type { CanonicalTaxTreatment } from './tax-treatment-model'
 
 type Row = Record<string, unknown>
 
@@ -81,6 +82,14 @@ implements CanonicalFinancialSummaryRepository {
       if (error) throw new Error(`Unable to load canonical summary allocations: ${error.message}`)
       return (data ?? []) as Row[]
     })
+    const allocationIds = allocationRows.map((row) => text(row, 'id'))
+    const taxTreatmentRows = await inBatches(allocationIds, async (ids) => {
+      const { data, error } = await this.supabase.from('bookkeeping_tax_treatments')
+        .select('id,bookkeeping_allocation_id,supersedes_tax_treatment_id,treatment_status,deductible_amount_cents,tax_category_key,rule_key,rule_version,reason,provenance,confidence')
+        .eq('business_id', input.businessId).in('bookkeeping_allocation_id', ids)
+      if (error) throw new Error(`Unable to load canonical tax treatments: ${error.message}`)
+      return (data ?? []) as Row[]
+    })
     const sourceRows = await inBatches(recordIds, async (ids) => {
       const { data, error } = await this.supabase.from('bookkeeping_financial_sources')
         .select('id,bookkeeping_record_id,financial_transaction_id')
@@ -119,6 +128,20 @@ implements CanonicalFinancialSummaryRepository {
       return (data ?? []) as Row[]
     })
 
+    const taxTreatmentsByAllocation = new Map<string, CanonicalTaxTreatment[]>()
+    for (const row of taxTreatmentRows) {
+      const allocationId = text(row, 'bookkeeping_allocation_id')
+      const history = taxTreatmentsByAllocation.get(allocationId) ?? []
+      history.push({ id: text(row, 'id'), allocationId,
+        supersedesTaxTreatmentId: nullableText(row, 'supersedes_tax_treatment_id'),
+        status: text(row, 'treatment_status') as CanonicalTaxTreatment['status'],
+        deductibleAmountCents: cents(row.deductible_amount_cents),
+        taxCategoryKey: nullableText(row, 'tax_category_key'), ruleKey: nullableText(row, 'rule_key'),
+        ruleVersion: row.rule_version == null ? null : Number(row.rule_version), reason: text(row, 'reason'),
+        provenance: text(row, 'provenance') as CanonicalTaxTreatment['provenance'],
+        confidence: row.confidence == null ? null : Number(row.confidence) })
+      taxTreatmentsByAllocation.set(allocationId, history)
+    }
     const allocationsByDecision = new Map<string, CanonicalSummaryDecision['allocations']>()
     for (const row of allocationRows) {
       const decisionId = text(row, 'bookkeeping_decision_id')
@@ -128,6 +151,7 @@ implements CanonicalFinancialSummaryRepository {
         kind: text(row, 'allocation_kind') as CanonicalSummaryDecision['allocations'][number]['kind'],
         amountCents: cents(row.amount_cents)!,
         taxCategoryKey: nullableText(row, 'tax_category_key'),
+        taxTreatments: taxTreatmentsByAllocation.get(text(row, 'id')) ?? [],
       })
       allocationsByDecision.set(decisionId, allocations)
     }

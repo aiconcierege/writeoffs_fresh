@@ -1,0 +1,96 @@
+import { createClient } from '@supabase/supabase-js'
+import { describe, expect, it } from 'vitest'
+import { provisionLocalCanonicalOwner } from '../helpers/local-canonical'
+import { resolveFinancialTransactionRecord } from '../../app/lib/bookkeeping/financial-transaction-workflow'
+import { CanonicalBookkeepingService } from '../../app/lib/bookkeeping/service'
+import { SupabaseBookkeepingRepository } from '../../app/lib/bookkeeping/supabase-repository'
+import { appendTrustedTaxTreatment } from '../../app/lib/bookkeeping/tax-treatment-service'
+import { getAuthenticatedCanonicalReport } from '../../app/lib/bookkeeping/reporting-service'
+import { correctCanonicalTransactionUse } from '../../app/lib/bookkeeping/transaction-corrections'
+
+const url = process.env.LOCAL_SUPABASE_URL
+const anonKey = process.env.LOCAL_SUPABASE_ANON_KEY
+const serviceKey = process.env.LOCAL_SUPABASE_SERVICE_ROLE_KEY
+const enabled = process.env.RUN_LOCAL_SUPABASE_INTEGRATION === '1' && Boolean(url && anonKey && serviceKey)
+const suite = enabled ? describe : describe.skip
+
+suite('canonical tax treatment against local PostgreSQL', () => {
+  it('records trusted treatment, rejects customer writes, and follows current corrections', async () => {
+    const admin = createClient(url!, serviceKey!, { auth: { persistSession: false } })
+    await admin.from('categories').upsert({ key: 'supported-test', label: 'Supported test category' })
+    const owner = await provisionLocalCanonicalOwner({ admin, url: url!, anonKey: anonKey!,
+      label: 'tax-owner', amounts: [-10_000] })
+    const initial = await resolveFinancialTransactionRecord({ supabase: owner.customer,
+      financialTransactionId: owner.transactionIds[0] })
+    const bookkeeping = new CanonicalBookkeepingService(new SupabaseBookkeepingRepository(owner.customer))
+    const decision = await bookkeeping.recordDecision({ actor: { businessId: owner.businessId,
+      userId: owner.userId, provenance: 'user' }, recordId: initial.record.id,
+      expectedCurrentDecisionId: initial.decision.id, decision: { bookkeepingNature: 'expense',
+        treatment: 'business', reviewStatus: 'resolved', reason: 'Explicit business fact.',
+        allocations: [{ kind: 'business', amountCents: -10_000, taxCategoryKey: 'supported-test' }] } })
+    const { data: allocation } = await owner.customer.from('bookkeeping_allocations')
+      .select('id').eq('bookkeeping_decision_id', decision.id).single()
+    const { error: customerWrite } = await owner.customer.from('bookkeeping_tax_treatments').insert({
+      business_id: owner.businessId, bookkeeping_record_id: initial.record.id,
+      bookkeeping_decision_id: decision.id, bookkeeping_allocation_id: allocation!.id,
+      treatment_status: 'deductible', deductible_amount_cents: -10_000,
+      tax_category_key: 'supported-test', rule_key: 'forbidden', rule_version: 1,
+      reason: 'Customer cannot make this conclusion.', provenance: 'system',
+    })
+    expect(customerWrite).toBeTruthy()
+    const taxInput: Parameters<typeof appendTrustedTaxTreatment>[0] = { supabase: admin, businessId: owner.businessId,
+      allocationId: allocation!.id, expectedCurrentTaxTreatmentId: null,
+      conclusionKey: 'supported-test:v1',
+      status: 'deductible', deductibleAmountCents: -8_000, taxCategoryKey: 'supported-test',
+      ruleKey: 'approved:test-only', ruleVersion: 1, reason: 'Versioned test rule.', provenance: 'system' }
+    const [first, repeated] = await Promise.all([
+      appendTrustedTaxTreatment(taxInput), appendTrustedTaxTreatment(taxInput),
+    ])
+    expect(first.id).toBe(repeated.id)
+    await expect(appendTrustedTaxTreatment({ ...taxInput, reason: 'Different conclusion.' }))
+      .rejects.toThrow(/reused with different content/i)
+    let report = await getAuthenticatedCanonicalReport({ supabase: owner.customer,
+      periodStart: '2026-01-01', periodEnd: '2026-12-31' })
+    expect(report.estimatedDeductionsCents).toBe(8_000)
+    await correctCanonicalTransactionUse({ supabase: owner.customer,
+      financialTransactionId: owner.transactionIds[0], expectedCurrentDecisionId: decision.id,
+      correctionRequestId: crypto.randomUUID(), answer: { schemaVersion: 1, use: 'mixed', personalAmountCents: 3_000 } })
+    report = await getAuthenticatedCanonicalReport({ supabase: owner.customer,
+      periodStart: '2026-01-01', periodEnd: '2026-12-31' })
+    expect(report.businessExpensesCents).toBe(7_000)
+    expect(report.estimatedDeductionsCents).toBeNull()
+  })
+
+  it('enforces same-Business references, RLS, append-only history, and signed limits', async () => {
+    const admin = createClient(url!, serviceKey!, { auth: { persistSession: false } })
+    await admin.from('categories').upsert({ key: 'supported-test', label: 'Supported test category' })
+    const a = await provisionLocalCanonicalOwner({ admin, url: url!, anonKey: anonKey!, label: 'tax-a', amounts: [-100] })
+    const b = await provisionLocalCanonicalOwner({ admin, url: url!, anonKey: anonKey!, label: 'tax-b', amounts: [-100] })
+    const state = await resolveFinancialTransactionRecord({ supabase: a.customer, financialTransactionId: a.transactionIds[0] })
+    const service = new CanonicalBookkeepingService(new SupabaseBookkeepingRepository(a.customer))
+    const decision = await service.recordDecision({ actor: { businessId: a.businessId, userId: a.userId, provenance: 'user' },
+      recordId: state.record.id, expectedCurrentDecisionId: state.decision.id,
+      decision: { bookkeepingNature: 'expense', treatment: 'business', reviewStatus: 'resolved',
+        reason: 'Business.', allocations: [{ kind: 'business', amountCents: -100, taxCategoryKey: 'supported-test' }] } })
+    const { data: allocation } = await a.customer.from('bookkeeping_allocations').select('id').eq('bookkeeping_decision_id', decision.id).single()
+    await expect(appendTrustedTaxTreatment({ supabase: admin, businessId: b.businessId,
+      allocationId: allocation!.id, expectedCurrentTaxTreatmentId: null, status: 'deductible',
+      conclusionKey: 'wrong-business:v1',
+      deductibleAmountCents: -100, taxCategoryKey: 'supported-test', ruleKey: 'approved:test-only',
+      ruleVersion: 1, reason: 'Wrong Business.', provenance: 'system' })).rejects.toThrow(/not found/i)
+    await expect(appendTrustedTaxTreatment({ supabase: admin, businessId: a.businessId,
+      allocationId: allocation!.id, expectedCurrentTaxTreatmentId: null, status: 'deductible',
+      conclusionKey: 'too-much:v1',
+      deductibleAmountCents: -101, taxCategoryKey: 'supported-test', ruleKey: 'approved:test-only',
+      ruleVersion: 1, reason: 'Too much.', provenance: 'system' })).rejects.toThrow(/signed portion/i)
+    const inserted = await appendTrustedTaxTreatment({ supabase: admin, businessId: a.businessId,
+      allocationId: allocation!.id, expectedCurrentTaxTreatmentId: null, status: 'unresolved',
+      conclusionKey: 'unresolved:v1',
+      deductibleAmountCents: null, taxCategoryKey: null, ruleKey: null, ruleVersion: null,
+      reason: 'No approved rule.', provenance: 'system' })
+    const { error: updateError } = await admin.from('bookkeeping_tax_treatments')
+      .update({ reason: 'Changed' }).eq('id', inserted.id)
+    expect(updateError?.message).toMatch(/permission denied|append-only/i)
+    expect((await b.customer.from('bookkeeping_tax_treatments').select('id').eq('id', inserted.id)).data).toEqual([])
+  })
+})

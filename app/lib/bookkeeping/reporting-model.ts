@@ -1,4 +1,5 @@
 import type { CanonicalSummaryRecord } from './financial-summary'
+import { currentTaxTreatment } from './tax-treatment-model'
 
 export type LegacyReportingRecord = {
   id: string
@@ -36,6 +37,8 @@ export type CanonicalReport = {
   businessIncomeCents: number
   businessExpensesCents: number
   businessProfitCents: number
+  estimatedDeductionsCents: number | null
+  estimatedTaxableIncomeCents: null
   categorizedBusinessExpensesCents: number
   uncategorizedBusinessExpensesCents: number
   categoryTotals: Array<{ categoryKey: string; categoryLabel: string; amountCents: number; transactionCount: number }>
@@ -44,6 +47,7 @@ export type CanonicalReport = {
     unresolvedRecordCount: number
     unsupportedCurrencies: string[]
     legacyFallbackCount: number
+    unresolvedTaxTreatmentCount: number
   }
   rows: ReportingRow[]
 }
@@ -84,6 +88,8 @@ export function buildCanonicalReport(input: {
   let expenseSigned = 0
   let unresolvedRecordCount = 0
   let categorized = 0
+  let deductibleSigned = 0
+  let unresolvedTaxTreatmentCount = 0
   const unsupportedCurrencies = new Set<string>()
   const categoryMap = new Map<string, { signed: number; count: number }>()
   const rows: ReportingRow[] = []
@@ -102,6 +108,12 @@ export function buildCanonicalReport(input: {
     if (decision?.bookkeepingNature === 'expense') {
       expenseSigned = safeAdd(expenseSigned, businessSigned)
       for (const allocation of business) {
+        const taxTreatment = currentTaxTreatment(allocation.taxTreatments ?? [])
+        if (!taxTreatment || taxTreatment.status === 'unresolved') {
+          unresolvedTaxTreatmentCount += 1
+        } else if (taxTreatment.status === 'deductible') {
+          deductibleSigned = safeAdd(deductibleSigned, taxTreatment.deductibleAmountCents!)
+        }
         if (!allocation.taxCategoryKey) continue
         categorized = safeAdd(categorized, -allocation.amountCents)
         const slot = categoryMap.get(allocation.taxCategoryKey) ?? { signed: 0, count: 0 }
@@ -130,6 +142,8 @@ export function buildCanonicalReport(input: {
     // Legacy storage did not distinguish income/nature. Preserve its historical
     // expense behavior only when a legacy category exists; never promote it to canonical truth.
     const businessExpense = record.categoryKey ? Math.abs(record.amountCents) : 0
+    // Legacy categories are compatibility facts, never trusted canonical tax treatment.
+    if (record.categoryKey) unresolvedTaxTreatmentCount += 1
     if (!record.categoryKey) unresolvedRecordCount += 1
     expenseSigned = safeAdd(expenseSigned, -businessExpense)
     if (record.categoryKey) {
@@ -150,6 +164,9 @@ export function buildCanonicalReport(input: {
   }
 
   const businessExpensesCents = safeAdd(0, -expenseSigned)
+  const estimatedDeductionsCents = unresolvedTaxTreatmentCount === 0
+    && unresolvedRecordCount === 0 && unsupportedCurrencies.size === 0
+    ? safeAdd(0, -deductibleSigned) : null
   const categoryTotals = [...categoryMap].map(([categoryKey, value]) => ({
     categoryKey, categoryLabel: input.categoryLabels?.[categoryKey] ?? categoryKey,
     amountCents: -value.signed, transactionCount: value.count,
@@ -159,12 +176,16 @@ export function buildCanonicalReport(input: {
     currency: input.currency, periodStart: input.periodStart, periodEnd: input.periodEnd,
     businessIncomeCents: income, businessExpensesCents,
     businessProfitCents: safeAdd(income, -businessExpensesCents),
+    estimatedDeductionsCents,
+    // No approved business-level "taxable income" definition exists yet. In
+    // particular, legacy income and personal tax assumptions are unavailable.
+    estimatedTaxableIncomeCents: null,
     categorizedBusinessExpensesCents: categorized,
     uncategorizedBusinessExpensesCents: safeAdd(businessExpensesCents, -categorized),
     categoryTotals,
     completeness: { isComplete: unresolvedRecordCount === 0 && unsupportedCurrencies.size === 0,
       unresolvedRecordCount, unsupportedCurrencies: [...unsupportedCurrencies].sort(),
-      legacyFallbackCount: input.legacyRecords.length },
+      legacyFallbackCount: input.legacyRecords.length, unresolvedTaxTreatmentCount },
     rows,
   }
 }
