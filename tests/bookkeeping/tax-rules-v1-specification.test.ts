@@ -5,6 +5,7 @@ import { PRODUCTION_TAX_RULE_CATALOG } from '../../app/lib/bookkeeping/tax-rule-
 const proposal = readFileSync('docs/TAX_RULES_V1_PROPOSAL.md', 'utf8')
 const catalog = readFileSync('docs/TAX_RULES_V1_CATALOG.md', 'utf8')
 const authorities = readFileSync('docs/TAX_RULES_V1_AUTHORITIES.md', 'utf8')
+const jobMaterials = readFileSync('docs/CUSTOMER_JOB_MATERIALS_V1_PROPOSAL.md', 'utf8')
 
 describe('Tax Rules v1 approval specification', () => {
   it('keeps researched Tier B/C/D rules inactive while documenting the seven approved Tier A rules', () => {
@@ -38,5 +39,22 @@ describe('Tax Rules v1 approval specification', () => {
     expect(proposal).toMatch(/never changes the source amount, business allocation,[\s\S]*P&L expense/i)
     expect(proposal).toMatch(/fine or entertainment expense can be economically business/i)
     expect(catalog).toMatch(/Every row preserves the full economic business portion on the P&L/i)
+  })
+
+  it('keeps customer-job materials as research without activating inventory or tax treatment', () => {
+    expect(PRODUCTION_TAX_RULE_CATALOG.rules).toHaveLength(7)
+    expect(jobMaterials).toMatch(/research and product specification only/i)
+    expect(jobMaterials).toMatch(/specific_customer_job[\s\S]*held_for_future_sale/i)
+    expect(jobMaterials).toMatch(/not by itself the\s+legal timing rule/i)
+    expect(jobMaterials).toMatch(/Do not activate a customer-job-material tax rule yet/i)
+    expect(jobMaterials).toMatch(/must never relabel a valid business purchase as Personal/i)
+  })
+
+  it('documents both section 471(c) methods and the 2025 eligibility threshold', () => {
+    expect(jobMaterials).toMatch(/\$31 million/i)
+    expect(jobMaterials).toMatch(/Non-incidental materials and supplies/i)
+    expect(jobMaterials).toMatch(/Non-AFS books-and-records method/i)
+    expect(jobMaterials).toMatch(/later of payment\/incurrence and provision/i)
+    expect(jobMaterials).toMatch(/Form 3115/i)
   })
 })
