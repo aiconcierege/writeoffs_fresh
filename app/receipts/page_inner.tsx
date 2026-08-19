@@ -1,471 +1,167 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { supabase } from '../../utils/supabase/client'
 import Link from 'next/link'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { supabase } from '../../utils/supabase/client'
+import type { ReceiptReadItem } from '../lib/bookkeeping/receipt-workflow'
 
-type UploadItem = {
-  file: File
-  checked: boolean
-  status: 'ready' | 'uploading' | 'saving' | 'done' | 'error'
-  message?: string
-  storagePath?: string
-  signedUrl?: string
-}
-
-type ExistingReceipt = {
-  id: string
-  storage_path: string
-  original_name?: string | null
-  mime_type: string
-  bytes: number
-  created_at: string
-  transaction_id: string | null
-  signed_url: string | null
-  vendor_hint?: string | null
-  date_hint?: string | null
-  total_hint?: number | null
-  ocr_provider?: string | null
-  ocr_status?: string | null
-  ocr_confidence?: number | null
-}
+type UploadItem = { file: File; state: 'ready' | 'working' | 'done' | 'error'; message?: string }
 
 export default function ReceiptsInner() {
+  const input = useRef<HTMLInputElement>(null)
   const [userId, setUserId] = useState<string | null>(null)
-
-  // Upload queue
-  const [items, setItems] = useState<UploadItem[]>([])
+  const [uploads, setUploads] = useState<UploadItem[]>([])
+  const [receipts, setReceipts] = useState<ReceiptReadItem[]>([])
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // Existing uploads
-  const [existing, setExisting] = useState<ExistingReceipt[]>([])
-  const [listBusy, setListBusy] = useState(false)
-  const [listErr, setListErr] = useState<string | null>(null)
-
-  // Diagnostics
-  const [ocrRunningId, setOcrRunningId] = useState<string | null>(null)
-
-  // By default hide linked receipts; toggle for debugging
-  const [showLinkedToo, setShowLinkedToo] = useState(false)
-
-  // Undo toast state
-  const [toastOpen, setToastOpen] = useState(false)
-  const [toastTxId, setToastTxId] = useState<string | null>(null)
-  const [toastMsg, setToastMsg] = useState<string>('Transaction created from OCR')
-  const toastTimerRef = useRef<number | null>(null)
-
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  const refreshExisting = useCallback(async () => {
-    setListBusy(true); setListErr(null)
-    try {
-      const qs = new URLSearchParams({ limit: '50' })
-      if (showLinkedToo) qs.set('all', '1') // show linked and unlinked when toggled
-      const res = await fetch(`/api/receipts?${qs.toString()}`, { cache: 'no-store' })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.error || 'Failed to load receipts')
-      setExisting(Array.isArray(data?.receipts) ? data.receipts as ExistingReceipt[] : [])
-    } catch (error: unknown) {
-      setListErr(errorMessage(error, 'Failed to load receipts'))
-    } finally {
-      setListBusy(false)
-    }
-  }, [showLinkedToo])
+  const refresh = useCallback(async () => {
+    const response = await fetch('/api/receipts?limit=100', { cache: 'no-store' })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error ?? 'Unable to load receipts.')
+    setReceipts(data.receipts ?? [])
+  }, [])
 
   useEffect(() => {
-    let ignore = false
-    ;(async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (ignore) return
-        if (!user) { window.location.href = '/login'; return }
-        setUserId(user.id)
-        await refreshExisting()
-      } catch { /* no-op */ }
+    void (async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { window.location.href = '/login'; return }
+      setUserId(user.id)
+      try { await refresh() } catch (cause) { setError(message(cause)) }
     })()
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (!session?.user) window.location.href = '/login'
-    })
-    return () => { ignore = true; sub.subscription.unsubscribe() }
-  }, [refreshExisting])
+  }, [refresh])
 
-  function safeTestFileType(type: string): boolean {
-    return /^(?:image\/.+|application\/pdf)$/.test(type || '')
+  function select(files: FileList | null) {
+    if (!files) return
+    setUploads((current) => [...Array.from(files).map((file): UploadItem => ({
+      file, state: /^(image\/.+|application\/pdf)$/.test(file.type) ? 'ready' : 'error',
+      message: /^(image\/.+|application\/pdf)$/.test(file.type) ? undefined : 'Choose an image or PDF.',
+    })), ...current])
   }
 
-  function onFilesSelected(files: FileList | null) {
-    try {
-      if (!files) return
-      const incoming: UploadItem[] = []
-      for (const f of Array.from(files)) {
-        if (!safeTestFileType(f.type)) {
-          incoming.push({ file: f, checked: false, status: 'error', message: 'Only images or PDFs' })
-        } else {
-          incoming.push({ file: f, checked: true, status: 'ready' })
-        }
-      }
-      setItems(prev => [...incoming, ...prev])
-    } catch {}
-  }
-
-  function onDrop(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault()
-    onFilesSelected(e.dataTransfer.files)
-  }
-
-  function uuidv4() {
-    try { if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID() } catch {}
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8)
-      return v.toString(16)
-    })
-  }
-
-  async function annotateById(id: string) {
-    try {
-      await fetch('/api/receipts/annotate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      })
-    } catch {}
-  }
-
-  async function handleUploadSelected() {
+  async function upload() {
     if (!userId) return
-    const queue = items.slice()
-    setBusy(true)
-
-    for (let i = 0; i < queue.length; i++) {
+    setBusy(true); setError(null)
+    const next = [...uploads]
+    for (let index = 0; index < next.length; index += 1) {
+      if (next[index].state !== 'ready') continue
+      const item = next[index]
       try {
-        const it = queue[i]
-        if (!it.checked || it.status !== 'ready') continue
-
-        // 1) Upload to Storage
-        queue[i] = { ...it, status: 'uploading', message: 'Uploading…' }
-        setItems([...queue])
-
-        const ext = extFromName(it.file.name) || extFromType(it.file.type) || 'bin'
-        const path = `receipts/${userId}/${uuidv4()}.${ext}`
-
-        const { error: upErr } = await supabase.storage
-          .from('receipts')
-          .upload(path, it.file, {
-            contentType: it.file.type || 'application/octet-stream',
-            upsert: false
-          })
-
-        if (upErr) {
-          queue[i] = { ...it, status: 'error', message: upErr.message }
-          setItems([...queue])
-          continue
-        }
-
-        // 2) Save metadata row (store original_name) and RETURN the id
-        queue[i] = { ...it, status: 'saving', message: 'Saving metadata…', storagePath: path }
-        setItems([...queue])
-
-        const { data: inserted, error: dbErr } = await supabase
-          .from('receipts')
-          .insert({
-            user_id: userId,
-            transaction_id: null,
-            storage_path: path,
-            original_name: it.file.name,
-            mime_type: it.file.type || 'application/octet-stream',
-            bytes: it.file.size
-          })
-          .select('id')
-          .single()
-
-        if (dbErr || !inserted?.id) {
-          queue[i] = { ...it, status: 'error', message: dbErr?.message || 'Insert failed' }
-          setItems([...queue])
-          continue
-        }
-
-        // 3) Optional short preview link
-        const { data: signed } = await supabase
-          .storage
-          .from('receipts')
-          .createSignedUrl(path, 60)
-
-        queue[i] = {
-          ...it,
-          status: 'done',
-          message: 'Uploaded',
-          storagePath: path,
-          signedUrl: signed?.signedUrl || undefined
-        }
-        setItems([...queue])
-
-        // 4) Auto-annotate from filename
-        await annotateById(inserted.id)
-      } catch (error: unknown) {
-        queue[i] = { ...queue[i], status: 'error', message: errorMessage(error, 'Upload failed') }
-        setItems([...queue])
+        next[index] = { ...item, state: 'working', message: 'Uploading…' }; setUploads([...next])
+        const fingerprint = await sha256(item.file)
+        const id = crypto.randomUUID()
+        const storagePath = `receipts/${userId}/${fingerprint}`
+        const result = await supabase.storage.from('receipts').upload(storagePath, item.file, {
+          contentType: item.file.type || 'application/octet-stream', upsert: false,
+        })
+        if (result.error && !/already exists|duplicate/i.test(result.error.message)) throw result.error
+        const saved = await fetch('/api/receipts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, uploadFingerprint: fingerprint, storagePath,
+            originalName: item.file.name, mimeType: item.file.type || 'application/octet-stream', bytes: item.file.size }) })
+        const savedData = await saved.json().catch(() => ({}))
+        if (!saved.ok) throw new Error(savedData.error ?? 'Unable to register receipt.')
+        const receiptId = savedData.receipt.id as string
+        await fetch('/api/receipts/annotate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: receiptId }) })
+        next[index] = { ...item, state: 'done', message: 'Receipt saved' }; setUploads([...next])
+      } catch (cause) {
+        next[index] = { ...item, state: 'error', message: message(cause) }; setUploads([...next])
       }
     }
-
-    setBusy(false)
-    await refreshExisting()
+    setBusy(false); await refresh()
   }
 
-  async function deleteReceipt(id: string) {
-    const ok = window.confirm('Delete this receipt and its file? This cannot be undone.')
-    if (!ok) return
-    const prev = existing
-    setExisting(prev.filter(r => r.id !== id))
+  async function action(id: string, kind: 'keep' | 'discard' | 'ocr') {
+    setBusy(true); setError(null)
     try {
-      const res = await fetch('/api/receipts/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data?.error || 'Failed to delete receipt')
-      }
-    } catch (e) {
-      setExisting(prev)
-      alert((e as Error).message || 'Failed to delete receipt')
-    }
+      const endpoint = kind === 'ocr' ? '/api/receipts/ocr' : `/api/bookkeeping/receipts/${id}/${kind}`
+      const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: kind === 'ocr' ? JSON.stringify({ id }) : undefined })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok || data.ok === false) throw new Error(data.error ?? 'Unable to update receipt.')
+      await refresh()
+    } catch (cause) { setError(message(cause)) } finally { setBusy(false) }
   }
 
-  async function runOCR(id: string) {
-    setOcrRunningId(id)
-    try {
-      const res = await fetch('/api/receipts/ocr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok || data?.ok === false) {
-        const msg = data?.error || 'OCR failed'
-        alert(msg)
-      } else {
-        const txId = typeof data?.transaction_id === 'string' ? data.transaction_id : null
-        if (txId) {
-          setToastTxId(txId)
-          setToastMsg(data?.needs_review ? 'Transaction created (needs review)' : 'Transaction created')
-          setToastOpen(true)
-          if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
-          toastTimerRef.current = window.setTimeout(() => setToastOpen(false), 8000)
-        }
-      }
-      await refreshExisting()
-    } catch (error: unknown) {
-      alert(errorMessage(error, 'OCR failed'))
-    } finally {
-      setOcrRunningId(null)
-    }
-  }
+  const active = receipts.filter((receipt) => ['uploaded', 'extraction_completed', 'unmatched'].includes(receipt.state))
+  const handled = receipts.filter((receipt) => ['matched', 'kept', 'legacy'].includes(receipt.state))
+  return <main className="min-h-screen bg-[#fbfbfa]">
+    <section className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+      <div className="flex flex-col gap-5 border-b border-slate-200 pb-7 sm:flex-row sm:items-end sm:justify-between">
+        <div><h1 className="text-3xl font-semibold tracking-[-0.025em] text-slate-950">Receipts</h1>
+          <p className="mt-2 text-sm text-slate-600">Keep purchase documents organized with your business activity.</p></div>
+        <Link href="/transactions" className="text-sm font-semibold text-[#243186] hover:underline">Back to Transactions</Link>
+      </div>
 
-  async function undoOCR() {
-    if (!toastTxId) return
-    try {
-      const res = await fetch('/api/tx/undo-ocr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tx_id: toastTxId })
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok || data?.ok === false) {
-        alert(data?.error || 'Undo failed')
-        return
-      }
-      setToastOpen(false)
-      setToastTxId(null)
-      await refreshExisting()
-    } catch (error: unknown) {
-      alert(errorMessage(error, 'Undo failed'))
-    }
-  }
-
-  return (
-    <main className="min-h-screen bg-muted">
-      <section className="mx-auto max-w-7xl px-6 pt-8">
-        <div className="mb-2 inline-block w-12 border-b-4" style={{ borderColor: 'var(--mint-500)' }} />
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Receipts</h1>
-          <Link href="/transactions" className="btn btn-secondary">Back to Transactions</Link>
+      <section className="border-b border-slate-200 py-8" aria-labelledby="upload-heading">
+        <h2 id="upload-heading" className="text-lg font-semibold text-slate-950">Add receipts</h2>
+        <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-white px-5 py-7 text-center"
+          onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); select(event.dataTransfer.files) }}>
+          <p className="text-sm text-slate-600">Drop images or PDFs here, or choose files from your device.</p>
+          <button type="button" disabled={!userId} onClick={() => input.current?.click()}
+            className="mt-4 min-h-11 rounded-md bg-[#243186] px-5 text-sm font-semibold text-white">Choose files</button>
+          <input ref={input} type="file" multiple accept="image/*,application/pdf" className="sr-only" onChange={(event) => select(event.target.files)} />
         </div>
-        <p className="mt-2 text-sm text-muted">
-          Upload images/PDFs, run OCR, and link receipts to transactions.
-        </p>
+        {uploads.length > 0 && <div className="mt-4 space-y-2">{uploads.map((item, index) => <div key={`${item.file.name}:${index}`} className="flex justify-between gap-4 text-sm">
+          <span className="truncate text-slate-800">{item.file.name}</span><span className="text-slate-500">{item.message ?? 'Ready'}</span></div>)}
+          <button type="button" disabled={busy || !uploads.some((item) => item.state === 'ready')} onClick={upload}
+            className="mt-3 min-h-10 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 disabled:opacity-50">Upload selected</button></div>}
       </section>
 
-      {/* Uploader card */}
-      <section className="mx-auto mt-6 max-w-7xl px-6">
-        <div className="card p-5">
-          <div
-            className="rounded-2xl border-2 border-dashed p-8 text-center"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={onDrop}
-          >
-            <div className="text-sm text-neutral-700">
-              Drag & drop images/PDFs here, or
-            </div>
-            <div className="mt-2">
-              <button
-                onClick={() => inputRef.current?.click()}
-                className="btn btn-secondary"
-                disabled={!userId}
-              >
-                Choose files
-              </button>
-            </div>
-            <input
-              ref={inputRef}
-              type="file"
-              multiple
-              accept="image/*,application/pdf"
-              className="hidden"
-              onChange={(e) => onFilesSelected(e.target.files)}
-            />
-          </div>
-
-          {/* Upload actions */}
-          <div className="mt-4 flex items-center gap-3">
-            <button
-              onClick={handleUploadSelected}
-              disabled={busy || !userId || items.every(i => i.status !== 'ready' || !i.checked)}
-              className="btn btn-primary disabled:opacity-60"
-            >
-              {busy ? 'Uploading…' : 'Upload selected'}
-            </button>
-            <button
-              onClick={() => setItems([])}
-              disabled={busy || items.length === 0}
-              className="btn btn-secondary disabled:opacity-60"
-            >
-              Clear list
-            </button>
-            <button
-              onClick={refreshExisting}
-              disabled={listBusy}
-              className="ml-auto btn btn-secondary"
-            >
-              {listBusy ? 'Refreshing…' : 'Refresh uploads'}
-            </button>
-            <label className="ml-2 inline-flex items-center gap-2 text-xs text-neutral-700">
-              <input
-                type="checkbox"
-                checked={showLinkedToo}
-                onChange={(e) => setShowLinkedToo(e.target.checked)}
-              />
-              Show linked too
-            </label>
-          </div>
-        </div>
+      {error && <p role="alert" className="mt-6 rounded-md bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
+      <section className="py-8" aria-labelledby="attention-heading"><h2 id="attention-heading" className="text-lg font-semibold text-slate-950">Needs attention</h2>
+        {active.length === 0 ? <p className="mt-3 text-sm text-slate-600">No receipts need your help.</p>
+          : <div className="mt-3 divide-y divide-slate-200">{active.map((receipt) => <ReceiptRow key={receipt.id} receipt={receipt} busy={busy} action={action} attention />)}</div>}
       </section>
-
-      {/* My uploads card */}
-      <section className="mx-auto mt-6 max-w-7xl px-6">
-        <div className="card p-0">
-          <div className="flex items-center justify-between border-b border-surface px-4 py-3">
-            <div className="text-base font-semibold">My uploads</div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50">
-                <tr>
-                  <Th>File</Th>
-                  <Th>Hints</Th>
-                  <Th>OCR</Th>
-                  <Th>Linked Tx</Th>
-                  <Th>Type</Th>
-                  <Th className="text-right">Size</Th>
-                  <Th>Created</Th>
-                  <Th className="w-[220px]">Actions</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {listErr && (
-                  <tr><Td colSpan={8}><div className="py-6 text-red-700">{listErr}</div></Td></tr>
-                )}
-                {!listErr && existing.length === 0 && (
-                  <tr><Td colSpan={8}><div className="py-10 text-center text-neutral-600">No uploads found. Use the uploader above, then refresh.</div></Td></tr>
-                )}
-                {!listErr && existing.map((r) => (
-                  <tr key={r.id} className="odd:bg-white even:bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <Td className="max-w-[40ch] truncate" title={r.original_name || r.storage_path}>
-                      <div className="font-mono">{r.original_name || basename(r.storage_path)}</div>
-                      {r.signed_url && (<a className="text-xs underline" href={r.signed_url} target="_blank" rel="noreferrer">Preview (60s)</a>)}
-                    </Td>
-
-                    <Td className="align-top">
-                      {r.vendor_hint || r.date_hint || typeof r.total_hint === 'number'
-                        ? (
-                          <div className="space-y-0.5 text-xs">
-                            {r.vendor_hint && <div><span className="text-neutral-500">Vendor:</span> {r.vendor_hint}</div>}
-                            {r.date_hint && <div><span className="text-neutral-500">Date:</span> {r.date_hint}</div>}
-                            {typeof r.total_hint === 'number' && <div><span className="text-neutral-500">Total:</span> ${r.total_hint.toFixed(2)}</div>}
-                          </div>
-                        )
-                        : (<span className="text-xs text-neutral-500">No hints yet</span>)
-                      }
-                    </Td>
-
-                    <Td className="align-top text-xs">
-                      {r.ocr_status
-                        ? (
-                          <div className="space-y-0.5">
-                            <div>Status: <span className="font-medium">{r.ocr_status}</span></div>
-                            {r.ocr_provider && <div>Provider: {r.ocr_provider}</div>}
-                            {typeof r.ocr_confidence === 'number' && <div>Conf: {r.ocr_confidence.toFixed(0)}%</div>}
-                          </div>
-                        )
-                        : (<span className="text-neutral-500">—</span>)
-                      }
-                    </Td>
-
-                    <Td>{r.transaction_id ? (<span className="font-mono">{r.transaction_id}</span>) : (<span className="text-neutral-500">—</span>)}</Td>
-                    <Td>{r.mime_type}</Td>
-                    <Td className="text-right">{formatBytes(r.bytes)}</Td>
-                    <Td>{new Date(r.created_at).toLocaleString()}</Td>
-
-                    <Td>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button onClick={() => runOCR(r.id)} disabled={ocrRunningId === r.id} className="btn btn-secondary" aria-label="Run OCR">
-                          {ocrRunningId === r.id ? 'Running…' : 'Run OCR'}
-                        </button>
-                        <button onClick={() => deleteReceipt(r.id)} className="btn btn-secondary" aria-label="Delete receipt">
-                          Delete
-                        </button>
-                      </div>
-                    </Td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* Undo toast */}
-      {toastOpen && (
-        <div className="fixed inset-x-0 bottom-0 z-50 px-4 pb-6">
-          <div className="mx-auto max-w-md card px-4 py-3 shadow-md">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm text-neutral-800">{toastMsg}</div>
-              <div className="flex items-center gap-2">
-                <button onClick={undoOCR} className="btn btn-secondary">Undo</button>
-                <button onClick={() => setToastOpen(false)} className="btn btn-secondary">Dismiss</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </main>
-  )
+      {handled.length > 0 && <section className="border-t border-slate-200 py-8" aria-labelledby="handled-heading"><h2 id="handled-heading" className="text-lg font-semibold text-slate-950">Organized receipts</h2>
+        <div className="mt-3 divide-y divide-slate-200">{handled.map((receipt) => <ReceiptRow key={receipt.id} receipt={receipt} busy={busy} action={action} />)}</div></section>}
+    </section>
+  </main>
 }
 
-function Th({ children, className = '' }: { children: ReactNode; className?: string }) { return <th className={`px-3 py-2 font-medium ${className}`}>{children}</th> }
-function Td({ children, className = '', colSpan, title }: { children: ReactNode; className?: string; colSpan?: number; title?: string }) { return <td className={`px-3 py-2 align-top ${className}`} colSpan={colSpan} title={title}>{children}</td> }
-function extFromName(name: string): string | null { const m = name.match(/\.([a-zA-Z0-9]+)$/); return m ? m[1].toLowerCase() : null }
-function extFromType(type: string): string | null { if (!type) return null; if (type === 'application/pdf') return 'pdf'; if (type.startsWith('image/')) return type.split('/')[1]; return null }
-function formatBytes(n: number) { if (n < 1024) return `${n} B`; if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`; return `${(n / (1024 * 1024)).toFixed(1)} MB` }
-function basename(p: string) { const parts = p.split('/'); return parts[parts.length - 1] || p }
-function errorMessage(error: unknown, fallback: string) { return error instanceof Error && error.message ? error.message : fallback }
+function ReceiptRow({ receipt, busy, action, attention = false }: { receipt: ReceiptReadItem; busy: boolean;
+  action: (id: string, kind: 'keep' | 'discard' | 'ocr') => Promise<void>; attention?: boolean }) {
+  const [showFacts, setShowFacts] = useState(false)
+  const [factError, setFactError] = useState<string | null>(null)
+  const amount = receipt.totalAmountCents == null ? null : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(receipt.totalAmountCents / 100)
+  const canKeep = receipt.totalAmountCents != null && receipt.occurredOn != null
+  return <article className="grid gap-4 py-5 sm:grid-cols-[1fr_auto] sm:items-center">
+    <div className="min-w-0"><div className="flex items-center gap-3"><p className="truncate font-medium text-slate-950">{receipt.merchant ?? receipt.originalName}</p>
+      <span className="text-xs text-slate-500">{receipt.state === 'kept' ? 'Receipt only' : receipt.state === 'matched' ? 'Matched' : receipt.state === 'legacy' ? 'Historical receipt' : 'Unmatched'}</span></div>
+      <p className="mt-1 text-sm text-slate-600">{[receipt.occurredOn, amount].filter(Boolean).join(' · ') || 'Waiting for receipt details'}</p>
+      {receipt.signedUrl && <a href={receipt.signedUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-medium text-[#243186] hover:underline">View receipt</a>}
+    </div>
+    {attention && <div className="flex flex-wrap gap-2">
+      {!canKeep && <button disabled={busy} onClick={() => action(receipt.id, 'ocr')} className="min-h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold">Read receipt</button>}
+      <button disabled={busy} onClick={() => canKeep ? action(receipt.id, 'keep') : setShowFacts(true)}
+        className="min-h-10 rounded-md bg-[#243186] px-3 text-sm font-semibold text-white disabled:opacity-40">Keep receipt</button>
+      <button disabled={busy} onClick={() => action(receipt.id, 'discard')} className="min-h-10 px-3 text-sm font-semibold text-slate-600 hover:underline">Discard receipt</button>
+    </div>}
+    {attention && showFacts && !canKeep && <form className="sm:col-span-2 grid gap-3 rounded-md bg-slate-50 p-4 sm:grid-cols-3" onSubmit={async (event) => {
+      event.preventDefault(); setFactError(null)
+      const form = new FormData(event.currentTarget)
+      const dollars = Number(form.get('total'))
+      try {
+        const response = await fetch(`/api/bookkeeping/receipts/${receipt.id}/keep-with-facts`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+            merchant: form.get('merchant'), occurredOn: form.get('date'), totalAmountCents: Math.round(dollars * 100),
+          }),
+        })
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(data.error ?? 'Unable to keep receipt.')
+        window.location.reload()
+      } catch (cause) { setFactError(message(cause)) }
+    }}>
+      <label className="text-xs font-medium text-slate-700">Merchant<input name="merchant" required maxLength={500} defaultValue={receipt.merchant ?? ''} className="mt-1 min-h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" /></label>
+      <label className="text-xs font-medium text-slate-700">Purchase date<input name="date" required type="date" defaultValue={receipt.occurredOn ?? ''} className="mt-1 min-h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" /></label>
+      <label className="text-xs font-medium text-slate-700">Receipt total<input name="total" required type="number" min="0.01" step="0.01" className="mt-1 min-h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" /></label>
+      <div className="sm:col-span-3 flex items-center gap-3"><button className="min-h-10 rounded-md bg-[#243186] px-4 text-sm font-semibold text-white">Save and keep</button>
+        <button type="button" onClick={() => setShowFacts(false)} className="text-sm text-slate-600">Cancel</button>{factError && <span role="alert" className="text-sm text-red-700">{factError}</span>}</div>
+    </form>}
+  </article>
+}
+
+async function sha256(file: File) {
+  const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer())
+  return Array.from(new Uint8Array(digest)).map((value) => value.toString(16).padStart(2, '0')).join('')
+}
+function message(cause: unknown) { return cause instanceof Error ? cause.message : 'Something went wrong.' }

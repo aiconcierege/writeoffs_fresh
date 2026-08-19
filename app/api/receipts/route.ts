@@ -1,100 +1,42 @@
-/* File: app/api/receipts/route.ts
- * Version: v5
- * Date: 2025-11-07
- * Notes:
- *   - GET  /api/receipts?limit=20 → list recent receipts (linked or not) for the signed-in user
- *     RETURNS: id, storage_path, original_name, mime_type, bytes, created_at, transaction_id,
- *              vendor_hint, date_hint, total_hint, ocr_provider, ocr_status, ocr_confidence,
- *              signed_url
- *   - POST /api/receipts          → link a receipt to a transaction { receipt_id, transaction_id }
- */
-import { NextResponse } from "next/server"
-import { createServerSupabase } from "../../../utils/supabase/server"
+import { NextResponse } from 'next/server'
+import { createServerSupabase } from '../../../utils/supabase/server'
+import { listCanonicalReceipts, registerReceipt } from '../../lib/bookkeeping/receipt-workflow'
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const HASH = /^[a-f0-9]{64}$/
 
 export async function GET(request: Request) {
-  const supabase = await createServerSupabase()
-  const url = new URL(request.url)
-  const limit = Math.max(1, Math.min(100, Number(url.searchParams.get("limit") ?? "20")))
-
-  // 🔒 Auth
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-
-  // 📄 Fetch recent receipts for this user (linked or not)
-  const { data: rows, error } = await supabase
-    .from("receipts")
-    .select(
-      `
-      id,
-      storage_path,
-      original_name,
-      mime_type,
-      bytes,
-      created_at,
-      transaction_id,
-      vendor_hint,
-      date_hint,
-      total_hint,
-      ocr_provider,
-      ocr_status,
-      ocr_confidence
-    `
-    )
-    .order("created_at", { ascending: false })
-    .limit(limit)
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-
-  // ✅ Null-safe: ensure rows is an array before mapping
-  const safeRows = Array.isArray(rows) ? rows : []
-
-  // 🔐 Attach short-lived signed URLs
-  const withSigned = await Promise.all(
-    safeRows.map(async (r: any) => {
-      const { data: signed } = await supabase.storage
-        .from("receipts")
-        .createSignedUrl(r.storage_path, 60)
-      return { ...r, signed_url: signed?.signedUrl ?? null }
-    })
-  )
-
-  return NextResponse.json({ ok: true, receipts: withSigned })
+  try {
+    const limit = Number(new URL(request.url).searchParams.get('limit') ?? 50)
+    const receipts = await listCanonicalReceipts({ supabase: await createServerSupabase(), limit })
+    return NextResponse.json({ ok: true, receipts })
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : 'Unable to load receipts.'
+    return NextResponse.json({ error: message }, { status: /authenticated/.test(message) ? 401 : 400 })
+  }
 }
 
 export async function POST(request: Request) {
   const supabase = await createServerSupabase()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-
-  let receipt_id: string | undefined
-  let transaction_id: string | undefined
-
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  let body: Record<string, unknown>
+  try { body = await request.json() } catch { return NextResponse.json({ error: 'invalid json' }, { status: 400 }) }
+  const keys = Object.keys(body).sort()
+  const expected = ['bytes', 'id', 'mimeType', 'originalName', 'storagePath', 'uploadFingerprint'].sort()
+  if (keys.length !== expected.length || keys.some((key, index) => key !== expected[index]) ||
+      typeof body.id !== 'string' || !UUID.test(body.id) ||
+      typeof body.uploadFingerprint !== 'string' || !HASH.test(body.uploadFingerprint) ||
+      typeof body.storagePath !== 'string' || typeof body.originalName !== 'string' ||
+      typeof body.mimeType !== 'string' || !Number.isSafeInteger(body.bytes)) {
+    return NextResponse.json({ error: 'invalid receipt metadata' }, { status: 400 })
+  }
   try {
-    const body = await request.json()
-    receipt_id = body?.receipt_id
-    transaction_id = body?.transaction_id
-  } catch {
-    return NextResponse.json({ error: "invalid json" }, { status: 400 })
+    const receipt = await registerReceipt({ supabase, id: body.id,
+      uploadFingerprint: body.uploadFingerprint, storagePath: body.storagePath,
+      originalName: body.originalName, mimeType: body.mimeType, bytes: body.bytes as number })
+    return NextResponse.json({ ok: true, receipt })
+  } catch (cause) {
+    return NextResponse.json({ error: cause instanceof Error ? cause.message : 'Unable to save receipt.' }, { status: 400 })
   }
-
-  if (!receipt_id || !transaction_id) {
-    return NextResponse.json(
-      { error: "missing receipt_id or transaction_id" },
-      { status: 400 }
-    )
-  }
-
-  const { error } = await supabase
-    .from("receipts")
-    .update({ transaction_id })
-    .eq("id", receipt_id)
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-
-  return NextResponse.json({ ok: true })
 }

@@ -36,7 +36,7 @@ export default async function TransactionsPage({ searchParams }: {
           <time className="hidden text-sm text-slate-500 sm:block">{formatDate(row.date)}</time>
           <div className="min-w-0"><p className="truncate font-medium text-slate-950">{row.vendor}</p>
             <p className="mt-1 text-xs text-slate-500 sm:hidden">{formatDate(row.date)}</p>
-            <p className="mt-1 text-sm text-slate-600">{row.treatmentLabel}</p></div>
+            <p className="mt-1 text-sm text-slate-600">{row.treatmentLabel}{row.sourceLabel ? ` · ${row.sourceLabel}` : ''}</p></div>
           <div className="hidden text-sm text-slate-600 sm:block">{row.has_receipt ? 'Receipt attached' : row.receiptLost ? 'Receipt unavailable' : 'No receipt attached'}</div>
           <p className={`text-right font-medium tabular-nums ${row.amountCents < 0 ? 'text-slate-950' : 'text-emerald-800'}`}>{money.format(row.amount)}</p>
         </Link>)}

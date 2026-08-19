@@ -449,7 +449,7 @@ export class SupabaseBookkeepingRepository
     input: Parameters<BookkeepingRepository['attachReceiptWithDocumentation']>[0]
   ) {
     const { data, error } = await this.supabase.rpc(
-      'attach_bookkeeping_receipt_with_documentation',
+      'attach_bookkeeping_receipt_journey',
       {
         p_bookkeeping_record_id: input.recordId,
         p_receipt_id: input.receiptId,
@@ -482,7 +482,7 @@ export class SupabaseBookkeepingRepository
     input: Parameters<BookkeepingRepository['revokeReceiptLinkWithDocumentation']>[0]
   ) {
     const { data, error } = await this.supabase.rpc(
-      'revoke_bookkeeping_receipt_with_documentation',
+      'revoke_bookkeeping_receipt_journey',
       {
         p_document_link_id: input.linkId,
         p_reason: input.reason,

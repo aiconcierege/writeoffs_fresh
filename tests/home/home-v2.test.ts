@@ -36,7 +36,7 @@ describe('WriteOffs Home v2', () => {
 
   it('does not claim books are current while canonical activity is incomplete', () => {
     expect(home).toContain('const processingComplete = summary.completeness.isComplete')
-    expect(home).toMatch(/questionCount > 0[\s\S]*processingComplete[\s\S]*Your books are up to date/)
+    expect(home).toMatch(/attentionCount > 0[\s\S]*processingComplete[\s\S]*Your books are up to date/)
     expect(home).toMatch(/processingComplete[\s\S]*WriteOffs will keep working in the background/)
     expect(home).toContain('Some activity is still being processed.')
   })

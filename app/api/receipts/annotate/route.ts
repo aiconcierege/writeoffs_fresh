@@ -13,6 +13,7 @@
  */
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../utils/supabase/server'
+import { recordReceiptExtraction } from '../../../lib/bookkeeping/receipt-workflow'
 
 export async function POST(req: Request) {
   const supabase = await createServerSupabase()
@@ -52,30 +53,12 @@ export async function POST(req: Request) {
   const total = parseAmountFromString(sourceName) // number or null
   const vendor = parseVendorFromString(sourceName) // string or null
 
-  // Build update payload (only set if found)
-  const payload: {
-    vendor_hint?: string
-    date_hint?: string
-    total_hint?: number
-  } = {}
-  if (vendor) payload.vendor_hint = vendor
-  if (date) payload.date_hint = date
-  if (typeof total === 'number') payload.total_hint = total
-
-  if (Object.keys(payload).length === 0) {
-    return NextResponse.json({
-      ok: true,
-      parsed: { vendor_hint: null, date_hint: null, total_hint: null },
-      note: 'No hints parsed from filename.'
-    })
-  }
-
-  const { error: updErr } = await supabase
-    .from('receipts')
-    .update(payload)
-    .eq('id', rec.id)
-
-  if (updErr) return NextResponse.json({ error: updErr.message }, { status: 400 })
+  await recordReceiptExtraction({
+    supabase, receiptId: rec.id, extractionKey: 'filename:v1', provider: 'filename',
+    merchant: vendor, occurredOn: date,
+    totalAmountCents: total == null ? null : Math.round(total * 100),
+    rawPayload: null,
+  })
 
   return NextResponse.json({
     ok: true,

@@ -17,6 +17,7 @@ let preMatchedTransaction: string
 let preMatchedRecord: string
 let receiptA: string
 let receiptB: string
+let receiptForExistingRecord: string
 
 function client() {
   return createClient(localUrl!, localAnonKey!, {
@@ -35,6 +36,7 @@ describe.skipIf(!runLocal)('canonical receipt matching on local Supabase', () =>
     ;[transactionA, preMatchedTransaction] = owner.transactionIds
     receiptA = await createLocalReceipt({ userId: owner.userId })
     receiptB = await createLocalReceipt({ userId: other.userId })
+    receiptForExistingRecord = await createLocalReceipt({ userId: owner.userId })
     preMatchedRecord = (await resolveFinancialTransactionRecord({
       supabase: ownerClient, financialTransactionId: preMatchedTransaction,
     })).record.id
@@ -110,7 +112,7 @@ describe.skipIf(!runLocal)('canonical receipt matching on local Supabase', () =>
     const matched = await attachReceiptToFinancialTransaction({
       supabase: ownerClient,
       financialTransactionId: preMatchedTransaction,
-      receiptId: receiptA,
+      receiptId: receiptForExistingRecord,
     })
     expect(matched.record.id).toBe(preMatchedRecord)
   })
@@ -123,7 +125,7 @@ describe.skipIf(!runLocal)('canonical receipt matching on local Supabase', () =>
       receiptId: receiptA,
     })
     const { error: revokeError } = await supabase.rpc(
-      'revoke_bookkeeping_receipt_with_documentation',
+      'revoke_bookkeeping_receipt_journey',
       {
         p_document_link_id: matched.link.id,
         p_reason: 'Local evidence-retention test',

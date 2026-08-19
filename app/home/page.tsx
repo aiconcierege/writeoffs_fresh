@@ -4,6 +4,7 @@ import { createServerSupabase } from '../../utils/supabase/server'
 import { customerQuestionHeadline } from '../lib/bookkeeping/customer-questions'
 import { getAuthenticatedCanonicalFinancialSummary } from '../lib/bookkeeping/financial-summary-service'
 import { HomeGreeting } from './HomeGreeting'
+import { countReceiptsNeedingAttention } from '../lib/bookkeeping/receipt-workflow'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -30,7 +31,9 @@ export default async function HomePage() {
     periodEnd,
     currency: 'USD',
   })
+  const receiptAttentionCount = await countReceiptsNeedingAttention(supabase)
   const questionCount = summary.completeness.unresolvedCustomerQuestionCount
+  const attentionCount = questionCount + receiptAttentionCount
   const processingComplete = summary.completeness.isComplete
   const firstName = firstNameFromMetadata(user.user_metadata ?? {})
   const financialLines = [
@@ -45,14 +48,14 @@ export default async function HomePage() {
         <header className="max-w-2xl">
           <HomeGreeting firstName={firstName} />
           <h1 className="mt-3 text-3xl font-semibold tracking-[-0.025em] text-slate-950 sm:text-4xl">
-            {questionCount > 0
-              ? `${questionCount} ${questionCount === 1 ? 'thing needs' : 'things need'} your attention.`
+            {attentionCount > 0
+              ? `${attentionCount} ${attentionCount === 1 ? 'thing needs' : 'things need'} your attention.`
               : processingComplete
                 ? 'Your books are up to date.'
                 : 'WriteOffs is working.'}
           </h1>
           <p className="mt-3 max-w-xl text-base leading-6 text-slate-600">
-            {questionCount > 0
+            {attentionCount > 0
               ? 'A few quick answers will help WriteOffs keep your records organized.'
               : processingComplete
                 ? 'WriteOffs will keep working in the background.'
@@ -84,9 +87,18 @@ export default async function HomePage() {
           </section>
         )}
 
+        {receiptAttentionCount > 0 && (
+          <section aria-labelledby="receipt-attention-heading" className="border-b border-slate-200 py-7">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"><div>
+              <h2 id="receipt-attention-heading" className="text-lg font-semibold text-slate-950">Receipts need your attention</h2>
+              <p className="mt-2 text-sm text-slate-600">{receiptAttentionCount} uploaded {receiptAttentionCount === 1 ? 'receipt needs' : 'receipts need'} a quick decision.</p>
+            </div><Link href="/receipts" className="text-sm font-semibold text-[#243186]">Handle receipts →</Link></div>
+          </section>
+        )}
+
         <section
           aria-labelledby="year-to-date-heading"
-          className={`${questionCount > 0 ? 'mt-10' : 'mt-11'} border-t border-slate-200 pt-8 sm:pt-9`}
+          className={`${attentionCount > 0 ? 'mt-10' : 'mt-11'} border-t border-slate-200 pt-8 sm:pt-9`}
         >
           <h2 id="year-to-date-heading" className="text-xs font-semibold tracking-[0.16em] text-slate-500">
             YEAR TO DATE

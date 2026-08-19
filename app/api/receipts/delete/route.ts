@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   // 1) Fetch the row to get storage_path (RLS ensures caller owns it)
   const { data: row, error: fetchErr } = await supabase
     .from('receipts')
-    .select('id, storage_path')
+    .select('id, storage_path, upload_fingerprint')
     .eq('id', id)
     .eq('user_id', user.id)
     .maybeSingle()
@@ -56,6 +56,9 @@ export async function POST(req: Request) {
       { status: 409 }
     )
   }
+
+  if (row.upload_fingerprint) return NextResponse.json(
+    { error: 'Use the receipt Discard action so its history is preserved.' }, { status: 409 })
 
   // 2) Delete the file from Storage (ignore if missing)
   const storagePath = row.storage_path as string

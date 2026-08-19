@@ -15,15 +15,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 type Receipt = {
   id: string
-  storage_path: string
-  mime_type: string
+  originalName: string
+  mimeType: string
   bytes: number
-  created_at: string
-  transaction_id: string | null
-  signed_url: string | null
-  vendor_hint?: string | null
-  date_hint?: string | null
-  total_hint?: number | null
+  createdAt: string
+  signedUrl: string | null
+  merchant?: string | null
+  occurredOn?: string | null
+  totalAmountCents?: number | null
+  state: string
 }
 
 export default function AttachReceipt({
@@ -59,7 +59,8 @@ export default function AttachReceipt({
         const res = await fetch('/api/receipts?limit=50', { cache: 'no-store' })
         const data = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(data?.error || 'Failed to load receipts')
-        const items: Receipt[] = Array.isArray(data?.receipts) ? data.receipts : []
+        const items: Receipt[] = Array.isArray(data?.receipts)
+          ? data.receipts.filter((receipt: Receipt) => !['matched', 'kept', 'discarded'].includes(receipt.state)) : []
         setReceipts(items)
         if (items.length === 0) {
           setEmptyMsg('No receipts found. Upload on the Receipts page, then try again.')
@@ -80,22 +81,22 @@ export default function AttachReceipt({
   const score = useCallback((r: Receipt) => {
     let s = 0
     // Amount proximity (use absolute)
-    const rh = typeof r.total_hint === 'number' ? Math.abs(r.total_hint) : null
+    const rh = typeof r.totalAmountCents === 'number' ? Math.abs(r.totalAmountCents / 100) : null
     if (rh != null && !Number.isNaN(rh) && txAbs > 0) {
       if (Math.abs(txAbs - rh) <= 2) s += 2
       else if (Math.abs(txAbs - rh) <= 5) s += 1
     }
 
     // Date proximity (±7 days)
-    if (txDateObj && r.date_hint) {
-      const rd = new Date(r.date_hint + 'T00:00:00')
+    if (txDateObj && r.occurredOn) {
+      const rd = new Date(r.occurredOn + 'T00:00:00')
       const diffDays = Math.abs((rd.getTime() - txDateObj.getTime()) / (1000 * 60 * 60 * 24))
       if (diffDays <= 7) s += 1
     }
 
     // Vendor overlap (very soft)
-    if (r.vendor_hint && vendorWords.size > 0) {
-      const overlap = intersect(vendorWords, tokenize(r.vendor_hint))
+    if (r.merchant && vendorWords.size > 0) {
+      const overlap = intersect(vendorWords, tokenize(r.merchant))
       if (overlap.size > 0) s += 0.5
     }
 
@@ -104,7 +105,7 @@ export default function AttachReceipt({
 
   const ranked = useMemo(() => {
     const withScore = receipts.map(r => ({ r, s: score(r) }))
-    withScore.sort((a, b) => b.s - a.s || new Date(b.r.created_at).getTime() - new Date(a.r.created_at).getTime())
+    withScore.sort((a, b) => b.s - a.s || new Date(b.r.createdAt).getTime() - new Date(a.r.createdAt).getTime())
     return withScore
   }, [receipts, score])
 
@@ -188,15 +189,15 @@ export default function AttachReceipt({
                 {ranked.map(({ r, s }) => (
                   <li key={r.id} className="flex items-center justify-between rounded-xl border px-3 py-2">
                     <div className="min-w-0 pr-3">
-                      <div className="truncate text-sm font-medium">{basename(r.storage_path)}</div>
+                      <div className="truncate text-sm font-medium">{r.originalName}</div>
                       <div className="text-xs text-neutral-600">
-                        {r.vendor_hint ? `Vendor: ${r.vendor_hint} · ` : ''}
-                        {r.date_hint ? `Date: ${r.date_hint} · ` : ''}
-                        {typeof r.total_hint === 'number' ? `Total: ${formatAmount(r.total_hint)}` : ''}
+                        {r.merchant ? `Merchant: ${r.merchant} · ` : ''}
+                        {r.occurredOn ? `Date: ${r.occurredOn} · ` : ''}
+                        {typeof r.totalAmountCents === 'number' ? `Total: ${formatAmount(r.totalAmountCents / 100)}` : ''}
                       </div>
-                      {r.signed_url && (
+                      {r.signedUrl && (
                         <a
-                          href={r.signed_url}
+                          href={r.signedUrl}
                           target="_blank"
                           rel="noreferrer"
                           className="text-xs underline"
@@ -234,10 +235,6 @@ export default function AttachReceipt({
 }
 
 /* ---------- helpers ---------- */
-function basename(p: string) {
-  const parts = p.split('/')
-  return parts[parts.length - 1] || p
-}
 function tokenize(s?: string | null) {
   const set = new Set<string>()
   if (!s) return set

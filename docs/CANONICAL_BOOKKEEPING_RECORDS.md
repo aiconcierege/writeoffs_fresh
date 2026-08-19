@@ -129,15 +129,38 @@ explicit source limitation; random IDs would make retries unsafe, while collapsi
 all repetitions would lose known activity. A bank-supplied transaction ID can
 provide stronger identity later without changing the canonical bookkeeping model.
 
+New receipt uploads retain the private `receipts` row as durable document and
+storage identity, but never use `receipts.transaction_id` as canonical authority.
+A Business-scoped content fingerprint makes upload retries converge. Append-only
+`bookkeeping_receipt_events` record upload, extraction, match, Keep, Discard, and
+unmatch/rematch history. Append-only `bookkeeping_receipt_extractions` hold OCR,
+filename, or customer-supplied merchant/date/total facts; those facts are evidence,
+not a category, business-use conclusion, purpose, or bookkeeping decision.
+
+A unique exact candidate may be matched using signed amount magnitude, date, and
+normalized merchant through the existing canonical document-link workflow.
+Ambiguity remains unmatched. Keep creates one idempotent `source_kind = 'receipt'`
+record whose signed outflow is derived from the positive receipt total, links the
+receipt as source evidence, and creates an unresolved system decision. It creates
+no fake financial account or bank transaction and preserves unknown payment method
+as unknown. Transactions shows the activity as “Receipt only.” Discard appends a
+terminal history event and creates no bookkeeping activity; the binary is retained
+until a separate retention policy is approved.
+
+Historical receipts without canonical lifecycle events remain legacy-compatible.
+Once a receipt enters the canonical lifecycle, its document metadata is protected
+from update/delete and canonical links/history take precedence. Receipt Lost stays
+in documentation-risk history and never changes the expense or its allocations.
+
 The temporary legacy compatibility row is correlated one-to-one with its canonical
 financial transaction. Once linked, database triggers reject legacy updates,
 deletes, and legacy receipt associations so mutable compatibility fields cannot
 contradict canonical truth. Its pack/category fields are never copied into
 canonical decisions. Every imported canonical decision begins
 unresolved with system provenance and no nature, treatment conclusion, category,
-business-use percentage, or allocation. OCR-created transactions, the old Review
-surface, and legacy reports remain compatibility workflows until each has an
-explicit cutover and historical-data policy.
+business-use percentage, or allocation. Historical OCR-created transactions and
+legacy reports remain compatibility workflows until each has an explicit cutover
+and historical-data policy.
 
 The Transactions read model now gives canonical records precedence. It displays
 immutable financial date, description, signed amount, current canonical treatment,
@@ -145,10 +168,10 @@ decision provenance/history count, and active canonical documentation state.
 Linked legacy display rows are suppressed so one activity appears once. Rows that
 have no canonical correlation continue through the tenant-scoped legacy fallback;
 no historical category or approval is promoted into a canonical conclusion. The
-legacy Review component remains the temporary presentation surface, but mutation
-controls are disabled for canonical rows. Legacy-only category, waiver, approval,
-delete, OCR, export, and report write/read paths still require later explicit
-canonical replacement.
+legacy Review components remain in the repository for compatibility, but `/review`
+redirects to the unified Transactions surface and canonical rows never expose its
+mutations. Legacy-only category, waiver, approval, delete, export, and report paths
+still require later explicit canonical replacement.
 
 The customer Transactions surface and detail view both consume this same adapter.
 The detail model resolves one tenant-owned canonical financial transaction directly

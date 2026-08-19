@@ -27,7 +27,7 @@ export default async function TransactionDetailPage({ params }: { params: Promis
     <Link href="/transactions" className="text-sm text-slate-600 hover:text-slate-950">← Transactions</Link>
     <header className="mt-8 border-b border-slate-200 pb-8"><div className="flex items-start justify-between gap-6">
       <div><h1 className="text-3xl font-semibold tracking-[-0.025em] text-slate-950">{transaction.vendor}</h1>
-        <p className="mt-2 text-sm text-slate-600">{transaction.date}</p></div>
+        <p className="mt-2 text-sm text-slate-600">{transaction.date}{transaction.sourceLabel ? ` · ${transaction.sourceLabel}` : ''}</p></div>
       <p className="text-2xl font-semibold tabular-nums text-slate-950">{money.format(transaction.amount)}</p></div></header>
     <section className="grid gap-8 border-b border-slate-200 py-8 sm:grid-cols-2">
       <div><h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">What WriteOffs knows</h2>
