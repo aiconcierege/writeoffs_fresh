@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { currentPlaidFinancialState, plaidFinancialTransactionIsCurrent } from '../plaid/current-sources'
 import type {
   CanonicalSummaryDecision,
   CanonicalSummaryRecord,
@@ -100,13 +101,23 @@ implements CanonicalFinancialSummaryRepository {
     const invalidatedTaxTreatmentIds = new Set(
       invalidationRows.map((row) => text(row, 'tax_treatment_id'))
     )
-    const sourceRows = await inBatches(recordIds, async (ids) => {
+    let sourceRows = await inBatches(recordIds, async (ids) => {
       const { data, error } = await this.supabase.from('bookkeeping_financial_sources')
         .select('id,bookkeeping_record_id,financial_transaction_id')
         .eq('business_id', input.businessId).in('bookkeeping_record_id', ids).is('revoked_at', null)
       if (error) throw new Error(`Unable to load canonical summary sources: ${error.message}`)
       return (data ?? []) as Row[]
     })
+    const plaidState = await currentPlaidFinancialState({
+      supabase: this.supabase, businessId: input.businessId,
+      candidateFinancialTransactionIds: sourceRows.map((row) => text(row, 'financial_transaction_id')),
+    })
+    const inactivePlaidRecordIds = new Set(sourceRows.filter((row) => !plaidFinancialTransactionIsCurrent({
+      id: text(row, 'financial_transaction_id'), state: plaidState,
+    })).map((row) => text(row, 'bookkeeping_record_id')))
+    sourceRows = sourceRows.filter((row) => plaidFinancialTransactionIsCurrent({
+      id: text(row, 'financial_transaction_id'), state: plaidState,
+    }))
     const transactionIds = sourceRows.map((row) => text(row, 'financial_transaction_id'))
     const transactionRows = await inBatches(transactionIds, async (ids) => {
       const { data, error } = await this.supabase.from('financial_transactions')
@@ -200,7 +211,7 @@ implements CanonicalFinancialSummaryRepository {
     }
 
     return {
-      records: rows.map((row) => {
+      records: rows.filter((row) => !inactivePlaidRecordIds.has(text(row, 'id'))).map((row) => {
         const id = text(row, 'id')
         const source = sourceByRecord.get(id)
         const transaction = source

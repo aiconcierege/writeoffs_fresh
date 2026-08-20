@@ -82,6 +82,13 @@ separately validated batches.
   has no account selector, so v1 resolves one stable manual-import account per
   Business and currency. Its provider namespace is `csv`; it contains no provider
   credential or Teller/Plaid dependency.
+
+Plaid Transactions now enters through the same boundary. Provider credentials,
+cursors, account IDs, and append-only provider revisions remain outside the
+bookkeeping model. Only current posted Plaid revisions create immutable
+`financial_transactions`; modifications and removals append provider history and
+change the current read projection without rewriting source or decision history.
+See `docs/PLAID_TRANSACTIONS.md` for the provider lifecycle and security model.
 - **Receipts:** a receipt can support an existing canonical record. If no financial
   activity exists yet, a receipt-origin record may remain unresolved and later gain
   an immutable financial-source association without fabricating or rewriting a bank

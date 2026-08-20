@@ -20,7 +20,7 @@ export default function Pricing() {
       price: "$14",
       period: "/mo",
       features: [
-        "Link up to 3 accounts (Teller)",
+        "Link up to 3 financial accounts",
         "Category suggestions + mileage tracker",
         "Unlimited receipts",
         "Ask Write-Offs™: 50 Qs/mo",
@@ -34,7 +34,7 @@ export default function Pricing() {
       price: "$24",
       period: "/mo",
       features: [
-        "Link up to 6 accounts (Teller)",
+        "Link up to 6 financial accounts",
         "Advanced rules & vertical packs",
         "Priority support",
         "Ask Write-Offs™: 150 Qs/mo",
@@ -89,7 +89,7 @@ export default function Pricing() {
         </div>
 
         <p className="mt-6 text-center text-xs opacity-70">
-          Bank connections use <span className="font-medium">Teller</span>. Backfill limits apply by plan.
+          Secure bank connections are available in supported environments. Backfill limits apply by plan.
           Older history is free via CSV upload.
         </p>
       </div>

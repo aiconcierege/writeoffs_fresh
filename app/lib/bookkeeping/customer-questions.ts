@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CanonicalWeeklyReviewItem } from './model'
 import { listCanonicalReviewQueue } from './review-queue'
+import { currentPlaidFinancialState, plaidFinancialTransactionIsCurrent } from '../plaid/current-sources'
 
 export type CustomerQuestion = {
   id: string
@@ -121,10 +122,18 @@ export async function listCustomerQuestions(input: { supabase: SupabaseClient })
     transaction.id, transaction,
   ]))
 
+  const businessId = queue[0]?.record.businessId
+  const plaidState = businessId
+    ? await currentPlaidFinancialState({
+      supabase: input.supabase, businessId, candidateFinancialTransactionIds: transactionIds,
+    })
+    : { allCanonicalIds: new Set<string>(), currentCanonicalIds: new Set<string>() }
+
   return queue.flatMap((item) => {
     const record = recordById.get(item.record.id)
     const transactionId = sourceByRecord.get(item.record.id)
     const transaction = transactionId ? transactionById.get(transactionId) : null
+    if (transactionId && !plaidFinancialTransactionIsCurrent({ id: transactionId, state: plaidState })) return []
     const context: TransactionContext = {
       merchant: transaction?.merchant_name || transaction?.original_description || 'Transaction',
       amountCents: transaction?.amount_cents ?? record?.amount_cents ??

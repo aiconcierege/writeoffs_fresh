@@ -64,7 +64,7 @@ export default async function SettingsPage() {
               Manage bank connections →
             </Link>
             <p className="mt-2 text-xs text-neutral-500">
-              New bank connections are temporarily unavailable.
+              Plaid Sandbox connections are available in configured test environments.
             </p>
           </div>
         </div>

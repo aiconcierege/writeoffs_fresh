@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { currentPlaidFinancialState, plaidFinancialTransactionIsCurrent } from '../plaid/current-sources'
 
 export type TransactionReadRow = {
   id: string
@@ -116,6 +117,9 @@ export async function listTransactionReadModel(input: {
     documentLinks = (documentResult.data ?? []) as Row[]
   }
   const financialIds = sources.map((row) => text(row, 'financial_transaction_id')!).filter(Boolean)
+  const plaidState = await currentPlaidFinancialState({
+    supabase: input.supabase, businessId, candidateFinancialTransactionIds: financialIds,
+  })
   let financialRows: Row[] = []
   if (financialIds.length) {
     const { data, error } = await input.supabase.from('financial_transactions')
@@ -164,6 +168,7 @@ export async function listTransactionReadModel(input: {
     const receiptLink = documentLinks.find((link) => text(link, 'bookkeeping_record_id') === recordId)
     const receiptExtraction = receiptLink ? extractionByReceipt.get(text(receiptLink, 'receipt_id')!) : undefined
     if (!financial && sourceKind !== 'receipt') return []
+    if (financial && !plaidFinancialTransactionIsCurrent({ id: text(financial, 'id')!, state: plaidState })) return []
     const history = decisionHistory.get(recordId) ?? []
     const superseded = new Set(history.map((decision) => text(decision, 'supersedes_decision_id')).filter(Boolean))
     const current = history.find((decision) => !superseded.has(text(decision, 'id')))

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { currentPlaidFinancialState, plaidFinancialTransactionIsCurrent } from '../plaid/current-sources'
 import type {
   BookkeepingActor,
   BookkeepingDecisionInput,
@@ -324,6 +325,11 @@ export class SupabaseBookkeepingRepository
       .maybeSingle()
     if (error) fail('find financial source evidence', error)
     if (!data) return null
+    const plaidState = await currentPlaidFinancialState({
+      supabase: this.supabase, businessId,
+      candidateFinancialTransactionIds: [financialTransactionId],
+    })
+    if (!plaidFinancialTransactionIsCurrent({ id: data.id, state: plaidState })) return null
     return {
       id: data.id,
       businessId: data.business_id,
