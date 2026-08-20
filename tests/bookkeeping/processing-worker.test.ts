@@ -30,9 +30,11 @@ function fakeAdmin() {
 describe('Phase 1A bookkeeping processor', () => {
   it('inspects current tenant-scoped state and completes without a decision write', async () => {
     const { admin, calls } = fakeAdmin()
+    const processor = vi.fn(async () => ({ outcome: 'unresolved' }))
     const result = await drainBookkeepingProcessingJobs({
       batchSize: 100,
       admin: admin as never,
+      processor,
     })
     expect(result).toEqual({ claimed: 1, completed: 1, retried: 0 })
     expect(calls.map(({ name }) => name)).toEqual([
@@ -40,15 +42,19 @@ describe('Phase 1A bookkeeping processor', () => {
       'complete_bookkeeping_processing_job',
     ])
     expect(calls[0].args.p_limit).toBe(25)
-    expect(admin.from).toHaveBeenCalledWith('bookkeeping_records')
-    expect(admin.from).toHaveBeenCalledWith('bookkeeping_decisions')
+    expect(processor).toHaveBeenCalledWith(admin, expect.objectContaining({
+      business_id: 'business-1', bookkeeping_record_id: 'record-1',
+    }))
     expect(JSON.stringify(calls)).not.toMatch(/decision|allocation|question|tax_treatment/i)
   })
 
   it('is safe when no work is available', async () => {
     const { admin } = fakeAdmin()
     admin.rpc.mockResolvedValueOnce({ data: [], error: null })
-    await expect(drainBookkeepingProcessingJobs({ admin: admin as never }))
+    await expect(drainBookkeepingProcessingJobs({
+      admin: admin as never,
+      processor: vi.fn(),
+    }))
       .resolves.toEqual({ claimed: 0, completed: 0, retried: 0 })
   })
 })

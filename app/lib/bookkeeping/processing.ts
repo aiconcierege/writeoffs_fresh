@@ -3,6 +3,13 @@ import 'server-only'
 import { randomUUID } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServerAdminSupabase } from '../../../utils/supabase/admin'
+import { applyAutomatedBookkeepingDecision } from './agent-resolution'
+import {
+  decisionMatchesProposal,
+  evaluateDeterministicBookkeeping,
+} from './deterministic-evaluator'
+import { loadBookkeepingEvaluationSnapshot } from './evaluation-snapshot'
+import { SupabaseBookkeepingRepository } from './supabase-repository'
 
 type Row = Record<string, unknown>
 
@@ -19,38 +26,47 @@ function safeErrorCode(error: unknown) {
   return 'BOOKKEEPING_PROCESSING_FAILED'
 }
 
-async function inspectCanonicalRecord(admin: SupabaseClient, job: Row) {
+function staleDecisionError(error: unknown) {
+  const message = error instanceof Error ? error.message.toLowerCase() : ''
+  return message.includes('decision changed')
+    || message.includes('reevaluate before saving')
+    || message.includes('cannot silently supersede a user decision')
+}
+
+export async function evaluateBookkeepingProcessingJob(admin: SupabaseClient, job: Row) {
   const businessId = String(job.business_id ?? '')
   const recordId = String(job.bookkeeping_record_id ?? '')
   if (!businessId || !recordId) throw new Error('BOOKKEEPING_RECORD_UNAVAILABLE')
+  if (job.processing_reason !== 'deterministic_evaluation'
+    || !String(job.target_fingerprint ?? '').startsWith('bookkeeping-evaluator:v1:record:')) {
+    return { outcome: 'legacy_noop' as const }
+  }
 
-  const { data: record, error: recordError } = await admin
-    .from('bookkeeping_records')
-    .select('id,business_id,source_kind,ingestion_key,amount_cents,currency,occurred_on')
-    .eq('id', recordId)
-    .eq('business_id', businessId)
-    .maybeSingle()
-  if (recordError || !record) throw new Error('BOOKKEEPING_RECORD_UNAVAILABLE')
-
-  const { data: decisions, error: decisionError } = await admin
-    .from('bookkeeping_decisions')
-    .select('id,supersedes_decision_id,treatment,review_status,provenance')
-    .eq('bookkeeping_record_id', recordId)
-    .eq('business_id', businessId)
-  if (decisionError) throw new Error('CURRENT_DECISION_UNAVAILABLE')
-  const history = rows(decisions)
-  const superseded = new Set(history.map((decision) => decision.supersedes_decision_id).filter(Boolean))
-  const current = history.filter((decision) => !superseded.has(decision.id))
-  if (current.length !== 1) throw new Error('CURRENT_DECISION_UNAVAILABLE')
-
-  // Phase 1A intentionally stops here. Merely reading the tenant-scoped current
-  // state proves the durable conveyor belt without changing canonical truth.
-  return { recordId: record.id as string, currentDecisionId: current[0].id as string }
+  const snapshot = await loadBookkeepingEvaluationSnapshot({ admin, businessId, recordId })
+  const evaluation = evaluateDeterministicBookkeeping(snapshot)
+  if (!evaluation) return { outcome: 'unresolved' as const }
+  if (decisionMatchesProposal(snapshot.currentDecision, evaluation.proposal)) {
+    return { outcome: 'already_resolved' as const, ruleKey: evaluation.ruleKey }
+  }
+  try {
+    const decision = await applyAutomatedBookkeepingDecision({
+      repository: new SupabaseBookkeepingRepository(admin),
+      businessId,
+      recordId,
+      expectedCurrentDecisionId: snapshot.currentDecision.id,
+      proposal: evaluation.proposal,
+    })
+    return { outcome: 'resolved' as const, ruleKey: evaluation.ruleKey, decisionId: decision.id }
+  } catch (error) {
+    if (staleDecisionError(error)) return { outcome: 'stale' as const }
+    throw error
+  }
 }
 
 export async function drainBookkeepingProcessingJobs(input: {
   batchSize?: number
   admin?: SupabaseClient
+  processor?: (admin: SupabaseClient, job: Row) => Promise<unknown>
 } = {}) {
   const admin = input.admin ?? createServerAdminSupabase()
   const batchSize = Math.max(1, Math.min(
@@ -66,12 +82,13 @@ export async function drainBookkeepingProcessingJobs(input: {
   if (error) throw new Error(`BOOKKEEPING_PROCESSING_CLAIM_FAILED:${error.message}`)
 
   const claimed = rows(data)
+  const processor = input.processor ?? evaluateBookkeepingProcessingJob
   let completed = 0
   let retried = 0
   for (const job of claimed) {
     const jobId = String(job.id ?? '')
     try {
-      await inspectCanonicalRecord(admin, job)
+      await processor(admin, job)
       const { data: didComplete, error: completeError } = await admin.rpc(
         'complete_bookkeeping_processing_job',
         { p_job_id: jobId, p_lease_id: leaseId },
