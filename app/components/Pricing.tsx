@@ -35,7 +35,7 @@ export default function Pricing() {
       period: "/mo",
       features: [
         "Link up to 6 financial accounts",
-        "Advanced rules & vertical packs",
+        "Advanced bookkeeping support",
         "Priority support",
         "Ask Write-Offs™: 150 Qs/mo",
         "Backfill window: 365 days",

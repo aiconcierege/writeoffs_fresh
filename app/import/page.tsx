@@ -18,13 +18,10 @@ type Mapping = {
   amount: string | null
 }
 
-type Pack = 'general' | 'realtor'
-
 export default function ImportPage() {
   const [fileName, setFileName] = useState<string | null>(null)
   const [headers, setHeaders] = useState<string[]>([])
   const [rows, setRows] = useState<Row[]>([])
-  const [pack, setPack] = useState<Pack>('general')
   const [mapping, setMapping] = useState<Mapping>({ date: null, description: null, amount: null })
   const [status, setStatus] = useState<'idle' | 'parsing' | 'ready' | 'submitting' | 'done' | 'error'>('idle')
   const [message, setMessage] = useState<string | null>(null)
@@ -145,7 +142,7 @@ export default function ImportPage() {
       const res = await fetch('/api/import/csv', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pack, mapping, rows: preview })
+        body: JSON.stringify({ mapping, rows: preview })
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok || data?.error) {
@@ -169,36 +166,12 @@ export default function ImportPage() {
           <div>
             <h1 className="text-3xl font-bold">Import transactions (CSV)</h1>
             <p className="mt-1 text-sm text-neutral-700">
-              Drop a CSV exported from your bank/credit card or broker fees. We’ll map columns and import your expenses.
+              Add financial activity from a CSV exported by your bank or card provider.
             </p>
           </div>
           <Link href="/transactions" className="text-sm underline">
             View transactions
           </Link>
-        </div>
-
-        {/* Pack selector */}
-        <div className="rounded-2xl border p-4">
-          <div className="text-sm text-neutral-600">Industry preset</div>
-          <div className="mt-2 flex gap-3">
-            <button
-              onClick={() => setPack('general')}
-              className={`rounded-xl px-3 py-1.5 text-sm ${pack === 'general' ? 'btn-primary text-white' : 'btn-secondary'}`}
-              aria-pressed={pack === 'general'}
-            >
-              General
-            </button>
-            <button
-              onClick={() => setPack('realtor')}
-             className={`rounded-xl px-3 py-1.5 text-sm ${pack === 'realtor' ? 'btn-primary text-white' : 'btn-secondary'}`}
-              aria-pressed={pack === 'realtor'}
-            >
-              Realtor
-            </button>
-          </div>
-          <p className="mt-2 text-xs text-neutral-600">
-            This just tunes suggestions (e.g., Zillow → Advertising). You can change it later in Settings.
-          </p>
         </div>
 
         {/* Uploader */}
@@ -316,7 +289,7 @@ export default function ImportPage() {
                 Import {rows.length} row{rows.length === 1 ? '' : 's'}
               </button>
               <span className="text-xs text-neutral-600">
-                We’ll import now and take you to Review next.
+                WriteOffs will add this activity to Transactions and begin processing it.
               </span>
             </div>
           </div>

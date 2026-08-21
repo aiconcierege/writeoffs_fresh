@@ -1,74 +1,54 @@
-/* File: app/settings/page.tsx
- * Version: v4.1
- * Date: 2025-10-22
- */
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
-import { redirect } from 'next/navigation';
-import Link from 'next/link';
-import { createServerSupabase } from '../../utils/supabase/server';
-import VerticalSwitcher from './VerticalSwitcher';
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { createServerSupabase } from '../../utils/supabase/server'
+import SettingsForm, { type SettingsInitial } from './profile/SettingsForm'
 
 export default async function SettingsPage() {
-  const supabase = await createServerSupabase();
+  const supabase = await createServerSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-  // Require login
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  const [{ data: profile }, { data: business }] = await Promise.all([
+    supabase.from('profiles').select('theme').eq('id', user.id).maybeSingle(),
+    supabase.from('businesses')
+      .select('name,owner_name,contact_email,phone,address_line1,address_line2,city,state,postal_code,country')
+      .eq('owner_user_id', user.id).maybeSingle(),
+  ])
 
-  // Pull the profile (vertical)
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('vertical')
-    .eq('id', user.id)
-    .maybeSingle();
+  const initial: SettingsInitial = {
+    business_name: business?.name ?? '',
+    owner_name: business?.owner_name ?? '',
+    contact_email: business?.contact_email ?? (user.email ?? ''),
+    phone: business?.phone ?? '',
+    address_line1: business?.address_line1 ?? '',
+    address_line2: business?.address_line2 ?? '',
+    city: business?.city ?? '',
+    region: business?.state ?? '',
+    postal_code: business?.postal_code ?? '',
+    country: business?.country ?? 'US',
+    theme: (profile?.theme ?? 'system') as SettingsInitial['theme'],
+  }
 
-  const current = (profile?.vertical ?? 'general') as 'general' | 'realtor';
-  const nice = current === 'realtor' ? 'Realtor Pack' : 'General Pack';
-
-  return (
-    <main className="min-h-screen bg-white">
-      <section className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="text-3xl font-bold">Account settings</h1>
-
-        <div className="mt-6 grid gap-4">
-          {/* Email */}
-          <div className="rounded-2xl border p-5">
-            <div className="text-sm text-neutral-600">Email</div>
-            <div className="mt-1 font-mono text-sm">{user.email}</div>
-          </div>
-
-          {/* Industry (Vertical) */}
-          <div className="rounded-2xl border p-5">
-            <div className="text-sm text-neutral-600">Industry</div>
-            <div className="mt-1 text-sm font-medium">{nice}</div>
-            <VerticalSwitcher current={current} />
-            <p className="mt-2 text-xs text-neutral-600">
-              Switching changes presets (categories, rules). Your data stays intact.
-            </p>
-          </div>
-
-          {/* Banking */}
-          <div className="rounded-2xl border p-5">
-            <div className="text-sm text-neutral-600">Bank connections</div>
-            <p className="mt-1 text-sm">
-              View existing bank connection information.
-            </p>
-            <Link
-              href="/settings/banking"
-              className="mt-3 inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-neutral-50"
-            >
-              Manage bank connections →
-            </Link>
-            <p className="mt-2 text-xs text-neutral-500">
-              Plaid Sandbox connections are available in configured test environments.
-            </p>
-          </div>
-        </div>
-      </section>
-    </main>
-  );
+  return <main className="min-h-screen bg-muted">
+    <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+      <h1 className="text-3xl font-bold">Account settings</h1>
+      <p className="mt-2 text-sm text-muted">Manage your business information, setup, and connections.</p>
+      <div className="mt-6 grid gap-4">
+        <SettingsForm initial={initial} />
+        <section className="card p-5" aria-labelledby="business-setup-heading">
+          <h2 id="business-setup-heading" className="text-base font-semibold">Business setup</h2>
+          <p className="mt-2 text-sm text-neutral-700">Review how your business operates, including customer-job materials and your starting date.</p>
+          <Link href="/onboarding?edit=1" className="btn btn-secondary mt-3 inline-flex min-h-11 items-center">Review business setup</Link>
+        </section>
+        <section className="card p-5" aria-labelledby="bank-connections-heading">
+          <h2 id="bank-connections-heading" className="text-base font-semibold">Bank connections</h2>
+          <p className="mt-2 text-sm text-neutral-700">Connect and update financial accounts securely. Connected activity appears in the same Transactions, receipt matching, and reporting experience as CSV imports.</p>
+          <Link href="/settings/banking" className="btn btn-secondary mt-3 inline-flex min-h-11 items-center">Manage bank connections</Link>
+        </section>
+      </div>
+    </section>
+  </main>
 }

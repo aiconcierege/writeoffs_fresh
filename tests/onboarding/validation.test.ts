@@ -6,13 +6,13 @@ const validate = (step: string, data: Record<string, unknown>) =>
   validateOnboardingBusinessPatch({ step, data }, now)
 
 describe('canonical v1 onboarding validation', () => {
-  it('accepts only plain business basics and one universal profile context', () => {
-    expect(validate('business', { name: ' Smith HVAC ', business_description: ' Installs HVAC systems ', business_profile_context: 'general' }))
-      .toEqual({ ok: true, step: 'business', profile: 'general', update: {
-        name: 'Smith HVAC', business_description: 'Installs HVAC systems', business_profile_context: 'general',
+  it('accepts only plain business basics without a product profile choice', () => {
+    expect(validate('business', { name: ' Smith HVAC ', business_description: ' Installs HVAC systems ' }))
+      .toEqual({ ok: true, step: 'business', update: {
+        name: 'Smith HVAC', business_description: 'Installs HVAC systems',
       } })
-    expect(validate('business', { name: null, business_description: 'Real estate services', business_profile_context: 'realtor' }).ok).toBe(true)
-    expect(validate('business', { business_description: 'Trade', business_profile_context: 'hvac' }).ok).toBe(false)
+    expect(validate('business', { name: null, business_description: 'Real estate services' }).ok).toBe(true)
+    expect(validate('business', { business_description: 'Trade', business_profile_context: 'general' }).ok).toBe(false)
   })
 
   it('accepts Schedule C facts without allowing the caller to supply derived eligibility', () => {
@@ -49,7 +49,7 @@ describe('canonical v1 onboarding validation', () => {
 
   it('rejects caller-controlled protected and accounting fields', () => {
     for (const field of ['owner_user_id', 'business_id', 'accounting_method', 'tax_category', 'pack', 'v1_support_status']) {
-      expect(validate('business', { business_description: 'Trade', business_profile_context: 'general', [field]: 'bad' }).ok, field).toBe(false)
+      expect(validate('business', { business_description: 'Trade', [field]: 'bad' }).ok, field).toBe(false)
     }
   })
 })

@@ -1,19 +1,17 @@
 /* File: app/signup/page.tsx
  * Version: v5
  * Date: 2025-10-15
- * Notes: Wraps the component that uses useSearchParams in <Suspense> to satisfy Next 15.
+ * Notes: Universal signup path; business context is collected during onboarding.
  */
 'use client'
 
-import { Suspense, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../utils/supabase/client'
 
 function SignupInner() {
-  const params = useSearchParams()
   const router = useRouter()
-  const vertical = (params.get('vertical') === 'realtor' ? 'realtor' : 'general') as 'realtor' | 'general'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -30,7 +28,6 @@ function SignupInner() {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
-        data: { vertical },
       }
     })
     if (signUpError) { setErr(signUpError.message); setLoading(false); return }
@@ -52,11 +49,7 @@ function SignupInner() {
           <span className="mr-2">🔐</span> Create your account
         </div>
         <h1 className="text-3xl font-bold">Sign up</h1>
-        <p className="mt-2 text-sm text-neutral-700">
-          {vertical === 'realtor'
-            ? 'We’ll use your real estate work as helpful business context.'
-            : 'You’ll use the standard WriteOffs experience.'}
-        </p>
+        <p className="mt-2 text-sm text-neutral-700">Set up your business and start organizing your activity.</p>
 
         <form onSubmit={handleSignup} className="mt-6 space-y-4">
           <div>
@@ -98,14 +91,14 @@ function SignupInner() {
 
         <p className="mt-6 text-sm">
           Already have an account?{' '}
-          <Link href={`/login?vertical=${vertical}`} className="underline">
+          <Link href="/login" className="underline">
             Log in
           </Link>
         </p>
 
         <p className="mt-10 text-xs text-neutral-600">
-          By continuing you agree to our <Link href="/terms" className="underline">Terms</Link> and{' '}
-          <Link href="/privacy" className="underline">Privacy Policy</Link>.
+          By continuing you agree to our <Link href="/legal/terms" className="underline">Terms</Link> and{' '}
+          <Link href="/legal/privacy" className="underline">Privacy Policy</Link>.
         </p>
       </section>
     </main>
@@ -113,9 +106,5 @@ function SignupInner() {
 }
 
 export default function SignupPage() {
-  return (
-    <Suspense fallback={<main className="min-h-screen bg-white"><section className="mx-auto max-w-md px-6 py-12">Loading…</section></main>}>
-      <SignupInner />
-    </Suspense>
-  )
+  return <SignupInner />
 }

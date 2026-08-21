@@ -51,7 +51,7 @@ describe('WriteOffs Home v2', () => {
   })
 
   it('renders only the safe canonical financial summary metrics', () => {
-    for (const label of ['Business income', 'Business expenses', 'Business profit']) {
+    for (const label of ['Business income', 'Business expenses', 'Estimated business profit']) {
       expect(home).toContain(label)
       expect(financialSummary).toContain(label)
     }
@@ -66,9 +66,9 @@ describe('WriteOffs Home v2', () => {
   })
 
   it('limits primary navigation to Home, Transactions, and Reports', () => {
-    expect(header).toContain('{ name: "Home", href: "/home" }')
-    expect(header).toContain('{ name: "Transactions", href: "/transactions" }')
-    expect(header).toContain('{ name: "Reports", href: "/reports/summary" }')
+    expect(header).toContain('{ name: "Home", href: "/home", section: "home" }')
+    expect(header).toContain('{ name: "Transactions", href: "/transactions", section: "transactions" }')
+    expect(header).toContain('{ name: "Reports", href: "/reports", section: "reports" }')
     expect(header).not.toContain('{ name: "Review"')
     expect(header).not.toContain('{ name: "Import"')
     expect(header).not.toContain('{ name: "Dashboard"')

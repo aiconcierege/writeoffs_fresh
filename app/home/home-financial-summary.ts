@@ -1,7 +1,7 @@
 export const HOME_FINANCIAL_STATEMENT_LINES = [
   'Business income',
   'Business expenses',
-  'Business profit',
+  'Estimated business profit',
 ] as const
 
 export type HomeFinancialStatementLine =

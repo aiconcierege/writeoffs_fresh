@@ -29,7 +29,6 @@ function request(body: unknown) {
 }
 
 const validBody = {
-  pack: 'realtor',
   mapping: { date: 'Date', description: 'Description', amount: 'Amount' },
   rows: [{ Date: '2026-08-19', Description: 'Supply Shop', Amount: '-12.34' }],
 }
@@ -65,7 +64,7 @@ describe('POST /api/import/csv', () => {
     expect(await response.json()).toMatchObject({ imported: 1, duplicates: 0 })
   })
 
-  it('does not turn the legacy pack selector into canonical classification input', async () => {
+  it('does not accept a product preset as canonical classification input', async () => {
     const supabase = { auth: { getUser: vi.fn() } }
     getAuthenticatedContext.mockResolvedValue({ supabase, user: { id: 'user-a' } })
     await POST(request(validBody))

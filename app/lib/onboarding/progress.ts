@@ -1,5 +1,5 @@
 import {
-  BUSINESS_PROFILES, BUSINESS_STAGES, MATERIALS_HANDLING_ANSWERS,
+  BUSINESS_STAGES, MATERIALS_HANDLING_ANSWERS,
   ONBOARDING_START_METHODS, THREE_WAY_ANSWERS,
 } from './validation'
 
@@ -42,7 +42,7 @@ export function activeOnboardingSteps(business: OnboardingBusinessData): Onboard
 }
 
 export function getFirstIncompleteOnboardingStep(business: OnboardingBusinessData, now = new Date()): OnboardingUiStep {
-  if (!(business.business_description?.trim()) || !oneOf(BUSINESS_PROFILES, business.business_profile_context)) return 'business'
+  if (!(business.business_description?.trim())) return 'business'
   if (business.schedule_c_eligibility !== 'yes') return 'eligibility'
   if (!oneOf(BUSINESS_STAGES, business.business_stage)
     || !/^\d{4}-\d{2}-01$/.test(business.business_start_month ?? '')

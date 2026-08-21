@@ -1,13 +1,12 @@
 /* File: app/api/profile/update/route.ts
  * Version: v1
  * Date: 2025-11-04
- * Purpose: Update the signed-in user's profile (pack + business + theme + contact fields).
+ * Purpose: Update the signed-in user's profile and business contact fields.
  */
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../utils/supabase/server'
 
 type Payload = {
-  vertical?: 'general' | 'realtor'
   business_name?: string | null
   owner_name?: string | null
   contact_email?: string | null
@@ -37,12 +36,6 @@ export async function POST(req: Request) {
   }
 
   const profileUpdate: Record<string, unknown> = {}
-  if ('vertical' in body) {
-    if (body.vertical !== 'general' && body.vertical !== 'realtor') {
-      return NextResponse.json({ error: 'unsupported industry pack' }, { status: 400 })
-    }
-    profileUpdate.vertical = body.vertical
-  }
   if ('theme' in body) profileUpdate.theme = body.theme
 
   const businessUpdate: Record<string, unknown> = {}

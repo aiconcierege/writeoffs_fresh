@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { validateCompleteOnboarding } from '../../app/lib/onboarding/validation'
 
 const complete = (overrides: Record<string, unknown> = {}) => ({
-  business_description: 'HVAC installation', business_profile_context: 'general',
+  business_description: 'HVAC installation', business_profile_context: null,
   schedule_c_eligibility: 'yes', business_stage: 'existing', business_start_month: '2020-01-01',
   uses_customer_job_materials: 'yes', keeps_future_sale_merchandise: 'no',
   prior_materials_handling: 'accountant_handles', catch_up_start_date: '2026-01-01',
@@ -25,7 +25,7 @@ describe('canonical onboarding completion', () => {
     expect(validateCompleteOnboarding(complete({ prior_materials_handling: 'not_sure' })).ok).toBe(true)
   })
 
-  it('does not require old home-office, vehicle, account-count, legal-structure, or Pack fields', () => {
+  it('does not require old profile, home-office, vehicle, account-count, legal-structure, or Pack fields', () => {
     expect(validateCompleteOnboarding(complete()).ok).toBe(true)
   })
 

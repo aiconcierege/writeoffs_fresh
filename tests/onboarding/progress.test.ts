@@ -21,7 +21,7 @@ const complete = business({ business_description: 'HVAC service', business_profi
 describe('canonical onboarding progress', () => {
   it('resumes at the first materially incomplete persisted answer', () => {
     expect(getFirstIncompleteOnboardingStep(business())).toBe('business')
-    expect(getFirstIncompleteOnboardingStep(business({ business_description: 'Trade', business_profile_context: 'general' }))).toBe('eligibility')
+    expect(getFirstIncompleteOnboardingStep(business({ business_description: 'Trade' }))).toBe('eligibility')
     expect(getFirstIncompleteOnboardingStep(complete)).toBe('review')
   })
 
@@ -37,7 +37,7 @@ describe('canonical onboarding progress', () => {
     expect(onboardingNeedsFollowUp({ ...complete, uses_customer_job_materials: null })).toBe(true)
   })
 
-  it('does not create a Realtor-specific path', () => {
+  it('ignores retained legacy context when deriving progress', () => {
     expect(activeOnboardingSteps({ ...complete, business_profile_context: 'realtor' }))
       .toEqual(activeOnboardingSteps({ ...complete, business_profile_context: 'general' }))
   })

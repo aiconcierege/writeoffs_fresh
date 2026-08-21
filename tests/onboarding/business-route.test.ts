@@ -9,19 +9,16 @@ const request = (body: unknown) => new Request('http://localhost/api/onboarding/
 
 function client(state = 'not_started', count = 1) {
   const updates: Record<string, unknown>[] = []
-  const profileUpdates: Record<string, unknown>[] = []
   const mutation = { error: null, count, eq: vi.fn(function () { return mutation }) }
-  const profileMutation = { error: null, count: 1, eq: vi.fn(function () { return profileMutation }) }
   const businesses = {
-    select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: { id: 'b1', onboarding_state: state }, error: null })) })) })),
+    select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: { id: 'b1', onboarding_state: state, business_profile_context: null }, error: null })) })) })),
     update: vi.fn((value) => { updates.push(value); return mutation }),
   }
-  const profiles = { update: vi.fn((value) => { profileUpdates.push(value); return profileMutation }) }
   const rpc = vi.fn(async (): Promise<{ data: Record<string, string> | null; error: { message: string } | null }> =>
     ({ data: { uses_customer_job_materials: 'event-1', keeps_future_sale_merchandise: 'event-2' }, error: null }))
   const api = { auth: { getUser: vi.fn(async () => ({ data: { user: { id: 'u1' } }, error: null })) }, rpc,
-    from: vi.fn((name: string) => name === 'businesses' ? businesses : name === 'profiles' ? profiles : (() => { throw new Error(name) })()) }
-  return { api, updates, profileUpdates, mutation, businesses, rpc }
+    from: vi.fn((name: string) => name === 'businesses' ? businesses : (() => { throw new Error(name) })()) }
+  return { api, updates, mutation, businesses, rpc }
 }
 
 describe('PATCH /api/onboarding/business', () => {
@@ -43,17 +40,16 @@ describe('PATCH /api/onboarding/business', () => {
     expect(c.updates).toEqual([])
   })
 
-  it('updates optional profile context without creating a separate path', async () => {
+  it('sets an inert compatibility default without asking for a product profile', async () => {
     const c = client(); createServerSupabase.mockResolvedValue(c.api)
-    await PATCH(request({ step: 'business', data: { name: null, business_description: 'Real estate services', business_profile_context: 'realtor' } }))
-    expect(c.profileUpdates).toEqual([{ vertical: 'realtor' }])
-    expect(c.updates[0]).toMatchObject({ business_profile_context: 'realtor' })
+    await PATCH(request({ step: 'business', data: { name: null, business_description: 'Real estate services' } }))
+    expect(c.updates[0]).toMatchObject({ business_profile_context: 'general' })
   })
 
   it('rejects caller-controlled ownership, eligibility, and accounting fields', async () => {
     for (const field of ['owner_user_id', 'business_id', 'accounting_method', 'v1_support_status', 'tax_category']) {
       const c = client(); createServerSupabase.mockResolvedValue(c.api)
-      const response = await PATCH(request({ step: 'business', data: { business_description: 'Trade', business_profile_context: 'general', [field]: 'bad' } }))
+      const response = await PATCH(request({ step: 'business', data: { business_description: 'Trade', [field]: 'bad' } }))
       expect(response.status, field).toBe(400); expect(c.businesses.update).not.toHaveBeenCalled()
     }
   })

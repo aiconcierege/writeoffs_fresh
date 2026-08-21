@@ -9,7 +9,6 @@ const migration = read(
 )
 const settingsForm = read('app/settings/profile/SettingsForm.tsx')
 const profileUpdate = read('app/api/profile/update/route.ts')
-const verticalUpdate = read('app/api/profile/vertical/route.ts')
 
 describe('Profile provisioning and vertical integrity', () => {
   it('backfills a Profile for every existing auth user missing one', () => {
@@ -24,13 +23,11 @@ describe('Profile provisioning and vertical integrity', () => {
     expect(migration).toContain('create or replace function public.create_business_for_new_user()')
   })
 
-  it('normalizes legacy values and permits only General and Realtor', () => {
+  it('retains constrained legacy values without exposing them as current settings', () => {
     expect(migration).toContain("vertical not in ('general', 'realtor')")
     expect(migration).toContain("check (vertical in ('general', 'realtor'))")
-    expect(settingsForm).toContain("(['general','realtor'] as const)")
-    expect(settingsForm).not.toMatch(/driver|creator/i)
-    expect(profileUpdate).toContain("body.vertical !== 'general' && body.vertical !== 'realtor'")
-    expect(verticalUpdate).toContain('vertical !== "general" && vertical !== "realtor"')
+    expect(settingsForm).not.toMatch(/vertical|realtor|general pack|business profile/i)
+    expect(profileUpdate).not.toMatch(/vertical|realtor|industry pack/i)
   })
 
   it('synchronizes the Profile vertical to Business industry', () => {
@@ -41,10 +38,7 @@ describe('Profile provisioning and vertical integrity', () => {
 
   it('does not silently succeed when the Profile is missing', () => {
     expect(profileUpdate).toContain("count: 'exact'")
-    expect(verticalUpdate).toContain('count: "exact"')
-    for (const route of [profileUpdate, verticalUpdate]) {
-      expect(route).toMatch(/count !== 1/)
-      expect(route).toMatch(/profile is unavailable/i)
-    }
+    expect(profileUpdate).toMatch(/count !== 1/)
+    expect(profileUpdate).toMatch(/profile is unavailable/i)
   })
 })

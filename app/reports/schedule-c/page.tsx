@@ -21,6 +21,6 @@ export default async function TaxCategorySummary() {
         {report.categoryTotals.length === 0 && <tr className="border-t border-slate-200"><td colSpan={3} className="py-7 text-center text-slate-600">No supported category totals are available yet.</td></tr>}</tbody>
     </table></div>
     {report.uncategorizedBusinessExpensesCents !== 0 && <p className="mt-4 text-sm text-slate-600">Some business expenses are not included in the category breakdown while WriteOffs finishes their treatment.</p>}
-    <div className="mt-7 flex gap-3"><Link href="/export" className="rounded-md border border-slate-300 px-3 py-2 text-sm">Export CSV</Link><Link href="/transactions" className="rounded-md border border-slate-300 px-3 py-2 text-sm">Back to Transactions</Link></div>
+    <div className="mt-7 flex flex-wrap gap-3"><Link href="/export" className="rounded-md border border-slate-300 px-3 py-2 text-sm">Export CSV</Link><Link href="/reports" className="rounded-md border border-slate-300 px-3 py-2 text-sm">Back to Reports</Link></div>
   </main>
 }

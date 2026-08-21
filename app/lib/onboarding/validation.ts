@@ -1,4 +1,3 @@
-export const BUSINESS_PROFILES = ['general', 'realtor'] as const
 export const THREE_WAY_ANSWERS = ['yes', 'no', 'not_sure'] as const
 export const BUSINESS_STAGES = ['new', 'existing'] as const
 export const MATERIALS_HANDLING_ANSWERS = [
@@ -16,7 +15,7 @@ export const ONBOARDING_BUSINESS_STEPS = [
 export type OnboardingBusinessStep = (typeof ONBOARDING_BUSINESS_STEPS)[number]
 export type OnboardingBusinessUpdate = Record<string, string | number | boolean | null>
 export type ValidationResult =
-  | { ok: true; step: OnboardingBusinessStep; update: OnboardingBusinessUpdate; profile?: 'general' | 'realtor' }
+  | { ok: true; step: OnboardingBusinessStep; update: OnboardingBusinessUpdate }
   | { ok: false; error: string }
 export type CompleteOnboardingValidationResult =
   | { ok: true }
@@ -71,7 +70,7 @@ export function validateOnboardingVehicle(input: unknown): VehicleValidationResu
 }
 
 function validateBusiness(data: Record<string, unknown>): ValidationResult {
-  if (!hasOnlyKeys(data, ['name', 'business_description', 'business_profile_context'])) {
+  if (!hasOnlyKeys(data, ['name', 'business_description'])) {
     return invalid('business step contains unsupported fields')
   }
   const name = typeof data.name === 'string' ? data.name.trim() : ''
@@ -85,12 +84,8 @@ function validateBusiness(data: Record<string, unknown>): ValidationResult {
   if (description.length > DESCRIPTION_MAX) {
     return invalid('business_description must be 2000 characters or fewer')
   }
-  if (!isOneOf(data.business_profile_context, BUSINESS_PROFILES)) {
-    return invalid('business_profile_context is invalid')
-  }
-  return { ok: true, step: 'business', profile: data.business_profile_context,
-    update: { name: name || null, business_description: description,
-      business_profile_context: data.business_profile_context } }
+  return { ok: true, step: 'business',
+    update: { name: name || null, business_description: description } }
 }
 
 function validateEligibility(data: Record<string, unknown>): ValidationResult {
@@ -173,7 +168,6 @@ export function validateCompleteOnboarding(business: unknown, now = new Date()):
   const errors: string[] = []
   const description = typeof business.business_description === 'string' ? business.business_description.trim() : ''
   if (!description || description.length > DESCRIPTION_MAX) errors.push('business description is required')
-  if (!isOneOf(business.business_profile_context, BUSINESS_PROFILES)) errors.push('business profile is required')
   if (business.schedule_c_eligibility !== 'yes') errors.push('Schedule C eligibility must be confirmed')
   if (!isOneOf(business.business_stage, BUSINESS_STAGES)) errors.push('business stage is required')
   if (typeof business.business_start_month !== 'string' || !/^\d{4}-\d{2}-01$/.test(business.business_start_month)

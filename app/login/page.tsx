@@ -1,19 +1,17 @@
 /* File: app/login/page.tsx
  * Version: v3
  * Date: 2025-10-15
- * Notes: Wraps the client component using useSearchParams in <Suspense>.
+ * Notes: Universal login path.
  */
 'use client'
 
-import { Suspense, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../utils/supabase/client'
 
 function LoginInner() {
-  const params = useSearchParams()
   const router = useRouter()
-  const vertical = (params.get('vertical') === 'realtor' ? 'realtor' : 'general') as 'realtor' | 'general'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -86,7 +84,7 @@ function LoginInner() {
 
         <p className="mt-6 text-sm">
           New here?{' '}
-          <Link href={`/signup?vertical=${vertical}`} className="underline">
+          <Link href="/signup" className="underline">
             Create an account
           </Link>
         </p>
@@ -96,9 +94,5 @@ function LoginInner() {
 }
 
 export default function LoginPage() {
-  return (
-    <Suspense fallback={<main className="min-h-screen bg-white"><section className="mx-auto max-w-md px-6 py-12">Loading…</section></main>}>
-      <LoginInner />
-    </Suspense>
-  )
+  return <LoginInner />
 }

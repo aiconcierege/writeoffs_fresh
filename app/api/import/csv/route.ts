@@ -11,7 +11,6 @@ import {
 } from "../../../lib/bookkeeping/csv-ingestion";
 
 type Body = {
-  pack?: "general" | "realtor";
   mapping: CsvColumnMapping;
   rows: Record<string, string>[];
 };

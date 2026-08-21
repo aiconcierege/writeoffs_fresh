@@ -3,7 +3,6 @@
 import { useState } from 'react'
 
 export type SettingsInitial = {
-  vertical: 'general' | 'realtor'
   business_name: string
   owner_name: string
   contact_email: string
@@ -49,28 +48,6 @@ export default function SettingsForm({ initial }: { initial: SettingsInitial }) 
   return (
     <form onSubmit={onSubmit} className="rounded-2xl border p-5">
       <div className="text-base font-semibold">Profile</div>
-
-      {/* Optional business context; both choices use the same product path. */}
-      <div className="mt-4">
-        <label className="block text-sm font-medium">Business profile</label>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {(['general','realtor'] as const).map(p => (
-            <button
-              type="button"
-              key={p}
-              onClick={() => set('vertical', p)}
-              className={`rounded-xl border px-3 py-2 text-sm ${
-                form.vertical === p ? 'btn-primary text-white' : 'btn-secondary'
-              }`}
-            >
-              {p === 'realtor' ? 'Realtor' : 'General'}
-            </button>
-          ))}
-        </div>
-        <p className="mt-1 text-xs text-neutral-600">
-          Real estate context can help WriteOffs understand your activity. It does not change the bookkeeping or tax-rule path.
-        </p>
-      </div>
 
       {/* Theme */}
       <div className="mt-6">

@@ -53,7 +53,7 @@ export default async function HomePage() {
   const financialLines = [
     { label: 'Business income', value: summary.businessIncomeCents },
     { label: 'Business expenses', value: summary.businessExpensesCents },
-    { label: 'Business profit', value: summary.businessProfitCents, emphasized: true },
+    { label: 'Estimated business profit', value: summary.businessProfitCents, emphasized: true },
     ...(summary.estimatedDeductionsCents == null ? [] : [
       { label: 'Estimated deductions', value: summary.estimatedDeductionsCents, emphasized: false },
     ]),

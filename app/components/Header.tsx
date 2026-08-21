@@ -7,17 +7,18 @@ import { cn } from "../lib/utils"
 
 import BrandLogo from "../components/BrandLogo"
 import SignOutButton from "../components/SignOutButton"
+import { applicationNavigationSection, isAuthenticatedRoute } from "../lib/route-policy"
 
 const navItems = [
-  { name: "Home", href: "/home" },
-  { name: "Transactions", href: "/transactions" },
-  { name: "Reports", href: "/reports/summary" },
+  { name: "Home", href: "/home", section: "home" },
+  { name: "Transactions", href: "/transactions", section: "transactions" },
+  { name: "Reports", href: "/reports", section: "reports" },
 ]
 
 export function Header() {
   const pathname = usePathname()
 
-  if (pathname === "/") {
+  if (!isAuthenticatedRoute(pathname)) {
     return (
       <header className="absolute top-0 z-50 w-full bg-[#fff8ee]/95 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-[90rem] items-center justify-between px-5 sm:px-10 lg:px-16 xl:px-24">
@@ -68,7 +69,7 @@ export function Header() {
         <div className="min-w-0 justify-self-center">
           <nav aria-label="Primary" className="flex items-center gap-3 sm:gap-7">
             {navItems.map((item) => {
-              const active = pathname.startsWith(item.href)
+              const active = applicationNavigationSection(pathname) === item.section
               return (
                 <Link
                   key={item.name}
@@ -90,13 +91,16 @@ export function Header() {
 
         <div className="justify-self-end">
           <details className="group relative">
-            <summary className="flex min-h-9 cursor-pointer list-none items-center gap-1 rounded-md px-2 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#243186] sm:px-3 sm:text-sm [&::-webkit-details-marker]:hidden">
+            <summary
+              aria-current={applicationNavigationSection(pathname) === "account" ? "page" : undefined}
+              className={`flex min-h-9 cursor-pointer list-none items-center gap-1 rounded-md px-2 text-xs font-medium transition-colors hover:bg-slate-50 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#243186] sm:px-3 sm:text-sm [&::-webkit-details-marker]:hidden ${applicationNavigationSection(pathname) === "account" ? "bg-slate-50 text-slate-950" : "text-slate-600"}`}
+            >
               Account
               <span aria-hidden="true" className="text-[10px] transition-transform group-open:rotate-180">▾</span>
             </summary>
             <div className="absolute right-0 mt-2 w-48 border border-slate-200 bg-white p-2 shadow-lg">
               <Link
-                href="/settings/profile"
+                href="/settings"
                 className="block rounded px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#243186]"
               >
                 Account / Settings

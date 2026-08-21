@@ -11,9 +11,10 @@ export default function NotFound() {
         <p className="mt-2 text-sm text-neutral-600">
           The page you’re looking for doesn’t exist.
         </p>
-        <Link href="/" className="mt-6 inline-block rounded-xl border px-4 py-2 text-sm">
-          Go home
-        </Link>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <Link href="/home" className="inline-block rounded-xl border px-4 py-2 text-sm">Go to Home</Link>
+          <Link href="/" className="inline-block rounded-xl border px-4 py-2 text-sm">Public homepage</Link>
+        </div>
       </section>
     </main>
   )

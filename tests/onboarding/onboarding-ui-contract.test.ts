@@ -17,10 +17,9 @@ describe('canonical v1 onboarding UI', () => {
     ]) expect(flow).toContain(copy)
   })
 
-  it('keeps Realtor as context in the same path without Pack language', () => {
-    expect(flow).toContain('Real estate professional')
-    expect(flow).toContain('without changing the product path')
-    expect(flow).not.toMatch(/Realtor Pack|General Pack|industry pack/i)
+  it('uses the business description without exposing vertical products', () => {
+    expect(flow).toContain('What does your business do?')
+    expect(flow).not.toMatch(/Realtor|General Pack|industry pack|business_profile_context/i)
   })
 
   it('supports trades and distinguishes ordinary leftovers from substantial merchandise', () => {

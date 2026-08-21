@@ -7,7 +7,7 @@ or bank connections.
 
 ## Required flow
 
-1. Business name (optional), plain-language description, and optional Realtor context.
+1. Business name (optional) and a plain-language description of what the business does.
 2. Plain-language confirmation that the business is reported on Schedule C.
 3. New versus existing business and start month.
 4. Customer-job materials and substantial future-sale merchandise facts.
@@ -25,8 +25,9 @@ surface; Home remains available in primary navigation.
 ## Eligibility and unsupported states
 
 V1 supports U.S. owner-operated Schedule C businesses, including service businesses,
-trades, creators, consultants, contractors, and Realtors. Realtor is optional evidence
-inside the same path, not a separate workflow or engine.
+trades, creators, consultants, contractors, and real estate professionals. The
+plain-language business description provides context inside the same path, not a
+separate workflow or engine.
 
 Partnerships and corporations, Schedule E activity, payroll, full accrual systems, and
 businesses requiring substantial ongoing merchandise inventory management are outside

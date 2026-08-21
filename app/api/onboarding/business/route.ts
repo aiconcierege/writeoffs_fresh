@@ -32,7 +32,7 @@ export async function PATCH(request: Request) {
 
   const { data: business, error: lookupError } = await supabase
     .from('businesses')
-    .select('id, onboarding_state')
+    .select('id, onboarding_state, business_profile_context')
     .eq('owner_user_id', user.id)
     .maybeSingle()
 
@@ -53,6 +53,11 @@ export async function PATCH(request: Request) {
     onboarding_state:
       business.onboarding_state === 'completed' ? 'completed' : 'in_progress',
     onboarding_version: 3,
+    // The legacy compatibility column remains populated for database completion
+    // checks, but is no longer a customer-selected product mode.
+    ...(validation.step === 'business' && business.business_profile_context == null
+      ? { business_profile_context: 'general' }
+      : {}),
   }
 
   const sensitiveChanges = Object.fromEntries(Object.entries(validation.update).filter(
@@ -100,15 +105,6 @@ export async function PATCH(request: Request) {
         { status: 409 }
       )
     }
-  }
-
-  if (validation.profile) {
-    const { error: profileError, count: profileCount } = await supabase
-      .from('profiles')
-      .update({ vertical: validation.profile }, { count: 'exact' })
-      .eq('id', user.id)
-    if (profileError) return NextResponse.json({ error: profileError.message }, { status: 400 })
-    if (profileCount !== 1) return NextResponse.json({ error: 'profile is unavailable' }, { status: 409 })
   }
 
   return NextResponse.json({ ok: true, step: validation.step, factRevisions })
