@@ -54,8 +54,10 @@ suite('bookkeeping processing queue against local PostgreSQL', () => {
       .select('*', { count: 'exact', head: true }).eq('business_id', owner.businessId)
     const { count: taxCount } = await admin.from('bookkeeping_tax_treatments')
       .select('*', { count: 'exact', head: true }).eq('business_id', owner.businessId)
-    expect({ allocationCount, questionCount, taxCount }).toEqual({
-      allocationCount: 0, questionCount: 0, taxCount: 0,
+    const { count: aiShadowCount } = await admin.from('bookkeeping_ai_shadow_evaluations')
+      .select('*', { count: 'exact', head: true }).eq('business_id', owner.businessId)
+    expect({ allocationCount, questionCount, taxCount, aiShadowCount }).toEqual({
+      allocationCount: 0, questionCount: 0, taxCount: 0, aiShadowCount: 0,
     })
 
     await drainBookkeepingProcessingJobs({ batchSize: 25, admin })

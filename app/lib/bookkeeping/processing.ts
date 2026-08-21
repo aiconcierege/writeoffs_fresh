@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServerAdminSupabase } from '../../../utils/supabase/admin'
 import { applyAutomatedBookkeepingDecision } from './agent-resolution'
@@ -10,10 +10,18 @@ import {
 } from './deterministic-evaluator'
 import { loadBookkeepingEvaluationSnapshot } from './evaluation-snapshot'
 import { SupabaseBookkeepingRepository } from './supabase-repository'
+import { runAiShadowEvaluation } from './ai-shadow'
+import { configuredBookkeepingAiGateway } from './ai-gateway'
+import {
+  BOOKKEEPING_AI_EVALUATOR_VERSION,
+  BOOKKEEPING_AI_OUTPUT_SCHEMA_VERSION,
+  BOOKKEEPING_AI_PROMPT_VERSION,
+} from './ai-shadow-types'
 
 type Row = Record<string, unknown>
 
 export const MAX_BOOKKEEPING_PROCESSING_BATCH = 25
+export const MAX_AI_SHADOW_EVALUATIONS_PER_DRAIN = 10
 
 function rows(value: unknown): Row[] {
   return Array.isArray(value) ? value as Row[] : value ? [value as Row] : []
@@ -23,6 +31,7 @@ function safeErrorCode(error: unknown) {
   const message = error instanceof Error ? error.message : 'UNKNOWN'
   if (message === 'CURRENT_DECISION_UNAVAILABLE') return message
   if (message === 'BOOKKEEPING_RECORD_UNAVAILABLE') return message
+  if (/^AI_(PROVIDER|RESPONSE)_[A-Z0-9_]+$/.test(message)) return message
   return 'BOOKKEEPING_PROCESSING_FAILED'
 }
 
@@ -33,18 +42,30 @@ function staleDecisionError(error: unknown) {
     || message.includes('cannot silently supersede a user decision')
 }
 
-export async function evaluateBookkeepingProcessingJob(admin: SupabaseClient, job: Row) {
+export async function evaluateBookkeepingProcessingJob(
+  admin: SupabaseClient,
+  job: Row,
+  options: { allowAiShadow?: boolean } = {},
+) {
   const businessId = String(job.business_id ?? '')
   const recordId = String(job.bookkeeping_record_id ?? '')
   if (!businessId || !recordId) throw new Error('BOOKKEEPING_RECORD_UNAVAILABLE')
-  if (job.processing_reason !== 'deterministic_evaluation'
-    || !String(job.target_fingerprint ?? '').startsWith('bookkeeping-evaluator:v1:record:')) {
+  const deterministicJob = job.processing_reason === 'deterministic_evaluation'
+    && String(job.target_fingerprint ?? '').startsWith('bookkeeping-evaluator:v1:record:')
+  const aiShadowJob = job.processing_reason === 'ai_shadow_evaluation'
+    && String(job.target_fingerprint ?? '').startsWith('bookkeeping-ai-shadow:v1:')
+  if (!deterministicJob && !aiShadowJob) {
     return { outcome: 'legacy_noop' as const }
   }
 
   const snapshot = await loadBookkeepingEvaluationSnapshot({ admin, businessId, recordId })
   const evaluation = evaluateDeterministicBookkeeping(snapshot)
-  if (!evaluation) return { outcome: 'unresolved' as const }
+  if (!evaluation) {
+    const aiShadow = options.allowAiShadow === false
+      ? { outcome: 'drain_limit' as const }
+      : await runAiShadowEvaluation({ admin, snapshot })
+    return { outcome: 'unresolved' as const, aiShadow: aiShadow.outcome }
+  }
   if (decisionMatchesProposal(snapshot.currentDecision, evaluation.proposal)) {
     return { outcome: 'already_resolved' as const, ruleKey: evaluation.ruleKey }
   }
@@ -82,13 +103,16 @@ export async function drainBookkeepingProcessingJobs(input: {
   if (error) throw new Error(`BOOKKEEPING_PROCESSING_CLAIM_FAILED:${error.message}`)
 
   const claimed = rows(data)
-  const processor = input.processor ?? evaluateBookkeepingProcessingJob
+  const processor = input.processor
   let completed = 0
   let retried = 0
-  for (const job of claimed) {
+  for (const [index, job] of claimed.entries()) {
     const jobId = String(job.id ?? '')
     try {
-      await processor(admin, job)
+      if (processor) await processor(admin, job)
+      else await evaluateBookkeepingProcessingJob(admin, job, {
+        allowAiShadow: index < MAX_AI_SHADOW_EVALUATIONS_PER_DRAIN,
+      })
       const { data: didComplete, error: completeError } = await admin.rpc(
         'complete_bookkeeping_processing_job',
         { p_job_id: jobId, p_lease_id: leaseId },
@@ -125,5 +149,28 @@ export async function enqueueUnresolvedBookkeepingRecords(input: {
     p_limit: limit,
   })
   if (error) throw new Error(`BOOKKEEPING_RECONCILIATION_FAILED:${error.message}`)
+  return Number(data ?? 0)
+}
+
+export async function enqueueUnresolvedAiShadowRecords(input: {
+  limit?: number
+  admin?: SupabaseClient
+} = {}) {
+  const admin = input.admin ?? createServerAdminSupabase()
+  const gateway = configuredBookkeepingAiGateway()
+  if (!gateway) return 0
+  const limit = Math.max(1, Math.min(500, Math.trunc(input.limit ?? 100)))
+  const configurationFingerprint = createHash('sha256').update([
+    gateway.provider,
+    gateway.model,
+    BOOKKEEPING_AI_EVALUATOR_VERSION,
+    BOOKKEEPING_AI_PROMPT_VERSION,
+    BOOKKEEPING_AI_OUTPUT_SCHEMA_VERSION,
+  ].join(':')).digest('hex')
+  const { data, error } = await admin.rpc('enqueue_unresolved_bookkeeping_ai_shadow_jobs', {
+    p_limit: limit,
+    p_configuration_fingerprint: configurationFingerprint,
+  })
+  if (error) throw new Error(`AI_SHADOW_RECONCILIATION_FAILED:${error.message}`)
   return Number(data ?? 0)
 }
