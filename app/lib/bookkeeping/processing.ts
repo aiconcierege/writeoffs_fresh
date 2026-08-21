@@ -52,7 +52,7 @@ export async function evaluateBookkeepingProcessingJob(admin: SupabaseClient, jo
     const decision = await applyAutomatedBookkeepingDecision({
       repository: new SupabaseBookkeepingRepository(admin),
       businessId,
-      recordId,
+      recordId: snapshot.recordId,
       expectedCurrentDecisionId: snapshot.currentDecision.id,
       proposal: evaluation.proposal,
     })

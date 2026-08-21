@@ -3,6 +3,7 @@ import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { currentPlaidFinancialState, plaidFinancialTransactionIsCurrent } from '../plaid/current-sources'
 import { SupabaseBookkeepingRepository } from './supabase-repository'
+import { loadCurrentRecordConvergences } from './current-record-resolution'
 import {
   BOOKKEEPING_EVALUATOR_VERSION,
   type BookkeepingEvaluationSnapshot,
@@ -45,7 +46,12 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
   businessId: string
   recordId: string
 }): Promise<BookkeepingEvaluationSnapshot> {
-  const { admin, businessId, recordId } = input
+  const { admin, businessId } = input
+  const resolution = await loadCurrentRecordConvergences({ supabase: admin, businessId })
+  const recordId = resolution.resolve(input.recordId)
+  const evidenceRecordIds = resolution.evidenceRecordIds(recordId)
+  const convergence = resolution.convergences.find((item) =>
+    item.survivorRecordId === recordId) ?? null
   const repository = new SupabaseBookkeepingRepository(admin)
   const currentDecision = await repository.findCurrentDecision(businessId, recordId)
   if (!currentDecision) throw new Error('CURRENT_DECISION_UNAVAILABLE')
@@ -66,7 +72,7 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
       .select('id,supersedes_event_id,event_type,reason').eq('business_id', businessId)
       .eq('bookkeeping_record_id', recordId),
     admin.from('bookkeeping_document_links').select('id').eq('business_id', businessId)
-      .eq('bookkeeping_record_id', recordId).is('revoked_at', null),
+      .in('bookkeeping_record_id', evidenceRecordIds).is('revoked_at', null),
   ])
   if (businessResult.error || sourceResult.error || decisionsResult.error
     || reviewResult.error || documentsResult.error) throw new Error('BOOKKEEPING_EVIDENCE_UNAVAILABLE')
@@ -78,6 +84,7 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
     evaluatorVersion: BOOKKEEPING_EVALUATOR_VERSION,
     businessId,
     recordId,
+    convergenceEventId: convergence?.eventId ?? null,
     sourceKind: record.source_kind as BookkeepingEvaluationSnapshot['sourceKind'],
     amountCents: record.amount_cents == null ? null : Number(record.amount_cents),
     currency: String(record.currency),

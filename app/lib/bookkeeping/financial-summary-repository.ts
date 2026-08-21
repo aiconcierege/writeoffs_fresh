@@ -5,6 +5,7 @@ import type {
   CanonicalSummaryRecord,
 } from './financial-summary'
 import type { CanonicalTaxTreatment } from './tax-treatment-model'
+import { loadCurrentRecordConvergences } from './current-record-resolution'
 
 type Row = Record<string, unknown>
 
@@ -68,6 +69,9 @@ implements CanonicalFinancialSummaryRepository {
       if (page.length < 1000) break
     }
     const recordIds = rows.map((row) => text(row, 'id'))
+    const resolution = await loadCurrentRecordConvergences({
+      supabase: this.supabase, businessId: input.businessId,
+    })
     const decisionRows = await inBatches(recordIds, async (ids) => {
       const { data, error } = await this.supabase.from('bookkeeping_decisions')
         .select('id,bookkeeping_record_id,supersedes_decision_id,bookkeeping_nature,treatment')
@@ -200,10 +204,13 @@ implements CanonicalFinancialSummaryRepository {
     }
     const sourceByRecord = new Map(sourceRows.map((row) => [text(row, 'bookkeeping_record_id'), row]))
     const transactionById = new Map(transactionRows.map((row) => [text(row, 'id'), row]))
-    const documentedRecords = new Set(documentRows.map((row) => text(row, 'bookkeeping_record_id')))
+    const documentedRecords = new Set(documentRows.map((row) =>
+      resolution.resolve(text(row, 'bookkeeping_record_id'))))
     const receiptLostRecords = new Set(documentationRows.filter((row) => text(row, 'event_type') === 'receipt_lost')
-      .map((row) => text(row, 'bookkeeping_record_id')))
-    const receiptByRecord = new Map(documentRows.map((row) => [text(row, 'bookkeeping_record_id'), text(row, 'receipt_id')]))
+      .map((row) => resolution.resolve(text(row, 'bookkeeping_record_id'))))
+    const receiptByRecord = new Map(documentRows.map((row) => [
+      resolution.resolve(text(row, 'bookkeeping_record_id')), text(row, 'receipt_id'),
+    ]))
     const extractionByReceipt = new Map<string, Row>()
     for (const row of extractionRows) {
       const receiptId = text(row, 'receipt_id')
@@ -211,7 +218,8 @@ implements CanonicalFinancialSummaryRepository {
     }
 
     return {
-      records: rows.filter((row) => !inactivePlaidRecordIds.has(text(row, 'id'))).map((row) => {
+      records: rows.filter((row) => !resolution.isAbsorbed(text(row, 'id'))
+        && !inactivePlaidRecordIds.has(text(row, 'id'))).map((row) => {
         const id = text(row, 'id')
         const source = sourceByRecord.get(id)
         const transaction = source

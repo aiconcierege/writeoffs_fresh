@@ -26,6 +26,7 @@ export type BookkeepingEvaluationSnapshot = {
   evaluatorVersion: typeof BOOKKEEPING_EVALUATOR_VERSION
   businessId: string
   recordId: string
+  convergenceEventId?: string | null
   sourceKind: 'financial_transaction' | 'receipt' | 'manual'
   amountCents: number | null
   currency: string

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { currentPlaidFinancialState, plaidFinancialTransactionIsCurrent } from '../plaid/current-sources'
+import { loadCurrentRecordConvergences } from './current-record-resolution'
 
 export type TransactionReadRow = {
   id: string
@@ -68,6 +69,9 @@ export async function listTransactionReadModel(input: {
     .select('id').eq('owner_user_id', input.userId).single()
   if (businessError || !business) throw new Error('Business was not found for the authenticated user.')
   const businessId = business.id as string
+  const resolution = await loadCurrentRecordConvergences({
+    supabase: input.supabase, businessId,
+  })
   const limit = Math.min(Math.max(input.limit ?? 1000, 1), 1000)
   const start = input.year ? `${input.year}-01-01` : null
   const end = input.year ? `${input.year}-12-31` : null
@@ -90,6 +94,8 @@ export async function listTransactionReadModel(input: {
   if (recordError) throw new Error('Could not list canonical transactions.')
   const recordRows = (records ?? []) as Row[]
   const recordIds = recordRows.map((row) => text(row, 'id')!).filter(Boolean)
+  const evidenceRecordIds = [...new Set(recordIds.flatMap((recordId) =>
+    resolution.evidenceRecordIds(recordId)))]
 
   let sources: Row[] = []
   let decisions: Row[] = []
@@ -105,7 +111,7 @@ export async function listTransactionReadModel(input: {
         .order('created_at', { ascending: false }),
       input.supabase.from('bookkeeping_document_links')
         .select('id,bookkeeping_record_id,receipt_id,linked_at').eq('business_id', businessId)
-        .in('bookkeeping_record_id', recordIds).is('revoked_at', null),
+        .in('bookkeeping_record_id', evidenceRecordIds).is('revoked_at', null),
     ])
     if (sourceResult.error || decisionResult.error || documentResult.error) {
       const detail = sourceResult.error?.message ?? decisionResult.error?.message
@@ -135,18 +141,19 @@ export async function listTransactionReadModel(input: {
     const recordId = text(decision, 'bookkeeping_record_id')!
     decisionHistory.set(recordId, [...(decisionHistory.get(recordId) ?? []), decision])
   }
-  const documented = new Set(documentLinks.map((row) => text(row, 'bookkeeping_record_id')))
+  const documented = new Set(documentLinks.map((row) =>
+    resolution.resolve(text(row, 'bookkeeping_record_id')!)))
   let documentationEvents: Row[] = []
   let receiptExtractions: Row[] = []
-  if (recordIds.length) {
+  if (evidenceRecordIds.length) {
     const { data } = await input.supabase.from('bookkeeping_documentation_events')
       .select('bookkeeping_record_id,event_type').eq('business_id', businessId)
-      .in('bookkeeping_record_id', recordIds)
+      .in('bookkeeping_record_id', evidenceRecordIds)
     documentationEvents = (data ?? []) as Row[]
   }
   const receiptLostRecords = new Set(documentationEvents
     .filter((row) => text(row, 'event_type') === 'receipt_lost')
-    .map((row) => text(row, 'bookkeeping_record_id')))
+    .map((row) => resolution.resolve(text(row, 'bookkeeping_record_id')!)))
   const linkedReceiptIds = documentLinks.map((link) => text(link, 'receipt_id')!).filter(Boolean)
   if (linkedReceiptIds.length) {
     const { data } = await input.supabase.from('bookkeeping_receipt_extractions')
@@ -162,10 +169,12 @@ export async function listTransactionReadModel(input: {
   }
   const canonical: TransactionReadRow[] = recordRows.flatMap((record) => {
     const recordId = text(record, 'id')!
+    if (resolution.isAbsorbed(recordId)) return []
     const source = sourceByRecord.get(recordId)
     const financial = source ? financialById.get(text(source, 'financial_transaction_id')) : undefined
     const sourceKind = text(record, 'source_kind')
-    const receiptLink = documentLinks.find((link) => text(link, 'bookkeeping_record_id') === recordId)
+    const receiptLink = documentLinks.find((link) =>
+      resolution.resolve(text(link, 'bookkeeping_record_id')!) === recordId)
     const receiptExtraction = receiptLink ? extractionByReceipt.get(text(receiptLink, 'receipt_id')!) : undefined
     if (!financial && sourceKind !== 'receipt') return []
     if (financial && !plaidFinancialTransactionIsCurrent({ id: text(financial, 'id')!, state: plaidState })) return []
@@ -191,7 +200,8 @@ export async function listTransactionReadModel(input: {
         id: text(decision, 'id')!, summary: customerTreatmentLabel(decision),
         explanation: text(decision, 'reason'), createdAt: text(decision, 'created_at')!,
       })),
-      evidenceLinks: documentLinks.filter((link) => text(link, 'bookkeeping_record_id') === recordId)
+      evidenceLinks: documentLinks.filter((link) =>
+        resolution.resolve(text(link, 'bookkeeping_record_id')!) === recordId)
         .map((link) => ({ id: text(link, 'id')!, receiptId: text(link, 'receipt_id')!,
           attachedAt: text(link, 'linked_at')! })),
       receiptLost: receiptLostRecords.has(recordId),
