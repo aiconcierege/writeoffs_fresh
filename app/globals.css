@@ -183,3 +183,25 @@ header a[aria-label="WriteOffs Home"] img[src="/media/writeoffs_logo_clean.png"]
 /* Quiet text */
 .text-muted { color: var(--slate-600); }
 
+/* Shared accessible form field used by focused authenticated workflows. */
+.field {
+  min-height: 3rem;
+  width: 100%;
+  border: 1px solid var(--slate-300);
+  border-radius: 0.5rem;
+  background: #fff;
+  padding: 0.625rem 0.75rem;
+  color: var(--slate-900);
+  font-size: 1rem;
+  line-height: 1.5rem;
+  outline: none;
+}
+.field:focus {
+  border-color: var(--brand-navy);
+  box-shadow: 0 0 0 3px rgba(36, 49, 134, 0.14);
+}
+
+@media print {
+  body:has(.invoice-print-page) > header { display: none; }
+  body:has(.invoice-print-page) > main { padding: 0; }
+}

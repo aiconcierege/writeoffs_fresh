@@ -110,8 +110,9 @@ export async function listTransactionReadModel(input: {
   let manualEvents: Row[] = []
   let decisions: Row[] = []
   let documentLinks: Row[] = []
+  let invoiceLinks: Row[] = []
   if (recordIds.length) {
-    const [sourceResult, decisionResult, documentResult, manualResult] = await Promise.all([
+    const [sourceResult, decisionResult, documentResult, manualResult, invoiceResult] = await Promise.all([
       input.supabase.from('bookkeeping_financial_sources')
         .select('bookkeeping_record_id,financial_transaction_id').eq('business_id', businessId)
         .in('bookkeeping_record_id', recordIds).is('revoked_at', null),
@@ -125,10 +126,14 @@ export async function listTransactionReadModel(input: {
       input.supabase.from('current_manual_financial_activity')
         .select('manual_financial_source_id,bookkeeping_record_id,direction,payment_method,counterparty_name,description,job_label,location,note')
         .eq('business_id', businessId).in('bookkeeping_record_id', recordIds),
+      input.supabase.from('invoice_income_links')
+        .select('invoice_id,bookkeeping_record_id').eq('business_id', businessId)
+        .in('bookkeeping_record_id', recordIds),
     ])
-    if (sourceResult.error || decisionResult.error || documentResult.error || manualResult.error) {
+    if (sourceResult.error || decisionResult.error || documentResult.error || manualResult.error || invoiceResult.error) {
       const detail = sourceResult.error?.message ?? decisionResult.error?.message
-        ?? documentResult.error?.message ?? manualResult.error?.message ?? 'unknown read error'
+        ?? documentResult.error?.message ?? manualResult.error?.message
+        ?? invoiceResult.error?.message ?? 'unknown read error'
       throw new Error(`Could not assemble canonical transaction history: ${detail}`)
     }
     sources = (sourceResult.data ?? []) as Row[]
@@ -143,6 +148,7 @@ export async function listTransactionReadModel(input: {
     decisions = (decisionResult.data ?? []) as Row[]
     documentLinks = (documentResult.data ?? []) as Row[]
     manualEvents = (manualResult.data ?? []) as Row[]
+    invoiceLinks = (invoiceResult.data ?? []) as Row[]
   }
   const financialIds = sources.map((row) => text(row, 'financial_transaction_id')!).filter(Boolean)
   const plaidState = await currentPlaidFinancialState({
@@ -159,6 +165,19 @@ export async function listTransactionReadModel(input: {
   const financialById = new Map(financialRows.map((row) => [text(row, 'id'), row]))
   const sourceByRecord = new Map(sources.map((row) => [text(row, 'bookkeeping_record_id'), row]))
   const manualByRecord = new Map(manualEvents.map((row) => [text(row, 'bookkeeping_record_id'), row]))
+  const invoiceIds = invoiceLinks.map((row) => text(row, 'invoice_id')!).filter(Boolean)
+  let invoiceRows: Row[] = []
+  if (invoiceIds.length) {
+    const { data, error } = await input.supabase.from('current_canonical_invoices')
+      .select('id,invoice_number,customer_name,description,job_label')
+      .eq('business_id', businessId).in('id', invoiceIds)
+    if (error) throw new Error('Could not load invoice context for transactions.')
+    invoiceRows = (data ?? []) as Row[]
+  }
+  const invoiceById = new Map(invoiceRows.map((row) => [text(row, 'id'), row]))
+  const invoiceByRecord = new Map(invoiceLinks.map((row) => [
+    text(row, 'bookkeeping_record_id'), invoiceById.get(text(row, 'invoice_id')),
+  ]))
   const decisionHistory = new Map<string, Row[]>()
   for (const decision of decisions) {
     const recordId = text(decision, 'bookkeeping_record_id')!
@@ -198,6 +217,7 @@ export async function listTransactionReadModel(input: {
     const compoundComponent = source?.compound_component === true
     const sourceKind = text(record, 'source_kind')
     const manual = manualByRecord.get(recordId)
+    const invoice = invoiceByRecord.get(recordId)
     const baseSourceLabel = compoundComponent ? 'Part of bank activity' : financial ? null : 'Receipt only'
     const receiptLink = documentLinks.find((link) =>
       resolution.resolve(text(link, 'bookkeeping_record_id')!) === recordId)
@@ -212,10 +232,13 @@ export async function listTransactionReadModel(input: {
     return [{
       id: financial && !compoundComponent ? text(financial, 'id')! : recordId, sourceModel: 'canonical' as const,
       date: financial && !compoundComponent ? text(financial, 'transaction_date')! : text(record, 'occurred_on')!,
-      vendor: financial ? text(financial, 'merchant_name') ?? text(financial, 'original_description') ?? 'Transaction'
+      vendor: invoice ? text(invoice, 'customer_name') ?? 'Customer payment'
+        : financial ? text(financial, 'merchant_name') ?? text(financial, 'original_description') ?? 'Transaction'
         : manual ? text(manual, 'counterparty_name') ?? (text(manual, 'direction') === 'received' ? 'Money received' : 'Money spent')
           : text(receiptExtraction ?? {}, 'merchant') ?? 'Receipt purchase',
-      description: financial ? text(financial, 'original_description') : manual ? text(manual, 'description') : 'Recorded from a receipt', amount: amountCents / 100,
+      description: invoice ? text(invoice, 'description')
+        : financial ? text(financial, 'original_description')
+          : manual ? text(manual, 'description') : 'Recorded from a receipt', amount: amountCents / 100,
       amountCents, currency: financial && !compoundComponent ? text(financial, 'currency') ?? 'USD' : text(record, 'currency') ?? 'USD', category_key: null,
       has_receipt: documented.has(recordId), receipt_waived: false,
       treatmentLabel: customerTreatmentLabel(current), decisionReason: current ? text(current, 'reason') : null,
@@ -233,8 +256,10 @@ export async function listTransactionReadModel(input: {
         .map((link) => ({ id: text(link, 'id')!, receiptId: text(link, 'receipt_id')!,
           attachedAt: text(link, 'linked_at')! })),
       receiptLost: receiptLostRecords.has(recordId),
-      sourceLabel: manual && !compoundComponent
-        ? `Recorded · ${manualPaymentLabel(text(manual, 'payment_method'))}` : baseSourceLabel,
+      sourceLabel: invoice
+        ? [baseSourceLabel, `Invoice ${text(invoice, 'invoice_number')}`].filter(Boolean).join(' · ')
+        : manual && !compoundComponent
+          ? `Recorded · ${manualPaymentLabel(text(manual, 'payment_method'))}` : baseSourceLabel,
       sourceKind,
     }]
   })

@@ -232,6 +232,25 @@ implements CanonicalFinancialSummaryRepository {
       return (data ?? []) as Row[]
     })
     const manualByRecord = new Map(manualRows.map((row) => [text(row, 'bookkeeping_record_id'), row]))
+    const invoiceLinkRows = await inBatches(recordIds, async (ids) => {
+      const { data, error } = await this.supabase.from('invoice_income_links')
+        .select('invoice_id,bookkeeping_record_id').eq('business_id', input.businessId)
+        .in('bookkeeping_record_id', ids)
+      if (error) throw new Error(`Unable to load invoice income context: ${error.message}`)
+      return (data ?? []) as Row[]
+    })
+    const invoiceIds = invoiceLinkRows.map((row) => text(row, 'invoice_id'))
+    const invoiceRows = await inBatches(invoiceIds, async (ids) => {
+      const { data, error } = await this.supabase.from('current_canonical_invoices')
+        .select('id,customer_name,description,job_label').eq('business_id', input.businessId)
+        .in('id', ids)
+      if (error) throw new Error(`Unable to load current invoice context: ${error.message}`)
+      return (data ?? []) as Row[]
+    })
+    const invoiceById = new Map(invoiceRows.map((row) => [text(row, 'id'), row]))
+    const invoiceByRecord = new Map(invoiceLinkRows.map((row) => [
+      text(row, 'bookkeeping_record_id'), invoiceById.get(text(row, 'invoice_id')),
+    ]))
 
     return {
       records: rows.filter((row) => !resolution.isAbsorbed(text(row, 'id'))
@@ -244,6 +263,7 @@ implements CanonicalFinancialSummaryRepository {
           : null
         const compoundComponent = source?.compound_component === true
         const manual = manualByRecord.get(id)
+        const invoice = invoiceByRecord.get(id)
         return {
           id,
           occurredOn: transaction && !compoundComponent
@@ -254,10 +274,10 @@ implements CanonicalFinancialSummaryRepository {
           financialSourceAssociationId: source ? text(source, 'id') : null,
           financialTransactionId: source ? text(source, 'financial_transaction_id') : null,
           sourceKind: text(row, 'source_kind') as CanonicalSummaryRecord['sourceKind'],
-          merchant: transaction ? nullableText(transaction, 'merchant_name')
+          merchant: invoice ? nullableText(invoice, 'customer_name') : transaction ? nullableText(transaction, 'merchant_name')
             : manual ? nullableText(manual, 'counterparty_name')
               : nullableText(extractionByReceipt.get(receiptByRecord.get(id) ?? '') ?? {}, 'merchant'),
-          description: transaction ? nullableText(transaction, 'original_description')
+          description: invoice ? nullableText(invoice, 'description') : transaction ? nullableText(transaction, 'original_description')
             : manual ? nullableText(manual, 'description') : null,
           hasEvidence: documentedRecords.has(id),
           receiptLost: receiptLostRecords.has(id),
