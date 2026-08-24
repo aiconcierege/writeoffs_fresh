@@ -32,7 +32,7 @@ export default function AttachReceipt({
   txAmount,   // number (negative = expense)
   txVendor,   // string | null
   onAttached
-  ,canonical = false
+  ,canonical = false, canonicalRecord = false
 }: {
   transactionId: string
   txDate?: string | null
@@ -40,6 +40,7 @@ export default function AttachReceipt({
   txVendor?: string | null
   onAttached?: () => void
   canonical?: boolean
+  canonicalRecord?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -116,7 +117,8 @@ export default function AttachReceipt({
     setError(null)
     try {
       const res = await fetch(canonical
-        ? `/api/bookkeeping/financial-transactions/${transactionId}/receipts`
+        ? canonicalRecord ? `/api/bookkeeping/records/${transactionId}/receipts`
+          : `/api/bookkeeping/financial-transactions/${transactionId}/receipts`
         : '/api/receipts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

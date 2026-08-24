@@ -224,6 +224,14 @@ implements CanonicalFinancialSummaryRepository {
       const receiptId = text(row, 'receipt_id')
       if (!extractionByReceipt.has(receiptId)) extractionByReceipt.set(receiptId, row)
     }
+    const manualRows = await inBatches(recordIds, async (ids) => {
+      const { data, error } = await this.supabase.from('current_manual_financial_activity')
+        .select('bookkeeping_record_id,counterparty_name,description,payment_method')
+        .eq('business_id', input.businessId).in('bookkeeping_record_id', ids)
+      if (error) throw new Error(`Unable to load manual financial source facts: ${error.message}`)
+      return (data ?? []) as Row[]
+    })
+    const manualByRecord = new Map(manualRows.map((row) => [text(row, 'bookkeeping_record_id'), row]))
 
     return {
       records: rows.filter((row) => !resolution.isAbsorbed(text(row, 'id'))
@@ -235,6 +243,7 @@ implements CanonicalFinancialSummaryRepository {
           ? transactionById.get(text(source, 'financial_transaction_id'))
           : null
         const compoundComponent = source?.compound_component === true
+        const manual = manualByRecord.get(id)
         return {
           id,
           occurredOn: transaction && !compoundComponent
@@ -246,8 +255,10 @@ implements CanonicalFinancialSummaryRepository {
           financialTransactionId: source ? text(source, 'financial_transaction_id') : null,
           sourceKind: text(row, 'source_kind') as CanonicalSummaryRecord['sourceKind'],
           merchant: transaction ? nullableText(transaction, 'merchant_name')
-            : nullableText(extractionByReceipt.get(receiptByRecord.get(id) ?? '') ?? {}, 'merchant'),
-          description: transaction ? nullableText(transaction, 'original_description') : null,
+            : manual ? nullableText(manual, 'counterparty_name')
+              : nullableText(extractionByReceipt.get(receiptByRecord.get(id) ?? '') ?? {}, 'merchant'),
+          description: transaction ? nullableText(transaction, 'original_description')
+            : manual ? nullableText(manual, 'description') : null,
           hasEvidence: documentedRecords.has(id),
           receiptLost: receiptLostRecords.has(id),
           decisions: decisionsByRecord.get(id) ?? [],

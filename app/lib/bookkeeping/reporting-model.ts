@@ -15,7 +15,7 @@ export type LegacyReportingRecord = {
 
 export type ReportingRow = {
   sourceModel: 'canonical' | 'legacy'
-  sourceLabel: 'Financial account' | 'Receipt only' | 'Historical record'
+  sourceLabel: 'Financial account' | 'Receipt only' | 'Recorded by customer' | 'Historical record'
   recordId: string
   occurredOn: string
   merchant: string
@@ -123,9 +123,11 @@ export function buildCanonicalReport(input: {
       }
     }
     rows.push({
-      sourceModel: 'canonical', sourceLabel: record.sourceKind === 'receipt' ? 'Receipt only' : 'Financial account',
+      sourceModel: 'canonical', sourceLabel: record.sourceKind === 'receipt' ? 'Receipt only'
+        : record.sourceKind === 'manual' ? 'Recorded by customer' : 'Financial account',
       recordId: record.id, occurredOn: record.occurredOn,
-      merchant: record.merchant?.trim() || (record.sourceKind === 'receipt' ? 'Receipt purchase' : 'Transaction'),
+      merchant: record.merchant?.trim() || (record.sourceKind === 'receipt' ? 'Receipt purchase'
+        : record.sourceKind === 'manual' ? 'Recorded activity' : 'Transaction'),
       description: record.description ?? null, currency: record.currency,
       signedAmountCents: record.amountCents ?? 0,
       businessAmountCents: decision?.bookkeepingNature === 'expense' ? -businessSigned : businessSigned,

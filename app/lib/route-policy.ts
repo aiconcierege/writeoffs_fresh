@@ -7,6 +7,7 @@ export const AUTHENTICATED_ROUTE_PREFIXES = [
   '/questions',
   '/receipts',
   '/mileage',
+  '/money',
   '/import',
   '/export',
   '/dashboard',

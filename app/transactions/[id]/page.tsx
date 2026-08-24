@@ -33,14 +33,14 @@ export default async function TransactionDetailPage({ params }: { params: Promis
       <div><h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">What WriteOffs knows</h2>
         <p className="mt-3 font-medium text-slate-950">{transaction.treatmentLabel}</p>
         <p className="mt-2 text-sm leading-6 text-slate-600">{transaction.decisionReason ?? (transaction.sourceModel === 'canonical' ? 'WriteOffs is still working on this transaction.' : 'This is a historical transaction.')}</p>
-        {transaction.sourceModel === 'canonical' && transaction.bookkeepingNature === 'expense' && transaction.currentDecisionId
+        {transaction.sourceModel === 'canonical' && transaction.sourceKind !== 'manual' && transaction.bookkeepingNature === 'expense' && transaction.currentDecisionId
           ? <CorrectionForm transactionId={transaction.id} currentDecisionId={transaction.currentDecisionId} totalCents={transaction.amountCents} />
           : transaction.sourceModel === 'canonical' && transaction.treatment === 'unresolved'
             ? <Link href="/questions" className="mt-4 inline-block text-sm font-semibold text-[#243186]">Answer questions →</Link> : null}</div>
       <div><h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Receipt and documentation</h2>
         <p className="mt-3 font-medium text-slate-950">{transaction.has_receipt ? 'Supporting receipt attached' : transaction.receiptLost ? 'Receipt reported unavailable' : 'No receipt attached'}</p>
         {transaction.receiptLost && <p className="mt-2 text-sm leading-6 text-slate-600">The prior Receipt Lost history is preserved. You can still attach it later if you find it.</p>}
-        {transaction.sourceModel === 'canonical' && <ReceiptActions transactionId={transaction.id} date={transaction.date} amount={transaction.amount} vendor={transaction.vendor}
+        {transaction.sourceModel === 'canonical' && transaction.recordId && <ReceiptActions transactionId={transaction.id} recordId={transaction.recordId} useRecordTarget={transaction.id === transaction.recordId} date={transaction.date} amount={transaction.amount} vendor={transaction.vendor}
           links={transaction.evidenceLinks} canMarkLost={canMarkLost} />}</div>
     </section>
     {transaction.sourceModel === 'canonical' && transaction.history.length > 1 && <section className="py-8"><h2 className="text-lg font-semibold text-slate-950">History</h2>

@@ -24,7 +24,7 @@ export async function loadCurrentRecordConvergences(input: {
   supabase: SupabaseClient
   businessId: string
 }) {
-  const [convergenceResult, receiptResult, compoundResult] = await Promise.all([
+  const [convergenceResult, receiptResult, compoundResult, manualResult] = await Promise.all([
     input.supabase.from('current_bookkeeping_record_convergences')
       .select('convergence_id,convergence_event_id,survivor_record_id,absorbed_record_id,receipt_id,financial_transaction_id')
       .eq('business_id', input.businessId),
@@ -33,8 +33,11 @@ export async function loadCurrentRecordConvergences(input: {
     input.supabase.from('current_bookkeeping_compound_components')
       .select('reconciliation_id,reconciliation_event_id,anchor_bookkeeping_record_id,anchor_financial_transaction_id,bookkeeping_record_id,link_id,linked_amount_cents,relationship_role')
       .eq('business_id', input.businessId),
+    input.supabase.from('manual_financial_source_events')
+      .select('id,manual_financial_source_id,supersedes_event_id,event_type,bookkeeping_record_id')
+      .eq('business_id', input.businessId),
   ])
-  if (convergenceResult.error || receiptResult.error || compoundResult.error) throw new Error(`Unable to resolve current bookkeeping identity: ${convergenceResult.error?.message ?? receiptResult.error?.message ?? compoundResult.error?.message}`)
+  if (convergenceResult.error || receiptResult.error || compoundResult.error || manualResult.error) throw new Error(`Unable to resolve current bookkeeping identity: ${convergenceResult.error?.message ?? receiptResult.error?.message ?? compoundResult.error?.message ?? manualResult.error?.message}`)
   const convergences: CurrentRecordConvergence[] = (convergenceResult.data ?? []).map((row) => ({
     convergenceId: String(row.convergence_id),
     eventId: String(row.convergence_event_id),
@@ -44,6 +47,7 @@ export async function loadCurrentRecordConvergences(input: {
     financialTransactionId: String(row.financial_transaction_id),
   }))
   const receiptEvents = receiptResult.data ?? []
+  const manualEvents = manualResult.data ?? []
   const compoundComponents: CurrentCompoundComponent[] = (compoundResult.data ?? []).map((row) => ({
     reconciliationId: String(row.reconciliation_id),
     eventId: String(row.reconciliation_event_id),
@@ -62,6 +66,26 @@ export async function loadCurrentRecordConvergences(input: {
   const absorbedToSurvivor = new Map(convergences.map((item) => [
     item.absorbedRecordId, item.survivorRecordId,
   ]))
+  const supersededManualEvents = new Set(manualEvents.map((event) => event.supersedes_event_id).filter(Boolean))
+  const currentManualBySource = new Map(manualEvents.filter((event) => !supersededManualEvents.has(event.id))
+    .map((event) => [String(event.manual_financial_source_id), event]))
+  const inactiveManualRecordIds = new Set<string>()
+  const manualRecordToCurrent = new Map<string, string>()
+  const manualEvidenceByCurrent = new Map<string, string[]>()
+  for (const event of manualEvents) {
+    if (!event.bookkeeping_record_id) continue
+    const recordId = String(event.bookkeeping_record_id)
+    const current = currentManualBySource.get(String(event.manual_financial_source_id))
+    const currentRecordId = current?.event_type === 'removed' || !current?.bookkeeping_record_id
+      ? null : String(current.bookkeeping_record_id)
+    if (recordId !== currentRecordId) inactiveManualRecordIds.add(recordId)
+    if (currentRecordId && recordId !== currentRecordId) manualRecordToCurrent.set(recordId, currentRecordId)
+    if (currentRecordId) {
+      const evidence = manualEvidenceByCurrent.get(currentRecordId) ?? [currentRecordId]
+      if (!evidence.includes(recordId)) evidence.push(recordId)
+      manualEvidenceByCurrent.set(currentRecordId, evidence)
+    }
+  }
   const suppressedCompoundAnchorIds = new Set(compoundComponents.map((item) => item.anchorRecordId))
   const compoundByRecord = new Map(compoundComponents.map((item) => [item.recordId, item]))
   const evidenceRecordIdsBySurvivor = new Map<string, string[]>()
@@ -69,6 +93,9 @@ export async function loadCurrentRecordConvergences(input: {
     evidenceRecordIdsBySurvivor.set(item.survivorRecordId, [
       item.survivorRecordId, item.absorbedRecordId,
     ])
+  }
+  for (const [currentRecordId, evidenceRecordIds] of manualEvidenceByCurrent) {
+    evidenceRecordIdsBySurvivor.set(currentRecordId, evidenceRecordIds)
   }
   const compoundEvidenceIds = new Map<string, string[]>()
   for (const item of compoundComponents) {
@@ -88,10 +115,12 @@ export async function loadCurrentRecordConvergences(input: {
     compoundComponents,
     absorbedToSurvivor,
     evidenceRecordIdsBySurvivor,
-    resolve(recordId: string) { return absorbedToSurvivor.get(recordId) ?? recordId },
+    resolve(recordId: string) { return absorbedToSurvivor.get(manualRecordToCurrent.get(recordId) ?? recordId)
+      ?? manualRecordToCurrent.get(recordId) ?? recordId },
     isAbsorbed(recordId: string) { return absorbedToSurvivor.has(recordId) },
     isInactive(recordId: string) {
-      return inactiveReceiptRecordIds.has(recordId) || suppressedCompoundAnchorIds.has(recordId)
+      return inactiveReceiptRecordIds.has(recordId) || inactiveManualRecordIds.has(recordId)
+        || suppressedCompoundAnchorIds.has(recordId)
     },
     compoundComponent(recordId: string) { return compoundByRecord.get(recordId) ?? null },
     financialTransactionId(recordId: string) {

@@ -26,6 +26,7 @@ export type TransactionReadRow = {
   evidenceLinks: TransactionEvidenceLink[]
   receiptLost: boolean
   sourceLabel: string | null
+  sourceKind: string | null
 }
 
 export type TransactionHistoryItem = {
@@ -106,10 +107,11 @@ export async function listTransactionReadModel(input: {
     resolution.evidenceRecordIds(recordId)))]
 
   let sources: Row[] = []
+  let manualEvents: Row[] = []
   let decisions: Row[] = []
   let documentLinks: Row[] = []
   if (recordIds.length) {
-    const [sourceResult, decisionResult, documentResult] = await Promise.all([
+    const [sourceResult, decisionResult, documentResult, manualResult] = await Promise.all([
       input.supabase.from('bookkeeping_financial_sources')
         .select('bookkeeping_record_id,financial_transaction_id').eq('business_id', businessId)
         .in('bookkeeping_record_id', recordIds).is('revoked_at', null),
@@ -120,10 +122,13 @@ export async function listTransactionReadModel(input: {
       input.supabase.from('bookkeeping_document_links')
         .select('id,bookkeeping_record_id,receipt_id,linked_at').eq('business_id', businessId)
         .in('bookkeeping_record_id', evidenceRecordIds).is('revoked_at', null),
+      input.supabase.from('current_manual_financial_activity')
+        .select('manual_financial_source_id,bookkeeping_record_id,direction,payment_method,counterparty_name,description,job_label,location,note')
+        .eq('business_id', businessId).in('bookkeeping_record_id', recordIds),
     ])
-    if (sourceResult.error || decisionResult.error || documentResult.error) {
+    if (sourceResult.error || decisionResult.error || documentResult.error || manualResult.error) {
       const detail = sourceResult.error?.message ?? decisionResult.error?.message
-        ?? documentResult.error?.message ?? 'unknown read error'
+        ?? documentResult.error?.message ?? manualResult.error?.message ?? 'unknown read error'
       throw new Error(`Could not assemble canonical transaction history: ${detail}`)
     }
     sources = (sourceResult.data ?? []) as Row[]
@@ -137,6 +142,7 @@ export async function listTransactionReadModel(input: {
       })))
     decisions = (decisionResult.data ?? []) as Row[]
     documentLinks = (documentResult.data ?? []) as Row[]
+    manualEvents = (manualResult.data ?? []) as Row[]
   }
   const financialIds = sources.map((row) => text(row, 'financial_transaction_id')!).filter(Boolean)
   const plaidState = await currentPlaidFinancialState({
@@ -152,6 +158,7 @@ export async function listTransactionReadModel(input: {
   }
   const financialById = new Map(financialRows.map((row) => [text(row, 'id'), row]))
   const sourceByRecord = new Map(sources.map((row) => [text(row, 'bookkeeping_record_id'), row]))
+  const manualByRecord = new Map(manualEvents.map((row) => [text(row, 'bookkeeping_record_id'), row]))
   const decisionHistory = new Map<string, Row[]>()
   for (const decision of decisions) {
     const recordId = text(decision, 'bookkeeping_record_id')!
@@ -190,10 +197,12 @@ export async function listTransactionReadModel(input: {
     const financial = source ? financialById.get(text(source, 'financial_transaction_id')) : undefined
     const compoundComponent = source?.compound_component === true
     const sourceKind = text(record, 'source_kind')
+    const manual = manualByRecord.get(recordId)
+    const baseSourceLabel = compoundComponent ? 'Part of bank activity' : financial ? null : 'Receipt only'
     const receiptLink = documentLinks.find((link) =>
       resolution.resolve(text(link, 'bookkeeping_record_id')!) === recordId)
     const receiptExtraction = receiptLink ? extractionByReceipt.get(text(receiptLink, 'receipt_id')!) : undefined
-    if (!financial && sourceKind !== 'receipt') return []
+    if (!financial && sourceKind !== 'receipt' && !manual) return []
     if (financial && !plaidFinancialTransactionIsCurrent({ id: text(financial, 'id')!, state: plaidState })) return []
     const history = decisionHistory.get(recordId) ?? []
     const superseded = new Set(history.map((decision) => text(decision, 'supersedes_decision_id')).filter(Boolean))
@@ -204,8 +213,9 @@ export async function listTransactionReadModel(input: {
       id: financial && !compoundComponent ? text(financial, 'id')! : recordId, sourceModel: 'canonical' as const,
       date: financial && !compoundComponent ? text(financial, 'transaction_date')! : text(record, 'occurred_on')!,
       vendor: financial ? text(financial, 'merchant_name') ?? text(financial, 'original_description') ?? 'Transaction'
-        : text(receiptExtraction ?? {}, 'merchant') ?? 'Receipt purchase',
-      description: financial ? text(financial, 'original_description') : 'Recorded from a receipt', amount: amountCents / 100,
+        : manual ? text(manual, 'counterparty_name') ?? (text(manual, 'direction') === 'received' ? 'Money received' : 'Money spent')
+          : text(receiptExtraction ?? {}, 'merchant') ?? 'Receipt purchase',
+      description: financial ? text(financial, 'original_description') : manual ? text(manual, 'description') : 'Recorded from a receipt', amount: amountCents / 100,
       amountCents, currency: financial && !compoundComponent ? text(financial, 'currency') ?? 'USD' : text(record, 'currency') ?? 'USD', category_key: null,
       has_receipt: documented.has(recordId), receipt_waived: false,
       treatmentLabel: customerTreatmentLabel(current), decisionReason: current ? text(current, 'reason') : null,
@@ -223,7 +233,9 @@ export async function listTransactionReadModel(input: {
         .map((link) => ({ id: text(link, 'id')!, receiptId: text(link, 'receipt_id')!,
           attachedAt: text(link, 'linked_at')! })),
       receiptLost: receiptLostRecords.has(recordId),
-      sourceLabel: compoundComponent ? 'Part of bank activity' : financial ? null : 'Receipt only',
+      sourceLabel: manual && !compoundComponent
+        ? `Recorded · ${manualPaymentLabel(text(manual, 'payment_method'))}` : baseSourceLabel,
+      sourceKind,
     }]
   })
 
@@ -258,9 +270,15 @@ export async function listTransactionReadModel(input: {
       recordId: null, currentDecisionId: null, bookkeepingNature: null,
       treatment: null, history: [], evidenceLinks: [], receiptLost: row.receipt_waived === true,
       sourceLabel: null,
+      sourceKind: null,
     }
   })
   return [...canonical, ...legacy].sort((a, b) => b.date.localeCompare(a.date)).slice(0, limit)
+}
+
+function manualPaymentLabel(value: string | null) {
+  return ({ cash: 'Cash', check: 'Check', zelle_ach: 'Zelle / ACH', card: 'Card',
+    personal_card_account: 'Personal card/account', other: 'Other' } as Record<string, string>)[value ?? ''] ?? 'Other'
 }
 
 export async function getTransactionDetailReadModel(input: {

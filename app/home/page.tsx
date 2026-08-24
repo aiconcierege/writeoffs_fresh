@@ -89,6 +89,12 @@ export default async function HomePage() {
           <Link href="/mileage" className="inline-flex min-h-12 items-center text-sm font-semibold text-[#243186] hover:underline">
             Add mileage
           </Link>
+          <Link href="/money?kind=received" className="inline-flex min-h-12 items-center text-sm font-semibold text-[#243186] hover:underline">
+            Record money received
+          </Link>
+          <Link href="/money?kind=spent" className="inline-flex min-h-12 items-center text-sm font-semibold text-[#243186] hover:underline">
+            Record money spent
+          </Link>
         </div>
 
         {needsOnboardingFollowUp && (

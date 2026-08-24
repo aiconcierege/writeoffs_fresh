@@ -3,8 +3,8 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import AttachReceipt from '../review/AttachReceipt'
 
-export function ReceiptActions({ transactionId, date, amount, vendor, links,
-  canMarkLost }: { transactionId: string; date: string; amount: number; vendor: string;
+export function ReceiptActions({ transactionId, recordId, useRecordTarget, date, amount, vendor, links,
+  canMarkLost }: { transactionId: string; recordId: string; useRecordTarget: boolean; date: string; amount: number; vendor: string;
     links: { id: string; receiptId: string }[]; canMarkLost: boolean }) {
   const router = useRouter(); const [busy, setBusy] = useState(false); const [error, setError] = useState<string|null>(null)
   async function act(url: string, method = 'POST') {
@@ -16,8 +16,8 @@ export function ReceiptActions({ transactionId, date, amount, vendor, links,
     finally { setBusy(false) }
   }
   return <div className="mt-4 flex flex-wrap items-center gap-3">
-    <AttachReceipt canonical transactionId={transactionId} txDate={date} txAmount={amount} txVendor={vendor} onAttached={() => router.refresh()} />
-    {links.map((link) => <button key={link.id} disabled={busy} onClick={() => act(`/api/bookkeeping/transactions/${transactionId}/receipts/${link.id}`, 'DELETE')}
+    <AttachReceipt canonical canonicalRecord={useRecordTarget} transactionId={useRecordTarget ? recordId : transactionId} txDate={date} txAmount={amount} txVendor={vendor} onAttached={() => router.refresh()} />
+    {links.map((link) => <button key={link.id} disabled={busy} onClick={() => act(useRecordTarget ? `/api/bookkeeping/records/${recordId}/receipts/${link.id}` : `/api/bookkeeping/transactions/${transactionId}/receipts/${link.id}`, 'DELETE')}
       className="text-xs font-medium text-slate-600 underline-offset-4 hover:underline">Remove attached receipt</button>)}
     {canMarkLost && <button disabled={busy} onClick={() => act(`/api/bookkeeping/transactions/${transactionId}/receipt-lost`)}
       className="text-xs font-medium text-slate-600 underline-offset-4 hover:underline">I don’t have the receipt</button>}
