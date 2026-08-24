@@ -56,7 +56,7 @@ suite('canonical receipt journey against local PostgreSQL', () => {
     expect(legacyAuthorityError).toBeTruthy()
   })
 
-  it('keeps one unmatched receipt as one receipt-only unresolved record on retries', async () => {
+  it('autonomously retains one receipt-only record and keeps legacy Keep idempotent', async () => {
     const receipt = await register()
     const { error: extractionError } = await a.customer.rpc('record_bookkeeping_receipt_extraction', {
       p_receipt_id: receipt.id, p_extraction_key: 'customer:v1', p_provider: 'customer',
@@ -74,10 +74,65 @@ suite('canonical receipt journey against local PostgreSQL', () => {
     expect(financialCount).toBe(0)
     const { data: events } = await a.customer.from('bookkeeping_receipt_events').select('event_type')
       .eq('receipt_id', receipt.id).order('sequence_number')
-    expect(events?.map((event) => event.event_type)).toEqual(['uploaded', 'extraction_completed', 'kept'])
+    expect(events?.map((event) => event.event_type)).toEqual(['uploaded', 'extraction_completed', 'retained', 'kept'])
     const readRows = await listTransactionReadModel({ supabase: a.customer, userId: a.userId })
     expect(readRows).toContainEqual(expect.objectContaining({ id: records![0].id,
       vendor: 'Corner Supply', amountCents: -4321, sourceLabel: 'Receipt only', has_receipt: true }))
+  })
+
+  it('retains suspect extraction as document-only and does not fabricate activity', async () => {
+    const receipt = await register()
+    const { error } = await a.customer.rpc('record_bookkeeping_receipt_extraction', {
+      p_receipt_id: receipt.id, p_extraction_key: 'ocr:suspect-date-amount', p_provider: 'ocr',
+      p_merchant: 'Date', p_occurred_on: null, p_total_amount_cents: 520202500, p_raw_payload: null,
+    })
+    expect(error).toBeNull()
+    const { data: extraction, error: extractionReadError } = await admin.from('bookkeeping_receipt_extractions')
+      .select('quality_status,quality_reasons').eq('receipt_id', receipt.id).single()
+    expect(extractionReadError).toBeNull()
+    const quality = extraction as unknown as { quality_status: string; quality_reasons: string[] }
+    expect(quality).toMatchObject({ quality_status: 'suspect' })
+    expect(quality.quality_reasons).toEqual(expect.arrayContaining(['GENERIC_MERCHANT', 'TOTAL_RESEMBLES_DATE']))
+    const { data: extractionEvent } = await admin.from('bookkeeping_receipt_events')
+      .select('provenance,actor_user_id').eq('receipt_id', receipt.id).eq('event_type', 'extraction_completed').single()
+    expect(extractionEvent).toEqual({ provenance: 'automation', actor_user_id: null })
+    const { count } = await a.customer.from('bookkeeping_records').select('*', { count: 'exact', head: true })
+      .eq('business_id', a.businessId).eq('ingestion_key', `receipt:${receipt.id}`)
+    expect(count).toBe(0)
+  })
+
+  it('matches a usable receipt directly to one exact existing financial record', async () => {
+    const owner = await provisionLocalCanonicalOwner({
+      admin, url: url!, anonKey: anonKey!, label: 'receipt-financial-first', amounts: [-1234],
+    })
+    const { data: transaction, error: transactionReadError } = await admin.from('financial_transactions')
+      .select('merchant_name,transaction_date').eq('business_id', owner.businessId).single()
+    expect(transactionReadError).toBeNull()
+    const financial = transaction as unknown as { merchant_name: string; transaction_date: string }
+    const receipt = await register(owner.customer, owner.userId)
+    const { data, error } = await owner.customer.rpc('record_bookkeeping_receipt_extraction', {
+      p_receipt_id: receipt.id, p_extraction_key: 'ocr:financial-first', p_provider: 'ocr',
+      p_merchant: financial.merchant_name, p_occurred_on: financial.transaction_date,
+      p_total_amount_cents: 1234, p_raw_payload: null,
+    })
+    expect(error).toBeNull()
+    expect((data as Record<string, unknown>).state).toBe('matched')
+    const { count: receiptOnlyCount } = await owner.customer.from('bookkeeping_records')
+      .select('*', { count: 'exact', head: true }).eq('business_id', owner.businessId).eq('source_kind', 'receipt')
+    expect(receiptOnlyCount).toBe(0)
+    const { data: event } = await owner.customer.from('bookkeeping_receipt_events')
+      .select('event_type,provenance').eq('receipt_id', receipt.id)
+      .order('sequence_number', { ascending: false }).limit(1).single()
+    expect(event).toEqual({ event_type: 'matched', provenance: 'automation' })
+    const { error: discardError } = await owner.customer.rpc('discard_autonomous_bookkeeping_receipt', {
+      p_receipt_id: receipt.id, p_request_key: 'remove-direct-match', p_reason: 'Wrong receipt',
+    })
+    expect(discardError).toBeNull()
+    const currentTransactions = await listTransactionReadModel({
+      supabase: owner.customer, userId: owner.userId,
+    })
+    expect(currentTransactions).toHaveLength(1)
+    expect(currentTransactions[0].has_receipt).toBe(false)
   })
 
   it('discards idempotently without creating bookkeeping activity', async () => {

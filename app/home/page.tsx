@@ -6,6 +6,7 @@ import { getAuthenticatedCanonicalReport } from '../lib/bookkeeping/reporting-se
 import { HomeGreeting } from './HomeGreeting'
 import { countReceiptsNeedingAttention } from '../lib/bookkeeping/receipt-workflow'
 import { onboardingNeedsFollowUp, type OnboardingBusinessData } from '../lib/onboarding/progress'
+import { ReceiptUploadAction } from '../receipts/ReceiptUploadAction'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -79,6 +80,13 @@ export default async function HomePage() {
                 : 'Some activity is still being processed.'}
           </p>
         </header>
+
+        <div className="mt-7 flex flex-wrap items-start gap-x-5 gap-y-3">
+          <ReceiptUploadAction />
+          <Link href="/receipts" className="inline-flex min-h-12 items-center text-sm font-semibold text-[#243186] hover:underline">
+            View receipts
+          </Link>
+        </div>
 
         {needsOnboardingFollowUp && (
           <section className="mt-8 rounded-xl border border-indigo-200 bg-indigo-50 p-5" aria-labelledby="setup-heading">

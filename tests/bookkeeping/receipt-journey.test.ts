@@ -5,11 +5,14 @@ import { resolve } from 'node:path'
 const source = (file: string) => readFileSync(resolve(process.cwd(), file), 'utf8')
 
 describe('customer receipt journey', () => {
-  it('uses canonical registration and plain Keep or Discard actions', () => {
+  it('uses canonical registration with autonomous retention and guarded removal', () => {
     const page = source('app/receipts/page_inner.tsx')
-    expect(page).toContain("uploadFingerprint")
-    expect(page).toContain('Keep receipt')
-    expect(page).toContain('Discard receipt')
+    const upload = source('app/receipts/ReceiptUploadAction.tsx')
+    expect(upload).toContain('uploadFingerprint')
+    expect(upload).toContain('Receipt added. WriteOffs is organizing it.')
+    expect(page).toContain('Remove')
+    expect(page).not.toContain('Keep receipt')
+    expect(page).not.toContain('Upload selected')
     expect(page).not.toContain('category')
     expect(page).not.toContain('OCR confidence')
     expect(page).not.toContain('transaction_id')

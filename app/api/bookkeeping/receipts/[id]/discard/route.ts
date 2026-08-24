@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../../../utils/supabase/server'
-import { completeUnmatchedReceipt } from '../../../../../lib/bookkeeping/receipt-workflow'
 
-export async function POST(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params
-    const result = await completeUnmatchedReceipt({ supabase: await createServerSupabase(), receiptId: id, action: 'discard' })
+    const supabase = await createServerSupabase()
+    const requestKey = request.headers.get('idempotency-key') ?? crypto.randomUUID()
+    const { data: result, error } = await supabase.rpc('discard_autonomous_bookkeeping_receipt', {
+      p_receipt_id: id, p_request_key: requestKey, p_reason: 'Customer removed receipt from current records.',
+    })
+    if (error) throw new Error(error.message)
     return NextResponse.json({ ok: true, result })
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : 'Unable to discard receipt.'
