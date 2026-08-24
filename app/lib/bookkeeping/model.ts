@@ -25,6 +25,7 @@ export const BOOKKEEPING_NATURES = [
   'refund',
   'owner_contribution',
   'loan_proceeds',
+  'loan_principal_payment',
   'other_non_income',
 ] as const
 

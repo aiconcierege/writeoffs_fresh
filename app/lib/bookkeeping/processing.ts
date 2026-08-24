@@ -31,6 +31,7 @@ function safeErrorCode(error: unknown) {
   const message = error instanceof Error ? error.message : 'UNKNOWN'
   if (message === 'CURRENT_DECISION_UNAVAILABLE') return message
   if (message === 'BOOKKEEPING_RECORD_UNAVAILABLE') return message
+  if (message === 'BOOKKEEPING_RECORD_INACTIVE') return message
   if (/^AI_(PROVIDER|RESPONSE)_[A-Z0-9_]+$/.test(message)) return message
   return 'BOOKKEEPING_PROCESSING_FAILED'
 }
@@ -58,7 +59,11 @@ export async function evaluateBookkeepingProcessingJob(
     return { outcome: 'legacy_noop' as const }
   }
 
-  const snapshot = await loadBookkeepingEvaluationSnapshot({ admin, businessId, recordId })
+  const snapshot = await loadBookkeepingEvaluationSnapshot({ admin, businessId, recordId }).catch((error) => {
+    if (error instanceof Error && error.message === 'BOOKKEEPING_RECORD_INACTIVE') return null
+    throw error
+  })
+  if (!snapshot) return { outcome: 'inactive' as const }
   const evaluation = evaluateDeterministicBookkeeping(snapshot)
   if (!evaluation) {
     const aiShadow = options.allowAiShadow === false

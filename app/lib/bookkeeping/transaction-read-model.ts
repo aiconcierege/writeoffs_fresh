@@ -76,19 +76,27 @@ export async function listTransactionReadModel(input: {
   const start = input.year ? `${input.year}-01-01` : null
   const end = input.year ? `${input.year}-12-31` : null
 
-  let canonicalRecordId: string | null = null
+  let canonicalRecordIds: string[] = []
   if (input.transactionId) {
+    canonicalRecordIds = resolution.compoundComponents
+      .filter((component) => component.financialTransactionId === input.transactionId
+        || component.recordId === input.transactionId)
+      .map((component) => component.recordId)
     const { data } = await input.supabase.from('bookkeeping_financial_sources')
       .select('bookkeeping_record_id').eq('business_id', businessId)
       .eq('financial_transaction_id', input.transactionId).is('revoked_at', null).maybeSingle()
-    canonicalRecordId = data?.bookkeeping_record_id ?? null
+    if (!canonicalRecordIds.length && data?.bookkeeping_record_id) {
+      canonicalRecordIds = [data.bookkeeping_record_id]
+    }
   }
   let recordQuery = input.supabase.from('bookkeeping_records')
     .select('id,source_kind,amount_cents,currency,occurred_on').eq('business_id', businessId)
     .order('occurred_on', { ascending: false }).limit(limit)
   if (start && end) recordQuery = recordQuery.gte('occurred_on', start).lte('occurred_on', end)
   if (input.transactionId) {
-    recordQuery = canonicalRecordId ? recordQuery.eq('id', canonicalRecordId) : recordQuery.eq('id', input.transactionId)
+    recordQuery = canonicalRecordIds.length
+      ? recordQuery.in('id', canonicalRecordIds)
+      : recordQuery.eq('id', input.transactionId)
   }
   const { data: records, error: recordError } = await recordQuery
   if (recordError) throw new Error('Could not list canonical transactions.')
@@ -119,6 +127,14 @@ export async function listTransactionReadModel(input: {
       throw new Error(`Could not assemble canonical transaction history: ${detail}`)
     }
     sources = (sourceResult.data ?? []) as Row[]
+    sources.push(...resolution.compoundComponents
+      .filter((component) => recordIds.includes(component.recordId))
+      .map((component) => ({
+        bookkeeping_record_id: component.recordId,
+        financial_transaction_id: component.financialTransactionId,
+        compound_component: true,
+        relationship_role: component.relationshipRole,
+      })))
     decisions = (decisionResult.data ?? []) as Row[]
     documentLinks = (documentResult.data ?? []) as Row[]
   }
@@ -169,9 +185,10 @@ export async function listTransactionReadModel(input: {
   }
   const canonical: TransactionReadRow[] = recordRows.flatMap((record) => {
     const recordId = text(record, 'id')!
-    if (resolution.isAbsorbed(recordId)) return []
+    if (resolution.isAbsorbed(recordId) || resolution.isInactive(recordId)) return []
     const source = sourceByRecord.get(recordId)
     const financial = source ? financialById.get(text(source, 'financial_transaction_id')) : undefined
+    const compoundComponent = source?.compound_component === true
     const sourceKind = text(record, 'source_kind')
     const receiptLink = documentLinks.find((link) =>
       resolution.resolve(text(link, 'bookkeeping_record_id')!) === recordId)
@@ -181,14 +198,15 @@ export async function listTransactionReadModel(input: {
     const history = decisionHistory.get(recordId) ?? []
     const superseded = new Set(history.map((decision) => text(decision, 'supersedes_decision_id')).filter(Boolean))
     const current = history.find((decision) => !superseded.has(text(decision, 'id')))
-    const amountCents = financial ? number(financial, 'amount_cents') : number(record, 'amount_cents')
+    const amountCents = financial && !compoundComponent
+      ? number(financial, 'amount_cents') : number(record, 'amount_cents')
     return [{
-      id: financial ? text(financial, 'id')! : recordId, sourceModel: 'canonical' as const,
-      date: financial ? text(financial, 'transaction_date')! : text(record, 'occurred_on')!,
+      id: financial && !compoundComponent ? text(financial, 'id')! : recordId, sourceModel: 'canonical' as const,
+      date: financial && !compoundComponent ? text(financial, 'transaction_date')! : text(record, 'occurred_on')!,
       vendor: financial ? text(financial, 'merchant_name') ?? text(financial, 'original_description') ?? 'Transaction'
         : text(receiptExtraction ?? {}, 'merchant') ?? 'Receipt purchase',
       description: financial ? text(financial, 'original_description') : 'Recorded from a receipt', amount: amountCents / 100,
-      amountCents, currency: financial ? text(financial, 'currency') ?? 'USD' : text(record, 'currency') ?? 'USD', category_key: null,
+      amountCents, currency: financial && !compoundComponent ? text(financial, 'currency') ?? 'USD' : text(record, 'currency') ?? 'USD', category_key: null,
       has_receipt: documented.has(recordId), receipt_waived: false,
       treatmentLabel: customerTreatmentLabel(current), decisionReason: current ? text(current, 'reason') : null,
       decisionProvenance: current ? text(current, 'provenance') : null,
@@ -205,7 +223,7 @@ export async function listTransactionReadModel(input: {
         .map((link) => ({ id: text(link, 'id')!, receiptId: text(link, 'receipt_id')!,
           attachedAt: text(link, 'linked_at')! })),
       receiptLost: receiptLostRecords.has(recordId),
-      sourceLabel: financial ? null : 'Receipt only',
+      sourceLabel: compoundComponent ? 'Part of bank activity' : financial ? null : 'Receipt only',
     }]
   })
 

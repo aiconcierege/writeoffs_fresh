@@ -49,9 +49,11 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
   const { admin, businessId } = input
   const resolution = await loadCurrentRecordConvergences({ supabase: admin, businessId })
   const recordId = resolution.resolve(input.recordId)
+  if (resolution.isInactive(recordId)) throw new Error('BOOKKEEPING_RECORD_INACTIVE')
   const evidenceRecordIds = resolution.evidenceRecordIds(recordId)
   const convergence = resolution.convergences.find((item) =>
     item.survivorRecordId === recordId) ?? null
+  const compoundComponent = resolution.compoundComponent(recordId)
   const repository = new SupabaseBookkeepingRepository(admin)
   const currentDecision = await repository.findCurrentDecision(businessId, recordId)
   if (!currentDecision) throw new Error('CURRENT_DECISION_UNAVAILABLE')
@@ -84,7 +86,7 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
     evaluatorVersion: BOOKKEEPING_EVALUATOR_VERSION,
     businessId,
     recordId,
-    convergenceEventId: convergence?.eventId ?? null,
+    convergenceEventId: convergence?.eventId ?? compoundComponent?.eventId ?? null,
     sourceKind: record.source_kind as BookkeepingEvaluationSnapshot['sourceKind'],
     amountCents: record.amount_cents == null ? null : Number(record.amount_cents),
     currency: String(record.currency),
@@ -101,11 +103,13 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
     movement: null,
     movementCandidates: [],
   } satisfies BookkeepingEvaluationSnapshot
-  if (!sourceResult.data?.financial_transaction_id || !base.occurredOn) return base
+  const financialTransactionId = sourceResult.data?.financial_transaction_id
+    ?? compoundComponent?.financialTransactionId
+  if (!financialTransactionId || !base.occurredOn) return base
 
   const { data: transaction, error: transactionError } = await admin.from('financial_transactions')
     .select('id,business_id,financial_account_id,merchant_name,original_description,amount_cents,currency,transaction_date,pending,import_method,raw_payload')
-    .eq('business_id', businessId).eq('id', sourceResult.data.financial_transaction_id).maybeSingle()
+    .eq('business_id', businessId).eq('id', financialTransactionId).maybeSingle()
   if (transactionError || !transaction) throw new Error('BOOKKEEPING_SOURCE_UNAVAILABLE')
   const { data: candidates, error: candidatesError } = await admin.from('financial_transactions')
     .select('id,business_id,financial_account_id,merchant_name,original_description,amount_cents,currency,transaction_date,pending,import_method,raw_payload')
@@ -174,13 +178,13 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
     candidate.financialTransactionId === transaction.id) ?? null
   return {
     ...base,
-    amountCents: Number(transaction.amount_cents),
-    currency: String(transaction.currency),
-    occurredOn: String(transaction.transaction_date),
+    amountCents: compoundComponent ? base.amountCents : Number(transaction.amount_cents),
+    currency: compoundComponent ? base.currency : String(transaction.currency),
+    occurredOn: compoundComponent ? base.occurredOn : String(transaction.transaction_date),
     merchantName: text(transaction.merchant_name),
     description: text(transaction.original_description),
-    movement,
-    movementCandidates: movements.filter((candidate) =>
+    movement: compoundComponent ? null : movement,
+    movementCandidates: compoundComponent ? [] : movements.filter((candidate) =>
       candidate.financialTransactionId !== transaction.id),
   }
 }

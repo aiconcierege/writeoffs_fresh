@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CanonicalWeeklyReviewItem } from './model'
 import { listCanonicalReviewQueue } from './review-queue'
 import { currentPlaidFinancialState, plaidFinancialTransactionIsCurrent } from '../plaid/current-sources'
+import { loadCurrentRecordConvergences } from './current-record-resolution'
 
 export type CustomerQuestion = {
   id: string
@@ -92,6 +93,10 @@ export async function listCustomerQuestions(input: { supabase: SupabaseClient })
   const queue = await listCanonicalReviewQueue(input)
   const recordIds = [...new Set(queue.map(({ record }) => record.id))]
   if (!recordIds.length) return []
+  const businessId = queue[0].record.businessId
+  const resolution = await loadCurrentRecordConvergences({
+    supabase: input.supabase, businessId,
+  })
 
   const [{ data: records, error: recordError }, { data: sources, error: sourceError }] =
     await Promise.all([
@@ -104,7 +109,16 @@ export async function listCustomerQuestions(input: { supabase: SupabaseClient })
   if (recordError) throw new Error(`Unable to load question records: ${recordError.message}`)
   if (sourceError) throw new Error(`Unable to load question sources: ${sourceError.message}`)
 
-  const transactionIds = (sources ?? []).map((source) => source.financial_transaction_id)
+  const currentSources = [
+    ...(sources ?? []),
+    ...resolution.compoundComponents.filter((component) => recordIds.includes(component.recordId))
+      .map((component) => ({
+        bookkeeping_record_id: component.recordId,
+        financial_transaction_id: component.financialTransactionId,
+      })),
+  ]
+
+  const transactionIds = currentSources.map((source) => source.financial_transaction_id)
   const { data: transactions, error: transactionError } = transactionIds.length
     ? await input.supabase.from('financial_transactions')
       .select('id,merchant_name,original_description,amount_cents,currency,transaction_date')
@@ -115,19 +129,16 @@ export async function listCustomerQuestions(input: { supabase: SupabaseClient })
   }
 
   const recordById = new Map((records ?? []).map((record) => [record.id, record]))
-  const sourceByRecord = new Map((sources ?? []).map((source) => [
+  const sourceByRecord = new Map(currentSources.map((source) => [
     source.bookkeeping_record_id, source.financial_transaction_id,
   ]))
   const transactionById = new Map((transactions ?? []).map((transaction) => [
     transaction.id, transaction,
   ]))
 
-  const businessId = queue[0]?.record.businessId
-  const plaidState = businessId
-    ? await currentPlaidFinancialState({
-      supabase: input.supabase, businessId, candidateFinancialTransactionIds: transactionIds,
-    })
-    : { allCanonicalIds: new Set<string>(), currentCanonicalIds: new Set<string>() }
+  const plaidState = await currentPlaidFinancialState({
+    supabase: input.supabase, businessId, candidateFinancialTransactionIds: transactionIds,
+  })
 
   return queue.flatMap((item) => {
     const record = recordById.get(item.record.id)

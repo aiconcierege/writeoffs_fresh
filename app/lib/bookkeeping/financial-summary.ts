@@ -17,6 +17,7 @@ export type CanonicalSummaryDecision = {
     | 'refund'
     | 'owner_contribution'
     | 'loan_proceeds'
+    | 'loan_principal_payment'
     | 'other_non_income'
     | null
   treatment: 'unresolved' | 'business' | 'personal' | 'mixed_use' | 'excluded'

@@ -26,6 +26,6 @@ describe('customer receipt journey', () => {
   it('shows receipt-only provenance through the unified Transactions model', () => {
     const model = source('app/lib/bookkeeping/transaction-read-model.ts')
     expect(model).toContain("sourceKind !== 'receipt'")
-    expect(model).toContain("sourceLabel: financial ? null : 'Receipt only'")
+    expect(model).toContain("compoundComponent ? 'Part of bank activity' : financial ? null : 'Receipt only'")
   })
 })

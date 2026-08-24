@@ -112,6 +112,14 @@ implements CanonicalFinancialSummaryRepository {
       if (error) throw new Error(`Unable to load canonical summary sources: ${error.message}`)
       return (data ?? []) as Row[]
     })
+    sourceRows.push(...resolution.compoundComponents
+      .filter((component) => recordIds.includes(component.recordId))
+      .map((component) => ({
+        id: component.linkId,
+        bookkeeping_record_id: component.recordId,
+        financial_transaction_id: component.financialTransactionId,
+        compound_component: true,
+      })))
     const plaidState = await currentPlaidFinancialState({
       supabase: this.supabase, businessId: input.businessId,
       candidateFinancialTransactionIds: sourceRows.map((row) => text(row, 'financial_transaction_id')),
@@ -219,19 +227,21 @@ implements CanonicalFinancialSummaryRepository {
 
     return {
       records: rows.filter((row) => !resolution.isAbsorbed(text(row, 'id'))
+        && !resolution.isInactive(text(row, 'id'))
         && !inactivePlaidRecordIds.has(text(row, 'id'))).map((row) => {
         const id = text(row, 'id')
         const source = sourceByRecord.get(id)
         const transaction = source
           ? transactionById.get(text(source, 'financial_transaction_id'))
           : null
+        const compoundComponent = source?.compound_component === true
         return {
           id,
-          occurredOn: transaction
+          occurredOn: transaction && !compoundComponent
             ? text(transaction, 'transaction_date')
             : nullableText(row, 'occurred_on'),
-          amountCents: transaction ? cents(transaction.amount_cents) : cents(row.amount_cents),
-          currency: transaction ? text(transaction, 'currency') : text(row, 'currency'),
+          amountCents: transaction && !compoundComponent ? cents(transaction.amount_cents) : cents(row.amount_cents),
+          currency: transaction && !compoundComponent ? text(transaction, 'currency') : text(row, 'currency'),
           financialSourceAssociationId: source ? text(source, 'id') : null,
           financialTransactionId: source ? text(source, 'financial_transaction_id') : null,
           sourceKind: text(row, 'source_kind') as CanonicalSummaryRecord['sourceKind'],

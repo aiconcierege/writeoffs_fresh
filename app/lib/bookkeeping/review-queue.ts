@@ -19,5 +19,5 @@ export async function listCanonicalReviewQueue(input: {
     new CanonicalWeeklyReviewService(repository).listQueue(businessId),
     loadCurrentRecordConvergences({ supabase: input.supabase, businessId }),
   ])
-  return queue.filter(({ record }) => !resolution.isAbsorbed(record.id))
+  return queue.filter(({ record }) => !resolution.isAbsorbed(record.id) && !resolution.isInactive(record.id))
 }
