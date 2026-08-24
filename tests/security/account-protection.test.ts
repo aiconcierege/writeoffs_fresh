@@ -21,7 +21,7 @@ describe('account protection', () => {
 
   it('implements enrollment, challenge, and protected removal with customer-safe errors', () => {
     const settings = read('app/settings/security/SecuritySettings.tsx')
-    expect(settings).toContain("factorType: 'totp'")
+    expect(read('app/lib/auth/totp-enrollment.ts')).toContain("factorType: 'totp'")
     expect(settings).toContain('challengeAndVerify')
     expect(settings).toContain('Enter the 6-digit code')
     expect(settings).toContain('That code didn’t work. Try again.')

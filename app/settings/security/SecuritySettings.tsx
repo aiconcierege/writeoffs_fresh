@@ -4,14 +4,13 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '../../../utils/supabase/client'
-
-type Enrollment = { factorId: string; qrCode: string; secret: string }
+import { startTotpEnrollment, type TotpEnrollment } from '../../lib/auth/totp-enrollment'
 
 export function SecuritySettings({ enrollmentRequired }: { enrollmentRequired: boolean }) {
   const router = useRouter()
   const [verifiedFactorId, setVerifiedFactorId] = useState<string | null>(null)
   const [assured, setAssured] = useState(false)
-  const [enrollment, setEnrollment] = useState<Enrollment | null>(null)
+  const [enrollment, setEnrollment] = useState<TotpEnrollment | null>(null)
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -27,15 +26,16 @@ export function SecuritySettings({ enrollmentRequired }: { enrollmentRequired: b
   useEffect(() => { void refresh() }, [])
 
   async function beginEnrollment() {
-    setBusy(true); setError(null); setMessage(null)
-    const { data: existing } = await supabase.auth.mfa.listFactors()
-    for (const factor of existing?.all.filter((item) => item.factor_type === 'totp' && item.status === 'unverified') ?? []) {
-      await supabase.auth.mfa.unenroll({ factorId: factor.id })
+    setBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      setEnrollment(await startTotpEnrollment(supabase.auth.mfa))
+    } catch {
+      setError('We couldn’t start two-factor authentication. Please try again.')
+    } finally {
+      setBusy(false)
     }
-    const { data, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'WriteOffs authenticator' })
-    setBusy(false)
-    if (enrollError || !data?.totp) { setError('We couldn’t start two-factor authentication. Please try again.'); return }
-    setEnrollment({ factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret })
   }
 
   async function verifyEnrollment(event: React.FormEvent) {
@@ -61,7 +61,8 @@ export function SecuritySettings({ enrollmentRequired }: { enrollmentRequired: b
     {enrollmentRequired && !verifiedFactorId && <p className="notice mt-7">Set up two-factor authentication before continuing to WriteOffs.</p>}
     <section className="section-rule mt-9" aria-labelledby="two-factor-heading"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><h2 id="two-factor-heading" className="section-heading">Two-factor authentication</h2>
       <p className="section-description">{verifiedFactorId ? 'Your account is protected with an authenticator app.' : 'Add a second step when signing in.'}</p></div><span className="status-badge" data-tone={verifiedFactorId ? 'positive' : 'attention'}>{verifiedFactorId ? 'On' : 'Not set up'}</span></div>
-      {!verifiedFactorId && !enrollment && <button disabled={busy} onClick={() => void beginEnrollment()} className="btn btn-primary mt-6">{busy ? 'Starting…' : 'Set up authenticator app'}</button>}
+      {!verifiedFactorId && !enrollment && <button type="button" disabled={busy} aria-busy={busy} onClick={() => void beginEnrollment()} className="btn btn-primary mt-6">{busy ? 'Starting…' : 'Set up authenticator app'}</button>}
+      {busy && !enrollment && <p role="status" aria-live="polite" className="mt-3 text-sm text-[#59665f]">Starting authenticator setup…</p>}
       {enrollment && <form onSubmit={verifyEnrollment} className="surface mt-6 p-5 sm:p-7"><h3 className="font-semibold text-[#17211d]">Scan the QR code</h3><p className="mt-2 text-sm leading-6 text-[#59665f]">Scan this with your authenticator app, then enter its 6-digit code.</p>
         {/* Supabase returns a bounded data URI; it is never persisted by WriteOffs. */}
         <Image src={enrollment.qrCode} width={192} height={192} unoptimized alt="QR code for authenticator app setup" className="mx-auto mt-5 h-48 w-48" />
