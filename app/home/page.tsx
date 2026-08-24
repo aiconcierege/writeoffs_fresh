@@ -86,6 +86,9 @@ export default async function HomePage() {
           <Link href="/receipts" className="inline-flex min-h-12 items-center text-sm font-semibold text-[#243186] hover:underline">
             View receipts
           </Link>
+          <Link href="/mileage" className="inline-flex min-h-12 items-center text-sm font-semibold text-[#243186] hover:underline">
+            Add mileage
+          </Link>
         </div>
 
         {needsOnboardingFollowUp && (

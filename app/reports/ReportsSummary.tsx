@@ -7,6 +7,9 @@ type SummaryData = {
   businessExpensesCents: number
   businessProfitCents: number
   estimatedDeductionsCents: number | null
+  businessMilesMilli: number
+  mileageDeductionCents: null
+  mileageTaxTreatmentStatus: 'facts_only' | 'not_applicable'
   categoryTotals: { categoryKey: string; categoryLabel: string; amountCents: number; transactionCount: number }[]
   completeness: { isComplete: boolean; unresolvedRecordCount: number }
 }
@@ -39,6 +42,10 @@ export function ReportsSummary() {
       <div className="mt-4 border-t border-slate-200">{data.categoryTotals.map((row) => <div key={row.categoryKey} className="grid grid-cols-[1fr_auto] gap-4 border-b border-slate-200 py-3 text-sm">
         <span>{row.categoryLabel}</span><span className="tabular-nums">{usd.format(row.amountCents / 100)}</span></div>)}
         {data.categoryTotals.length === 0 && <p className="py-5 text-sm text-slate-600">No supported category totals are available yet.</p>}</div>
+    </section>
+    <section aria-labelledby="mileage-heading"><h2 id="mileage-heading" className="text-lg font-semibold text-slate-950">Business mileage</h2>
+      <p className="mt-2 text-2xl font-semibold tabular-nums">{(data.businessMilesMilli / 1000).toLocaleString('en-US', { maximumFractionDigits: 3 })} miles</p>
+      {data.mileageTaxTreatmentStatus === 'facts_only' && <p className="mt-2 text-sm text-slate-600">Mileage is preserved for tax preparation. WriteOffs has not guessed a vehicle expense method or deduction.</p>}
     </section>
   </main>
 }

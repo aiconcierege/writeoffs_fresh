@@ -21,6 +21,10 @@ export default async function TaxCategorySummary() {
         {report.categoryTotals.length === 0 && <tr className="border-t border-slate-200"><td colSpan={3} className="py-7 text-center text-slate-600">No supported category totals are available yet.</td></tr>}</tbody>
     </table></div>
     {report.uncategorizedBusinessExpensesCents !== 0 && <p className="mt-4 text-sm text-slate-600">Some business expenses are not included in the category breakdown while WriteOffs finishes their treatment.</p>}
+    <section className="mt-7 border-y border-slate-200 py-5"><h2 className="font-semibold">Business mileage</h2>
+      <p className="mt-2 text-xl font-semibold tabular-nums">{(report.businessMilesMilli / 1000).toLocaleString('en-US', { maximumFractionDigits: 3 })} miles</p>
+      {report.businessMilesMilli > 0 && <p className="mt-2 text-sm text-slate-600">Recorded mileage is included as a tax-preparation fact. No vehicle method or deduction amount is assumed.</p>}
+    </section>
     <div className="mt-7 flex flex-wrap gap-3"><Link href="/export" className="rounded-md border border-slate-300 px-3 py-2 text-sm">Export CSV</Link><Link href="/reports" className="rounded-md border border-slate-300 px-3 py-2 text-sm">Back to Reports</Link></div>
   </main>
 }

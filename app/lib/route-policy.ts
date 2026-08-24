@@ -6,6 +6,7 @@ export const AUTHENTICATED_ROUTE_PREFIXES = [
   '/onboarding',
   '/questions',
   '/receipts',
+  '/mileage',
   '/import',
   '/export',
   '/dashboard',

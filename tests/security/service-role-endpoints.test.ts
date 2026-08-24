@@ -13,9 +13,6 @@ describe('customer endpoint isolation', () => {
     'app/api/transactions/list/route.ts',
     'app/api/transactions/export/route.ts',
     'app/api/import/csv/route.ts',
-    'app/api/mileage/create/route.ts',
-    'app/api/mileage/list/route.ts',
-    'app/api/mileage/export/route.ts',
   ]
 
   it.each(authenticatedRoutes)('%s requires an authenticated context', (route) => {
@@ -33,8 +30,12 @@ describe('customer endpoint isolation', () => {
     expect(existsSync(join(root, 'app/receipts/debug/page.tsx'))).toBe(false)
   })
 
-  it('does not expose a user-facing mileage page during the initial product', () => {
-    expect(existsSync(join(root, 'app/mileage/page.tsx'))).toBe(false)
+  it('exposes canonical Business-owned mileage without legacy mileage authority', () => {
+    expect(existsSync(join(root, 'app/mileage/page.tsx'))).toBe(true)
+    for (const route of ['app/api/mileage/create/route.ts','app/api/mileage/list/route.ts','app/api/mileage/export/route.ts']) {
+      expect(source(route)).toContain('createServerSupabase')
+      expect(source(route)).not.toContain("from('mileage_trips')")
+    }
   })
 
   it('does not expose the retired Teller token-exchange endpoint', () => {
@@ -120,13 +121,4 @@ describe('customer endpoint isolation', () => {
     expect(migration).not.toMatch(/p_(business|user)_id/)
   })
 
-  it('keeps mileage unavailable until ownership can be enforced', () => {
-    for (const route of [
-      'app/api/mileage/create/route.ts',
-      'app/api/mileage/list/route.ts',
-      'app/api/mileage/export/route.ts',
-    ]) {
-      expect(source(route), route).toContain('temporarilyUnavailableResponse')
-    }
-  })
 })
