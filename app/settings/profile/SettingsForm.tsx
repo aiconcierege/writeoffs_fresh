@@ -46,29 +46,11 @@ export default function SettingsForm({ initial }: { initial: SettingsInitial }) 
   }
 
   return (
-    <form onSubmit={onSubmit} className="surface p-5 sm:p-7">
-      <div className="section-heading">Profile and business</div>
-
-      {/* Theme */}
-      <div className="mt-6">
-        <label className="block text-sm font-medium">Theme</label>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          {(['system','light','dark'] as const).map(t => (
-            <label key={t} className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="radio"
-                name="theme"
-                checked={form.theme === t}
-                onChange={() => set('theme', t)}
-              />
-              {t === 'system' ? 'System' : t[0].toUpperCase() + t.slice(1)}
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* Business info */}
-      <div className="mt-6 grid gap-3">
+    <form onSubmit={onSubmit}>
+      <section aria-labelledby="profile-business-heading">
+        <h2 id="profile-business-heading" className="section-heading">Profile &amp; Business</h2>
+        <p className="section-description">The contact and business details used across WriteOffs.</p>
+      <div className="mt-6 grid gap-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Business name" value={form.business_name} onChange={v => set('business_name', v)} />
           <Field label="Owner name"    value={form.owner_name}    onChange={v => set('owner_name', v)} />
@@ -89,9 +71,24 @@ export default function SettingsForm({ initial }: { initial: SettingsInitial }) 
         </div>
 
         <Field label="Country" value={form.country} onChange={v => set('country', v)} />
-      </div>
+      </div></section>
 
-      <div className="mt-6 flex items-center justify-end gap-2">
+      <section className="section-rule mt-10" aria-labelledby="appearance-heading">
+        <h2 id="appearance-heading" className="section-heading">Appearance</h2>
+        <p className="section-description">Choose how WriteOffs appears on this account.</p>
+        <fieldset className="mt-5"><legend className="text-sm font-medium">Theme</legend>
+          <div className="mt-3 flex flex-wrap gap-3">
+            {(['system','light','dark'] as const).map(t => (
+              <label key={t} className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-4 text-sm font-medium ${form.theme === t ? 'border-[#243186] bg-[#f2f3fb] text-[#243186]' : 'border-[#dce3de] bg-white text-[#59665f]'}`}>
+                <input type="radio" name="theme" checked={form.theme === t} onChange={() => set('theme', t)} />
+                {t === 'system' ? 'System' : t[0].toUpperCase() + t.slice(1)}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      </section>
+
+      <div className="mt-8 flex items-center justify-end gap-2 border-t border-[#dce3de] pt-6">
        <button type="submit" disabled={saving} className="rounded-xl btn btn-primary px-4 py-2 text-sm font-semibold disabled:opacity-60">
           {saving ? 'Saving…' : 'Save changes'}
         </button>

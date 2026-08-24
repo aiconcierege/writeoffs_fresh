@@ -9,7 +9,7 @@ const header = readFileSync('app/components/Header.tsx', 'utf8')
 
 describe('WriteOffs Home v2', () => {
   it('uses customer-facing Home language without legacy dashboard concepts', () => {
-    expect(home).toContain('Your books are up to date.')
+    expect(home).toContain('Your bookkeeping is up to date.')
     expect(home).toContain('WriteOffs is working.')
     expect(home).toContain('WriteOffs will keep working in the background.')
     expect(home).not.toContain('Nothing needs your attention')
@@ -36,7 +36,7 @@ describe('WriteOffs Home v2', () => {
 
   it('does not claim books are current while canonical activity is incomplete', () => {
     expect(home).toContain('const processingComplete = summary.completeness.isComplete')
-    expect(home).toMatch(/attentionCount > 0[\s\S]*processingComplete[\s\S]*Your books are up to date/)
+    expect(home).toMatch(/attentionCount > 0[\s\S]*processingComplete[\s\S]*Your bookkeeping is up to date/)
     expect(home).toMatch(/processingComplete[\s\S]*WriteOffs will keep working in the background/)
     expect(home).toContain('Some activity is still being processed.')
   })
@@ -58,7 +58,7 @@ describe('WriteOffs Home v2', () => {
     expect(home).toContain('getAuthenticatedCanonicalReport')
     expect(home).toContain('<dl')
     expect(home).toContain('Some activity is still being processed.')
-    expect(home).toContain('summary.estimatedDeductionsCents == null')
+    expect(home).toContain('summary.estimatedDeductionsCents != null')
     expect(home).toContain('Estimated deductions')
     expect(home).not.toContain('Estimated taxable income')
     expect(home).not.toContain('Not yet available')

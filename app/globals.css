@@ -188,7 +188,7 @@ body { background: var(--canvas); color: var(--ink); }
 /* Authenticated product composition. Type and whitespace establish hierarchy;
    surfaces are reserved for actions, exceptions, and cohesive records. */
 .app-page { min-height: calc(100vh - 4rem); background: var(--canvas); }
-.page-container { width: 100%; max-width: 72rem; margin-inline: auto; padding: 2.25rem 1rem 4rem; }
+.page-container { width: 100%; max-width: 64rem; margin-inline: auto; padding: 2.25rem 1rem 4rem; }
 .page-container-narrow { max-width: 48rem; }
 .page-container-wide { max-width: 80rem; }
 .page-header { max-width: 46rem; }
@@ -212,7 +212,7 @@ body { background: var(--canvas); color: var(--ink); }
 .notice { border-left: 3px solid var(--brand-navy); border-radius: 0 .75rem .75rem 0; background: #f2f3fb; padding: .9rem 1rem; color: #374069; font-size: .875rem; line-height: 1.55; }
 .notice-error { border-color: #b84a4a; background: #fff2f1; color: #853333; }
 .notice-success { border-color: var(--brand-green); background: #edf8f3; color: #176c54; }
-.empty-state { padding: 3.25rem 1rem; text-align: center; }
+.empty-state { margin-inline: auto; max-width: 38rem; padding: 4.5rem 1rem; text-align: center; }
 .empty-state h2, .empty-state h3 { color: var(--ink); font-size: 1.15rem; font-weight: 650; letter-spacing: -.02em; }
 .empty-state p { margin: .5rem auto 0; max-width: 28rem; color: var(--ink-muted); font-size: .875rem; line-height: 1.6; }
 .form-field { display: grid; gap: .5rem; color: #34423a; font-size: .875rem; font-weight: 600; }

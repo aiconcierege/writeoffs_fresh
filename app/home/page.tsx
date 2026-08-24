@@ -9,6 +9,7 @@ import { onboardingNeedsFollowUp, type OnboardingBusinessData } from '../lib/onb
 import { ReceiptUploadAction } from '../receipts/ReceiptUploadAction'
 import { getAuthenticatedTaxYearReadiness } from '../lib/bookkeeping/tax-year-readiness-service'
 import { MoneyDisplay, StatusBadge } from '../components/ui'
+import { customerRoutes } from '../lib/customer-routes'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -52,15 +53,6 @@ export default async function HomePage() {
   const attentionCount = questionCount + receiptAttentionCount
   const processingComplete = summary.completeness.isComplete
   const firstName = firstNameFromMetadata(user.user_metadata ?? {})
-  const financialLines = [
-    { label: 'Business income', value: summary.businessIncomeCents },
-    { label: 'Business expenses', value: summary.businessExpensesCents },
-    { label: 'Estimated business profit', value: summary.businessProfitCents, emphasized: true },
-    ...(summary.estimatedDeductionsCents == null ? [] : [
-      { label: 'Estimated deductions', value: summary.estimatedDeductionsCents, emphasized: false },
-    ]),
-  ]
-
   return (
     <main className="app-page">
       <div className="page-container max-w-5xl">
@@ -70,7 +62,7 @@ export default async function HomePage() {
             {attentionCount > 0
               ? `${attentionCount} ${attentionCount === 1 ? 'thing needs' : 'things need'} your attention.`
               : processingComplete
-                ? 'Your books are up to date.'
+                ? 'Your bookkeeping is up to date.'
                 : 'WriteOffs is working.'}
           </h1>
           <p className="mt-4 max-w-xl text-base leading-7 text-[#59665f]">
@@ -82,28 +74,26 @@ export default async function HomePage() {
           </p>
         </header>
 
-        <div className="mt-8 flex flex-wrap items-center gap-x-2 gap-y-3">
+        <div className="mt-8 flex flex-wrap items-start gap-3">
           <ReceiptUploadAction />
-          <Link href="/mileage" className="btn btn-quiet">
-            Add mileage
-          </Link>
-          <Link href="/money?kind=received" className="btn btn-quiet">
-            Record money received
-          </Link>
-          <Link href="/money?kind=spent" className="btn btn-quiet">
-            Record money spent
-          </Link>
-          <details className="group relative"><summary className="btn btn-quiet cursor-pointer list-none [&::-webkit-details-marker]:hidden">More <span aria-hidden="true">＋</span></summary>
-            <div className="absolute left-0 z-20 mt-2 grid min-w-52 rounded-xl border border-[#dce3de] bg-white p-2 shadow-[0_18px_45px_rgba(23,33,29,.14)]">
-              <Link href="/invoices" className="rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-slate-50">Create invoice</Link><Link href="/receipts" className="rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-slate-50">View receipts</Link><Link href="/deductions" className="rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-slate-50">Deduction details</Link><Link href="/contractors" className="rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-slate-50">Contractor details</Link>
+          <details className="group relative"><summary className="btn btn-secondary min-h-12 cursor-pointer list-none [&::-webkit-details-marker]:hidden">Add <span aria-hidden="true">＋</span></summary>
+            <div className="absolute left-0 z-20 mt-2 grid min-w-60 rounded-xl border border-[#dce3de] bg-white p-2 shadow-[0_18px_45px_rgba(23,33,29,.14)]">
+              <Link href={customerRoutes.moneyReceived} className="rounded-lg px-3 py-3 text-sm font-semibold hover:bg-slate-50">Record money received</Link>
+              <Link href={customerRoutes.moneySpent} className="rounded-lg px-3 py-3 text-sm font-semibold hover:bg-slate-50">Record money spent</Link>
+              <Link href={customerRoutes.mileage} className="rounded-lg px-3 py-3 text-sm font-semibold hover:bg-slate-50">Add mileage</Link>
+              <Link href={customerRoutes.invoices} className="rounded-lg px-3 py-3 text-sm font-semibold hover:bg-slate-50">Create invoice</Link>
+              <div className="my-1 border-t border-[#e6ebe7]" />
+              <Link href={customerRoutes.uploadReceipts} className="rounded-lg px-3 py-3 text-sm font-medium text-[#59665f] hover:bg-slate-50">View receipts</Link>
+              <Link href="/deductions" className="rounded-lg px-3 py-3 text-sm font-medium text-[#59665f] hover:bg-slate-50">Deduction details</Link>
+              <Link href="/contractors" className="rounded-lg px-3 py-3 text-sm font-medium text-[#59665f] hover:bg-slate-50">Contractor details</Link>
             </div></details>
         </div>
 
         {needsOnboardingFollowUp && (
-          <section className="notice mt-9" aria-labelledby="setup-heading">
-            <h2 id="setup-heading" className="font-semibold text-slate-950">A few business details need an update</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-700">We’ll only ask for information that helps WriteOffs handle your records safely. Your existing work stays in place.</p>
-            <Link href="/onboarding" className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">Continue setup →</Link>
+          <section className="mt-8 flex flex-col gap-2 border-l-2 border-[#d4ddd7] pl-4 sm:flex-row sm:items-center sm:justify-between" aria-labelledby="setup-heading">
+            <div><h2 id="setup-heading" className="text-sm font-semibold text-slate-950">A few business details need an update</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-600">Complete the facts WriteOffs needs to handle your records safely. Your existing work stays in place.</p></div>
+            <Link href="/onboarding" className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-[#243186]">Continue setup →</Link>
           </section>
         )}
 
@@ -140,7 +130,7 @@ export default async function HomePage() {
           </section>
         )}
 
-        <section aria-labelledby="tax-readiness-heading" className="border-b border-[#dce3de] py-7">
+        <section aria-labelledby="tax-readiness-heading" className="mt-7 py-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div>
             <div className="flex items-center gap-3"><h2 id="tax-readiness-heading" className="text-lg font-semibold text-slate-950">{readiness.taxYear} records</h2><StatusBadge tone={readiness.status === 'ready' ? 'positive' : readiness.status === 'still_processing' ? 'muted' : 'attention'}>{readiness.status.replace('_',' ')}</StatusBadge></div>
             <p className="mt-2 text-sm text-slate-600">{readiness.status === 'ready' ? 'Ready for tax preparation'
@@ -150,28 +140,16 @@ export default async function HomePage() {
           </div><Link href={`/reports/tax-time?year=${readiness.taxYear}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">View annual records →</Link></div>
         </section>
 
-        <section
-          aria-labelledby="year-to-date-heading"
-          className={`${attentionCount > 0 ? 'mt-11' : 'mt-12'} border-t border-[#dce3de] pt-8 sm:pt-10`}
-        >
+        <section aria-labelledby="year-to-date-heading" className="mt-3 border-t border-[#dce3de] pt-8 sm:pt-10">
           <h2 id="year-to-date-heading" className="text-xs font-semibold tracking-[0.16em] text-slate-500">
             YEAR TO DATE
           </h2>
           <dl className="mt-5 grid gap-x-10 sm:grid-cols-2">
-            {financialLines.map((line) => (
-              <div
-                key={line.label}
-                className={`border-b border-[#dce3de] py-5 ${
-                  line.emphasized ? 'sm:col-span-2 sm:grid sm:grid-cols-[1fr_auto] sm:items-baseline' : ''
-                }`}
-              >
-                <dt className={line.emphasized ? 'font-medium text-slate-950' : 'text-sm text-slate-700'}>
-                  {line.label}
-                </dt>
-                <dd className={`${line.emphasized ? 'mt-2 text-4xl font-semibold sm:mt-0' : 'mt-2 text-3xl font-semibold'} money-display`}><MoneyDisplay cents={line.value} /></dd>
-              </div>
-            ))}
+            <div className="border-b border-[#dce3de] py-5"><dt className="text-sm text-slate-700">Business income</dt><dd className="money-display mt-2 text-3xl font-semibold"><MoneyDisplay cents={summary.businessIncomeCents} /></dd></div>
+            <div className="border-b border-[#dce3de] py-5"><dt className="text-sm text-slate-700">Business expenses</dt><dd className="money-display mt-2 text-3xl font-semibold"><MoneyDisplay cents={summary.businessExpensesCents} /></dd></div>
+            <div className="py-7 sm:col-span-2"><dt className="font-medium text-slate-950">Estimated business profit</dt><dd className="money-display mt-2 text-4xl font-semibold sm:text-5xl"><MoneyDisplay cents={summary.businessProfitCents} /></dd></div>
           </dl>
+          {summary.estimatedDeductionsCents != null && <div className="mt-3 max-w-xl border-l-2 border-[#9ccdbc] pl-4"><p className="eyebrow">Tax estimate</p><p className="mt-2 text-sm text-[#59665f]">Estimated deductions</p><p className="money-display mt-1 text-2xl font-semibold"><MoneyDisplay cents={summary.estimatedDeductionsCents} /></p></div>}
           {!summary.completeness.isComplete && (
             <p className="mt-4 text-sm leading-6 text-slate-600">
               Some activity is still being processed.

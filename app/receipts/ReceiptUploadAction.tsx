@@ -61,7 +61,7 @@ export function ReceiptUploadAction({ onComplete, variant = 'home' }: {
   const busy = status === 'uploading' || status === 'organizing'
   return <div className={variant === 'home' ? 'inline-flex flex-col items-start gap-2' : 'w-full'}>
     <button type="button" disabled={busy} onClick={() => input.current?.click()}
-      className={`${variant === 'home' ? 'btn-primary' : 'btn-secondary'} btn min-h-12`}>
+      className="btn btn-primary min-h-12">
       {busy ? 'Adding receipt…' : <><span className="hidden sm:inline">Upload receipt</span><span className="sm:hidden">Add receipt</span></>}
     </button>
     <input ref={input} type="file" accept="image/*,application/pdf" className="sr-only"

@@ -62,8 +62,8 @@ export function Header() {
     <header className="fixed top-0 z-50 w-full border-b border-[#dce3de]/80 bg-[#fbfaf7]/92 shadow-[0_1px_0_rgba(23,33,29,0.02)] backdrop-blur-xl">
       <div className="mx-auto grid h-16 max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-self-start">
-          <span className="sm:hidden"><BrandLogo href="/home" heightPx={30} /></span>
-          <span className="hidden sm:inline-flex"><BrandLogo href="/home" heightPx={38} /></span>
+          <span className="sm:hidden"><BrandLogo href="/home" heightPx={26} /></span>
+          <span className="hidden sm:inline-flex"><BrandLogo href="/home" heightPx={32} /></span>
         </div>
 
         <div className="min-w-0 justify-self-center">
@@ -75,10 +75,10 @@ export function Header() {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    "border-b-2 px-0.5 py-5 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#243186] sm:text-sm",
+                    "relative px-0.5 py-5 text-xs transition-colors after:absolute after:inset-x-0 after:bottom-[.85rem] after:h-0.5 after:origin-center after:rounded-full after:bg-[#243186] after:transition-transform focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#243186] sm:text-sm",
                     active
-                      ? "border-[#243186] text-slate-950"
-                      : "border-transparent text-[#65736b] hover:text-[#17211d]"
+                      ? "font-semibold text-slate-950 after:scale-x-100"
+                      : "font-medium text-[#65736b] after:scale-x-0 hover:text-[#17211d]"
                   )}
                   aria-current={active ? "page" : undefined}
                 >

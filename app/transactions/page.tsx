@@ -27,7 +27,8 @@ export default async function TransactionsPage({ searchParams }: {
           <input id="transaction-search" name="q" defaultValue={query} placeholder="Search merchant or description"
             className="field text-sm" /></form>} />
       {rows.length === 0 ? <EmptyState title={query ? 'No matching transactions' : 'No activity yet'}
-        description={query ? 'Try a different search.' : 'Connect or import an account and WriteOffs will start organizing it.'} />
+        description={query ? 'Try a different search.' : 'Connect or import an account and WriteOffs will start organizing it.'}
+        action={query ? null : <div className="flex flex-col justify-center gap-3 sm:flex-row"><Link href="/settings/banking" className="btn btn-primary">Connect an account</Link><Link href="/import" className="btn btn-secondary">Import a CSV</Link></div>} />
       : <div className="record-list mt-8">
         {rows.map((row) => <Link key={`${row.sourceModel}:${row.id}`} href={`/transactions/${row.id}`}
           className="record-row grid min-h-[5.25rem] grid-cols-[1fr_auto] gap-4 px-1 py-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#243186] sm:grid-cols-[7rem_1fr_12rem_8rem] sm:items-center sm:px-3">

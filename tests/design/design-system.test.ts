@@ -62,4 +62,37 @@ describe('WriteOffs product design system', () => {
     const text = files.map(read).join('\n')
     expect(text).not.toMatch(/append_bookkeeping_decision|create allocation|guaranteed deduction|IRS compliant/i)
   })
+
+  it('uses an underline for active navigation while retaining a separate focus indicator', () => {
+    const header = read('app/components/Header.tsx')
+    expect(header).toContain('after:scale-x-100')
+    expect(header).toContain('focus-visible:outline')
+    expect(header).not.toContain('active\n                      ? "border')
+  })
+
+  it('distinguishes standard, form, and data page widths', () => {
+    const css = read('app/globals.css')
+    expect(css).toContain('.page-container {')
+    expect(css).toContain('.page-container-narrow')
+    expect(css).toContain('.page-container-wide')
+  })
+
+  it('keeps R2 empty states and first-use setup actionable', () => {
+    const transactions = read('app/transactions/page.tsx')
+    expect(transactions).toContain('Connect an account')
+    expect(transactions).toContain('Import a CSV')
+    expect(read('app/receipts/ReceiptUploadAction.tsx')).toContain('className="btn btn-primary min-h-12"')
+    const mileage = read('app/mileage/MileageClient.tsx')
+    expect(mileage).toContain('First, tell us which vehicle you use for business')
+    expect(mileage).toContain('You only need to do this once')
+  })
+
+  it('separates Settings profile, appearance, setup, and connections', () => {
+    const form = read('app/settings/profile/SettingsForm.tsx')
+    const settings = read('app/settings/page.tsx')
+    expect(form).toContain('Profile &amp; Business')
+    expect(form).toContain('Appearance')
+    expect(settings).toContain('Business setup')
+    expect(settings).toContain('Bank connections')
+  })
 })

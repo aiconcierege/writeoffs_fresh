@@ -20,7 +20,7 @@ export default async function BankingSettings() {
   ])
 
   return (
-    <main className="page-container page-container-narrow space-y-8">
+    <main className="app-page"><div className="page-container page-container-narrow space-y-8">
       <header className="space-y-1">
         <p className="eyebrow">Connections</p><h1 className="page-title">Bank connections</h1>
         <p className="page-description">
@@ -33,6 +33,6 @@ export default async function BankingSettings() {
         <BankConnect enabled={plaidIsConfigured() && plaidSandboxLinkEnabled()}
           connections={connections ?? []} accounts={accounts ?? []} />
       </div>
-    </main>
+    </div></main>
   );
 }

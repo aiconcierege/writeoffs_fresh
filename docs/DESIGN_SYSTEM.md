@@ -15,7 +15,7 @@ Avoid generic dashboard grids, decorative charts, dense accounting tables, and a
 - Soft border: `#dce3de`
 - Radii: 12px controls, 16px subtle groups, 20px primary surfaces
 - Shadows: low-opacity green-black depth; never heavy gray dashboard shadows
-- Layout widths: 48rem focused forms, 72rem standard pages, 80rem data-heavy pages
+- Layout widths: 48rem focused forms, 64rem standard pages, 80rem data-heavy pages
 - Page gutters: 16px mobile, 24px tablet, 32px desktop
 
 ## Typography
