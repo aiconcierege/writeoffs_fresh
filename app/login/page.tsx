@@ -48,10 +48,12 @@ function LoginInner() {
 
         <form onSubmit={handleLogin} className="mt-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium">Email</label>
+            <label htmlFor="login-email" className="block text-sm font-medium">Email</label>
             <input
+              id="login-email"
               type="email"
               required
+              autoComplete="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               className="mt-1 w-full rounded-xl border px-3 py-2"
@@ -60,11 +62,13 @@ function LoginInner() {
             <div className="mt-2 text-right"><Link href="/recover" className="text-sm font-semibold text-[#243186]">Forgot password?</Link></div>
           </div>
           <div>
-            <label className="block text-sm font-medium">Password</label>
+            <label htmlFor="login-password" className="block text-sm font-medium">Password</label>
             <input
+              id="login-password"
               type="password"
               required
               minLength={8}
+              autoComplete="current-password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="mt-1 w-full rounded-xl border px-3 py-2"
@@ -81,8 +85,8 @@ function LoginInner() {
           </button>
         </form>
 
-        {err && <p className="mt-3 text-sm text-red-600">{err}</p>}
-        {ok && <p className="mt-3 text-sm text-green-700">{ok}</p>}
+        {err && <p role="alert" className="mt-3 text-sm text-red-600">{err}</p>}
+        {ok && <p role="status" className="mt-3 text-sm text-green-700">{ok}</p>}
 
         <p className="mt-6 text-sm">
           New here?{' '}
