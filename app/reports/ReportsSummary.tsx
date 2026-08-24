@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 
 type SummaryData = {
   businessIncomeCents: number
@@ -33,7 +34,8 @@ export function ReportsSummary() {
   return <main className="mx-auto max-w-4xl space-y-9 px-2 py-8 sm:px-6">
     <header><p className="text-xs font-semibold tracking-[0.16em] text-slate-500">YEAR TO DATE</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Your business at a glance</h1>
-      {!data.completeness.isComplete && <p className="mt-2 text-sm text-slate-600">Some activity is still being processed.</p>}</header>
+      {!data.completeness.isComplete && <p className="mt-2 text-sm text-slate-600">Some activity is still being processed.</p>}
+      <Link href="/reports/tax-time" className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">Check tax-time readiness →</Link></header>
     <dl className="border-t border-slate-200">
       {metrics.map(([label, amount], index) => <div key={label} className={`grid grid-cols-[1fr_auto] items-baseline border-b border-slate-200 py-4 ${index === 2 ? 'font-semibold' : ''}`}>
         <dt>{label}</dt><dd className={`${index === 2 ? 'text-2xl' : 'text-xl'} tabular-nums`}>{usd.format(amount / 100)}</dd></div>)}

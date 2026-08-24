@@ -7,6 +7,7 @@ import { HomeGreeting } from './HomeGreeting'
 import { countReceiptsNeedingAttention } from '../lib/bookkeeping/receipt-workflow'
 import { onboardingNeedsFollowUp, type OnboardingBusinessData } from '../lib/onboarding/progress'
 import { ReceiptUploadAction } from '../receipts/ReceiptUploadAction'
+import { getAuthenticatedTaxYearReadiness } from '../lib/bookkeeping/tax-year-readiness-service'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -47,6 +48,7 @@ export default async function HomePage() {
     currency: 'USD',
   })
   const receiptAttentionCount = await countReceiptsNeedingAttention(supabase)
+  const readiness = await getAuthenticatedTaxYearReadiness({ supabase, taxYear: Number(periodEnd.slice(0, 4)) })
   const questionCount = summary.completeness.unresolvedCustomerQuestionCount
   const attentionCount = questionCount + receiptAttentionCount
   const processingComplete = summary.completeness.isComplete
@@ -146,6 +148,16 @@ export default async function HomePage() {
             </div><Link href="/receipts" className="text-sm font-semibold text-[#243186]">Handle receipts →</Link></div>
           </section>
         )}
+
+        <section aria-labelledby="tax-readiness-heading" className="border-b border-slate-200 py-7">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div>
+            <h2 id="tax-readiness-heading" className="text-lg font-semibold text-slate-950">{readiness.taxYear} records</h2>
+            <p className="mt-2 text-sm text-slate-600">{readiness.status === 'ready' ? 'Ready for tax preparation'
+              : readiness.status === 'still_processing' ? 'WriteOffs is still working'
+                : readiness.status === 'needs_attention' ? `${readiness.issues.length} ${readiness.issues.length === 1 ? 'thing needs' : 'things need'} attention`
+                  : 'Information is needed before these records are ready'}</p>
+          </div><Link href={`/reports/tax-time?year=${readiness.taxYear}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">View annual records →</Link></div>
+        </section>
 
         <section
           aria-labelledby="year-to-date-heading"

@@ -9,11 +9,17 @@ export async function GET(request: Request) {
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   const today = new Date().toISOString().slice(0, 10)
   const url = new URL(request.url)
+  const requestedYear = url.searchParams.get('year')
+  const year = requestedYear == null ? null : Number(requestedYear)
+  if (year != null && (!Number.isInteger(year) || year < 2000 || year > 2100)) {
+    return NextResponse.json({ error: 'invalid_year' }, { status: 400 })
+  }
   const report = await getAuthenticatedCanonicalReport({ supabase,
-    periodStart: '0001-01-01', periodEnd: today })
+    periodStart: year == null ? '0001-01-01' : `${year}-01-01`,
+    periodEnd: year == null ? today : `${year}-12-31` })
   const unresolvedOnly = url.searchParams.get('scope') === 'uncategorized'
   return new NextResponse(canonicalReportCsv(report, unresolvedOnly), { headers: {
-    'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="writeoffs-${unresolvedOnly ? 'needs-attention' : 'activity'}.csv"`,
+    'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="writeoffs-${year ?? 'all'}-${unresolvedOnly ? 'needs-attention' : 'activity'}.csv"`,
     'Cache-Control': 'no-store',
   } })
 }
