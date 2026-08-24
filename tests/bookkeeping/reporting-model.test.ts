@@ -94,7 +94,7 @@ describe('canonical reporting read model', () => {
     const result = report([record({ sourceKind: 'receipt', financialTransactionId: null,
       financialSourceAssociationId: null, merchant: 'A, Vendor', hasEvidence: true })])
     const csv = canonicalReportCsv(result)
-    expect(csv).toContain('business_amount,personal_amount,treatment,category,receipt_status,source')
+    expect(csv).toContain('business_amount,personal_amount,treatment,category,receipt_status,tax_status,source')
     expect(csv).toContain('Receipt only')
     expect(csv).not.toContain('record-')
     expect(csv).not.toContain('decision-')

@@ -9,6 +9,7 @@ export const AUTHENTICATED_ROUTE_PREFIXES = [
   '/mileage',
   '/money',
   '/invoices',
+  '/deductions',
   '/import',
   '/export',
   '/dashboard',
@@ -26,7 +27,8 @@ export function isAuthenticatedRoute(pathname: string) {
 export type ApplicationNavigationSection = 'home' | 'transactions' | 'reports' | 'account' | null
 
 export function applicationNavigationSection(pathname: string): ApplicationNavigationSection {
-  if (pathMatchesPrefix(pathname, '/home') || pathMatchesPrefix(pathname, '/invoices')) return 'home'
+  if (pathMatchesPrefix(pathname, '/home') || pathMatchesPrefix(pathname, '/invoices')
+    || pathMatchesPrefix(pathname, '/deductions')) return 'home'
   if (pathMatchesPrefix(pathname, '/transactions')) return 'transactions'
   if (pathMatchesPrefix(pathname, '/reports') || pathMatchesPrefix(pathname, '/export')) return 'reports'
   if (pathMatchesPrefix(pathname, '/settings')) return 'account'

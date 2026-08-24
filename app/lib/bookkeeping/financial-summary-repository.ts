@@ -105,6 +105,13 @@ implements CanonicalFinancialSummaryRepository {
     const invalidatedTaxTreatmentIds = new Set(
       invalidationRows.map((row) => text(row, 'tax_treatment_id'))
     )
+    const deductionInvalidationRows = await inBatches(taxTreatmentIds, async (ids) => {
+      const { data, error } = await this.supabase.from('bookkeeping_tax_treatment_deduction_fact_invalidations')
+        .select('tax_treatment_id').eq('business_id', input.businessId).in('tax_treatment_id', ids)
+      if (error) throw new Error(`Unable to load reusable-fact tax-treatment validity: ${error.message}`)
+      return (data ?? []) as Row[]
+    })
+    for (const row of deductionInvalidationRows) invalidatedTaxTreatmentIds.add(text(row, 'tax_treatment_id'))
     let sourceRows = await inBatches(recordIds, async (ids) => {
       const { data, error } = await this.supabase.from('bookkeeping_financial_sources')
         .select('id,bookkeeping_record_id,financial_transaction_id')
@@ -232,6 +239,14 @@ implements CanonicalFinancialSummaryRepository {
       return (data ?? []) as Row[]
     })
     const manualByRecord = new Map(manualRows.map((row) => [text(row, 'bookkeeping_record_id'), row]))
+    const specialRows = await inBatches(recordIds, async (ids) => {
+      const { data, error } = await this.supabase.from('bookkeeping_special_treatment_signals')
+        .select('bookkeeping_record_id,reason_code').eq('business_id', input.businessId)
+        .in('bookkeeping_record_id', ids)
+      if (error) throw new Error(`Unable to load special-treatment signals: ${error.message}`)
+      return (data ?? []) as Row[]
+    })
+    const specialByRecord = new Map(specialRows.map((row) => [text(row, 'bookkeeping_record_id'), text(row, 'reason_code')]))
     const invoiceLinkRows = await inBatches(recordIds, async (ids) => {
       const { data, error } = await this.supabase.from('invoice_income_links')
         .select('invoice_id,bookkeeping_record_id').eq('business_id', input.businessId)
@@ -281,6 +296,7 @@ implements CanonicalFinancialSummaryRepository {
             : manual ? nullableText(manual, 'description') : null,
           hasEvidence: documentedRecords.has(id),
           receiptLost: receiptLostRecords.has(id),
+          specialTreatmentReason: specialByRecord.get(id) ?? null,
           decisions: decisionsByRecord.get(id) ?? [],
         }
       }),

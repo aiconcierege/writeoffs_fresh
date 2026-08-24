@@ -17,6 +17,7 @@ import {
   BOOKKEEPING_AI_OUTPUT_SCHEMA_VERSION,
   BOOKKEEPING_AI_PROMPT_VERSION,
 } from './ai-shadow-types'
+import { runDeductionIntelligenceForRecord } from './deduction-intelligence'
 
 type Row = Record<string, unknown>
 
@@ -55,7 +56,9 @@ export async function evaluateBookkeepingProcessingJob(
     && String(job.target_fingerprint ?? '').startsWith('bookkeeping-evaluator:v1:record:')
   const aiShadowJob = job.processing_reason === 'ai_shadow_evaluation'
     && String(job.target_fingerprint ?? '').startsWith('bookkeeping-ai-shadow:v1:')
-  if (!deterministicJob && !aiShadowJob) {
+  const deductionJob = job.processing_reason === 'deduction_fact_changed'
+    && String(job.target_fingerprint ?? '').startsWith('deduction-intelligence:v1:')
+  if (!deterministicJob && !aiShadowJob && !deductionJob) {
     return { outcome: 'legacy_noop' as const }
   }
 
@@ -64,15 +67,22 @@ export async function evaluateBookkeepingProcessingJob(
     throw error
   })
   if (!snapshot) return { outcome: 'inactive' as const }
+  if (deductionJob) {
+    const deduction = await runDeductionIntelligenceForRecord({ admin, snapshot })
+    return { outcome: 'deduction_reevaluated' as const, deduction: deduction.outcome }
+  }
   const evaluation = evaluateDeterministicBookkeeping(snapshot)
   if (!evaluation) {
     const aiShadow = options.allowAiShadow === false
       ? { outcome: 'drain_limit' as const }
       : await runAiShadowEvaluation({ admin, snapshot })
-    return { outcome: 'unresolved' as const, aiShadow: aiShadow.outcome }
+    const deduction = await runDeductionIntelligenceForRecord({ admin, snapshot })
+    return { outcome: 'unresolved' as const, aiShadow: aiShadow.outcome, deduction: deduction.outcome }
   }
   if (decisionMatchesProposal(snapshot.currentDecision, evaluation.proposal)) {
-    return { outcome: 'already_resolved' as const, ruleKey: evaluation.ruleKey }
+    const deduction = await runDeductionIntelligenceForRecord({ admin, snapshot })
+    return { outcome: 'already_resolved' as const, ruleKey: evaluation.ruleKey,
+      deduction: deduction.outcome }
   }
   try {
     const decision = await applyAutomatedBookkeepingDecision({
@@ -82,7 +92,10 @@ export async function evaluateBookkeepingProcessingJob(
       expectedCurrentDecisionId: snapshot.currentDecision.id,
       proposal: evaluation.proposal,
     })
-    return { outcome: 'resolved' as const, ruleKey: evaluation.ruleKey, decisionId: decision.id }
+    const refreshed = await loadBookkeepingEvaluationSnapshot({ admin, businessId, recordId })
+    const deduction = await runDeductionIntelligenceForRecord({ admin, snapshot: refreshed })
+    return { outcome: 'resolved' as const, ruleKey: evaluation.ruleKey, decisionId: decision.id,
+      deduction: deduction.outcome }
   } catch (error) {
     if (staleDecisionError(error)) return { outcome: 'stale' as const }
     throw error

@@ -11,7 +11,7 @@ type SummaryData = {
   mileageDeductionCents: null
   mileageTaxTreatmentStatus: 'facts_only' | 'not_applicable'
   categoryTotals: { categoryKey: string; categoryLabel: string; amountCents: number; transactionCount: number }[]
-  completeness: { isComplete: boolean; unresolvedRecordCount: number }
+  completeness: { isComplete: boolean; unresolvedRecordCount: number; unresolvedTaxTreatmentCount: number }
 }
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
@@ -47,5 +47,6 @@ export function ReportsSummary() {
       <p className="mt-2 text-2xl font-semibold tabular-nums">{(data.businessMilesMilli / 1000).toLocaleString('en-US', { maximumFractionDigits: 3 })} miles</p>
       {data.mileageTaxTreatmentStatus === 'facts_only' && <p className="mt-2 text-sm text-slate-600">Mileage is preserved for tax preparation. WriteOffs has not guessed a vehicle expense method or deduction.</p>}
     </section>
+    {data.completeness.unresolvedTaxTreatmentCount>0&&<section className="border-t border-slate-200 pt-7"><h2 className="text-lg font-semibold text-slate-950">Tax details still being checked</h2><p className="mt-2 text-sm text-slate-600">{data.completeness.unresolvedTaxTreatmentCount} business expense {data.completeness.unresolvedTaxTreatmentCount===1?'needs':'need'} more supported tax-treatment information. No deduction has been assumed.</p></section>}
   </main>
 }

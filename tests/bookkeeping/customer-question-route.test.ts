@@ -5,7 +5,12 @@ const listCustomerQuestions = vi.fn()
 const actOnCustomerQuestion = vi.fn()
 
 vi.mock('../../utils/supabase/server', () => ({
-  createServerSupabase: vi.fn(async () => ({ auth: { getUser } })),
+  createServerSupabase: vi.fn(async () => ({
+    auth: { getUser },
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: null })) })) })),
+    })),
+  })),
 }))
 vi.mock('../../app/lib/bookkeeping/customer-questions', () => ({ listCustomerQuestions }))
 vi.mock('../../app/lib/bookkeeping/customer-question-actions', () => ({ actOnCustomerQuestion }))

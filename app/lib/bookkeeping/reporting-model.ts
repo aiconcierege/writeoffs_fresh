@@ -28,6 +28,7 @@ export type ReportingRow = {
   categoryKey: string | null
   hasEvidence: boolean
   receiptLost: boolean
+  specialTreatmentReason: string | null
 }
 
 export type CanonicalReport = {
@@ -135,6 +136,7 @@ export function buildCanonicalReport(input: {
       treatment: treatmentLabel(decision?.treatment ?? null),
       categoryKey: business.length === 1 ? business[0].taxCategoryKey ?? null : null,
       hasEvidence: record.hasEvidence ?? record.sourceKind === 'receipt', receiptLost: record.receiptLost ?? false,
+      specialTreatmentReason: record.specialTreatmentReason ?? null,
     })
   }
 
@@ -162,6 +164,7 @@ export function buildCanonicalReport(input: {
       businessAmountCents: businessExpense, personalAmountCents: 0,
       treatment: record.categoryKey ? 'Historical business expense' : 'Still being worked on',
       categoryKey: record.categoryKey, hasEvidence: record.hasEvidence, receiptLost: record.receiptLost,
+      specialTreatmentReason: null,
     })
   }
 

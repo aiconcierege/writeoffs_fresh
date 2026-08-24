@@ -36,6 +36,7 @@ export type CanonicalSummaryRecord = {
   description?: string | null
   hasEvidence?: boolean
   receiptLost?: boolean
+  specialTreatmentReason?: string | null
   decisions: CanonicalSummaryDecision[]
 }
 

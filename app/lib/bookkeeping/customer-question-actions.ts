@@ -17,6 +17,7 @@ export type CustomerQuestionAction =
   | { action: 'mixed_all_business' }
   | { action: 'mixed_personal_amount'; personalAmountCents: number }
   | { action: 'factual_choice'; optionId: string }
+  | { action: 'deduction_fact'; value: string | number | boolean }
 
 export async function actOnCustomerQuestion(input: {
   supabase: SupabaseClient

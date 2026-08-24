@@ -15,6 +15,7 @@ export function QuestionFlow({ initialQuestions }: { initialQuestions: CustomerQ
   const [purpose, setPurpose] = useState('')
   const [personalAmount, setPersonalAmount] = useState('')
   const [showAmount, setShowAmount] = useState(false)
+  const [factValue, setFactValue] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const heading = useRef<HTMLHeadingElement>(null)
@@ -47,6 +48,7 @@ export function QuestionFlow({ initialQuestions }: { initialQuestions: CustomerQ
       setPurpose('')
       setPersonalAmount('')
       setShowAmount(false)
+      setFactValue('')
       requestAnimationFrame(() => heading.current?.focus())
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to save that answer.')
@@ -126,6 +128,34 @@ export function QuestionFlow({ initialQuestions }: { initialQuestions: CustomerQ
               {option.label}
             </Action>
           )}
+          {question.kind === 'percentage' && <>
+            <label htmlFor="percentage" className="text-sm font-medium">Business use percentage</label>
+            <div className="flex items-center rounded-lg border border-slate-300 px-3 focus-within:ring-2">
+              <input id="percentage" inputMode="numeric" value={factValue}
+                onChange={(event) => setFactValue(event.target.value)} className="w-full p-3 outline-none"
+                placeholder="70" /><span aria-hidden="true">%</span>
+            </div>
+            <Action onClick={() => submit({ action: 'deduction_fact', value: Number(factValue) })}
+              busy={busy || !Number.isInteger(Number(factValue)) || Number(factValue) < 1 || Number(factValue) > 100}>Continue</Action>
+          </>}
+          {question.kind === 'yes_no' && <>
+            <Action onClick={() => submit({ action: 'deduction_fact', value: true })} busy={busy}>Yes</Action>
+            <Action onClick={() => submit({ action: 'deduction_fact', value: false })} busy={busy}>No</Action>
+          </>}
+          {question.kind === 'integer' && <>
+            <label htmlFor="whole-number" className="text-sm font-medium">Whole number</label>
+            <input id="whole-number" inputMode="numeric" value={factValue}
+              onChange={(event) => setFactValue(event.target.value)} className="field" />
+            <Action onClick={() => submit({ action: 'deduction_fact', value: Number(factValue) })}
+              busy={busy || !Number.isInteger(Number(factValue)) || Number(factValue) < 1}>Continue</Action>
+          </>}
+          {question.kind === 'date' && <>
+            <label htmlFor="fact-date" className="text-sm font-medium">Date</label>
+            <input id="fact-date" type="date" value={factValue}
+              onChange={(event) => setFactValue(event.target.value)} className="field" />
+            <Action onClick={() => submit({ action: 'deduction_fact', value: factValue })}
+              busy={busy || !/^\d{4}-\d{2}-\d{2}$/.test(factValue)}>Continue</Action>
+          </>}
         </div>
         {error && <p role="alert" className="mt-4 text-sm text-red-700">{error}</p>}
         <button type="button" disabled={busy} onClick={() => submit({ action: 'defer' })}

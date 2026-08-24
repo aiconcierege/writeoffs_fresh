@@ -7,7 +7,9 @@ import { loadCurrentRecordConvergences } from './current-record-resolution'
 export type CustomerQuestion = {
   id: string
   version: string
+  source?: 'bookkeeping' | 'deduction'
   kind: 'business_use' | 'business_purpose' | 'mixed_use' | 'factual_choice'
+    | 'percentage' | 'yes_no' | 'integer' | 'date'
   prompt: string
   guidance?: string
   options?: Array<{ id: string; label: string }>
@@ -90,9 +92,10 @@ export function projectCustomerQuestion(
 }
 
 export async function listCustomerQuestions(input: { supabase: SupabaseClient }) {
+  const deductionQuestions = await listDeductionQuestions(input.supabase)
   const queue = await listCanonicalReviewQueue(input)
   const recordIds = [...new Set(queue.map(({ record }) => record.id))]
-  if (!recordIds.length) return []
+  if (!recordIds.length) return deductionQuestions
   const businessId = queue[0].record.businessId
   const resolution = await loadCurrentRecordConvergences({
     supabase: input.supabase, businessId,
@@ -140,7 +143,7 @@ export async function listCustomerQuestions(input: { supabase: SupabaseClient })
     supabase: input.supabase, businessId, candidateFinancialTransactionIds: transactionIds,
   })
 
-  return queue.flatMap((item) => {
+  const bookkeepingQuestions = queue.flatMap((item) => {
     const record = recordById.get(item.record.id)
     const transactionId = sourceByRecord.get(item.record.id)
     const transaction = transactionId ? transactionById.get(transactionId) : null
@@ -154,6 +157,37 @@ export async function listCustomerQuestions(input: { supabase: SupabaseClient })
       date: transaction?.transaction_date ?? record?.occurred_on ?? null,
     }
     const question = projectCustomerQuestion(item, context)
-    return question ? [question] : []
+    return question ? [{ ...question, source: 'bookkeeping' as const }] : []
+  })
+  return [...bookkeepingQuestions, ...deductionQuestions]
+}
+
+async function listDeductionQuestions(supabase: SupabaseClient): Promise<CustomerQuestion[]> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('An authenticated user is required.')
+  const { data: business, error: businessError } = await supabase.from('businesses').select('id')
+    .eq('owner_user_id', user.id).maybeSingle()
+  if (businessError || !business) throw new Error('Business was not found for the authenticated user.')
+  const { data: attentions, error } = await supabase.from('current_deduction_attentions')
+    .select('id,attention_id,event_type,fact_type,bookkeeping_record_id,question_type,prompt,guidance,scope_key')
+    .eq('business_id', business.id).eq('event_type', 'opened').order('created_at')
+  if (error) throw new Error(`Unable to load deduction questions: ${error.message}`)
+  const recordIds = (attentions ?? []).map((row) => row.bookkeeping_record_id).filter(Boolean)
+  const { data: records, error: recordsError } = recordIds.length
+    ? await supabase.from('bookkeeping_records').select('id,amount_cents,currency,occurred_on')
+      .eq('business_id', business.id).in('id', recordIds)
+    : { data: [], error: null }
+  if (recordsError) throw new Error(`Unable to load deduction question context: ${recordsError.message}`)
+  const recordById = new Map((records ?? []).map((row) => [row.id, row]))
+  return (attentions ?? []).map((attention) => {
+    const record = attention.bookkeeping_record_id ? recordById.get(attention.bookkeeping_record_id) : null
+    return {
+      id: attention.attention_id, version: attention.id, source: 'deduction' as const,
+      kind: attention.question_type as CustomerQuestion['kind'], prompt: attention.prompt,
+      guidance: attention.guidance ?? undefined,
+      transaction: { merchant: attention.bookkeeping_record_id ? attention.scope_key : 'Your business',
+        amountCents: record?.amount_cents == null ? null : Number(record.amount_cents),
+        currency: record?.currency ?? 'USD', date: record?.occurred_on ?? null },
+    }
   })
 }

@@ -98,6 +98,9 @@ export default async function HomePage() {
           <Link href="/invoices" className="inline-flex min-h-12 items-center text-sm font-semibold text-[#243186] hover:underline">
             Create invoice
           </Link>
+          <Link href="/deductions" className="inline-flex min-h-12 items-center text-sm font-semibold text-[#243186] hover:underline">
+            Deduction details
+          </Link>
         </div>
 
         {needsOnboardingFollowUp && (
