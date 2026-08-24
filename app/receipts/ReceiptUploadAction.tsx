@@ -61,13 +61,13 @@ export function ReceiptUploadAction({ onComplete, variant = 'home' }: {
   const busy = status === 'uploading' || status === 'organizing'
   return <div className={variant === 'home' ? 'inline-flex flex-col items-start gap-2' : 'w-full'}>
     <button type="button" disabled={busy} onClick={() => input.current?.click()}
-      className={`${variant === 'home' ? 'bg-[#243186] text-white hover:bg-[#1d2870]' : 'border border-slate-300 bg-white text-slate-900 hover:bg-slate-50'} inline-flex min-h-12 items-center justify-center rounded-md px-5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#243186] disabled:opacity-50`}>
+      className={`${variant === 'home' ? 'btn-primary' : 'btn-secondary'} btn min-h-12`}>
       {busy ? 'Adding receipt…' : <><span className="hidden sm:inline">Upload receipt</span><span className="sm:hidden">Add receipt</span></>}
     </button>
     <input ref={input} type="file" accept="image/*,application/pdf" className="sr-only"
       aria-label="Upload receipt image or PDF" onChange={(event) => void select(event.target.files?.[0])} />
     {message && <p role={status === 'error' ? 'alert' : 'status'} aria-live="polite"
-      className={`max-w-sm text-sm ${status === 'error' ? 'text-red-700' : 'text-slate-600'}`}>{message}</p>}
+      className={`max-w-sm text-sm ${status === 'error' ? 'text-red-700' : 'text-[#59665f]'}`}>{message}</p>}
   </div>
 }
 

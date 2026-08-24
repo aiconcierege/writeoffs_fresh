@@ -32,18 +32,18 @@ export default async function SettingsPage() {
     theme: (profile?.theme ?? 'system') as SettingsInitial['theme'],
   }
 
-  return <main className="min-h-screen bg-muted">
-    <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-      <h1 className="text-3xl font-bold">Account settings</h1>
-      <p className="mt-2 text-sm text-muted">Manage your business information, setup, and connections.</p>
-      <div className="mt-6 grid gap-4">
+  return <main className="app-page">
+    <section className="page-container page-container-narrow">
+      <p className="eyebrow">Account</p><h1 className="page-title">Settings</h1>
+      <p className="page-description">Manage your business information, setup, and connections.</p>
+      <div className="mt-8 grid gap-6">
         <SettingsForm initial={initial} />
-        <section className="card p-5" aria-labelledby="business-setup-heading">
+        <section className="section-rule" aria-labelledby="business-setup-heading">
           <h2 id="business-setup-heading" className="text-base font-semibold">Business setup</h2>
           <p className="mt-2 text-sm text-neutral-700">Review how your business operates, including customer-job materials and your starting date.</p>
           <Link href="/onboarding?edit=1" className="btn btn-secondary mt-3 inline-flex min-h-11 items-center">Review business setup</Link>
         </section>
-        <section className="card p-5" aria-labelledby="bank-connections-heading">
+        <section className="section-rule" aria-labelledby="bank-connections-heading">
           <h2 id="bank-connections-heading" className="text-base font-semibold">Bank connections</h2>
           <p className="mt-2 text-sm text-neutral-700">Connect and update financial accounts securely. Connected activity appears in the same Transactions, receipt matching, and reporting experience as CSV imports.</p>
           <Link href="/settings/banking" className="btn btn-secondary mt-3 inline-flex min-h-11 items-center">Manage bank connections</Link>

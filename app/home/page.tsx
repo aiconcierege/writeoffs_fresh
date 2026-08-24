@@ -8,11 +8,10 @@ import { countReceiptsNeedingAttention } from '../lib/bookkeeping/receipt-workfl
 import { onboardingNeedsFollowUp, type OnboardingBusinessData } from '../lib/onboarding/progress'
 import { ReceiptUploadAction } from '../receipts/ReceiptUploadAction'
 import { getAuthenticatedTaxYearReadiness } from '../lib/bookkeeping/tax-year-readiness-service'
+import { MoneyDisplay, StatusBadge } from '../components/ui'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
-
-const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
 function firstNameFromMetadata(metadata: Record<string, unknown>) {
   const candidate = [metadata.first_name, metadata.full_name, metadata.name]
@@ -63,18 +62,18 @@ export default async function HomePage() {
   ]
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-[#fbfbfa]">
-      <div className="mx-auto max-w-4xl px-2 py-9 sm:px-6 sm:py-12 lg:py-14">
+    <main className="app-page">
+      <div className="page-container max-w-5xl">
         <header className="max-w-2xl">
           <HomeGreeting firstName={firstName} />
-          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.025em] text-slate-950 sm:text-4xl">
+          <h1 className="mt-3 text-[2.35rem] font-semibold leading-[1.05] tracking-[-0.045em] text-[#17211d] sm:text-5xl">
             {attentionCount > 0
               ? `${attentionCount} ${attentionCount === 1 ? 'thing needs' : 'things need'} your attention.`
               : processingComplete
                 ? 'Your books are up to date.'
                 : 'WriteOffs is working.'}
           </h1>
-          <p className="mt-3 max-w-xl text-base leading-6 text-slate-600">
+          <p className="mt-4 max-w-xl text-base leading-7 text-[#59665f]">
             {attentionCount > 0
               ? 'A few quick answers will help WriteOffs keep your records organized.'
               : processingComplete
@@ -83,33 +82,25 @@ export default async function HomePage() {
           </p>
         </header>
 
-        <div className="mt-7 flex flex-wrap items-start gap-x-5 gap-y-3">
+        <div className="mt-8 flex flex-wrap items-center gap-x-2 gap-y-3">
           <ReceiptUploadAction />
-          <Link href="/receipts" className="inline-flex min-h-12 items-center text-sm font-semibold text-[#243186] hover:underline">
-            View receipts
-          </Link>
-          <Link href="/mileage" className="inline-flex min-h-12 items-center text-sm font-semibold text-[#243186] hover:underline">
+          <Link href="/mileage" className="btn btn-quiet">
             Add mileage
           </Link>
-          <Link href="/money?kind=received" className="inline-flex min-h-12 items-center text-sm font-semibold text-[#243186] hover:underline">
+          <Link href="/money?kind=received" className="btn btn-quiet">
             Record money received
           </Link>
-          <Link href="/money?kind=spent" className="inline-flex min-h-12 items-center text-sm font-semibold text-[#243186] hover:underline">
+          <Link href="/money?kind=spent" className="btn btn-quiet">
             Record money spent
           </Link>
-          <Link href="/invoices" className="inline-flex min-h-12 items-center text-sm font-semibold text-[#243186] hover:underline">
-            Create invoice
-          </Link>
-          <Link href="/deductions" className="inline-flex min-h-12 items-center text-sm font-semibold text-[#243186] hover:underline">
-            Deduction details
-          </Link>
-          <Link href="/contractors" className="inline-flex min-h-12 items-center text-sm font-semibold text-[#243186] hover:underline">
-            Contractor details
-          </Link>
+          <details className="group relative"><summary className="btn btn-quiet cursor-pointer list-none [&::-webkit-details-marker]:hidden">More <span aria-hidden="true">＋</span></summary>
+            <div className="absolute left-0 z-20 mt-2 grid min-w-52 rounded-xl border border-[#dce3de] bg-white p-2 shadow-[0_18px_45px_rgba(23,33,29,.14)]">
+              <Link href="/invoices" className="rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-slate-50">Create invoice</Link><Link href="/receipts" className="rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-slate-50">View receipts</Link><Link href="/deductions" className="rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-slate-50">Deduction details</Link><Link href="/contractors" className="rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-slate-50">Contractor details</Link>
+            </div></details>
         </div>
 
         {needsOnboardingFollowUp && (
-          <section className="mt-8 rounded-xl border border-indigo-200 bg-indigo-50 p-5" aria-labelledby="setup-heading">
+          <section className="notice mt-9" aria-labelledby="setup-heading">
             <h2 id="setup-heading" className="font-semibold text-slate-950">A few business details need an update</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">We’ll only ask for information that helps WriteOffs handle your records safely. Your existing work stays in place.</p>
             <Link href="/onboarding" className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">Continue setup →</Link>
@@ -117,7 +108,7 @@ export default async function HomePage() {
         )}
 
         {questionCount > 0 && (
-          <section aria-labelledby="attention-heading" className="mt-10 border-y border-slate-200 py-7 sm:mt-11">
+          <section aria-labelledby="attention-heading" className="mt-11 rounded-2xl bg-[#eef7f2] px-5 py-7 sm:px-7">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 id="attention-heading" className="text-lg font-semibold text-slate-950">
@@ -132,7 +123,7 @@ export default async function HomePage() {
               </div>
               <Link
                 href="/questions"
-                className="inline-flex min-h-11 items-center justify-center self-start rounded-md bg-[#243186] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#1d2870] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#243186] sm:self-center"
+                className="btn btn-primary self-start sm:self-center"
               >
                 Answer questions <span aria-hidden="true" className="ml-2">→</span>
               </Link>
@@ -141,7 +132,7 @@ export default async function HomePage() {
         )}
 
         {receiptAttentionCount > 0 && (
-          <section aria-labelledby="receipt-attention-heading" className="border-b border-slate-200 py-7">
+          <section aria-labelledby="receipt-attention-heading" className="border-b border-[#dce3de] py-7">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"><div>
               <h2 id="receipt-attention-heading" className="text-lg font-semibold text-slate-950">Receipts need your attention</h2>
               <p className="mt-2 text-sm text-slate-600">{receiptAttentionCount} uploaded {receiptAttentionCount === 1 ? 'receipt needs' : 'receipts need'} a quick decision.</p>
@@ -149,9 +140,9 @@ export default async function HomePage() {
           </section>
         )}
 
-        <section aria-labelledby="tax-readiness-heading" className="border-b border-slate-200 py-7">
+        <section aria-labelledby="tax-readiness-heading" className="border-b border-[#dce3de] py-7">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div>
-            <h2 id="tax-readiness-heading" className="text-lg font-semibold text-slate-950">{readiness.taxYear} records</h2>
+            <div className="flex items-center gap-3"><h2 id="tax-readiness-heading" className="text-lg font-semibold text-slate-950">{readiness.taxYear} records</h2><StatusBadge tone={readiness.status === 'ready' ? 'positive' : readiness.status === 'still_processing' ? 'muted' : 'attention'}>{readiness.status.replace('_',' ')}</StatusBadge></div>
             <p className="mt-2 text-sm text-slate-600">{readiness.status === 'ready' ? 'Ready for tax preparation'
               : readiness.status === 'still_processing' ? 'WriteOffs is still working'
                 : readiness.status === 'needs_attention' ? `${readiness.issues.length} ${readiness.issues.length === 1 ? 'thing needs' : 'things need'} attention`
@@ -161,25 +152,23 @@ export default async function HomePage() {
 
         <section
           aria-labelledby="year-to-date-heading"
-          className={`${attentionCount > 0 ? 'mt-10' : 'mt-11'} border-t border-slate-200 pt-8 sm:pt-9`}
+          className={`${attentionCount > 0 ? 'mt-11' : 'mt-12'} border-t border-[#dce3de] pt-8 sm:pt-10`}
         >
           <h2 id="year-to-date-heading" className="text-xs font-semibold tracking-[0.16em] text-slate-500">
             YEAR TO DATE
           </h2>
-          <dl className="mt-5">
+          <dl className="mt-5 grid gap-x-10 sm:grid-cols-2">
             {financialLines.map((line) => (
               <div
                 key={line.label}
-                className={`grid grid-cols-[1fr_auto] items-baseline gap-6 border-b border-slate-200 py-4 ${
-                  line.emphasized ? 'mt-1 border-t border-t-slate-300' : ''
+                className={`border-b border-[#dce3de] py-5 ${
+                  line.emphasized ? 'sm:col-span-2 sm:grid sm:grid-cols-[1fr_auto] sm:items-baseline' : ''
                 }`}
               >
                 <dt className={line.emphasized ? 'font-medium text-slate-950' : 'text-sm text-slate-700'}>
                   {line.label}
                 </dt>
-                <dd className={`${line.emphasized ? 'text-2xl font-semibold' : 'text-xl font-medium'} tabular-nums tracking-[-0.02em] text-slate-950`}>
-                  {usd.format(line.value / 100)}
-                </dd>
+                <dd className={`${line.emphasized ? 'mt-2 text-4xl font-semibold sm:mt-0' : 'mt-2 text-3xl font-semibold'} money-display`}><MoneyDisplay cents={line.value} /></dd>
               </div>
             ))}
           </dl>

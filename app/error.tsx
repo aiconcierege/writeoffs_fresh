@@ -9,24 +9,17 @@ export default function Error({
 }) {
   console.error(error);
   return (
-    <div style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 22, marginBottom: 8 }}>Something went wrong.</h1>
-      <p style={{ marginBottom: 16 }}>
+    <main className="app-page -mx-4 -mb-10 sm:-mx-6 lg:-mx-8"><section className="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center px-6 text-center">
+      <p className="eyebrow">Something went wrong</p><h1 className="page-title">We couldn’t load this page.</h1>
+      <p className="page-description mx-auto">
         The page failed to load. You can try again.
       </p>
       <button
         onClick={reset}
-        style={{
-          padding: "8px 14px",
-          borderRadius: 8,
-          border: "1px solid #d1d5db",
-          background: "#10b981",
-          color: "white",
-          cursor: "pointer",
-        }}
+        className="btn btn-primary mt-7"
       >
         Try again
       </button>
-    </div>
+    </section></main>
   );
 }

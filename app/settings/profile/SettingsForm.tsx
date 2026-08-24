@@ -36,18 +36,18 @@ export default function SettingsForm({ initial }: { initial: SettingsInitial }) 
         body: JSON.stringify(form),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok || data?.error) throw new Error(data?.error || 'Failed to save')
+      if (!res.ok || data?.error) throw new Error('We couldn’t save that change. Please try again.')
       setMsg('Saved.')
-    } catch (e: any) {
-      setErr(e?.message || 'Failed to save')
+    } catch (cause: unknown) {
+      setErr(cause instanceof Error ? cause.message : 'We couldn’t save that change. Please try again.')
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <form onSubmit={onSubmit} className="rounded-2xl border p-5">
-      <div className="text-base font-semibold">Profile</div>
+    <form onSubmit={onSubmit} className="surface p-5 sm:p-7">
+      <div className="section-heading">Profile and business</div>
 
       {/* Theme */}
       <div className="mt-6">
@@ -98,10 +98,7 @@ export default function SettingsForm({ initial }: { initial: SettingsInitial }) 
       </div>
 
       {(msg || err) && (
-        <div
-          className={`mt-3 rounded-xl border p-3 text-sm ${
-            err ? 'border-red-300 text-red-700' : 'border-green-300 text-green-700'
-          }`}
+        <div role={err ? 'alert' : 'status'} className={`notice mt-4 ${err ? 'notice-error' : 'notice-success'}`}
         >
           {err || msg}
         </div>
@@ -128,7 +125,7 @@ function Field({
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
+        className="field mt-1 text-sm"
       />
     </div>
   )

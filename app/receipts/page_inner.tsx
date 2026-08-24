@@ -1,10 +1,10 @@
 'use client'
 
-import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReceiptReadItem } from '../lib/bookkeeping/receipt-workflow'
 import { ReceiptUploadAction } from './ReceiptUploadAction'
 import { centsToDollars, validateReceiptFacts, type ReceiptFactErrors } from './receipt-form'
+import { EmptyState, PageContainer, PageHeader, StatusBadge } from '../components/ui'
 
 export default function ReceiptsInner() {
   const [receipts, setReceipts] = useState<ReceiptReadItem[]>([])
@@ -24,22 +24,16 @@ export default function ReceiptsInner() {
 
   const current = receipts.filter((receipt) => receipt.displayStatus !== 'discarded')
   const removed = receipts.filter((receipt) => receipt.displayStatus === 'discarded')
-  return <main className="min-h-screen bg-[#fbfbfa]">
-    <section className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
-      <header className="border-b border-slate-200 pb-6">
-        <Link href="/home" className="text-sm font-semibold text-[#243186] hover:underline">← Home</Link>
-        <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div><h1 className="text-3xl font-semibold tracking-[-0.025em] text-slate-950">Receipts</h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">Receipts you add are retained and organized automatically.</p></div>
-          <ReceiptUploadAction variant="history" onComplete={refresh} />
-        </div>
-      </header>
+  return <main className="app-page">
+    <PageContainer>
+      <PageHeader eyebrow="Documents" title="Receipts" description="Upload a receipt and WriteOffs will retain it, organize it, and look for matching activity."
+        actions={<ReceiptUploadAction variant="history" onComplete={refresh} />} />
 
       {error && <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
-      <section className="py-8" aria-labelledby="receipt-history-heading">
+      <section className="mt-11 section-rule" aria-labelledby="receipt-history-heading">
         <h2 id="receipt-history-heading" className="text-xl font-semibold text-slate-950">Receipt history</h2>
-        {loading ? <p role="status" className="mt-4 text-sm text-slate-600">Loading receipts…</p>
-          : current.length === 0 ? <p className="mt-4 rounded-lg bg-white px-4 py-6 text-sm text-slate-600">No receipts yet.</p>
+        {loading ? <div role="status" aria-label="Loading receipts" className="mt-5 grid gap-4 sm:grid-cols-2"><div className="skeleton h-36"/><div className="skeleton hidden h-36 sm:block"/></div>
+          : current.length === 0 ? <EmptyState title="No receipts yet" description="Upload one and WriteOffs will take it from there." />
           : <div className="mt-5 grid gap-4 sm:grid-cols-2">{current.map((receipt) =>
             <ReceiptCard key={receipt.id} receipt={receipt} refresh={refresh} />)}</div>}
       </section>
@@ -48,7 +42,7 @@ export default function ReceiptsInner() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2">{removed.map((receipt) =>
           <ReceiptCard key={receipt.id} receipt={receipt} refresh={refresh} />)}</div>
       </details>}
-    </section>
+    </PageContainer>
   </main>
 }
 
@@ -75,11 +69,11 @@ function ReceiptCard({ receipt, refresh }: { receipt: ReceiptReadItem; refresh: 
     } catch { setError('This receipt could not be removed. It may need a guarded correction.'); setBusy(false) }
   }
 
-  return <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+  return <article className="surface p-5">
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0"><h3 className="truncate font-medium text-slate-950">{receipt.merchant ?? receipt.originalName}</h3>
         <p className="mt-1 text-sm text-slate-600">{[receipt.occurredOn, amount].filter(Boolean).join(' · ') || 'Details unavailable'}</p></div>
-      <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">{status}</span>
+      <StatusBadge tone={receipt.displayStatus === 'matched' ? 'positive' : receipt.displayStatus === 'processing' ? 'muted' : receipt.displayStatus === 'details_unavailable' ? 'attention' : 'neutral'}>{status}</StatusBadge>
     </div>
     <p className="mt-3 text-xs leading-5 text-slate-500">{statusDescription(receipt.displayStatus)}</p>
     <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -87,7 +81,7 @@ function ReceiptCard({ receipt, refresh }: { receipt: ReceiptReadItem; refresh: 
       {mayCorrect && <button type="button" onClick={() => setEditing((value) => !value)} className="min-h-11 text-sm font-semibold text-[#243186]">Edit details</button>}
       {receipt.displayStatus !== 'discarded' && !confirmRemove && <button type="button" onClick={() => setConfirmRemove(true)} className="min-h-11 text-sm font-semibold text-slate-600">Remove</button>}
     </div>
-    {confirmRemove && <div className="mt-3 rounded-md bg-slate-50 p-3 text-sm"><p>Remove this receipt from your current records?</p>
+    {confirmRemove && <div className="surface-subtle mt-3 p-3 text-sm"><p>Remove this receipt from your current records?</p>
       <div className="mt-2 flex gap-3"><button disabled={busy} onClick={() => void remove()} className="min-h-11 font-semibold text-red-700">{busy ? 'Removing…' : 'Yes, remove'}</button>
         <button disabled={busy} onClick={() => setConfirmRemove(false)} className="min-h-11 font-semibold text-slate-700">Cancel</button></div></div>}
     {editing && <CorrectionForm receipt={receipt} onDone={async () => { setEditing(false); await refresh() }} errors={errors} setErrors={setErrors} setError={setError} />}

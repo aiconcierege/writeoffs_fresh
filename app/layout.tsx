@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
   title: "WriteOffs.io",
-  description: "That’s a write-off. Automatically.",
+  description: "Bookkeeping for independent business owners.",
 }
 
 export default function RootLayout({
@@ -17,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="scroll-smooth">
-      <body className={`${inter.className} min-h-screen bg-neutral-50 text-neutral-900 antialiased`}>
+      <body className={`${inter.className} min-h-screen bg-[#fbfaf7] text-[#17211d] antialiased`}>
         <Header />
         <main className="pt-16 pb-10 px-4 sm:px-6 lg:px-8">
           {children}

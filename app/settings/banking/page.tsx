@@ -20,10 +20,10 @@ export default async function BankingSettings() {
   ])
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-8 space-y-6">
+    <main className="page-container page-container-narrow space-y-8">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Bank connections</h1>
-        <p className="text-sm text-neutral-600">
+        <p className="eyebrow">Connections</p><h1 className="page-title">Bank connections</h1>
+        <p className="page-description">
           Connect and update financial accounts. Connected activity enters the same Transactions,
           receipt matching, and reporting system as CSV imports.
         </p>

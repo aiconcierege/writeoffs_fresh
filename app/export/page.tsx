@@ -27,26 +27,26 @@ export default function ExportPage() {
       URL.revokeObjectURL(href)
     } catch (e) {
       console.error(e)
-      alert("Sorry — the export failed. Check your API route and try again.")
+      alert("We couldn’t prepare that download. Please try again.")
     } finally {
       setLoading(null)
     }
   }
 
   return (
-    <div className="space-y-6">
+    <main className="page-container page-container-narrow space-y-8">
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Export</h1>
-          <p className="mt-1 text-sm text-muted">
+          <p className="eyebrow">Reports</p><h1 className="page-title">Export records</h1>
+          <p className="page-description">
             Download your current business activity for bookkeeping or tax preparation.
           </p>
         </div>
       </div>
 
       {/* Card */}
-      <div className="card p-4 sm:p-6 space-y-4">
+      <section className="surface space-y-5 p-5 sm:p-7">
         <div className="space-y-1">
           <h2 className="text-base font-medium">CSV Exports</h2>
           <p className="text-sm text-muted">
@@ -87,7 +87,7 @@ export default function ExportPage() {
             Exports reflect current treatment and preserve receipt-only activity without duplicating matched historical records.
           </p>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   )
 }

@@ -3,9 +3,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─────────────────────────────────────────────────────────────
-   Global layout + scrolling
-   ───────────────────────────────────────────────────────────── */
 html,
 body {
   min-height: 100%;
@@ -17,46 +14,6 @@ body {
 
 /* Avoid accidental horizontal scrollbars */
 body { overflow-x: hidden; }
-
-/* ─────────────────────────────────────────────────────────────
-   Header layout helpers (match new Header.tsx structure)
-   We center nav using the header's .container wrapper.
-   Structure: [ brand | nav (center) | actions ]
-   ───────────────────────────────────────────────────────────── */
-header .container {
-  position: relative !important;
-  display: grid !important;
-  grid-template-columns: auto 1fr auto;
-  align-items: center !important;
-}
-
-/* Center the <nav> within the middle grid column */
-header .container > nav {
-  justify-self: center !important;
-}
-
-/* Keep brand link and right-side actions anchored to edges */
-header [aria-label^="WriteOffs"] { justify-self: start !important; }
-header a[href="/signout"]        { justify-self: end  !important; }
-
-/* NOTE: The rule below was used for an older homepage header that
-   targeted a specific aria-label + src. Keeping it harmlessly here
-   in case that route still exists; it won't affect the new app header.
-*/
-header a[aria-label="WriteOffs Home"] img[src="/media/writeoffs_logo_clean.png"] {
-  display: block !important;
-  height: 56px !important;
-  width: auto !important;
-  max-height: none !important;
-  object-fit: contain !important;
-  transform: none !important;
-  rotate: 0deg !important;
-  scale: 1 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 0 !important;
-  filter: none !important;
-}
 
 /* ========== WriteOffs.io tokens & utilities (brand navy + mint) ========== */
 :root {
@@ -81,8 +38,18 @@ header a[aria-label="WriteOffs Home"] img[src="/media/writeoffs_logo_clean.png"]
 
   /* Surfaces */
   --surface: #ffffff;
-  --muted-surface: #f8fafc;
+  --muted-surface: #f7f8f5;
+  --canvas: #fbfaf7;
+  --ink: #17211d;
+  --ink-muted: #59665f;
+  --brand-green: #178368;
+  --border-soft: #dce3de;
+  --danger: #a43b3b;
+  --shadow-soft: 0 18px 48px rgba(23, 33, 29, 0.08);
 }
+
+body { background: var(--canvas); color: var(--ink); }
+::selection { background: var(--mint-100); color: var(--ink); }
 
 /* Muted page background for sections that felt "too white" */
 .bg-muted { background-color: var(--muted-surface); }
@@ -97,9 +64,9 @@ header a[aria-label="WriteOffs Home"] img[src="/media/writeoffs_logo_clean.png"]
 /* Card */
 .card {
   background-color: var(--surface);
-  border: 1px solid var(--slate-200);
-  border-radius: 1rem;
-  box-shadow: 0 1px 0 0 var(--slate-200);
+  border: 1px solid var(--border-soft);
+  border-radius: 1.25rem;
+  box-shadow: 0 12px 36px rgba(23, 33, 29, 0.055);
 }
 
 /* Nav link */
@@ -118,8 +85,12 @@ header a[aria-label="WriteOffs Home"] img[src="/media/writeoffs_logo_clean.png"]
 
 /* Buttons */
 .btn {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
   border-radius: 0.75rem;
-  padding: 0.375rem 0.75rem;
+  padding: 0.625rem 1rem;
   font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.25rem;
@@ -127,7 +98,8 @@ header a[aria-label="WriteOffs Home"] img[src="/media/writeoffs_logo_clean.png"]
     background-color .2s ease,
     color .2s ease,
     border-color .2s ease,
-    box-shadow .2s ease;
+    box-shadow .2s ease,
+    transform .2s ease;
   border: 1px solid transparent;
 }
 
@@ -137,6 +109,8 @@ header a[aria-label="WriteOffs Home"] img[src="/media/writeoffs_logo_clean.png"]
   color: #fff;
 }
 .btn-primary:hover { background-color: var(--brand-navy-800); }
+.btn-primary { box-shadow: 0 10px 24px rgba(36,49,134,.16); }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 13px 28px rgba(36,49,134,.2); }
 
 /* Secondary = neutral outline */
 .btn-secondary {
@@ -155,6 +129,13 @@ header a[aria-label="WriteOffs Home"] img[src="/media/writeoffs_logo_clean.png"]
   color: #06261f;
 }
 .btn-accent:hover { background-color: var(--mint-600); }
+
+.btn-quiet { color: var(--brand-navy); background: transparent; }
+.btn-quiet:hover { background: rgba(36,49,134,.06); }
+.btn-danger { color: var(--danger); background: transparent; }
+.btn-danger:hover { background: #fff1f0; }
+.btn:focus-visible, .chip:focus-visible { outline: 2px solid var(--brand-navy); outline-offset: 3px; }
+.btn:disabled { cursor: not-allowed; opacity: .55; transform: none; box-shadow: none; }
 
 /* Chips / pills for filters */
 .chip {
@@ -188,7 +169,7 @@ header a[aria-label="WriteOffs Home"] img[src="/media/writeoffs_logo_clean.png"]
   min-height: 3rem;
   width: 100%;
   border: 1px solid var(--slate-300);
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   background: #fff;
   padding: 0.625rem 0.75rem;
   color: var(--slate-900);
@@ -196,10 +177,51 @@ header a[aria-label="WriteOffs Home"] img[src="/media/writeoffs_logo_clean.png"]
   line-height: 1.5rem;
   outline: none;
 }
+.field:hover { border-color: #aebbb4; }
+.field:disabled { cursor: not-allowed; background: var(--slate-100); color: var(--slate-600); }
+.field[aria-invalid="true"] { border-color: #c95b5b; }
 .field:focus {
   border-color: var(--brand-navy);
   box-shadow: 0 0 0 3px rgba(36, 49, 134, 0.14);
 }
+
+/* Authenticated product composition. Type and whitespace establish hierarchy;
+   surfaces are reserved for actions, exceptions, and cohesive records. */
+.app-page { min-height: calc(100vh - 4rem); background: var(--canvas); }
+.page-container { width: 100%; max-width: 72rem; margin-inline: auto; padding: 2.25rem 1rem 4rem; }
+.page-container-narrow { max-width: 48rem; }
+.page-container-wide { max-width: 80rem; }
+.page-header { max-width: 46rem; }
+.eyebrow { color: var(--brand-green); font-size: .75rem; line-height: 1rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.page-title { margin-top: .65rem; color: var(--ink); font-size: clamp(2rem, 5vw, 3rem); line-height: 1.04; letter-spacing: -.042em; font-weight: 650; }
+.page-description { margin-top: .85rem; max-width: 42rem; color: var(--ink-muted); font-size: .95rem; line-height: 1.7; }
+.section-heading { color: var(--ink); font-size: 1.25rem; line-height: 1.4; letter-spacing: -.025em; font-weight: 650; }
+.section-description { margin-top: .35rem; color: var(--ink-muted); font-size: .875rem; line-height: 1.6; }
+.surface { border: 1px solid var(--border-soft); border-radius: 1.25rem; background: rgba(255,255,255,.88); box-shadow: 0 12px 36px rgba(23,33,29,.05); }
+.surface-subtle { border-radius: 1rem; background: #f0f5f1; }
+.section-rule { border-top: 1px solid var(--border-soft); padding-top: 2rem; }
+.record-list { border-top: 1px solid var(--border-soft); }
+.record-row { border-bottom: 1px solid var(--border-soft); transition: background-color .18s ease, transform .18s ease; }
+.record-row:hover { background: rgba(255,255,255,.72); }
+.money-display { color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: -.035em; }
+.money-positive { color: #176c54; }
+.status-badge { display: inline-flex; min-height: 1.75rem; align-items: center; border-radius: 999px; padding: .25rem .65rem; background: #eef2ef; color: #435149; font-size: .75rem; font-weight: 650; white-space: nowrap; }
+.status-badge[data-tone="positive"] { background: #e0f5ec; color: #176c54; }
+.status-badge[data-tone="attention"] { background: #fff3d6; color: #7c5a12; }
+.status-badge[data-tone="muted"] { background: #f0f1ef; color: #68726c; }
+.notice { border-left: 3px solid var(--brand-navy); border-radius: 0 .75rem .75rem 0; background: #f2f3fb; padding: .9rem 1rem; color: #374069; font-size: .875rem; line-height: 1.55; }
+.notice-error { border-color: #b84a4a; background: #fff2f1; color: #853333; }
+.notice-success { border-color: var(--brand-green); background: #edf8f3; color: #176c54; }
+.empty-state { padding: 3.25rem 1rem; text-align: center; }
+.empty-state h2, .empty-state h3 { color: var(--ink); font-size: 1.15rem; font-weight: 650; letter-spacing: -.02em; }
+.empty-state p { margin: .5rem auto 0; max-width: 28rem; color: var(--ink-muted); font-size: .875rem; line-height: 1.6; }
+.form-field { display: grid; gap: .5rem; color: #34423a; font-size: .875rem; font-weight: 600; }
+.optional-label { color: #728078; font-weight: 400; }
+.skeleton { border-radius: .65rem; background: linear-gradient(100deg,#edf0ed 20%,#f7f8f6 45%,#edf0ed 70%); background-size: 300% 100%; animation: skeleton 1.5s ease infinite; }
+@keyframes skeleton { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *,*::before,*::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+@media (min-width: 640px) { .page-container { padding: 3.25rem 1.5rem 5rem; } }
+@media (min-width: 1024px) { .page-container { padding-inline: 2rem; } }
 
 @media print {
   body:has(.invoice-print-page) > header { display: none; }

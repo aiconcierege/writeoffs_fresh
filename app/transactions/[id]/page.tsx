@@ -23,15 +23,15 @@ export default async function TransactionDetailPage({ params }: { params: Promis
       canMarkLost = outstanding.some((event) => event.bookkeepingRecordId === transaction.recordId)
     }
   }
-  return <main className="min-h-screen bg-[#fbfbfa]"><article className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
+  return <main className="app-page"><article className="page-container page-container-narrow">
     <Link href="/transactions" className="text-sm text-slate-600 hover:text-slate-950">← Transactions</Link>
-    <header className="mt-8 border-b border-slate-200 pb-8"><div className="flex items-start justify-between gap-6">
-      <div><h1 className="text-3xl font-semibold tracking-[-0.025em] text-slate-950">{transaction.vendor}</h1>
+    <header className="mt-8 border-b border-[#dce3de] pb-8"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+      <div><h1 className="page-title mt-0">{transaction.vendor}</h1>
         <p className="mt-2 text-sm text-slate-600">{transaction.date}{transaction.sourceLabel ? ` · ${transaction.sourceLabel}` : ''}</p></div>
-      <p className="text-2xl font-semibold tabular-nums text-slate-950">{money.format(transaction.amount)}</p></div></header>
+      <p className="money-display text-3xl font-semibold sm:text-right">{money.format(transaction.amount)}</p></div></header>
     <section className="grid gap-8 border-b border-slate-200 py-8 sm:grid-cols-2">
       <div><h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">What WriteOffs knows</h2>
-        <p className="mt-3 font-medium text-slate-950">{transaction.treatmentLabel}</p>
+        <p className="mt-3"><span className="status-badge">{transaction.treatmentLabel}</span></p>
         <p className="mt-2 text-sm leading-6 text-slate-600">{transaction.decisionReason ?? (transaction.sourceModel === 'canonical' ? 'WriteOffs is still working on this transaction.' : 'This is a historical transaction.')}</p>
         {transaction.contractorName && <p className="mt-2 text-sm text-slate-600">Contractor: <span className="font-medium text-slate-900">{transaction.contractorName}</span></p>}
         {transaction.sourceModel === 'canonical' && transaction.sourceKind !== 'manual' && transaction.bookkeepingNature === 'expense' && transaction.currentDecisionId

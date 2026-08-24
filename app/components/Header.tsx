@@ -20,7 +20,7 @@ export function Header() {
 
   if (!isAuthenticatedRoute(pathname)) {
     return (
-      <header className="absolute top-0 z-50 w-full bg-[#fff8ee]/95 backdrop-blur-xl">
+      <header className="absolute top-0 z-50 w-full bg-[#fff8ee]/92 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-[90rem] items-center justify-between px-5 sm:px-10 lg:px-16 xl:px-24">
           <div className="flex min-w-0 items-center">
             <BrandLogo heightPx={30} />
@@ -49,7 +49,7 @@ export function Header() {
 
   if (pathname === "/onboarding") {
     return (
-      <header className="fixed top-0 z-50 w-full border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
+      <header className="fixed top-0 z-50 w-full border-b border-[#dce3de]/80 bg-[#fbfaf7]/95 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4 sm:px-6">
           <BrandLogo heightPx={40} />
           <SignOutButton />
@@ -59,7 +59,7 @@ export function Header() {
   }
 
   return (
-    <header className="fixed top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header className="fixed top-0 z-50 w-full border-b border-[#dce3de]/80 bg-[#fbfaf7]/92 shadow-[0_1px_0_rgba(23,33,29,0.02)] backdrop-blur-xl">
       <div className="mx-auto grid h-16 max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-self-start">
           <span className="sm:hidden"><BrandLogo href="/home" heightPx={30} /></span>
@@ -75,10 +75,10 @@ export function Header() {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    "border-b-2 px-0.5 py-5 text-xs font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#243186] sm:text-sm",
+                    "border-b-2 px-0.5 py-5 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#243186] sm:text-sm",
                     active
                       ? "border-[#243186] text-slate-950"
-                      : "border-transparent text-slate-600 hover:text-slate-950"
+                      : "border-transparent text-[#65736b] hover:text-[#17211d]"
                   )}
                   aria-current={active ? "page" : undefined}
                 >
@@ -93,12 +93,12 @@ export function Header() {
           <details className="group relative">
             <summary
               aria-current={applicationNavigationSection(pathname) === "account" ? "page" : undefined}
-              className={`flex min-h-9 cursor-pointer list-none items-center gap-1 rounded-md px-2 text-xs font-medium transition-colors hover:bg-slate-50 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#243186] sm:px-3 sm:text-sm [&::-webkit-details-marker]:hidden ${applicationNavigationSection(pathname) === "account" ? "bg-slate-50 text-slate-950" : "text-slate-600"}`}
+              className={`flex min-h-10 cursor-pointer list-none items-center gap-1 rounded-xl px-2 text-xs font-semibold transition-colors hover:bg-white hover:text-[#17211d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#243186] sm:px-3 sm:text-sm [&::-webkit-details-marker]:hidden ${applicationNavigationSection(pathname) === "account" ? "bg-white text-[#17211d] shadow-sm" : "text-[#65736b]"}`}
             >
               Account
               <span aria-hidden="true" className="text-[10px] transition-transform group-open:rotate-180">▾</span>
             </summary>
-            <div className="absolute right-0 mt-2 w-48 border border-slate-200 bg-white p-2 shadow-lg">
+            <div className="absolute right-0 mt-2 w-52 rounded-xl border border-[#dce3de] bg-white p-2 shadow-[0_18px_45px_rgba(23,33,29,0.14)]">
               <Link
                 href="/settings"
                 className="block rounded px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#243186]"

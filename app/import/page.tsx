@@ -146,8 +146,7 @@ export default function ImportPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok || data?.error) {
-        const detail = data?.details ? ` — ${String(data.details).slice(0, 300)}` : ''
-        throw new Error((data?.error || 'Import failed') + detail)
+        throw new Error('We couldn’t import that file. Check the columns and try again.')
       }
       setStatus('done')
       setMessage(`Imported ${data?.imported ?? 0} rows.`)
@@ -160,16 +159,16 @@ export default function ImportPage() {
   const preview = useMemo(() => rows.slice(0, 10), [rows])
 
   return (
-    <main className="min-h-screen bg-white">
-      <section className="mx-auto max-w-5xl px-6 py-10">
+    <main className="app-page">
+      <section className="page-container max-w-5xl">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Import transactions (CSV)</h1>
-            <p className="mt-1 text-sm text-neutral-700">
+            <p className="eyebrow">Import</p><h1 className="page-title">Import transactions</h1>
+            <p className="page-description">
               Add financial activity from a CSV exported by your bank or card provider.
             </p>
           </div>
-          <Link href="/transactions" className="text-sm underline">
+          <Link href="/transactions" className="btn btn-secondary">
             View transactions
           </Link>
         </div>

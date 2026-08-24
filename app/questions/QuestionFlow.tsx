@@ -59,11 +59,11 @@ export function QuestionFlow({ initialQuestions }: { initialQuestions: CustomerQ
 
   if (!question) {
     return (
-      <main className="mx-auto flex min-h-[70vh] max-w-xl items-center px-6 py-16">
-        <section className="card w-full p-8 text-center">
-          <h1 ref={heading} tabIndex={-1} className="text-3xl font-bold">You’re all caught up.</h1>
-          <p className="mt-3 text-muted">WriteOffs will keep working in the background.</p>
-          <Link href="/home" className="btn btn-accent mt-8 inline-flex">Back to Home</Link>
+      <main className="app-page -mx-4 -mb-10 sm:-mx-6 lg:-mx-8"><section className="mx-auto flex min-h-[72vh] max-w-xl flex-col items-center justify-center px-6 py-16 text-center">
+          <span className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#e0f5ec] text-xl text-[#176c54]" aria-hidden="true">✓</span>
+          <h1 ref={heading} tabIndex={-1} className="text-4xl font-semibold tracking-[-.045em] text-[#17211d]">You’re all caught up.</h1>
+          <p className="mt-4 text-[#59665f]">WriteOffs will keep working in the background.</p>
+          <Link href="/home" className="btn btn-primary mt-8">Back to Home</Link>
         </section>
       </main>
     )
@@ -75,17 +75,17 @@ export function QuestionFlow({ initialQuestions }: { initialQuestions: CustomerQ
   const personalCents = parsePositiveDollarCents(personalAmount)
 
   return (
-    <main className="mx-auto max-w-xl px-6 py-12">
-      <p className="text-sm font-medium text-muted">Question {answered + 1} of {total}</p>
-      <section className="card mt-3 p-6 sm:p-8">
-        <div className="rounded-lg bg-slate-50 p-4 text-sm">
+    <main className="app-page -mx-4 -mb-10 px-4 sm:-mx-6 sm:px-6 lg:-mx-8">
+      <div className="mx-auto max-w-xl py-10 sm:py-16"><div className="flex items-center justify-between text-sm font-medium text-[#65736b]"><p>Question {answered + 1} of {total}</p><Link href="/home" className="text-[#243186]">Finish later</Link></div>
+      <section className="surface mt-4 p-5 sm:p-8">
+        <div className="surface-subtle p-4 text-sm">
           <div className="font-semibold">{question.transaction.merchant}</div>
           <div className="mt-1 flex flex-wrap gap-x-4 text-muted">
             {amount && <span>{amount}</span>}
             {question.transaction.date && <span>{question.transaction.date}</span>}
           </div>
         </div>
-        <h1 ref={heading} tabIndex={-1} className="mt-7 text-2xl font-bold outline-none">
+        <h1 ref={heading} tabIndex={-1} className="mt-8 text-[1.75rem] font-semibold leading-tight tracking-[-.035em] text-[#17211d] outline-none sm:text-3xl">
           {showAmount ? 'About how much was personal?' : question.prompt}
         </h1>
         {question.guidance && !showAmount && <p className="mt-2 text-muted">{question.guidance}</p>}
@@ -162,12 +162,12 @@ export function QuestionFlow({ initialQuestions }: { initialQuestions: CustomerQ
           className="mt-6 w-full text-sm font-medium text-muted underline disabled:opacity-50">
           Do this later
         </button>
-      </section>
+      </section></div>
     </main>
   )
 }
 
 function Action(props: { children: React.ReactNode; onClick: () => void; busy: boolean }) {
   return <button type="button" disabled={props.busy} onClick={props.onClick}
-    className="btn btn-secondary w-full justify-center py-3 disabled:opacity-50">{props.children}</button>
+    className="btn btn-secondary min-h-14 w-full justify-center text-base disabled:opacity-50">{props.children}</button>
 }
