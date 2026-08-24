@@ -34,7 +34,8 @@ describe('MFA enrollment interaction', () => {
     }))).rejects.toThrow('enrollment_failed')
 
     const component = readFileSync('app/settings/security/SecuritySettings.tsx', 'utf8')
-    expect(component).toContain('onClick={() => void beginEnrollment()}')
+    expect(component).toContain('action={SECURITY_SETTINGS_PATH}')
+    expect(component).toContain('void beginEnrollment()')
     expect(component).toContain("setError('We couldn’t start two-factor authentication. Please try again.')")
     expect(component).toContain('Starting authenticator setup…')
     expect(component).toContain('setEnrollment(await startTotpEnrollment')

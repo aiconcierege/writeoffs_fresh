@@ -2,7 +2,7 @@ import { createRequire } from 'node:module'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { isAuthenticatedRoute } from '../../app/lib/route-policy'
-import { mfaEnforcementMode, safeAuthenticatedNext } from '../../app/lib/auth/mfa-policy'
+import { MFA_SECURITY_API_PATH, mfaEnforcementMode, safeAuthenticatedNext, SECURITY_SETTINGS_PATH } from '../../app/lib/auth/mfa-policy'
 
 const read = (file: string) => readFileSync(file, 'utf8')
 const require = createRequire(import.meta.url)
@@ -15,7 +15,7 @@ describe('account protection', () => {
     expect(mfaEnforcementMode('off')).toBe('off')
     const middleware = read('middleware.ts')
     expect(middleware).toContain("url.pathname = '/mfa/challenge'")
-    expect(middleware).toContain("url.pathname = '/settings/security'")
+    expect(middleware).toContain('url.pathname = SECURITY_SETTINGS_PATH')
     expect(middleware).toContain("assurance?.currentLevel !== 'aal2'")
   })
 
@@ -25,11 +25,28 @@ describe('account protection', () => {
     expect(settings).toContain('challengeAndVerify')
     expect(settings).toContain('Enter the 6-digit code')
     expect(settings).toContain('That code didn’t work. Try again.')
-    const removal = read('app/api/account/security/mfa/route.ts')
+    const removal = read('app/api/settings/security/mfa/route.ts')
     expect(removal).toContain("currentLevel !== 'aal2'")
     expect(removal).toContain('listFactors()')
     expect(removal).toContain('factor.id === body.factorId')
     expect(removal).not.toMatch(/service.role|SUPABASE_SERVICE_ROLE/i)
+  })
+
+  it('uses only the canonical Security route throughout the MFA workflow', () => {
+    const files = [
+      'app/settings/security/SecuritySettings.tsx',
+      'app/mfa/challenge/MfaChallenge.tsx',
+      'middleware.ts',
+      'app/components/Header.tsx',
+      'app/settings/page.tsx',
+      'app/lib/auth/mfa-policy.ts',
+    ]
+    expect(SECURITY_SETTINGS_PATH).toBe('/settings/security')
+    expect(MFA_SECURITY_API_PATH).toBe('/api/settings/security/mfa')
+    for (const file of files) expect(read(file), file).not.toContain('/account/security')
+    const settings = read('app/settings/security/SecuritySettings.tsx')
+    expect(settings).toContain('action={SECURITY_SETTINGS_PATH}')
+    expect(settings).toContain('event.preventDefault()')
   })
 
   it('protects MFA, reset, and security routes and validates redirect destinations', () => {

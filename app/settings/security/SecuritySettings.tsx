@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { supabase } from '../../../utils/supabase/client'
 import { startTotpEnrollment, type TotpEnrollment } from '../../lib/auth/totp-enrollment'
+import { MFA_SECURITY_API_PATH, SECURITY_SETTINGS_PATH } from '../../lib/auth/mfa-policy'
 
 export function SecuritySettings({ enrollmentRequired }: { enrollmentRequired: boolean }) {
   const router = useRouter()
@@ -50,7 +51,7 @@ export function SecuritySettings({ enrollmentRequired }: { enrollmentRequired: b
   async function removeFactor() {
     if (!verifiedFactorId) return
     setBusy(true); setError(null); setMessage(null)
-    const response = await fetch('/api/account/security/mfa', { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ factorId: verifiedFactorId }) })
+    const response = await fetch(MFA_SECURITY_API_PATH, { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ factorId: verifiedFactorId }) })
     setBusy(false)
     if (!response.ok) { setError(response.status === 403 ? 'Enter a fresh authenticator code before removing two-factor authentication.' : 'We couldn’t update your security settings.'); return }
     setMessage('Two-factor authentication was removed.'); await refresh(); router.refresh()
@@ -61,7 +62,7 @@ export function SecuritySettings({ enrollmentRequired }: { enrollmentRequired: b
     {enrollmentRequired && !verifiedFactorId && <p className="notice mt-7">Set up two-factor authentication before continuing to WriteOffs.</p>}
     <section className="section-rule mt-9" aria-labelledby="two-factor-heading"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><h2 id="two-factor-heading" className="section-heading">Two-factor authentication</h2>
       <p className="section-description">{verifiedFactorId ? 'Your account is protected with an authenticator app.' : 'Add a second step when signing in.'}</p></div><span className="status-badge" data-tone={verifiedFactorId ? 'positive' : 'attention'}>{verifiedFactorId ? 'On' : 'Not set up'}</span></div>
-      {!verifiedFactorId && !enrollment && <button type="button" disabled={busy} aria-busy={busy} onClick={() => void beginEnrollment()} className="btn btn-primary mt-6">{busy ? 'Starting…' : 'Set up authenticator app'}</button>}
+      {!verifiedFactorId && !enrollment && <form action={SECURITY_SETTINGS_PATH} method="get" onSubmit={(event) => { event.preventDefault(); void beginEnrollment() }}><button type="submit" disabled={busy} aria-busy={busy} className="btn btn-primary mt-6">{busy ? 'Starting…' : 'Set up authenticator app'}</button></form>}
       {busy && !enrollment && <p role="status" aria-live="polite" className="mt-3 text-sm text-[#59665f]">Starting authenticator setup…</p>}
       {enrollment && <form onSubmit={verifyEnrollment} className="surface mt-6 p-5 sm:p-7"><h3 className="font-semibold text-[#17211d]">Scan the QR code</h3><p className="mt-2 text-sm leading-6 text-[#59665f]">Scan this with your authenticator app, then enter its 6-digit code.</p>
         {/* Supabase returns a bounded data URI; it is never persisted by WriteOffs. */}

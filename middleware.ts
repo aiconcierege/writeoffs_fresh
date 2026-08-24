@@ -6,7 +6,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { isAuthenticatedRoute } from './app/lib/route-policy'
-import { isMfaWorkflow, mfaEnforcementMode } from './app/lib/auth/mfa-policy'
+import { isMfaWorkflow, mfaEnforcementMode, SECURITY_SETTINGS_PATH } from './app/lib/auth/mfa-policy'
 
 function redirectWithRefreshedAuthCookies(url: URL, response: NextResponse) {
   const redirectResponse = NextResponse.redirect(url)
@@ -67,7 +67,7 @@ export async function middleware(req: NextRequest) {
         return redirectWithRefreshedAuthCookies(url, res)
       }
       if (mode === 'required' && assurance?.currentLevel !== 'aal2' && assurance?.nextLevel !== 'aal2') {
-        url.pathname = '/settings/security'
+        url.pathname = SECURITY_SETTINGS_PATH
         url.search = ''
         url.searchParams.set('enroll', 'required')
         return redirectWithRefreshedAuthCookies(url, res)
