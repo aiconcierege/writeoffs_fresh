@@ -27,6 +27,7 @@ export type TransactionReadRow = {
   receiptLost: boolean
   sourceLabel: string | null
   sourceKind: string | null
+  contractorName: string | null
 }
 
 export type TransactionHistoryItem = {
@@ -209,6 +210,24 @@ export async function listTransactionReadModel(input: {
     const receiptId = text(extraction, 'receipt_id')!
     if (!extractionByReceipt.has(receiptId)) extractionByReceipt.set(receiptId, extraction)
   }
+  let contractorPayments: Row[] = []
+  if (evidenceRecordIds.length) {
+    const { data, error } = await input.supabase.from('current_contractor_payments')
+      .select('bookkeeping_record_id,contractor_id').eq('business_id', businessId)
+      .in('bookkeeping_record_id', evidenceRecordIds)
+    if (error) throw new Error('Could not load contractor payment context.')
+    contractorPayments = (data ?? []) as Row[]
+  }
+  const contractorIds = contractorPayments.map(row => text(row, 'contractor_id')!).filter(Boolean)
+  const { data: contractorRows, error: contractorError } = contractorIds.length
+    ? await input.supabase.from('current_canonical_contractors').select('id,display_name')
+      .eq('business_id', businessId).in('id', contractorIds)
+    : { data: [], error: null }
+  if (contractorError) throw new Error('Could not load contractor names.')
+  const contractorNameById = new Map((contractorRows ?? []).map(row => [row.id, row.display_name]))
+  const contractorByRecord = new Map(contractorPayments.map(row => [
+    resolution.resolve(text(row, 'bookkeeping_record_id')!), contractorNameById.get(text(row, 'contractor_id')!),
+  ]))
   const canonical: TransactionReadRow[] = recordRows.flatMap((record) => {
     const recordId = text(record, 'id')!
     if (resolution.isAbsorbed(recordId) || resolution.isInactive(recordId)) return []
@@ -261,6 +280,7 @@ export async function listTransactionReadModel(input: {
         : manual && !compoundComponent
           ? `Recorded · ${manualPaymentLabel(text(manual, 'payment_method'))}` : baseSourceLabel,
       sourceKind,
+      contractorName: contractorByRecord.get(recordId) ?? null,
     }]
   })
 
@@ -296,6 +316,7 @@ export async function listTransactionReadModel(input: {
       treatment: null, history: [], evidenceLinks: [], receiptLost: row.receipt_waived === true,
       sourceLabel: null,
       sourceKind: null,
+      contractorName: null,
     }
   })
   return [...canonical, ...legacy].sort((a, b) => b.date.localeCompare(a.date)).slice(0, limit)

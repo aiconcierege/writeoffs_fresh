@@ -101,6 +101,9 @@ export default async function HomePage() {
           <Link href="/deductions" className="inline-flex min-h-12 items-center text-sm font-semibold text-[#243186] hover:underline">
             Deduction details
           </Link>
+          <Link href="/contractors" className="inline-flex min-h-12 items-center text-sm font-semibold text-[#243186] hover:underline">
+            Contractor details
+          </Link>
         </div>
 
         {needsOnboardingFollowUp && (
@@ -122,7 +125,7 @@ export default async function HomePage() {
                   {customerQuestionHeadline(questionCount)}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  A few purchases need your input.
+                  A few business details need your input.
                 </p>
               </div>
               <Link

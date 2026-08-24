@@ -12,6 +12,7 @@ type SummaryData = {
   mileageTaxTreatmentStatus: 'facts_only' | 'not_applicable'
   categoryTotals: { categoryKey: string; categoryLabel: string; amountCents: number; transactionCount: number }[]
   completeness: { isComplete: boolean; unresolvedRecordCount: number; unresolvedTaxTreatmentCount: number }
+  contractorSummaries: { id:string;displayName:string;totalPaidCents:number;paymentMethods:string[];w9Status:string;awareness:string }[]
 }
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
@@ -46,6 +47,9 @@ export function ReportsSummary() {
     <section aria-labelledby="mileage-heading"><h2 id="mileage-heading" className="text-lg font-semibold text-slate-950">Business mileage</h2>
       <p className="mt-2 text-2xl font-semibold tabular-nums">{(data.businessMilesMilli / 1000).toLocaleString('en-US', { maximumFractionDigits: 3 })} miles</p>
       {data.mileageTaxTreatmentStatus === 'facts_only' && <p className="mt-2 text-sm text-slate-600">Mileage is preserved for tax preparation. WriteOffs has not guessed a vehicle expense method or deduction.</p>}
+    </section>
+    <section aria-labelledby="contractor-heading"><div className="flex items-center justify-between gap-4"><h2 id="contractor-heading" className="text-lg font-semibold text-slate-950">Contractor payments</h2><a href="/contractors" className="text-sm font-semibold text-[#243186]">Manage details</a></div>
+      <div className="mt-4 border-t border-slate-200">{data.contractorSummaries.filter(row=>row.totalPaidCents>0).map(row=><div key={row.id} className="grid gap-1 border-b border-slate-200 py-4 sm:grid-cols-[1fr_auto] sm:gap-5"><div><p className="font-medium">{row.displayName}</p><p className="text-sm text-slate-600">W-9: {row.w9Status.replaceAll('_',' ')} · {row.awareness.replaceAll('_',' ')}</p></div><p className="font-medium tabular-nums">{usd.format(row.totalPaidCents/100)}</p></div>)}{data.contractorSummaries.every(row=>row.totalPaidCents===0)&&<p className="py-5 text-sm text-slate-600">No contractor payments are currently tracked.</p>}</div>
     </section>
     {data.completeness.unresolvedTaxTreatmentCount>0&&<section className="border-t border-slate-200 pt-7"><h2 className="text-lg font-semibold text-slate-950">Tax details still being checked</h2><p className="mt-2 text-sm text-slate-600">{data.completeness.unresolvedTaxTreatmentCount} business expense {data.completeness.unresolvedTaxTreatmentCount===1?'needs':'need'} more supported tax-treatment information. No deduction has been assumed.</p></section>}
   </main>

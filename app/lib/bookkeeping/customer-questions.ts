@@ -7,7 +7,7 @@ import { loadCurrentRecordConvergences } from './current-record-resolution'
 export type CustomerQuestion = {
   id: string
   version: string
-  source?: 'bookkeeping' | 'deduction'
+  source?: 'bookkeeping' | 'deduction' | 'contractor'
   kind: 'business_use' | 'business_purpose' | 'mixed_use' | 'factual_choice'
     | 'percentage' | 'yes_no' | 'integer' | 'date'
   prompt: string
@@ -93,9 +93,10 @@ export function projectCustomerQuestion(
 
 export async function listCustomerQuestions(input: { supabase: SupabaseClient }) {
   const deductionQuestions = await listDeductionQuestions(input.supabase)
+  const contractorQuestions = await listContractorQuestions(input.supabase)
   const queue = await listCanonicalReviewQueue(input)
   const recordIds = [...new Set(queue.map(({ record }) => record.id))]
-  if (!recordIds.length) return deductionQuestions
+  if (!recordIds.length) return [...deductionQuestions, ...contractorQuestions]
   const businessId = queue[0].record.businessId
   const resolution = await loadCurrentRecordConvergences({
     supabase: input.supabase, businessId,
@@ -159,7 +160,44 @@ export async function listCustomerQuestions(input: { supabase: SupabaseClient })
     const question = projectCustomerQuestion(item, context)
     return question ? [{ ...question, source: 'bookkeeping' as const }] : []
   })
-  return [...bookkeepingQuestions, ...deductionQuestions]
+  return [...bookkeepingQuestions, ...deductionQuestions, ...contractorQuestions]
+}
+
+async function listContractorQuestions(supabase: SupabaseClient): Promise<CustomerQuestion[]> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('An authenticated user is required.')
+  const { data: business } = await supabase.from('businesses').select('id').eq('owner_user_id', user.id).single()
+  if (!business) return []
+  const [{ data: payments, error: paymentError }, { data: contractors, error: contractorError },
+    { data: w9, error: w9Error }] = await Promise.all([
+    supabase.from('current_contractor_payments').select('*').eq('business_id', business.id),
+    supabase.from('current_canonical_contractors').select('id,display_name').eq('business_id', business.id),
+    supabase.from('current_contractor_w9_status').select('*').eq('business_id', business.id),
+  ])
+  if (paymentError || contractorError || w9Error) throw new Error('Unable to load contractor questions.')
+  const contractorById = new Map((contractors ?? []).map(row => [row.id, row]))
+  const questions: CustomerQuestion[] = []
+  for (const payment of payments ?? []) if (payment.payment_method === 'unknown') {
+    const contractor = contractorById.get(payment.contractor_id)
+    questions.push({ id: payment.id, version: payment.id, source: 'contractor', kind: 'factual_choice',
+      prompt: `How did you pay ${contractor?.display_name ?? 'this contractor'}?`,
+      guidance: 'Choose the factual payment method. WriteOffs will evaluate reporting implications separately.',
+      options: [['cash','Cash'],['check','Check'],['ach_zelle','ACH / Zelle'],['payment_card','Payment card'],
+        ['third_party_service','Third-party payment service'],['other','Other']].map(([id,label]) => ({ id, label })),
+      transaction: { merchant: contractor?.display_name ?? 'Contractor payment', amountCents: Number(payment.amount_cents),
+        currency: 'USD', date: payment.paid_on } })
+  }
+  const contractorsWithPayments = new Set((payments ?? []).map(row => row.contractor_id))
+  for (const status of w9 ?? []) if (contractorsWithPayments.has(status.contractor_id) && status.status !== 'on_file') {
+    const contractor = contractorById.get(status.contractor_id)
+    questions.push({ id: status.id, version: status.id, source: 'contractor', kind: 'factual_choice',
+      prompt: `Do you have a W-9 from ${contractor?.display_name ?? 'this contractor'}?`,
+      guidance: 'Do not enter a Social Security number or EIN.',
+      options: [{ id: 'on_file', label: 'Yes, it is on file' }, { id: 'needed', label: 'No, I need it' },
+        { id: 'needs_attention', label: 'I need to check' }],
+      transaction: { merchant: contractor?.display_name ?? 'Contractor', amountCents: null, currency: 'USD', date: null } })
+  }
+  return questions
 }
 
 async function listDeductionQuestions(supabase: SupabaseClient): Promise<CustomerQuestion[]> {

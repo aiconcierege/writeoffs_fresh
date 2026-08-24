@@ -72,6 +72,42 @@ export async function POST(
     return NextResponse.json({ error: 'invalid question action' }, { status: 400 })
   }
   try {
+    if (command.action === 'defer') {
+      const [{ data: contractorPayment }, { data: contractorW9 }] = await Promise.all([
+        supabase.from('current_contractor_payments').select('id').eq('id', id).maybeSingle(),
+        supabase.from('current_contractor_w9_status').select('id').eq('id', id).maybeSingle(),
+      ])
+      if (contractorPayment || contractorW9) return NextResponse.json({ ok: true })
+    }
+    if (command.action === 'factual_choice') {
+      const [{ data: contractorPayment }, { data: contractorW9 }] = await Promise.all([
+        supabase.from('current_contractor_payments').select('*').eq('id', id).maybeSingle(),
+        supabase.from('current_contractor_w9_status').select('*').eq('id', id).maybeSingle(),
+      ])
+      if (contractorPayment) {
+        const allowed = ['cash','check','ach_zelle','payment_card','third_party_service','other']
+        if (!allowed.includes(command.optionId)) throw new Error('That payment method is unavailable.')
+        const { error: paymentError } = await supabase.rpc('associate_contractor_payment', {
+          p_bookkeeping_record_id: contractorPayment.bookkeeping_record_id,
+          p_contractor_id: contractorPayment.contractor_id, p_expected_event_id: expectedEventId,
+          p_payment_method: command.optionId, p_payment_method_source: 'customer', p_remove: false,
+          p_request_key: `contractor-question:${id}:${expectedEventId}`,
+        })
+        if (paymentError) throw paymentError
+        return NextResponse.json({ ok: true })
+      }
+      if (contractorW9) {
+        const allowed = ['on_file','needed','needs_attention']
+        if (!allowed.includes(command.optionId)) throw new Error('That W-9 answer is unavailable.')
+        const { error: w9Error } = await supabase.rpc('record_contractor_w9_status', {
+          p_contractor_id: contractorW9.contractor_id, p_expected_event_id: expectedEventId,
+          p_status: command.optionId, p_evidence_note: '',
+          p_request_key: `contractor-w9-question:${id}:${expectedEventId}`,
+        })
+        if (w9Error) throw w9Error
+        return NextResponse.json({ ok: true })
+      }
+    }
     const { data: deduction } = await supabase.from('current_deduction_attentions').select('*')
       .eq('attention_id', id).maybeSingle()
     if (deduction) {

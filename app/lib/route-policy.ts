@@ -10,6 +10,7 @@ export const AUTHENTICATED_ROUTE_PREFIXES = [
   '/money',
   '/invoices',
   '/deductions',
+  '/contractors',
   '/import',
   '/export',
   '/dashboard',
