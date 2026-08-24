@@ -38,6 +38,11 @@ export default async function SettingsPage() {
       <p className="page-description">Manage your business information, setup, and connections.</p>
       <div className="mt-8 grid gap-6">
         <SettingsForm initial={initial} />
+        <section className="section-rule" aria-labelledby="security-heading">
+          <h2 id="security-heading" className="text-base font-semibold">Security</h2>
+          <p className="mt-2 text-sm text-neutral-700">Manage two-factor authentication and protect access to your financial records.</p>
+          <Link href="/settings/security" className="btn btn-secondary mt-3 inline-flex min-h-11 items-center">Manage account security</Link>
+        </section>
         <section className="section-rule" aria-labelledby="business-setup-heading">
           <h2 id="business-setup-heading" className="text-base font-semibold">Business setup</h2>
           <p className="mt-2 text-sm text-neutral-700">Review how your business operates, including customer-job materials and your starting date.</p>

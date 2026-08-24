@@ -30,7 +30,7 @@ function SignupInner() {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       }
     })
-    if (signUpError) { setErr(signUpError.message); setLoading(false); return }
+    if (signUpError) { setErr('We couldn’t create that account. Check the details and try again.'); setLoading(false); return }
 
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
     if (signInError) {

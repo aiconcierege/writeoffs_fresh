@@ -11,6 +11,8 @@ export const AUTHENTICATED_ROUTE_PREFIXES = [
   '/invoices',
   '/deductions',
   '/contractors',
+  '/mfa',
+  '/reset-password',
   '/import',
   '/export',
   '/dashboard',

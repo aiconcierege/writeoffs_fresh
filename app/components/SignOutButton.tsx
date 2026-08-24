@@ -20,11 +20,12 @@ export default function SignOutButton({
   async function handleSignOut() {
     setLoading(true)
     try {
-      await supabase.auth.signOut()
+      await supabase.auth.signOut({ scope: "global" })
     } catch {
       /* no-op */
     }
-    router.push("/")
+    router.replace("/")
+    router.refresh()
   }
 
   return (

@@ -25,13 +25,14 @@ function LoginInner() {
 
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
-      setErr(error.message)
+      setErr('Email or password wasn’t recognized. Try again.')
       setLoading(false)
       return
     }
 
+    const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
     setOk('Signed in — redirecting…')
-    setTimeout(() => router.push('/home'), 150)
+    setTimeout(() => router.push(assurance?.nextLevel === 'aal2' && assurance.currentLevel !== 'aal2' ? '/mfa/challenge?next=/home' : '/home'), 150)
   }
 
   return (
@@ -56,6 +57,7 @@ function LoginInner() {
               className="mt-1 w-full rounded-xl border px-3 py-2"
               placeholder="you@example.com"
             />
+            <div className="mt-2 text-right"><Link href="/recover" className="text-sm font-semibold text-[#243186]">Forgot password?</Link></div>
           </div>
           <div>
             <label className="block text-sm font-medium">Password</label>

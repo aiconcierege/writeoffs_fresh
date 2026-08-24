@@ -9,6 +9,7 @@ export default function robots(): MetadataRoute.Robots {
       disallow: [
         "/home", "/transactions", "/reports", "/settings", "/onboarding",
         "/questions", "/receipts", "/import", "/export", "/dashboard", "/review",
+        "/login", "/signup", "/recover", "/reset-password", "/mfa",
       ],
     }],
     sitemap: `${base}/sitemap.xml`,

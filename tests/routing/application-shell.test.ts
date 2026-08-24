@@ -20,7 +20,8 @@ describe('canonical application and public shell routes', () => {
   it('gives product and transient workflow pages the authenticated shell', () => {
     for (const route of [
       '/home', '/transactions', '/transactions/record-id', '/reports', '/reports/schedule-c',
-      '/settings', '/settings/banking', '/onboarding', '/questions', '/receipts', '/import', '/export',
+      '/settings', '/settings/banking', '/settings/security', '/onboarding', '/questions', '/receipts', '/import', '/export',
+      '/mfa/challenge', '/reset-password',
     ]) {
       expect(isAuthenticatedRoute(route), route).toBe(true)
     }

@@ -6,6 +6,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { isAuthenticatedRoute } from './app/lib/route-policy'
+import { isMfaWorkflow, mfaEnforcementMode } from './app/lib/auth/mfa-policy'
 
 function redirectWithRefreshedAuthCookies(url: URL, response: NextResponse) {
   const redirectResponse = NextResponse.redirect(url)
@@ -53,6 +54,25 @@ export async function middleware(req: NextRequest) {
     url.pathname = '/login'
     url.search = ''
     return redirectWithRefreshedAuthCookies(url, res)
+  }
+
+  if (user && isAuthenticatedRoute(pathname) && !isMfaWorkflow(pathname)) {
+    const mode = mfaEnforcementMode()
+    if (mode !== 'off') {
+      const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+      if (assurance?.currentLevel !== 'aal2' && assurance?.nextLevel === 'aal2') {
+        url.pathname = '/mfa/challenge'
+        url.search = ''
+        url.searchParams.set('next', `${pathname}${req.nextUrl.search}`)
+        return redirectWithRefreshedAuthCookies(url, res)
+      }
+      if (mode === 'required' && assurance?.currentLevel !== 'aal2' && assurance?.nextLevel !== 'aal2') {
+        url.pathname = '/settings/security'
+        url.search = ''
+        url.searchParams.set('enroll', 'required')
+        return redirectWithRefreshedAuthCookies(url, res)
+      }
+    }
   }
 
   return res

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { createServerClient } from "@supabase/ssr"
+import { safeAuthenticatedNext } from '../../lib/auth/mfa-policy'
 
 export async function GET(req: NextRequest) {
   try {
@@ -37,8 +38,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(new URL("/login?error=auth", req.url))
     }
 
-    // Success → send user to Home
-    return NextResponse.redirect(new URL("/home", req.url))
+    const next = safeAuthenticatedNext(searchParams.get('next'))
+    return NextResponse.redirect(new URL(next, req.url))
   } catch (e: any) {
     console.error("Auth callback exception:", e?.message || e)
     return NextResponse.redirect(new URL("/login?error=exception", req.url))
