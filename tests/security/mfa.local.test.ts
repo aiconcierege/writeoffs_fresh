@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { afterAll, describe, expect, it } from 'vitest'
+import { startTotpEnrollment } from '../../app/lib/auth/totp-enrollment'
 
 const url=process.env.LOCAL_SUPABASE_URL, anon=process.env.LOCAL_SUPABASE_ANON_KEY, service=process.env.LOCAL_SUPABASE_SERVICE_ROLE_KEY
 const run=process.env.RUN_LOCAL_SUPABASE_INTEGRATION==='1'&&process.env.LOCAL_SUPABASE_TOTP_ENABLED==='1'&&Boolean(url&&anon&&service)
@@ -15,8 +16,8 @@ describe.skipIf(!run)('Supabase TOTP MFA against local Auth',()=>{
     const created=await admin!.auth.admin.createUser({email,password,email_confirm:true});expect(created.error).toBeNull();userId=created.data.user?.id
     const customer=createClient(url!,anon!,{auth:{persistSession:false,autoRefreshToken:false}})
     expect((await customer.auth.signInWithPassword({email,password})).error).toBeNull()
-    const enrolled=await customer.auth.mfa.enroll({factorType:'totp',friendlyName:'Local integration test'});expect(enrolled.error).toBeNull()
-    const factorId=enrolled.data!.id,secret=enrolled.data!.totp.secret
+    const enrolled=await startTotpEnrollment(customer.auth.mfa)
+    const factorId=enrolled.factorId,secret=enrolled.secret
     const verified=await customer.auth.mfa.challengeAndVerify({factorId,code:totp(secret)});expect(verified.error).toBeNull()
     expect((await customer.auth.mfa.getAuthenticatorAssuranceLevel()).data?.currentLevel).toBe('aal2')
     expect((await customer.auth.mfa.listFactors()).data?.totp.some(f=>f.id===factorId&&f.status==='verified')).toBe(true)

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { supabase } from '../../../utils/supabase/client'
 import { startTotpEnrollment, type TotpEnrollment } from '../../lib/auth/totp-enrollment'
 import { MFA_SECURITY_API_PATH, SECURITY_SETTINGS_PATH } from '../../lib/auth/mfa-policy'
@@ -65,8 +64,9 @@ export function SecuritySettings({ enrollmentRequired }: { enrollmentRequired: b
       {!verifiedFactorId && !enrollment && <form action={SECURITY_SETTINGS_PATH} method="get" onSubmit={(event) => { event.preventDefault(); void beginEnrollment() }}><button type="submit" disabled={busy} aria-busy={busy} className="btn btn-primary mt-6">{busy ? 'Starting…' : 'Set up authenticator app'}</button></form>}
       {busy && !enrollment && <p role="status" aria-live="polite" className="mt-3 text-sm text-[#59665f]">Starting authenticator setup…</p>}
       {enrollment && <form onSubmit={verifyEnrollment} className="surface mt-6 p-5 sm:p-7"><h3 className="font-semibold text-[#17211d]">Scan the QR code</h3><p className="mt-2 text-sm leading-6 text-[#59665f]">Scan this with your authenticator app, then enter its 6-digit code.</p>
-        {/* Supabase returns a bounded data URI; it is never persisted by WriteOffs. */}
-        <Image src={enrollment.qrCode} width={192} height={192} unoptimized alt="QR code for authenticator app setup" className="mx-auto mt-5 h-48 w-48" />
+        {/* This validated Supabase SVG data URI is rendered as an image resource, never injected as markup. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={enrollment.qrCode} width={192} height={192} alt="QR code for authenticator app setup" className="mx-auto mt-5 h-48 w-48" />
         <details className="mt-4 text-sm"><summary className="cursor-pointer font-semibold text-[#243186]">Can’t scan the code?</summary><p className="mt-2 break-all rounded-lg bg-[#f0f5f1] p-3 font-mono text-xs" aria-label="Authenticator setup key">{enrollment.secret}</p></details>
         <label htmlFor="enrollment-code" className="form-field mt-5">Enter the 6-digit code<input id="enrollment-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} className="field text-center text-xl tracking-[.2em]" /></label>
         <button disabled={busy || code.length !== 6} className="btn btn-primary mt-5 w-full sm:w-auto">{busy ? 'Checking…' : 'Turn on two-factor authentication'}</button></form>}
