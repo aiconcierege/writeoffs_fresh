@@ -9,6 +9,7 @@ import {
   prepareCsvFinancialRows,
   type CsvColumnMapping,
 } from "../../../lib/bookkeeping/csv-ingestion";
+import { membershipErrorResponse, requireCapability } from "../../../lib/membership/entitlements";
 
 type Body = {
   mapping: CsvColumnMapping;
@@ -19,6 +20,9 @@ export async function POST(req: Request) {
   try {
     const { supabase, user } = await getAuthenticatedContext();
     if (!user) return unauthorizedResponse();
+    try { await requireCapability(supabase, "import_csv") } catch (cause) {
+      const denied=membershipErrorResponse(cause); return NextResponse.json({error:denied.error},{status:denied.status})
+    }
 
     const body = (await req.json()) as Body;
 

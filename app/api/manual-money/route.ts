@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../utils/supabase/server'
 import { validateManualMoney } from '../../lib/manual-money/validation'
+import { membershipErrorResponse, requireCapability } from '../../lib/membership/entitlements'
 
 export async function POST(request: Request) {
   const supabase = await createServerSupabase()
@@ -10,6 +11,12 @@ export async function POST(request: Request) {
   try { body = await request.json() } catch { return NextResponse.json({ error: 'Enter the activity details.' }, { status: 400 }) }
   const parsed = validateManualMoney(body)
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 })
+  try {
+    await requireCapability(supabase, parsed.value.direction === 'received' ? 'record_manual_income' : 'record_manual_expense')
+  } catch (cause) {
+    const denied = membershipErrorResponse(cause)
+    return NextResponse.json({ error: denied.error }, { status: denied.status })
+  }
   const requestKey = request.headers.get('idempotency-key')
   if (!requestKey || !/^[a-zA-Z0-9:_-]{1,120}$/.test(requestKey)) return NextResponse.json({ error: 'A safe request identity is required.' }, { status: 400 })
   const value = parsed.value

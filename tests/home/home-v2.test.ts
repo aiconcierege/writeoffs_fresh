@@ -26,7 +26,7 @@ describe('WriteOffs Home v2', () => {
 
   it('uses only canonical actionable questions for customer attention', () => {
     expect(home).toContain('getAuthenticatedCanonicalReport({')
-    expect(home).toContain('summary.completeness.unresolvedCustomerQuestionCount')
+    expect(home).toContain('listCustomerQuestions({supabase,scope:membership.plan!})')
     expect(home).toContain('customerQuestionHeadline(questionCount)')
     expect(home).toContain('href="/questions"')
     expect(home).toContain('Answer questions')

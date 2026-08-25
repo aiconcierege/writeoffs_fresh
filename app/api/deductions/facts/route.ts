@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../utils/supabase/server'
+import { membershipErrorResponse, requireCapability } from '../../../lib/membership/entitlements'
 
 const TYPES = new Set(['phone_business_use_percentage','internet_business_use_percentage',
   'home_office_regular_use','home_office_exclusive_use','home_office_square_feet',
@@ -9,6 +10,7 @@ export async function POST(request: Request) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  try { await requireCapability(supabase,'deduction_intelligence') } catch(cause){const denied=membershipErrorResponse(cause);return NextResponse.json({error:denied.error},{status:denied.status})}
   let body: Record<string, unknown>
   try { body = await request.json() } catch { return NextResponse.json({ error: 'Enter the requested fact.' }, { status: 400 }) }
   const factType = typeof body.factType === 'string' ? body.factType : ''

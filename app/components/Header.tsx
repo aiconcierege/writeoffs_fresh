@@ -106,6 +106,7 @@ export function Header() {
                 Account / Settings
               </Link>
               <Link href="/settings/security" className="block rounded px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#243186]">Security</Link>
+              <Link href="/settings/billing" className="block rounded px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#243186]">Membership</Link>
               <div className="mt-1 border-t border-slate-100 pt-1">
                 <SignOutButton className="w-full justify-center rounded-md border-0 bg-white px-3 py-2 text-slate-700 shadow-none hover:bg-slate-50" />
               </div>

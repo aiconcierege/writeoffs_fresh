@@ -91,7 +91,7 @@ export function projectCustomerQuestion(
   return null
 }
 
-export async function listCustomerQuestions(input: { supabase: SupabaseClient }) {
+export async function listCustomerQuestions(input: { supabase: SupabaseClient; scope?:'expenses'|'business' }) {
   const deductionQuestions = await listDeductionQuestions(input.supabase)
   const contractorQuestions = await listContractorQuestions(input.supabase)
   const queue = await listCanonicalReviewQueue(input)
@@ -160,7 +160,8 @@ export async function listCustomerQuestions(input: { supabase: SupabaseClient })
     const question = projectCustomerQuestion(item, context)
     return question ? [{ ...question, source: 'bookkeeping' as const }] : []
   })
-  return [...bookkeepingQuestions, ...deductionQuestions, ...contractorQuestions]
+  const scopedBookkeeping=input.scope==='expenses'?bookkeepingQuestions.filter(question=>(question.transaction.amountCents??0)<=0):bookkeepingQuestions
+  return [...scopedBookkeeping, ...deductionQuestions, ...contractorQuestions]
 }
 
 async function listContractorQuestions(supabase: SupabaseClient): Promise<CustomerQuestion[]> {

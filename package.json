@@ -10,6 +10,7 @@
     "test": "vitest run",
     "e2e": "playwright test --reporter=line",
     "ci-checks": "npm run typecheck && npm run lint && npm run build && npm run test",
+    "grant:membership": "node scripts/grant-local-membership.mjs",
     "prepare": "husky"
   },
   "dependencies": {

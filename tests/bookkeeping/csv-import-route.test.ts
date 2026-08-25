@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { getAuthenticatedContext, ingestCsvFinancialActivity } = vi.hoisted(() => ({
+const { getAuthenticatedContext, ingestCsvFinancialActivity,requireCapability } = vi.hoisted(() => ({
   getAuthenticatedContext: vi.fn(),
   ingestCsvFinancialActivity: vi.fn(),
+  requireCapability:vi.fn(),
 }))
 
 vi.mock('../../app/lib/auth/require-user', async () => {
@@ -11,6 +12,7 @@ vi.mock('../../app/lib/auth/require-user', async () => {
   )
   return { ...actual, getAuthenticatedContext }
 })
+vi.mock('../../app/lib/membership/entitlements',async()=>{const actual=await vi.importActual<typeof import('../../app/lib/membership/entitlements')>('../../app/lib/membership/entitlements');return{...actual,requireCapability}})
 vi.mock('../../app/lib/bookkeeping/csv-ingestion', async () => {
   const actual = await vi.importActual<typeof import('../../app/lib/bookkeeping/csv-ingestion')>(
     '../../app/lib/bookkeeping/csv-ingestion'
@@ -37,6 +39,7 @@ describe('POST /api/import/csv', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     ingestCsvFinancialActivity.mockResolvedValue({ imported: 1, duplicates: 0, processed: 1 })
+    requireCapability.mockResolvedValue({plan:'expenses'})
   })
 
   it('rejects unauthenticated imports before canonical ingestion', async () => {

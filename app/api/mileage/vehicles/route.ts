@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../utils/supabase/server'
 import { requireMileageBusiness } from '../../../lib/mileage/repository'
+import {membershipErrorResponse,requireCapability} from '../../../lib/membership/entitlements'
 
 export async function POST(request: Request) {
   const supabase = await createServerSupabase(); let context
   try { context = await requireMileageBusiness(supabase) } catch { return NextResponse.json({ error:'unauthorized' }, { status:401 }) }
+  try{await requireCapability(supabase,'track_mileage')}catch(cause){const denied=membershipErrorResponse(cause);return NextResponse.json({error:denied.error},{status:denied.status})}
   const body = await request.json().catch(() => null) as Record<string, unknown> | null
   const label = typeof body?.displayName === 'string' ? body.displayName.trim() : ''
   if (!label || label.length > 120 || (body?.isMixedUse !== true && body?.isMixedUse !== false))

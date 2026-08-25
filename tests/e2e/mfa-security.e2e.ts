@@ -16,6 +16,9 @@ test('enrolls, challenges, and removes TOTP without leaving Security', async ({ 
   const created = await admin.auth.admin.createUser({ email, password, email_confirm: true })
   expect(created.error).toBeNull()
   const userId = created.data.user!.id
+  const business=(await admin.from('businesses').select('id').eq('owner_user_id',userId).single()).data!
+  const grant=await admin.rpc('create_business_membership_grant',{p_business_id:business.id,p_plan:'business',p_starts_at:new Date().toISOString(),p_ends_at:null,p_request_key:`mfa-e2e:${randomUUID()}`,p_reason:'MFA browser test',p_provenance:'local_setup',p_actor_user_id:null})
+  expect(grant.error).toBeNull()
   const wrongRouteRequests: string[] = []
   const pageErrors: Error[] = []
   page.on('request', (request) => {

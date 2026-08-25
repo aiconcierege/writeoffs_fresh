@@ -11,7 +11,7 @@ export function validateTaxYear(value: unknown) {
   return year
 }
 
-export async function getAuthenticatedTaxYearReadiness(input: { supabase: SupabaseClient; taxYear: number }) {
+export async function getAuthenticatedTaxYearReadiness(input: { supabase: SupabaseClient; taxYear: number; scope?: 'expenses'|'business' }) {
   const taxYear = validateTaxYear(input.taxYear)
   const { data: { user } } = await input.supabase.auth.getUser()
   if (!user) throw new Error('AUTH_REQUIRED')
@@ -52,8 +52,9 @@ export async function getAuthenticatedTaxYearReadiness(input: { supabase: Supaba
     latestJobByRecord.set(String(job.bookkeeping_record_id), { state: String(job.state) })
   }
   const currentJobs = [...latestJobByRecord.values()]
-  return deriveTaxYearReadiness(taxYear, {
-    report, customerQuestions: questions, contractorSummaries: report.contractorSummaries,
+  const scopedQuestions=input.scope==='expenses'?questions.filter(question=>(question.transaction.amountCents??0)<=0):questions
+  const readiness=deriveTaxYearReadiness(taxYear, {
+    report, customerQuestions: scopedQuestions, contractorSummaries: report.contractorSummaries,
     businessMilesMilli: report.businessMilesMilli, undatedRecordCount: report.completeness.undatedRecordCount,
     processingCount: currentJobs.filter(row => ['pending','processing','retryable'].includes(row.state)).length,
     failedProcessingCount: currentJobs.filter(row => row.state === 'dead_letter').length,
@@ -62,9 +63,14 @@ export async function getAuthenticatedTaxYearReadiness(input: { supabase: Supaba
     receiptProcessingCount: currentReceiptEvents.filter(row => row.event_type === 'uploaded'
       && String(row.created_at).startsWith(`${taxYear}-`)).length,
     openDeductionAttentionCount: deductionAttentions?.length ?? 0, incompleteHomeOfficeProfile,
-    paidInvoiceWithoutIncomeCount: (invoices ?? []).filter(row => row.status === 'paid' && !row.bookkeeping_record_id).length,
+    paidInvoiceWithoutIncomeCount: input.scope==='expenses'?0:(invoices ?? []).filter(row => row.status === 'paid' && !row.bookkeeping_record_id).length,
     disconnectedDataSourceCount: (plaidItems ?? []).filter(row => row.connection_status === 'needs_attention'
       || row.connection_status === 'reconnect_required' || row.connection_status === 'disconnected'
       || row.consent_status !== 'active').length,
   })
+  if(input.scope!=='expenses')return readiness
+  const issues=readiness.issues.filter(issue=>issue.code!=='INCOME_NATURE_UNRESOLVED'&&issue.code!=='PAID_INVOICE_LINK_MISSING')
+  const dimensions=readiness.dimensions.filter(dimension=>dimension.key!=='income')
+  const status=issues.some(issue=>issue.kind==='integrity')?'incomplete':issues.some(issue=>['customer_action','data_source','documentation'].includes(issue.kind))?'needs_attention':issues.some(issue=>issue.kind==='processing')?'still_processing':'ready'
+  return{...readiness,status:status as typeof readiness.status,issues,dimensions,caveat:'Expense records ready means supported expense and deduction records are complete based on the information currently in WriteOffs. Income is not tracked as part of this membership.'}
 }

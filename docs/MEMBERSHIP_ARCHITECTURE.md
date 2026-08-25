@@ -1,6 +1,6 @@
 # WriteOffs Membership Architecture
 
-Status: canonical product specification for the future billing and entitlement milestone.
+Status: canonical product specification. Implemented by the additive Business-owned membership authority; operational details are in [STRIPE_MEMBERSHIP_OPERATIONS.md](./STRIPE_MEMBERSHIP_OPERATIONS.md).
 
 This document defines what WriteOffs promises before Stripe is allowed to define billing behavior. It does not activate billing, gate routes, alter canonical records, or set final prices.
 

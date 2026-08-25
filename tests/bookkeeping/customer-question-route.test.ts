@@ -14,6 +14,7 @@ vi.mock('../../utils/supabase/server', () => ({
 }))
 vi.mock('../../app/lib/bookkeeping/customer-questions', () => ({ listCustomerQuestions }))
 vi.mock('../../app/lib/bookkeeping/customer-question-actions', () => ({ actOnCustomerQuestion }))
+vi.mock('../../app/lib/membership/entitlements',()=>({loadCustomerEntitlements:vi.fn(async()=>({plan:'business'}))}))
 
 const issueId = '11111111-1111-4111-8111-111111111111'
 const eventId = '22222222-2222-4222-8222-222222222222'

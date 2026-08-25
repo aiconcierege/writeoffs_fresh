@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../utils/supabase/server'
 import { validateMileageFacts } from '../../../lib/mileage/validation'
+import {membershipErrorResponse,requireCapability} from '../../../lib/membership/entitlements'
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   const supabase = await createServerSupabase(); const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  try{await requireCapability(supabase,'track_mileage')}catch(cause){const denied=membershipErrorResponse(cause);return NextResponse.json({error:denied.error},{status:denied.status})}
   const body = await request.json().catch(() => null) as Record<string, unknown> | null
   const parsed = validateMileageFacts(body && { vehicleId:body.vehicleId,miles:body.miles,occurredOn:body.occurredOn,
     jobLabel:body.jobLabel,destination:body.destination,businessPurpose:body.businessPurpose })
@@ -25,6 +27,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
   const supabase = await createServerSupabase(); const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  try{await requireCapability(supabase,'track_mileage')}catch(cause){const denied=membershipErrorResponse(cause);return NextResponse.json({error:denied.error},{status:denied.status})}
   const body = await request.json().catch(() => null) as Record<string, unknown> | null
   const requestKey = request.headers.get('idempotency-key'); const expected = body?.expectedEventId
   if (!requestKey || typeof expected !== 'string') return NextResponse.json({ error: 'Reload this trip before removing.' }, { status: 400 })

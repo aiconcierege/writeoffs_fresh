@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../utils/supabase/server'
 import { getAuthenticatedTaxYearReadiness, validateTaxYear } from '../../../lib/bookkeeping/tax-year-readiness-service'
 import { documentationSummaryCsv, readinessIssuesCsv } from '../../../lib/bookkeeping/tax-year-readiness'
+import {loadCustomerEntitlements} from '../../../lib/membership/entitlements'
 
 export const runtime = 'nodejs'
 export async function GET(request: Request) {
@@ -13,7 +14,8 @@ export async function GET(request: Request) {
     if (!['unresolved-items','documentation'].includes(file ?? '')) {
       return NextResponse.json({ error: 'invalid_file' }, { status: 400 })
     }
-    const readiness = await getAuthenticatedTaxYearReadiness({ supabase, taxYear: year })
+    const membership=await loadCustomerEntitlements(supabase);if(!membership.plan)throw new Error('MEMBERSHIP_REQUIRED')
+    const readiness = await getAuthenticatedTaxYearReadiness({ supabase, taxYear: year,scope:membership.plan })
     const body = file === 'documentation' ? documentationSummaryCsv(readiness) : readinessIssuesCsv(readiness)
     return new NextResponse(body, { headers: { 'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': `attachment; filename="writeoffs-${year}-${file}.csv"`, 'Cache-Control': 'no-store' } })

@@ -18,7 +18,7 @@ type SummaryData = {
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
-export function ReportsSummary() {
+export function ReportsSummary({scope,readOnly}:{scope:'expenses'|'business';readOnly:boolean}) {
   const [data, setData] = useState<SummaryData | null>(null)
   const [loading, setLoading] = useState(true)
   useEffect(() => { fetch('/api/reports/summary', { cache: 'no-store' })
@@ -28,14 +28,15 @@ export function ReportsSummary() {
   if (!data) return <div className="page-container"><div role="alert" className="notice notice-error">Your report is temporarily unavailable. Please try again.</div></div>
   return <main className="page-container max-w-5xl space-y-11">
     <header><p className="text-xs font-semibold tracking-[0.16em] text-slate-500">YEAR TO DATE</p>
-      <h1 className="page-title">Your business at a glance</h1>
+      <h1 className="page-title">{scope==='business'?'Your business at a glance':'Your expenses at a glance'}</h1>
+      {readOnly&&<p className="mt-2 text-sm font-medium text-[#243186]">Historical records · read only</p>}
       {!data.completeness.isComplete && <p className="mt-2 text-sm text-slate-600">Some activity is still being processed.</p>}
       <Link href="/reports/tax-time" className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">Check tax-time readiness →</Link></header>
     <section aria-labelledby="financial-summary-heading"><h2 id="financial-summary-heading" className="sr-only">Financial summary</h2>
       <dl className="grid border-t border-[#dce3de] sm:grid-cols-2 sm:gap-x-10">
-        <div className="border-b border-[#dce3de] py-5"><dt className="text-sm text-[#59665f]">Business income</dt><dd className="money-display mt-2 text-3xl font-semibold">{usd.format(data.businessIncomeCents / 100)}</dd></div>
+        {scope==='business'&&<div className="border-b border-[#dce3de] py-5"><dt className="text-sm text-[#59665f]">Business income</dt><dd className="money-display mt-2 text-3xl font-semibold">{usd.format(data.businessIncomeCents / 100)}</dd></div>}
         <div className="border-b border-[#dce3de] py-5"><dt className="text-sm text-[#59665f]">Business expenses</dt><dd className="money-display mt-2 text-3xl font-semibold">{usd.format(data.businessExpensesCents / 100)}</dd></div>
-        <div className="py-7 sm:col-span-2"><dt className="font-medium text-[#17211d]">Estimated business profit</dt><dd className="money-display mt-2 text-4xl font-semibold sm:text-5xl">{usd.format(data.businessProfitCents / 100)}</dd></div>
+        {scope==='business'&&<div className="py-7 sm:col-span-2"><dt className="font-medium text-[#17211d]">Estimated business profit</dt><dd className="money-display mt-2 text-4xl font-semibold sm:text-5xl">{usd.format(data.businessProfitCents / 100)}</dd></div>}
       </dl>
       {data.estimatedDeductionsCents != null && <div className="mt-3 max-w-xl border-l-2 border-[#9ccdbc] pl-4"><p className="eyebrow">Tax estimate</p><p className="mt-2 text-sm text-[#59665f]">Estimated deductions</p><p className="money-display mt-1 text-2xl font-semibold">{usd.format(data.estimatedDeductionsCents / 100)}</p></div>}
     </section>

@@ -12,6 +12,8 @@ test('statement survives departure, imports once, and remains usable on mobile',
   const admin=createClient(url!,serviceKey!,{auth:{persistSession:false,autoRefreshToken:false}}),email=`statement-browser-${randomUUID()}@example.test`,password=`Local-${randomUUID()}-password`
   const created=await admin.auth.admin.createUser({email,password,email_confirm:true});expect(created.error).toBeNull();const userId=created.data.user!.id
   try{
+    const seededBusiness=(await admin.from('businesses').select('id').eq('owner_user_id',userId).single()).data!
+    const grant=await admin.rpc('create_business_membership_grant',{p_business_id:seededBusiness.id,p_plan:'business',p_starts_at:new Date().toISOString(),p_ends_at:null,p_request_key:`statement-e2e:${randomUUID()}`,p_reason:'Statement browser test',p_provenance:'local_setup',p_actor_user_id:null});expect(grant.error).toBeNull()
     await page.goto('/login');await page.getByPlaceholder('you@example.com').fill(email);await page.getByPlaceholder('Your password').fill(password)
     await page.getByRole('button',{name:'Log in'}).click();await page.waitForURL('**/home');await page.goto('/import')
     await expect(page.getByRole('heading',{name:'Bank or card statements'})).toBeVisible();const pdf=await statementPdf()

@@ -14,6 +14,7 @@ export const AUTHENTICATED_ROUTE_PREFIXES = [
   '/mfa',
   '/reset-password',
   '/import',
+  '/membership',
   '/export',
   '/dashboard',
   '/review',

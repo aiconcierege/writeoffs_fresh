@@ -61,7 +61,7 @@ describe('canonical application and public shell routes', () => {
     expect(source('app/settings/page.tsx')).toContain('href="/settings/banking"')
     expect(source('app/settings/profile/page.tsx')).toContain("redirect('/settings')")
     expect(source('app/settings/banking/page.tsx')).toContain('<BankConnect')
-    expect(source('app/reports/page.tsx')).toContain('<ReportsSummary />')
+    expect(source('app/reports/page.tsx')).toContain('<ReportsSummary scope=')
     expect(source('app/reports/summary/page.tsx')).toContain("redirect('/reports')")
     expect(source('app/reports/schedule-c/page.tsx')).toContain('getAuthenticatedCanonicalReport')
   })

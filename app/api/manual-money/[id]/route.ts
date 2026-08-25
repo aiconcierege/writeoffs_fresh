@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../utils/supabase/server'
 import { validateManualMoney } from '../../../lib/manual-money/validation'
+import {membershipErrorResponse,requireCapability} from '../../../lib/membership/entitlements'
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createServerSupabase(); const { data: { user } } = await supabase.auth.getUser()
@@ -11,6 +12,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const expected = typeof body.expectedEventId === 'string' ? body.expectedEventId : ''
   const requestKey = request.headers.get('idempotency-key') ?? ''
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 })
+  try{await requireCapability(supabase,parsed.value.direction==='received'?'record_manual_income':'record_manual_expense')}catch(cause){const denied=membershipErrorResponse(cause);return NextResponse.json({error:denied.error},{status:denied.status})}
   if (!expected || !/^[a-zA-Z0-9:_-]{1,120}$/.test(requestKey)) return NextResponse.json({ error: 'Reload this activity before correcting it.' }, { status: 409 })
   const value = parsed.value; const { id } = await params
   const { error } = await supabase.rpc('correct_manual_financial_activity', {
@@ -33,6 +35,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const requestKey = request.headers.get('idempotency-key') ?? ''
   if (!expected || !/^[a-zA-Z0-9:_-]{1,120}$/.test(requestKey)) return NextResponse.json({ error: 'Reload this activity before removing it.' }, { status: 409 })
   const { id } = await params
+  const source=await supabase.from('current_manual_financial_activity').select('direction').eq('manual_financial_source_id',id).maybeSingle()
+  try{await requireCapability(supabase,source.data?.direction==='received'?'record_manual_income':'record_manual_expense')}catch(cause){const denied=membershipErrorResponse(cause);return NextResponse.json({error:denied.error},{status:denied.status})}
   const { error } = await supabase.rpc('remove_manual_financial_activity', {
     p_manual_financial_source_id: id, p_expected_current_event_id: expected,
     p_request_key: requestKey, p_reason: 'Customer removed this activity from current records.',

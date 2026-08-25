@@ -63,6 +63,7 @@ suite('Plaid ingestion against local PostgreSQL', () => {
     const admin = createClient(url!, serviceKey!, { auth: { persistSession: false } })
     const owner = await provisionLocalCanonicalOwner({ admin, url: url!, anonKey: anonKey!, label: 'plaid-owner', amounts: [] })
     const other = await provisionLocalCanonicalOwner({ admin, url: url!, anonKey: anonKey!, label: 'plaid-other', amounts: [] })
+    for(const subject of[owner,other]){const grant=await admin.rpc('create_business_membership_grant',{p_business_id:subject.businessId,p_plan:'business',p_starts_at:new Date().toISOString(),p_ends_at:null,p_request_key:`plaid-test:${crypto.randomUUID()}`,p_reason:'Plaid integration test',p_provenance:'local_setup',p_actor_user_id:null});expect(grant.error).toBeNull()}
     const namespace = `owner-${crypto.randomUUID()}`
     const initialGateway = new FakePlaid([
       { added: [tx({ id: 'pending-1', pending: true }, namespace), tx({ id: 'tx-1' }, namespace)], modified: [], removed: [], next_cursor: 'page-1', has_more: true },

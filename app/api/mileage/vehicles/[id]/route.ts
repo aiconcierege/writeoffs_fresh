@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../../utils/supabase/server'
 import { requireMileageBusiness } from '../../../../lib/mileage/repository'
+import {membershipErrorResponse,requireCapability} from '../../../../lib/membership/entitlements'
 
 export async function PATCH(request:Request,context:{params:Promise<{id:string}>}){
   const supabase=await createServerSupabase();let businessId:string
   try{businessId=(await requireMileageBusiness(supabase)).businessId}catch{return NextResponse.json({error:'unauthorized'},{status:401})}
+  try{await requireCapability(supabase,'track_mileage')}catch(cause){const denied=membershipErrorResponse(cause);return NextResponse.json({error:denied.error},{status:denied.status})}
   const body=await request.json().catch(()=>null) as {active?:unknown}|null
   if(typeof body?.active!=='boolean')return NextResponse.json({error:'Choose whether the vehicle is active.'},{status:400})
   const {id}=await context.params

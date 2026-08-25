@@ -6,6 +6,7 @@ import { createPlaidGateway } from './client'
 import { syncPlaidItem } from './service'
 import type { PlaidGateway } from './types'
 import { verifyPlaidWebhook as verifyPlaidWebhookWithGateway } from './webhook-verification'
+import {can,entitlementsFromMembership}from'../membership/entitlements'
 
 type Row = Record<string, unknown>
 
@@ -28,7 +29,7 @@ export async function recordPlaidWebhook(rawBody: string, deliveryIdentity: stri
   if (!webhookType || !webhookCode) throw new Error('INVALID_WEBHOOK')
   const admin = createServerAdminSupabase()
   const { data: item, error: itemError } = plaidItemId
-    ? await admin.from('plaid_items').select('id,connection_status')
+    ? await admin.from('plaid_items').select('id,business_id,connection_status')
       .eq('plaid_item_id', plaidItemId).eq('environment', environment).maybeSingle()
     : { data: null, error: null }
   if (itemError) throw new Error('WEBHOOK_ITEM_LOOKUP_FAILED')
@@ -40,6 +41,9 @@ export async function recordPlaidWebhook(rawBody: string, deliveryIdentity: stri
   if (eventError && eventError.code !== '23505') throw new Error('WEBHOOK_RECORD_FAILED')
   if (!inserted) return { duplicate: true, itemId: item?.id ?? null, shouldSync: false }
   if (!item) return { duplicate: false, itemId: null, shouldSync: false }
+  const membership=await admin.from('business_memberships').select('*').eq('business_id',item.business_id).maybeSingle()
+  if(membership.error)throw new Error('MEMBERSHIP_LOOKUP_FAILED')
+  const autonomous=can(entitlementsFromMembership(membership.data as Record<string,unknown>|null),'autonomous_processing')
 
   if (webhookType === 'TRANSACTIONS' && webhookCode === 'SYNC_UPDATES_AVAILABLE') {
     await admin.from('plaid_items').update({
@@ -50,7 +54,7 @@ export async function recordPlaidWebhook(rawBody: string, deliveryIdentity: stri
       .eq('id', item.id).neq('connection_status', 'disconnected')
     await admin.from('plaid_webhook_events').update({ processed_at: new Date().toISOString() })
       .eq('id', inserted.id)
-    return { duplicate: false, itemId: item.id, shouldSync: item.connection_status !== 'disconnected' }
+    return { duplicate: false, itemId: item.id, shouldSync: autonomous&&item.connection_status !== 'disconnected' }
   }
   if (webhookType === 'ITEM' && webhookCode === 'ERROR') {
     const error = payload.error && typeof payload.error === 'object' ? payload.error as Row : {}
