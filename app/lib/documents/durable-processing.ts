@@ -4,6 +4,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { PDFDocument } from 'pdf-lib'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServerAdminSupabase } from '../../../utils/supabase/admin'
+import { parseStatementPages,periodToRpc } from './statement-intelligence'
 
 type Row = Record<string, unknown>
 export const CANONICAL_DOCUMENT_BATCH_MAX = 10
@@ -145,15 +146,36 @@ async function processStatement(admin: SupabaseClient, job: Row) {
   const pageCount = pdf.getPageCount()
   if (pageCount < 1 || pageCount > STATEMENT_PAGE_LIMIT) return { state: 'needs_attention', reason: 'STATEMENT_PROTECTIVE_PAGE_BOUND' }
   const chunkCount = Math.ceil(pageCount / STATEMENT_CHUNK_PAGES)
+  const startPage=Math.max(1,Number(job.next_page??1)),endPage=Math.min(pageCount,startPage+STATEMENT_CHUNK_PAGES-1)
+  const pdfjs=await import('pdfjs-dist/legacy/build/pdf.mjs')
+  const source=await pdfjs.getDocument({data:target.bytes.slice()}).promise.catch(()=>null)
+  if(!source)return {state:'unreadable',reason:'PDF_UNREADABLE'}
+  const pages:{page:number;text:string}[]=[]
+  for(let pageNumber=startPage;pageNumber<=endPage;pageNumber+=1){const page=await source.getPage(pageNumber);const content=await page.getTextContent()
+    const text=content.items.map(item=>'str' in item?item.str:'').filter(Boolean).join('\n');pages.push({page:pageNumber,text})}
+  const nativeText=pages.some(page=>page.text.trim())
+  if(!nativeText)return {state:'needs_attention',reason:'STATEMENT_OCR_REQUIRED'}
+  if(startPage>1&&!pages.some(page=>/statement\s+period/i.test(page.text))){const prior=await admin.from('statement_periods')
+      .select('institution_name,masked_account,period_start,period_end').eq('business_id',String(job.business_id))
+      .eq('document_id',target.documentId).order('source_page_end',{ascending:false}).limit(1).maybeSingle()
+    if(prior.data?.period_start&&prior.data?.period_end)pages[0].text=`Institution: ${prior.data.institution_name}\n${prior.data.masked_account?`Account ending in ${prior.data.masked_account}\n`:''}Statement Period: ${prior.data.period_start} - ${prior.data.period_end}\n${pages[0].text}`
+  }
+  const periods=parseStatementPages({pages,documentClass:target.documentClass??'bank_statement',documentSha256:String(job.document_sha256)})
+  let imported=0,ambiguous=0
+  for(const period of periods){ambiguous+=period.ambiguousRowCount;const payload=periodToRpc(period)
+    const result=await admin.rpc('ingest_statement_period',{p_job_id:job.id,p_period:payload.period,p_rows:payload.rows})
+    if(result.error)throw new Error('STATEMENT_CANONICAL_INGESTION_FAILED');imported+=Number((result.data as Row)?.imported??0)}
+  if(endPage<pageCount)return {state:'continue',reason:null,nextPage:endPage+1}
+  const outcome=imported>0?(ambiguous>0?'needs_attention':'completed'):'needs_attention'
   const { error } = await admin.from('document_processing_results').insert({
     business_id: job.business_id,document_id: target.documentId,job_id: job.id,
     document_sha256: job.document_sha256,processor_version: job.processor_version,
     document_class: target.documentClass ?? 'bank_statement',page_count: pageCount,chunk_count: chunkCount,
-    outcome: 'needs_attention',result_metadata: { nativeTextAttempted: false,chunkPages: STATEMENT_CHUNK_PAGES,
-      reason: 'STATEMENT_EXTRACTION_ADAPTER_PENDING' },
+    outcome: outcome==='completed'?'inspected':'needs_attention',result_metadata: { nativeTextAttempted: true,
+      chunkPages: STATEMENT_CHUNK_PAGES,transactionCount:imported,ambiguousRowCount:ambiguous },
   })
   if (error?.code !== '23505' && error) throw new Error('DOCUMENT_RESULT_WRITE_FAILED')
-  return { state: 'needs_attention', reason: 'STATEMENT_EXTRACTION_ADAPTER_PENDING' }
+  return { state: outcome, reason: outcome==='completed'?null:imported?'STATEMENT_ROWS_AMBIGUOUS':'STATEMENT_NO_TRANSACTIONS' }
 }
 
 export async function drainCanonicalDocumentJobs(input: { admin?: SupabaseClient; batchSize?: number } = {}) {
@@ -166,6 +188,11 @@ export async function drainCanonicalDocumentJobs(input: { admin?: SupabaseClient
   for (const job of claimed) {
     try {
       const result = job.job_type === 'statement_inspection' ? await processStatement(admin, job) : await processReceipt(admin, job)
+      if(result.state==='continue'&&'nextPage' in result){
+        const continuation=await admin.rpc('continue_document_processing_job',{p_job_id:job.id,p_lease_id:leaseId,p_next_page:result.nextPage})
+        if(continuation.error||continuation.data!==true)throw new Error('DOCUMENT_PROCESSING_LEASE_LOST')
+        continue
+      }
       const { data: finished, error: finishError } = await admin.rpc('finish_receipt_processing_job', {
         p_job_id: job.id,p_lease_id: leaseId,p_state: result.state,p_terminal_reason: result.reason })
       if (finishError || finished !== true) throw new Error('DOCUMENT_PROCESSING_LEASE_LOST')

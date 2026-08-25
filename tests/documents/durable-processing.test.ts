@@ -21,6 +21,9 @@ describe('durable document processing', () => {
     expect(worker).toContain("['canonical_receipt_extraction','statement_inspection']")
     expect(worker).toContain(".eq('extraction_key', 'vision:v1')")
     expect(worker).toContain('AbortController')
+    expect(worker).toContain("import('pdfjs-dist/legacy/build/pdf.mjs')")
+    expect(worker).toContain("p_next_page:result.nextPage")
+    expect(worker).toContain('startPage+STATEMENT_CHUNK_PAGES-1')
     expect(worker).not.toMatch(/console\.(log|error).*text|signedUrl/i)
   })
   it('has one protected bounded runner for repeated scheduled invocation', () => {

@@ -7,7 +7,8 @@ import { runBoundedBatch } from '../lib/documents/batch-intake'
 export function StatementUpload() {
   const input = useRef<HTMLInputElement>(null); const busyRef = useRef(false)
   const [busy,setBusy] = useState(false); const [message,setMessage] = useState<string | null>(null)
-  const [documents,setDocuments]=useState<Array<{id:string;original_name:string|null;processing_status:string}>>([])
+  const [documents,setDocuments]=useState<Array<{id:string;original_name:string|null;processing_status:string;transaction_count:number;
+    institution_name:string|null;masked_account:string|null;period_start:string|null;period_end:string|null}>>([])
   async function refresh(){const response=await fetch('/api/documents/statements',{cache:'no-store'});if(response.ok){const body=await response.json();setDocuments(body.documents??[])}}
   useEffect(()=>{void refresh()},[])
   async function upload(files: File[]) {
@@ -43,7 +44,7 @@ export function StatementUpload() {
     <input ref={input} type="file" multiple accept="application/pdf" className="sr-only" aria-label="Upload bank or card statement PDFs"
       onChange={(event)=>void upload(Array.from(event.target.files??[]))}/>
     {message&&<p role="status" aria-live="polite" className="mt-3 text-sm text-slate-600">{message}</p>}
-    {documents.length>0&&<ul className="mt-5 divide-y divide-slate-200 border-y border-slate-200">{documents.map(document=><li key={document.id} className="flex min-h-12 items-center justify-between gap-4 py-3 text-sm"><span className="min-w-0 truncate font-medium text-slate-800">{document.original_name??'Statement'}</span><span className="shrink-0 text-slate-600">{statementStatus(document.processing_status)}</span></li>)}</ul>}
+    {documents.length>0&&<ul className="mt-5 divide-y divide-slate-200 border-y border-slate-200">{documents.map(document=><li key={document.id} className="flex min-h-12 items-center justify-between gap-4 py-3 text-sm"><span className="min-w-0"><span className="block truncate font-medium text-slate-800">{document.institution_name??document.original_name??'Statement'}{document.masked_account?` · •••• ${document.masked_account}`:''}</span>{document.period_start&&document.period_end&&<span className="mt-0.5 block text-xs text-slate-500">{document.period_start}–{document.period_end}{document.transaction_count?` · ${document.transaction_count} transactions`:''}</span>}</span><span className="shrink-0 text-slate-600">{statementStatus(document.processing_status)}</span></li>)}</ul>}
   </section>
 }
 

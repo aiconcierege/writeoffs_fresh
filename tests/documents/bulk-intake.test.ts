@@ -25,6 +25,7 @@ describe('bulk document intake contracts',()=>{
     const upload=source('app/import/StatementUpload.tsx')
     expect(upload).toMatch(/type="file" multiple/);expect(upload).toContain('/api/documents/statements')
     expect(upload).toContain('Still processing');expect(upload).toContain('Could not be read')
+    expect(upload).toContain('transaction_count');expect(upload).toContain('institution_name')
     expect(source('app/import/page.tsx')).toContain('<StatementUpload />')
   })
   it('uses exact SHA-256 identities before registration',()=>{
