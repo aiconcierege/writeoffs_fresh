@@ -13,11 +13,11 @@ Review date: 2026-08-25. Status values are `READY`, `NEEDS CONFIGURATION`, `BLOC
 | Mandatory customer MFA | NEEDS CONFIGURATION | TOTP flow is validated; production must enable TOTP and set `MFA_ENFORCEMENT_MODE=required` after staged enrollment/support validation. |
 | Supabase production | NEEDS CONFIGURATION | Dedicated project, expected-host binding, Auth URLs/SMTP, capacity/logs/backups/PITR and secrets must be configured. |
 | RLS/tenant isolation | READY | Representative static/integration suites cover major Business domains; repeat against staged migration set. Any failure is P0. |
-| Migration set | NEEDS CONFIGURATION | Compare remote migration history, stage full ordered chain, backup, then apply before dependent code. No remote state was assumed. |
+| Migration set | READY | `writeoffs-staging` was non-divergent and the exact 11-file pending chain applied successfully through `20260825000500`; post-run ledger parity was confirmed. |
 | Queue/worker | READY | Durable claims/leases/retries/dead letter, bounded authenticated drain, cost pause, and health metrics exist. |
 | Vercel cron | NEEDS CONFIGURATION | One-minute declaration exists; configure strong `CRON_SECRET`, 60-second duration support, success/backlog alerts, and prove staging invocations. |
 | Monitoring/alerting | NEEDS CONFIGURATION | Thresholds/runbooks defined; provider-native dashboards and operator destinations must be configured. |
-| Database/Storage backups | NEEDS CONFIGURATION | Verify plan backup retention and private Storage recovery; select PITR and perform isolated restore exercise. |
+| Database/Storage backups | NEEDS CONFIGURATION | Completed daily staging physical backups and WAL backup were verified; PITR is off. Isolated database restore and private Storage recovery/linkage remain unproven. |
 | Restore procedure/DR | NEEDS CONFIGURATION | Procedure and RPO/RTO targets documented; first restore exercise must pass. |
 | Stripe test lifecycle | READY | Real TEST Checkout/webhook/lifecycle validation is documented. |
 | Stripe live | NEEDS CONFIGURATION | Live Products/Prices/secrets/webhook/restricted Portal/email/dunning/Tax decision and controlled smoke test remain. |
@@ -29,7 +29,7 @@ Review date: 2026-08-25. Status values are `READY`, `NEEDS CONFIGURATION`, `BLOC
 | Legal/privacy/support | NEEDS CONFIGURATION | Reachable Terms/Privacy/contact exist; professional review, approved recovery/retention/deletion policy and support ownership remain. |
 | Account deletion/retention | BLOCKED INTERNALLY | No complete self-service deletion workflow or approved retention/purge policy. Approve policy and operationalize a reauthenticated request before paid public launch. |
 | Rate limiting/abuse | NEEDS CONFIGURATION | Supabase Auth/provider limits plus app idempotency exist; configure distributed Vercel WAF rules and alerts before public traffic. |
-| Smoke/staging | NEEDS CONFIGURATION | Production-shaped staging must pass migrations, mandatory MFA, Stripe TEST, Plaid Sandbox, cron/OCR, desktop/mobile E2E and smoke list. |
+| Smoke/staging | BLOCKED INTERNALLY | Migration rehearsal passed, but no Vercel staging project/domain is linked and staging env lacks mandatory identity/MFA/provider/worker/OCR values. Deployed MFA, webhooks, cron/OCR, headers, Storage and desktop/mobile E2E remain. |
 
 ## P0 — cannot launch paid public product safely
 
@@ -41,7 +41,7 @@ Review date: 2026-08-25. Status values are `READY`, `NEEDS CONFIGURATION`, `BLOC
 ## P1 — required before paid public launch
 
 - Configure dedicated production Supabase, TOTP/mandatory-MFA rollout, SMTP/redirects, capacity, logs, backups and PITR decision.
-- Stage and review the full migration chain; create explicit approved prelaunch membership grants before entitlement enforcement.
+- Create explicit approved prelaunch membership grants before entitlement enforcement; the staging migration chain is now current.
 - Pin Node 22 in Vercel; configure cron secret, duration, monitoring and successful worker drain.
 - Configure Vercel WAF distributed limits for Auth, billing-session and costly endpoints; preserve legitimate bulk intake.
 - Configure monitoring/alerts, provider cost budgets, support ownership, incident contacts, and perform restore/incident exercises.

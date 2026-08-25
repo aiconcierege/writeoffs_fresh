@@ -108,6 +108,23 @@ describe('account protection', () => {
     expect(() => validateEnvironment({ WRITEOFFS_ENVIRONMENT:'staging', WRITEOFFS_STRIPE_MODE:'live' })).toThrow(/Stripe live/)
   })
 
+  it('requires a production-shaped staging identity and test provider modes', () => {
+    const staging = {
+      NODE_ENV: 'production', WRITEOFFS_ENVIRONMENT: 'staging',
+      NEXT_PUBLIC_SUPABASE_URL: 'https://stage-ref.supabase.co', SUPABASE_URL: 'https://stage-ref.supabase.co',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-placeholder', SUPABASE_SERVICE_ROLE_KEY: 'service-placeholder',
+      WRITEOFFS_EXPECTED_SUPABASE_HOST: 'stage-ref.supabase.co', NEXT_PUBLIC_BASE_URL: 'https://stage.writeoffs.example',
+      MFA_ENFORCEMENT_MODE: 'required', CRON_SECRET: 's'.repeat(32), DOCUMENT_EXPENSIVE_PROCESSING_ENABLED: 'false',
+      STRIPE_MEMBERSHIP_ENABLED: 'false', WRITEOFFS_STRIPE_MODE: 'test',
+      PLAID_PRODUCTION_ENABLED: 'false', PLAID_ENV: 'sandbox', PLAID_SANDBOX_LINK_ENABLED: 'false',
+    }
+    expect(() => validateEnvironment(staging)).not.toThrow()
+    expect(() => validateEnvironment({ ...staging, NEXT_PUBLIC_BASE_URL: 'http://localhost:3000' })).toThrow(/Staging NEXT_PUBLIC_BASE_URL/)
+    expect(() => validateEnvironment({ ...staging, MFA_ENFORCEMENT_MODE: 'enrolled' })).toThrow(/mandatory MFA/)
+    expect(() => validateEnvironment({ ...staging, PLAID_ENV: 'development' })).toThrow(/Plaid Sandbox/)
+    expect(() => validateEnvironment({ ...staging, STRIPE_MEMBERSHIP_ENABLED: 'true', STRIPE_SECRET_KEY: 'sk_live_forbidden' })).toThrow(/STRIPE_WEBHOOK_SECRET|Stripe test mode/)
+  })
+
   it('keeps service-role credentials server-only', () => {
     expect(read('utils/supabase/admin.ts')).toContain("import 'server-only'")
     expect(read('.env.example')).not.toMatch(/NEXT_PUBLIC_SUPABASE_SERVICE_ROLE/)

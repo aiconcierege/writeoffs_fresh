@@ -29,6 +29,20 @@ function assertExpectedSupabaseHost(env) {
   if (isLocalSupabaseUrl(publicUrl.toString())) throw new Error('A remote environment cannot use local Supabase.')
 }
 
+function assertRemoteOrigin(env, label) {
+  const origin = parsedUrl(env.NEXT_PUBLIC_BASE_URL)
+  if (!origin || origin.protocol !== 'https:' || LOCAL_SUPABASE_HOSTS.has(origin.hostname) || origin.pathname !== '/') {
+    throw new Error(`${label} NEXT_PUBLIC_BASE_URL must be an HTTPS origin with no path.`)
+  }
+}
+
+function assertProcessingConfiguration(env) {
+  if ((env.CRON_SECRET || '').length < 32) throw new Error(`${env.WRITEOFFS_ENVIRONMENT} CRON_SECRET must contain at least 32 characters.`)
+  if (!['true', 'false'].includes(env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED)) throw new Error('DOCUMENT_EXPENSIVE_PROCESSING_ENABLED must be explicit in remote environments.')
+  if (env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED === 'true') required(env, ['GCV_API_KEY'])
+  if (env.RECEIPT_UNDERSTANDING_ENABLED === 'true') required(env, ['RECEIPT_UNDERSTANDING_PROVIDER', 'RECEIPT_UNDERSTANDING_MODEL', 'OPENAI_API_KEY'])
+}
+
 function validateEnvironment(env = process.env) {
   const name = env.WRITEOFFS_ENVIRONMENT || 'local'
   if (!ENVIRONMENTS.has(name)) throw new Error('WRITEOFFS_ENVIRONMENT must be local, staging, or production.')
@@ -46,8 +60,24 @@ function validateEnvironment(env = process.env) {
   }
 
   if (name === 'staging') {
-    required(env, ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'WRITEOFFS_EXPECTED_SUPABASE_HOST'])
+    required(env, [
+      'NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_URL',
+      'SUPABASE_SERVICE_ROLE_KEY', 'WRITEOFFS_EXPECTED_SUPABASE_HOST', 'NEXT_PUBLIC_BASE_URL',
+      'MFA_ENFORCEMENT_MODE', 'CRON_SECRET', 'DOCUMENT_EXPENSIVE_PROCESSING_ENABLED',
+      'STRIPE_MEMBERSHIP_ENABLED', 'PLAID_PRODUCTION_ENABLED',
+    ])
     assertExpectedSupabaseHost(env)
+    assertRemoteOrigin(env, 'Staging')
+    if (env.MFA_ENFORCEMENT_MODE !== 'required') throw new Error('Staging requires mandatory MFA enrollment and challenge.')
+    assertProcessingConfiguration(env)
+    if (env.PLAID_PRODUCTION_ENABLED !== 'false' || plaidMode !== 'sandbox') throw new Error('Staging requires Plaid Sandbox with Production disabled.')
+    if (env.PLAID_SANDBOX_LINK_ENABLED === 'true') required(env, ['PLAID_CLIENT_ID', 'PLAID_SECRET', 'PLAID_TOKEN_ENCRYPTION_KEY', 'PLAID_WEBHOOK_URL'])
+    if (env.STRIPE_MEMBERSHIP_ENABLED === 'true') {
+      required(env, ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_EXPENSES_PRICE_ID', 'STRIPE_BUSINESS_PRICE_ID', 'STRIPE_PORTAL_CONFIGURATION_ID'])
+      if (stripeMode !== 'test' || !env.STRIPE_SECRET_KEY.startsWith('sk_test_')) throw new Error('Enabled staging memberships require Stripe test mode and a test secret.')
+    } else if (env.STRIPE_MEMBERSHIP_ENABLED !== 'false') {
+      throw new Error('STRIPE_MEMBERSHIP_ENABLED must be true or false in staging.')
+    }
   }
 
   if (name === 'production') {
@@ -58,15 +88,9 @@ function validateEnvironment(env = process.env) {
       'STRIPE_MEMBERSHIP_ENABLED', 'PLAID_PRODUCTION_ENABLED',
     ])
     assertExpectedSupabaseHost(env)
-    const origin = parsedUrl(env.NEXT_PUBLIC_BASE_URL)
-    if (!origin || origin.protocol !== 'https:' || LOCAL_SUPABASE_HOSTS.has(origin.hostname) || origin.pathname !== '/') {
-      throw new Error('Production NEXT_PUBLIC_BASE_URL must be an HTTPS origin with no path.')
-    }
+    assertRemoteOrigin(env, 'Production')
     if (env.MFA_ENFORCEMENT_MODE !== 'required') throw new Error('Production requires mandatory MFA enrollment and challenge.')
-    if ((env.CRON_SECRET || '').length < 32) throw new Error('Production CRON_SECRET must contain at least 32 characters.')
-    if (!['true', 'false'].includes(env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED)) throw new Error('DOCUMENT_EXPENSIVE_PROCESSING_ENABLED must be explicit in production.')
-    if (env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED === 'true') required(env, ['GCV_API_KEY'])
-    if (env.RECEIPT_UNDERSTANDING_ENABLED === 'true') required(env, ['RECEIPT_UNDERSTANDING_PROVIDER', 'RECEIPT_UNDERSTANDING_MODEL', 'OPENAI_API_KEY'])
+    assertProcessingConfiguration(env)
 
     if (env.STRIPE_MEMBERSHIP_ENABLED === 'true') {
       required(env, ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_EXPENSES_PRICE_ID', 'STRIPE_BUSINESS_PRICE_ID', 'STRIPE_PORTAL_CONFIGURATION_ID'])
