@@ -25,3 +25,6 @@ backups/
 # Generated tool state
 *.tsbuildinfo
 supabase/.temp/
+.env*
+
+!.env.example
