@@ -1,4 +1,4 @@
-/* File: middleware.ts
+/* File: proxy.ts
  * Version: v2
  * Date: 2025-10-13
  * Notes: Blocks /signup unless NEXT_PUBLIC_ENABLE_SIGNUP === 'true'. Keeps Supabase auth cookies in sync.
@@ -14,7 +14,7 @@ function redirectWithRefreshedAuthCookies(url: URL, response: NextResponse) {
   return redirectResponse
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const url = req.nextUrl
   const pathname = url.pathname
   const res = NextResponse.next()

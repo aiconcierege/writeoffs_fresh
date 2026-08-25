@@ -24,7 +24,7 @@ describe('account protection', () => {
     expect(mfaEnforcementMode(undefined)).toBe('enrolled')
     expect(mfaEnforcementMode('required')).toBe('required')
     expect(mfaEnforcementMode('off')).toBe('off')
-    const middleware = read('middleware.ts')
+    const middleware = read('proxy.ts')
     expect(middleware).toContain("url.pathname = '/mfa/challenge'")
     expect(middleware).toContain('url.pathname = SECURITY_SETTINGS_PATH')
     expect(middleware).toContain("assurance?.currentLevel !== 'aal2'")
@@ -47,7 +47,7 @@ describe('account protection', () => {
     const files = [
       'app/settings/security/SecuritySettings.tsx',
       'app/mfa/challenge/MfaChallenge.tsx',
-      'middleware.ts',
+      'proxy.ts',
       'app/components/Header.tsx',
       'app/settings/page.tsx',
       'app/lib/auth/mfa-policy.ts',

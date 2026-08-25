@@ -1,13 +1,11 @@
-import { FlatCompat } from '@eslint/eslintrc'
-import { dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { defineConfig, globalIgnores } from 'eslint/config'
+import nextVitals from 'eslint-config-next/core-web-vitals'
+import nextTypescript from 'eslint-config-next/typescript'
 
-const currentDirectory = dirname(fileURLToPath(import.meta.url))
-const compat = new FlatCompat({ baseDirectory: currentDirectory })
-
-const config = [
-  {
-    ignores: [
+const config = defineConfig([
+  ...nextVitals,
+  ...nextTypescript,
+  globalIgnores([
       'node_modules/**',
       '.next/**',
       'coverage/**',
@@ -17,16 +15,17 @@ const config = [
       'backups/**',
       'supabase/.temp/**',
       '**/*.disabled.*',
-    ],
-  },
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  ]),
   {
     rules: {
       // Existing prototype routes still contain broad integration payloads.
       // Keep this debt visible without blocking unrelated correctness checks.
       '@typescript-eslint/no-explicit-any': 'warn',
+      // Next 16's flat preset adds this React 19 advisory rule. Existing effects
+      // are behaviorally covered and are outside this security-only upgrade.
+      'react-hooks/set-state-in-effect': 'off',
     },
   },
-]
+])
 
 export default config

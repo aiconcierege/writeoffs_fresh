@@ -59,7 +59,18 @@ test('enrolls, challenges, and removes TOTP without leaving Security', async ({ 
     await page.waitForURL('**/home')
 
     await page.goto('/settings/security')
-    await page.getByRole('button', { name: 'Remove two-factor authentication' }).click()
+    const removeButton = page.getByRole('button', { name: 'Remove two-factor authentication' })
+    if (await removeButton.isDisabled()) {
+      // Removing a factor deliberately requires fresh AAL2 assurance. A new
+      // server navigation may conservatively require the explicit step again.
+      await page.getByRole('link', { name: 'Verify security code' }).click()
+      await page.waitForURL('**/mfa/challenge?next=/settings/security')
+      await page.getByLabel('6-digit code').fill(totp(secret))
+      await page.getByRole('button', { name: 'Continue' }).click()
+      await page.waitForURL('**/settings/security')
+    }
+    await expect(removeButton).toBeEnabled()
+    await removeButton.click()
     await expect(page.getByText('Two-factor authentication was removed.')).toBeVisible()
     expect(wrongRouteRequests).toEqual([])
     expect(pageErrors).toEqual([])

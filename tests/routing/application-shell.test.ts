@@ -48,7 +48,7 @@ describe('canonical application and public shell routes', () => {
   })
 
   it('protects product routes and redirects authenticated auth-page visitors', () => {
-    const middleware = source('middleware.ts')
+    const middleware = source('proxy.ts')
     expect(middleware).toContain('if (!user && isAuthenticatedRoute(pathname))')
     expect(middleware).toContain("url.pathname = '/login'")
     expect(middleware).toContain("pathname === '/login' || pathname === '/signup'")

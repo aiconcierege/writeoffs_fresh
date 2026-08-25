@@ -6,6 +6,9 @@ validateEnvironment(process.env)
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Playwright's local server uses this loopback host. Next 16 blocks
+  // cross-origin development assets unless the host is explicitly trusted.
+  allowedDevOrigins: ['127.0.0.1'],
   serverExternalPackages: ['@napi-rs/canvas', 'pdfjs-dist'],
   async headers() {
     return [{
