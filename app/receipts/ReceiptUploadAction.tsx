@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { supabase } from '../../utils/supabase/client'
+import { runBoundedBatch } from '../lib/documents/batch-intake'
 
 export function ReceiptUploadAction({ onComplete, variant = 'home' }: {
   onComplete?: () => void | Promise<void>
@@ -11,47 +12,46 @@ export function ReceiptUploadAction({ onComplete, variant = 'home' }: {
   const inFlight = useRef(false)
   const [status, setStatus] = useState<'idle' | 'uploading' | 'organizing' | 'done' | 'error'>('idle')
   const [message, setMessage] = useState<string | null>(null)
+  const [failed, setFailed] = useState<File[]>([])
 
-  async function select(file: File | undefined) {
-    if (!file || inFlight.current) return
-    if (!/^(image\/.+|application\/pdf)$/.test(file.type)) {
-      setStatus('error'); setMessage('Choose an image or PDF.'); return
-    }
+  async function select(selected: File[]) {
+    if (!selected.length || inFlight.current) return
+    const files = selected.filter((file) => /^(image\/(jpeg|png|webp)|application\/pdf)$/.test(file.type)
+      && file.size > 0 && file.size <= 20 * 1024 * 1024)
+    if (!files.length) { setStatus('error'); setMessage('Choose receipt images or PDFs up to 20 MB each.'); return }
     inFlight.current = true
-    setStatus('uploading'); setMessage('Uploading receipt…')
+    setFailed([]); setStatus('uploading'); setMessage(`Uploading ${files.length} ${files.length === 1 ? 'receipt' : 'receipts'}…`)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { window.location.href = '/login'; return }
-      const fingerprint = await sha256(file)
-      const storagePath = `receipts/${user.id}/${fingerprint}`
-      const upload = await supabase.storage.from('receipts').upload(storagePath, file, {
-        contentType: file.type || 'application/octet-stream', upsert: false,
-      })
-      if (upload.error && !/already exists|duplicate/i.test(upload.error.message)) throw new Error('UPLOAD_FAILED')
-      const registration = await fetch('/api/receipts', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: crypto.randomUUID(), uploadFingerprint: fingerprint, storagePath,
-          originalName: file.name, mimeType: file.type || 'application/octet-stream', bytes: file.size }),
-      })
-      const registered = await registration.json().catch(() => ({}))
-      if (!registration.ok || !registered.receipt?.id) throw new Error('REGISTRATION_FAILED')
-      setStatus('organizing'); setMessage('Receipt added. WriteOffs is organizing it.')
-      const receiptId = String(registered.receipt.id)
-      const extraction = await fetch('/api/receipts/ocr', {
-        method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: receiptId }),
-      })
-      const extractionResult = await extraction.json().catch(() => ({}))
-      if (!extraction.ok || extractionResult.ok === false) {
-        await fetch('/api/receipts/annotate', {
-          method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: receiptId }),
-        })
-      }
-      setStatus('done'); setMessage('Receipt added. WriteOffs is organizing it.')
+      const userId = user.id
+      let accepted = 0; let duplicates = 0
+      const results = await runBoundedBatch({ items: files,concurrency: 4,onSettled: (settled,total) => setMessage(`${settled} of ${total} received…`),
+        process: async (file) => {
+            const fingerprint = await sha256(file); const requestedId = crypto.randomUUID()
+            const storagePath = `receipts/${userId}/${fingerprint}`
+            const upload = await supabase.storage.from('receipts').upload(storagePath, file, {
+              contentType: file.type, upsert: false,
+            })
+            if (upload.error && !/already exists|duplicate/i.test(upload.error.message)) throw new Error('UPLOAD_FAILED')
+            const registration = await fetch('/api/receipts', { method: 'POST',headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ id: requestedId,uploadFingerprint: fingerprint,storagePath,
+                originalName: file.name,mimeType: file.type,bytes: file.size }) })
+            const registered = await registration.json().catch(() => ({}))
+            if (!registration.ok || !registered.receipt?.id) throw new Error('REGISTRATION_FAILED')
+            if (registered.receipt.id === requestedId) accepted += 1; else duplicates += 1
+            return registered.receipt.id
+        } })
+      const failures = files.filter((_,index) => results[index].status === 'rejected')
+      setFailed(failures)
+      if (accepted + duplicates === 0) throw new Error('BATCH_FAILED')
+      setStatus(failures.length ? 'error' : 'done')
+      setMessage(accepted === 1 && duplicates === 0 && failures.length === 0
+        ? 'Receipt added. WriteOffs is organizing it.'
+        : `${accepted} ${accepted === 1 ? 'receipt' : 'receipts'} received${duplicates ? ` · ${duplicates} already added` : ''}${failures.length ? ` · ${failures.length} could not upload` : ''}. WriteOffs will keep organizing them after you leave.`)
       await onComplete?.()
     } catch {
-      setStatus('error'); setMessage('The receipt could not be added. Try again.')
+      setStatus('error'); setMessage('The receipts could not be added. Try again.')
     } finally {
       inFlight.current = false
       if (input.current) input.current.value = ''
@@ -64,10 +64,12 @@ export function ReceiptUploadAction({ onComplete, variant = 'home' }: {
       className="btn btn-primary min-h-12">
       {busy ? 'Adding receipt…' : <><span className="hidden sm:inline">Upload receipt</span><span className="sm:hidden">Add receipt</span></>}
     </button>
-    <input ref={input} type="file" accept="image/*,application/pdf" className="sr-only"
-      aria-label="Upload receipt image or PDF" onChange={(event) => void select(event.target.files?.[0])} />
+    <input ref={input} type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" className="sr-only"
+      aria-label="Upload receipt images or PDFs" onChange={(event) => void select(Array.from(event.target.files ?? []))} />
     {message && <p role={status === 'error' ? 'alert' : 'status'} aria-live="polite"
       className={`max-w-sm text-sm ${status === 'error' ? 'text-red-700' : 'text-[#59665f]'}`}>{message}</p>}
+    {failed.length > 0 && <button type="button" className="min-h-11 text-sm font-semibold text-[#243186]"
+      onClick={() => void select(failed)}>Retry {failed.length === 1 ? 'failed receipt' : `${failed.length} failed receipts`}</button>}
   </div>
 }
 

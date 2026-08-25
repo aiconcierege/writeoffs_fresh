@@ -13,7 +13,8 @@ describe('autonomous Receipt UX v1', () => {
   it('starts an immediate receipt upload from Home without primary navigation', () => {
     expect(home).toContain('<ReceiptUploadAction />')
     expect(home).toContain('View receipts')
-    expect(upload).toContain('onChange={(event) => void select(event.target.files?.[0])}')
+    expect(upload).toContain('onChange={(event) => void select(Array.from(event.target.files ?? []))}')
+    expect(upload).toContain('multiple')
     expect(upload).not.toContain('Upload selected')
     expect(header).not.toMatch(/name: ["']Receipts["']/)
   })
@@ -22,7 +23,7 @@ describe('autonomous Receipt UX v1', () => {
     expect(routePolicy).toContain("'/receipts'")
     expect(upload).toContain('Upload receipt</span>')
     expect(upload).toContain('Add receipt</span>')
-    expect(upload).toContain('accept="image/*,application/pdf"')
+    expect(upload).toContain('accept="image/jpeg,image/png,image/webp,application/pdf"')
     expect(upload).not.toContain('capture="environment"')
   })
 

@@ -1,25 +1,29 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createServerSupabase } from '../../utils/supabase/server'
-import { listTransactionReadModel } from '../lib/bookkeeping/transaction-read-model'
+import { listTransactionReadModel, parseTransactionCursor, transactionCursor } from '../lib/bookkeeping/transaction-read-model'
 import { EmptyState, PageContainer, PageHeader, StatusBadge } from '../components/ui'
 
 export const dynamic = 'force-dynamic'
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
 export default async function TransactionsPage({ searchParams }: {
-  searchParams: Promise<{ q?: string | string[] }>
+  searchParams: Promise<{ q?: string | string[]; cursor?: string | string[] }>
 }) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
   const params = await searchParams
   const query = (Array.isArray(params.q) ? params.q[0] : params.q ?? '').trim().slice(0, 100)
-  let rows = await listTransactionReadModel({ supabase, userId: user.id, limit: 1000 })
+  const cursorValue=Array.isArray(params.cursor)?params.cursor[0]:params.cursor
+  const after=query?null:parseTransactionCursor(cursorValue)
+  let rows = await listTransactionReadModel({ supabase, userId: user.id, limit: query?1000:101,after })
   if (query) {
     const needle = query.toLowerCase()
     rows = rows.filter((row) => `${row.vendor} ${row.description ?? ''}`.toLowerCase().includes(needle))
   }
+  const hasMore=!query&&rows.length>100;if(hasMore)rows=rows.slice(0,100)
+  const nextCursor=hasMore&&rows.length?transactionCursor(rows[rows.length-1]):null
   return <main className="app-page">
     <PageContainer wide>
       <PageHeader title="Transactions" description="A clear history of your business activity."
@@ -40,6 +44,7 @@ export default async function TransactionsPage({ searchParams }: {
           <p className={`money-display text-right text-base font-semibold ${row.amountCents > 0 ? 'money-positive' : ''}`}>{money.format(row.amount)}</p>
         </Link>)}
       </div>}
+      {nextCursor&&<div className="mt-8 flex justify-center"><Link className="btn btn-secondary" href={`/transactions?cursor=${encodeURIComponent(nextCursor)}`}>Older activity</Link></div>}
     </PageContainer>
   </main>
 }

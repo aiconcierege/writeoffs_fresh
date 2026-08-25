@@ -18,9 +18,11 @@ describe('customer receipt journey', () => {
     expect(page).not.toContain('transaction_id')
   })
 
-  it('keeps OCR at the extracted-fact boundary', () => {
+  it('keeps the OCR compatibility route queue-owned and provider-free', () => {
     const route = source('app/api/receipts/ocr/route.ts')
-    expect(route).toContain('recordReceiptExtraction')
+    expect(route).toContain('current_customer_receipt_processing_status')
+    expect(route).not.toContain('vision.googleapis.com')
+    expect(route).not.toContain('GCV_API_KEY')
     expect(route).not.toContain(".from('transactions')")
     expect(route).not.toContain('category_key')
     expect(route).not.toContain('receipt_waived')

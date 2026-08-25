@@ -12,7 +12,7 @@ export default function ReceiptsInner() {
   const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
-    const response = await fetch('/api/receipts?limit=100', { cache: 'no-store' })
+    const response = await fetch('/api/receipts?limit=500', { cache: 'no-store' })
     if (response.status === 401) { window.location.href = '/login'; return }
     const data = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error('LOAD_FAILED')
@@ -31,7 +31,8 @@ export default function ReceiptsInner() {
 
       {error && <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
       <section className="mt-11 section-rule" aria-labelledby="receipt-history-heading">
-        <h2 id="receipt-history-heading" className="text-xl font-semibold text-slate-950">Receipt history</h2>
+        <div className="flex flex-wrap items-end justify-between gap-3"><h2 id="receipt-history-heading" className="text-xl font-semibold text-slate-950">Receipt history</h2>
+          {!loading && receipts.length > 0 && <p className="text-sm text-slate-600">{summary(receipts)}</p>}</div>
         {loading ? <div role="status" aria-label="Loading receipts" className="mt-5 grid gap-4 sm:grid-cols-2"><div className="skeleton h-36"/><div className="skeleton hidden h-36 sm:block"/></div>
           : current.length === 0 ? <EmptyState title="No receipts yet" description="Upload one and WriteOffs will take it from there." />
           : <div className="mt-5 grid gap-4 sm:grid-cols-2">{current.map((receipt) =>
@@ -119,6 +120,15 @@ function CorrectionForm({ receipt, onDone, errors, setErrors, setError }: {
 function receiptStatus(status: ReceiptReadItem['displayStatus']) {
   return { processing: 'Still organizing', matched: 'Matched', receipt_only: 'Receipt only',
     details_unavailable: 'Receipt added', discarded: 'Removed' }[status]
+}
+
+function summary(receipts: ReceiptReadItem[]) {
+  const current = receipts.filter((receipt) => receipt.displayStatus !== 'discarded')
+  const organized = current.filter((receipt) => ['matched','receipt_only'].includes(receipt.displayStatus)).length
+  const attention = current.filter((receipt) => receipt.processingStatus === 'needs_attention' || receipt.processingStatus === 'unreadable').length
+  const processing = current.filter((receipt) => receipt.processingStatus === 'queued' || receipt.processingStatus === 'processing').length
+  return [`${organized} organized`,attention ? `${attention} need your help` : null,processing ? `${processing} still processing` : null]
+    .filter(Boolean).join(' · ')
 }
 function statusDescription(status: ReceiptReadItem['displayStatus']) {
   return { processing: 'WriteOffs is organizing this receipt.', matched: 'Matched to transaction.',

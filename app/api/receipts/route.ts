@@ -28,7 +28,9 @@ export async function POST(request: Request) {
       typeof body.id !== 'string' || !UUID.test(body.id) ||
       typeof body.uploadFingerprint !== 'string' || !HASH.test(body.uploadFingerprint) ||
       typeof body.storagePath !== 'string' || typeof body.originalName !== 'string' ||
-      typeof body.mimeType !== 'string' || !Number.isSafeInteger(body.bytes)) {
+      typeof body.mimeType !== 'string' || !['image/jpeg','image/png','image/webp','application/pdf'].includes(body.mimeType) ||
+      !Number.isSafeInteger(body.bytes) || (body.bytes as number) < 1 || (body.bytes as number) > 20 * 1024 * 1024 ||
+      body.originalName.length > 255) {
     return NextResponse.json({ error: 'invalid receipt metadata' }, { status: 400 })
   }
   try {

@@ -18,6 +18,8 @@ export type ReceiptReadItem = {
   displayStatus: ReceiptDisplayStatus
   qualityStatus: 'usable' | 'incomplete' | 'suspect' | null
   qualityReasons: string[]
+  processingStatus: 'queued' | 'processing' | 'organized' | 'needs_attention' | 'unreadable' | 'discarded'
+  processingAttempts: number
 }
 
 export async function requireReceiptOwner(supabase: SupabaseClient) {
@@ -34,27 +36,31 @@ export async function listCanonicalReceipts(input: { supabase: SupabaseClient; l
   const { data: receipts, error } = await input.supabase.from('receipts')
     .select('id,storage_path,original_name,mime_type,bytes,created_at,business_id')
     .eq('user_id', user.id).order('created_at', { ascending: false })
-    .limit(Math.min(Math.max(input.limit ?? 100, 1), 100))
+    .limit(Math.min(Math.max(input.limit ?? 500, 1), 500))
   if (error) throw new Error('Receipts could not be loaded.')
   const canonical = receipts.filter((receipt) => receipt.business_id === businessId)
   const ids = canonical.map((receipt) => receipt.id)
-  const [eventResult, extractionResult, convergenceResult] = ids.length ? await Promise.all([
+  const [eventResult, extractionResult, convergenceResult, processingResult] = ids.length ? await Promise.all([
     input.supabase.from('bookkeeping_receipt_events').select('*').eq('business_id', businessId)
       .in('receipt_id', ids).order('sequence_number', { ascending: false }),
     input.supabase.from('bookkeeping_receipt_extractions').select('*').eq('business_id', businessId)
       .in('receipt_id', ids).order('created_at', { ascending: false }),
     input.supabase.from('current_bookkeeping_record_convergences')
       .select('receipt_id').eq('business_id', businessId).in('receipt_id', ids),
-  ]) : [{ data: [], error: null }, { data: [], error: null }, { data: [], error: null }]
-  if (eventResult.error || extractionResult.error || convergenceResult.error) throw new Error('Receipt history could not be loaded.')
+    input.supabase.from('current_customer_receipt_processing_status')
+      .select('receipt_id,processing_status,attempt_count').eq('business_id', businessId).in('receipt_id', ids),
+  ]) : [{ data: [], error: null }, { data: [], error: null }, { data: [], error: null }, { data: [], error: null }]
+  if (eventResult.error || extractionResult.error || convergenceResult.error || processingResult.error) throw new Error('Receipt history could not be loaded.')
   const currentByReceipt = new Map<string, Record<string, unknown>>()
   for (const event of eventResult.data ?? []) if (!currentByReceipt.has(event.receipt_id)) currentByReceipt.set(event.receipt_id, event)
   const extractionByReceipt = new Map<string, Record<string, unknown>>()
   for (const extraction of extractionResult.data ?? []) if (!extractionByReceipt.has(extraction.receipt_id)) extractionByReceipt.set(extraction.receipt_id, extraction)
   const convergedReceipts = new Set((convergenceResult.data ?? []).map((row) => row.receipt_id))
+  const processingByReceipt = new Map((processingResult.data ?? []).map((row) => [row.receipt_id, row]))
   return Promise.all(canonical.map(async (receipt): Promise<ReceiptReadItem> => {
     const event = currentByReceipt.get(receipt.id)
     const extraction = extractionByReceipt.get(receipt.id)
+    const processing = processingByReceipt.get(receipt.id)
     const { data: signed } = await input.supabase.storage.from('receipts').createSignedUrl(receipt.storage_path, 120)
     return {
       id: receipt.id,
@@ -69,10 +75,13 @@ export async function listCanonicalReceipts(input: { supabase: SupabaseClient; l
       totalAmountCents: extraction?.total_amount_cents == null ? null : Number(extraction.total_amount_cents),
       recordId: (event?.bookkeeping_record_id as string | null | undefined) ?? null,
       displayStatus: receiptDisplayStatus({ eventType: event?.event_type as string | undefined,
-        converged: convergedReceipts.has(receipt.id), qualityStatus: extraction?.quality_status as string | undefined }),
+        converged: convergedReceipts.has(receipt.id), qualityStatus: extraction?.quality_status as string | undefined,
+        processingStatus: processing?.processing_status }),
       qualityStatus: (extraction?.quality_status as ReceiptReadItem['qualityStatus'] | undefined) ?? null,
       qualityReasons: Array.isArray(extraction?.quality_reasons)
         ? extraction.quality_reasons.filter((reason): reason is string => typeof reason === 'string') : [],
+      processingStatus: (processing?.processing_status ?? 'queued') as ReceiptReadItem['processingStatus'],
+      processingAttempts: Number(processing?.attempt_count ?? 0),
     }
   }))
 }
@@ -86,12 +95,13 @@ export async function countReceiptsNeedingAttention(supabase: SupabaseClient) {
   return (data ?? []).filter((event) => !superseded.has(event.id) && event.event_type === 'unmatched').length
 }
 
-function receiptDisplayStatus(input: { eventType?: string; converged: boolean; qualityStatus?: string }): ReceiptDisplayStatus {
+function receiptDisplayStatus(input: { eventType?: string; converged: boolean; qualityStatus?: string; processingStatus?: string }): ReceiptDisplayStatus {
   if (input.eventType === 'discarded') return 'discarded'
   if (input.eventType === 'matched' || input.converged) return 'matched'
   if (input.eventType === 'retained' || input.eventType === 'kept') return 'receipt_only'
   if (input.eventType === 'extraction_completed'
     && (input.qualityStatus === 'incomplete' || input.qualityStatus === 'suspect')) return 'details_unavailable'
+  if (input.processingStatus === 'needs_attention' || input.processingStatus === 'unreadable') return 'details_unavailable'
   return 'processing'
 }
 

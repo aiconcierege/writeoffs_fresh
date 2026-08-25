@@ -37,7 +37,7 @@ suite('receipt understanding shadow queue against local PostgreSQL', () => {
   it('enqueues idempotently, claims exclusively, and enforces lease ownership', async () => {
     const fixture = await receiptFixture('receipt-ai-queue')
     const { data: jobs } = await fixture.admin.from('receipt_processing_jobs')
-      .select('*').eq('receipt_id', fixture.receiptId)
+      .select('*').eq('receipt_id', fixture.receiptId).eq('job_type', 'receipt_understanding_shadow')
     expect(jobs).toHaveLength(1)
     expect(jobs?.[0]).toMatchObject({ state: 'pending', attempt_count: 0, business_id: fixture.owner.businessId })
     const enqueueArgs = {
@@ -166,7 +166,8 @@ suite('receipt understanding shadow queue against local PostgreSQL', () => {
     expect(audit).toEqual({ validation_status: 'provider_error',
       provider_error_code: 'RECEIPT_AI_PROVIDER_TIMEOUT', structured_proposal: null, write_enabled: false })
     const { data: job } = await fixture.admin.from('receipt_processing_jobs')
-      .select('state,attempt_count,last_error_code').eq('receipt_id', fixture.receiptId).single()
+      .select('state,attempt_count,last_error_code').eq('receipt_id', fixture.receiptId)
+      .eq('job_type', 'receipt_understanding_shadow').single()
     expect(job).toEqual({ state: 'retryable', attempt_count: 1,
       last_error_code: 'RECEIPT_AI_PROVIDER_TIMEOUT' })
   })

@@ -9,6 +9,7 @@
 
 import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { StatementUpload } from './StatementUpload'
 
 type Row = Record<string, string>
 
@@ -228,6 +229,8 @@ export default function ImportPage() {
           </div>
           <div className="mt-1">Max file size: 5MB.</div>
         </div>
+
+        <StatementUpload />
 
         {/* Mapping */}
         {status === 'ready' && (

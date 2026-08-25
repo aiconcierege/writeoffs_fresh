@@ -66,6 +66,7 @@ export async function listTransactionReadModel(input: {
   year?: number | null
   limit?: number
   transactionId?: string
+  after?: { date: string; id: string } | null
 }): Promise<TransactionReadRow[]> {
   const { data: business, error: businessError } = await input.supabase.from('businesses')
     .select('id').eq('owner_user_id', input.userId).single()
@@ -91,18 +92,21 @@ export async function listTransactionReadModel(input: {
       canonicalRecordIds = [data.bookkeeping_record_id]
     }
   }
-  let recordQuery = input.supabase.from('bookkeeping_records')
-    .select('id,source_kind,amount_cents,currency,occurred_on').eq('business_id', businessId)
-    .order('occurred_on', { ascending: false }).limit(limit)
-  if (start && end) recordQuery = recordQuery.gte('occurred_on', start).lte('occurred_on', end)
-  if (input.transactionId) {
-    recordQuery = canonicalRecordIds.length
-      ? recordQuery.in('id', canonicalRecordIds)
-      : recordQuery.eq('id', input.transactionId)
+  const recordRows: Row[] = []
+  const pageSize = 1000
+  for (let from = 0; ; from += pageSize) {
+    let recordQuery = input.supabase.from('bookkeeping_records')
+      .select('id,source_kind,amount_cents,currency,occurred_on').eq('business_id', businessId)
+      .order('occurred_on', { ascending: false }).order('id', { ascending: false })
+      .range(from, from + pageSize - 1)
+    if (start && end) recordQuery = recordQuery.gte('occurred_on', start).lte('occurred_on', end)
+    if (input.transactionId) recordQuery = canonicalRecordIds.length
+      ? recordQuery.in('id', canonicalRecordIds) : recordQuery.eq('id', input.transactionId)
+    const { data: records, error: recordError } = await recordQuery
+    if (recordError) throw new Error('Could not list canonical transactions.')
+    recordRows.push(...((records ?? []) as Row[]))
+    if (input.transactionId || (records?.length ?? 0) < pageSize) break
   }
-  const { data: records, error: recordError } = await recordQuery
-  if (recordError) throw new Error('Could not list canonical transactions.')
-  const recordRows = (records ?? []) as Row[]
   const recordIds = recordRows.map((row) => text(row, 'id')!).filter(Boolean)
   const evidenceRecordIds = [...new Set(recordIds.flatMap((recordId) =>
     resolution.evidenceRecordIds(recordId)))]
@@ -319,7 +323,21 @@ export async function listTransactionReadModel(input: {
       contractorName: null,
     }
   })
-  return [...canonical, ...legacy].sort((a, b) => b.date.localeCompare(a.date)).slice(0, limit)
+  const current = [...canonical, ...legacy].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id))
+    .filter((row) => !input.after || row.date < input.after.date
+      || (row.date === input.after.date && row.id < input.after.id))
+  return current.slice(0, limit)
+}
+
+export function transactionCursor(row: Pick<TransactionReadRow,'date'|'id'>) {
+  return Buffer.from(`${row.date}\n${row.id}`,'utf8').toString('base64url')
+}
+
+export function parseTransactionCursor(value: unknown) {
+  if (typeof value!=='string' || value.length>200) return null
+  try { const [date,id,...extra]=Buffer.from(value,'base64url').toString('utf8').split('\n')
+    return extra.length===0 && /^\d{4}-\d{2}-\d{2}$/.test(date) && /^[0-9a-f-]{36}$/i.test(id) ? {date,id} : null
+  } catch { return null }
 }
 
 function manualPaymentLabel(value: string | null) {
