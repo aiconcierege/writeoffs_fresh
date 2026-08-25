@@ -9,8 +9,8 @@ type ApplyInput={event:Stripe.Event;stripe:Stripe;admin:SupabaseClient}
 const iso=(seconds:number)=>new Date(seconds*1000).toISOString()
 
 async function businessFor(input:{admin:SupabaseClient;customerId:string;metadata?:Record<string,string>}){const id=input.metadata?.business_id
-  if(id){const found=await input.admin.from('businesses').select('id').eq('id',id).maybeSingle();if(found.data)return String(found.data.id)}
   const link=await input.admin.from('membership_provider_links').select('business_id').eq('provider_customer_id',input.customerId).maybeSingle()
+  if(id){const found=await input.admin.from('businesses').select('id').eq('id',id).maybeSingle();if(found.data){if(link.data?.business_id&&String(link.data.business_id)!==String(found.data.id))throw new Error('STRIPE_CUSTOMER_BUSINESS_MISMATCH');return String(found.data.id)}}
   return link.data?.business_id?String(link.data.business_id):null}
 
 export function stripeLifecycleFor(subscription:Pick<Stripe.Subscription,'status'|'cancel_at_period_end'>,eventType:string):MembershipLifecycle{if(eventType==='customer.subscription.deleted'||['canceled','incomplete_expired'].includes(subscription.status))return'expired_read_only'
@@ -31,6 +31,8 @@ export async function applyStripeEvent({event,stripe,admin}:ApplyInput){let subs
     const parent=invoice.parent?.subscription_details?.subscription,subscriptionId=typeof parent==='string'?parent:parent?.id;if(!subscriptionId)throw new Error('STRIPE_SUBSCRIPTION_UNAVAILABLE');subscription=await stripe.subscriptions.retrieve(subscriptionId);metadata=subscription.metadata}
   else return'ignored'
   const businessId=await businessFor({admin,customerId,metadata});if(!businessId)throw new Error('STRIPE_BUSINESS_UNRESOLVED')
+  const providerLink=await admin.from('membership_provider_links').select('provider_subscription_id').eq('business_id',businessId).maybeSingle()
+  if(providerLink.data?.provider_subscription_id&&providerLink.data.provider_subscription_id!==subscription.id){if(event.type==='customer.subscription.deleted')return'ignored_superseded_subscription';throw new Error('STRIPE_MULTIPLE_SUBSCRIPTIONS')}
   const plan=subscriptionPlan(subscription);if(!plan)throw new Error('STRIPE_PLAN_UNRESOLVED')
   const current=await admin.from('business_memberships').select('plan,lifecycle,scheduled_plan,scheduled_effective_at').eq('business_id',businessId).maybeSingle()
   const lifecycle=stripeLifecycleFor(subscription,event.type)

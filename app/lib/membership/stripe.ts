@@ -15,7 +15,7 @@ export function stripeConfiguration(){const mode=process.env.WRITEOFFS_STRIPE_MO
   if(mode==='live'&&!key.startsWith('sk_live_'))throw new Error('STRIPE_LIVE_KEY_REQUIRED')
   if((process.env.WRITEOFFS_ENVIRONMENT??'local')!=='production'&&mode==='live')throw new Error('STRIPE_LIVE_FORBIDDEN')
   stripePriceForPlan('expenses');stripePriceForPlan('business')
-  return{mode,key,webhookSecret:process.env.STRIPE_WEBHOOK_SECRET??'',baseUrl:safeBaseUrl(process.env.NEXT_PUBLIC_BASE_URL??'http://localhost:3000')}
+  return{mode,key,webhookSecret:process.env.STRIPE_WEBHOOK_SECRET??'',portalConfigurationId:process.env.STRIPE_PORTAL_CONFIGURATION_ID??'',baseUrl:safeBaseUrl(process.env.NEXT_PUBLIC_BASE_URL??'http://localhost:3000')}
 }
 
 export function createStripeClient(){return new Stripe(stripeConfiguration().key)}
