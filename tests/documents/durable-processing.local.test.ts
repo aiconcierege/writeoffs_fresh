@@ -2,10 +2,12 @@ import { createHash, randomUUID } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { PDFDocument,StandardFonts } from 'pdf-lib'
 import { loadEnvConfig } from '@next/env'
+import {createCanvas} from '@napi-rs/canvas'
 import { describe, expect, it } from 'vitest'
 import { drainCanonicalDocumentJobs } from '../../app/lib/documents/durable-processing'
 import { listTransactionReadModel } from '../../app/lib/bookkeeping/transaction-read-model'
 import { SupabaseCanonicalFinancialSummaryRepository } from '../../app/lib/bookkeeping/financial-summary-repository'
+import {ingestCsvFinancialActivity,prepareCsvFinancialRows} from '../../app/lib/bookkeeping/csv-ingestion'
 import { provisionLocalCanonicalOwner } from '../helpers/local-canonical'
 
 loadEnvConfig(process.cwd(),true)
@@ -113,5 +115,46 @@ suite('durable document processing against local PostgreSQL',()=>{
     expect(decisions.data).toEqual([{treatment:'unresolved',provenance:'system'},{treatment:'unresolved',provenance:'system'}])
     await drainCanonicalDocumentJobs({admin,batchSize:10})
     expect((await owner.customer.from('financial_transactions').select('id').eq('import_method','statement')).data).toHaveLength(2)
+    const prepared=prepareCsvFinancialRows({mapping:{date:'date',description:'description',amount:'amount'},rows:[
+      {date:'2026-01-05',description:'PAYROLL DEPOSIT',amount:'100.00'},{date:'2026-01-07',description:'CHECK #104 MATERIALS',amount:'-50.00'}]})
+    await ingestCsvFinancialActivity({supabase:owner.customer,rows:prepared.rows})
+    expect(await listTransactionReadModel({supabase:owner.customer,userId:owner.userId})).toHaveLength(4)
+    const accounts=await owner.customer.from('financial_accounts').select('id,provider')
+    const statementAccount=accounts.data!.find(row=>row.provider==='statement')!,csvAccount=accounts.data!.find(row=>row.provider==='csv')!
+    expect((await owner.customer.from('current_customer_statement_account_candidates').select('strong_identity')
+      .eq('statement_account_id',statementAccount.id).eq('target_account_id',csvAccount.id).single()).data?.strong_identity).toBe(false)
+    const other=await provisionLocalCanonicalOwner({admin,url:url!,anonKey:anonKey!,label:'statement-link-isolation',amounts:[]})
+    await ingestCsvFinancialActivity({supabase:other.customer,rows:prepared.rows.slice(0,1)})
+    const otherAccount=(await other.customer.from('financial_accounts').select('id').eq('provider','csv').single()).data!
+    expect((await owner.customer.rpc('confirm_statement_account_link',{p_statement_account_id:statementAccount.id,
+      p_target_account_id:otherAccount.id,p_request_key:randomUUID()})).error).not.toBeNull()
+    const requestKey=randomUUID()
+    const linked=await owner.customer.rpc('confirm_statement_account_link',{p_statement_account_id:statementAccount.id,
+      p_target_account_id:csvAccount.id,p_request_key:requestKey});expect(linked.error).toBeNull()
+    expect((await owner.customer.rpc('confirm_statement_account_link',{p_statement_account_id:statementAccount.id,
+      p_target_account_id:csvAccount.id,p_request_key:requestKey})).data).toBe(linked.data)
+    const convergences=await owner.customer.from('current_bookkeeping_source_convergences').select('*');expect(convergences.error).toBeNull()
+    expect(convergences.data).toHaveLength(2)
+    expect(await listTransactionReadModel({supabase:owner.customer,userId:owner.userId})).toHaveLength(2)
+    const currentLink=await owner.customer.from('current_financial_account_equivalence_links').select('id,event_id').single()
+    expect((await owner.customer.rpc('unlink_statement_account',{p_link_id:currentLink.data!.id,p_expected_event_id:currentLink.data!.event_id,
+      p_reason:'The customer selected the wrong imported account.'})).error).toBeNull()
+    expect(await listTransactionReadModel({supabase:owner.customer,userId:owner.userId})).toHaveLength(4)
+  })
+
+  it('OCRs an image-only statement once and reuses its page extraction',async()=>{
+    const admin=createClient(url!,serviceKey!,{auth:{persistSession:false}}),owner=await provisionLocalCanonicalOwner({admin,url:url!,anonKey:anonKey!,label:'statement-ocr',amounts:[]})
+    const canvas=createCanvas(900,1200),context=canvas.getContext('2d');context.fillStyle='white';context.fillRect(0,0,900,1200)
+    context.fillStyle='black';context.font='32px sans-serif';context.fillText('SCANNED BANK STATEMENT',80,120)
+    const pdf=await PDFDocument.create(),image=await pdf.embedPng(canvas.toBuffer('image/png')),page=pdf.addPage([612,792]);page.drawImage(image,{x:0,y:0,width:612,height:792})
+    const bytes=await pdf.save(),fingerprint=createHash('sha256').update(bytes).digest('hex'),path=`statements/${owner.userId}/${fingerprint}`
+    expect((await admin.storage.from('receipts').upload(path,bytes,{contentType:'application/pdf'})).error).toBeNull();const id=randomUUID()
+    expect((await owner.customer.rpc('register_business_statement',{p_document_id:id,p_document_class:'bank_statement',p_upload_fingerprint:fingerprint,
+      p_storage_path:path,p_original_name:'scanned.pdf',p_mime_type:'application/pdf',p_bytes:bytes.length})).error).toBeNull()
+    let calls=0;const ocr=async()=>{calls+=1;return 'Scanned Bank\nAccount ending in 9922\nStatement Period: 02/01/2026 - 02/28/2026\n02/03/2026 CLIENT DEPOSIT +75.00'}
+    for(let attempt=0;attempt<5;attempt+=1){await drainCanonicalDocumentJobs({admin,batchSize:10,statementOcr:ocr});const state=await admin.from('receipt_processing_jobs').select('state').eq('document_id',id).single();if(state.data?.state==='completed')break}
+    expect(calls).toBe(1);expect((await admin.from('statement_page_extractions').select('method,extraction_status').eq('document_id',id)).data)
+      .toEqual([{method:'ocr',extraction_status:'usable'}]);expect((await owner.customer.from('financial_transactions').select('amount_cents').eq('import_method','statement')).data)
+      .toEqual([{amount_cents:7500}]);await drainCanonicalDocumentJobs({admin,batchSize:10,statementOcr:ocr});expect(calls).toBe(1)
   })
 })

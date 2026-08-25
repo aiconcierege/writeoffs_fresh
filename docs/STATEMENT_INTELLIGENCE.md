@@ -13,10 +13,17 @@ R1 accepts private PDF checking, savings, and credit-card statements. Generic na
 1. SHA-256 and PDF structure validation.
 2. Native PDF text extraction with PDF.js.
 3. Generic deterministic period, account, balance, and row parsing.
-4. Exact-cent and balance validation.
-5. OCR/layout and multimodal interpretation are reserved extension points.
+4. Page rasterization and Google Vision OCR only when native page text is materially absent.
+5. Exact-cent and balance validation of OCR text through the same deterministic parser.
+6. Needs-attention when structure remains unsafe.
 
-R1 does not send statement pages to a vision model. Image-only statements fail closed with `STATEMENT_OCR_REQUIRED`; adding bounded page rasterization/OCR is the next adapter milestone.
+No statement page is sent to a multimodal model in R2. OCR is document transcription only; it has no bookkeeping or tax authority. Unresolved structure fails closed.
+
+## OCR persistence and cost
+
+Each page has one immutable `statement-page:r2` extraction identity containing bounded normalized text, page number, method, safe status, provider name, and duration. Raw provider responses and rendered page images are not persisted. Cached pages are reused across retries, matching, reporting, and duplicate uploads.
+
+Native pages retain the 25-page lease. When OCR is needed, work advances in at most five-page subchunks to stay within serverless runtime and provider-cost bounds. Blank rendered pages are detected locally before OCR. Provider calls have the existing 20-second timeout and durable retry cap. There is no customer monthly quota.
 
 ## Periods, pages, and durability
 
@@ -34,6 +41,14 @@ Card payments and transfers enter bookkeeping unresolved. They are not automatic
 
 A Business-scoped statement account uses institution, optional last four, account type, and currency. The derived account identity contains the Business ID and a SHA-256 digest. Last-four equality alone never merges a statement account with Plaid or another account.
 
+## Customer-confirmed account equivalence
+
+An append-only Business-scoped link can state that one statement account and one existing Plaid/CSV account represent the same source account. The customer is the actor and provenance authority. Suggested links require institution, account type, currency, last four, and overlapping exact transaction evidence; last four alone is weak and is never labeled suggested. Customers may choose another account or leave the statement separate.
+
+Confirmation does not merge or delete accounts. Under a current link, an exact unique date/currency/cents/normalized-description pair may create an append-only source convergence. Repeated identical observations fail cardinality and remain separate. The shared current-record resolver suppresses only the absorbed duplicate record. New financial sources automatically recheck current links after their canonical source relationship exists.
+
+Removing a link appends an unlink event and reverses dependent source convergences. Removal fails closed if customer-authored bookkeeping state now depends on a converged record.
+
 ## Validation and customer state
 
 When beginning and ending balances are available, deterministic reconciliation checks `beginning + signed activity = ending`. A statement can be validated, partially validated, or unresolved internally. Missing institution metadata does not prevent safe transaction extraction. No missing transaction is fabricated to force a balance.
@@ -44,7 +59,7 @@ Customer states remain: queued, still processing, processed, needs help, and unr
 
 Exact document bytes deduplicate by Business + SHA-256 before extraction. Logical periods use institution, masked account, account type, currency, and period boundaries. Transaction evidence uses account facts, date, exact amount, bounded normalized description, optional running balance/check number, and an occurrence ordinal. Repeated or overlapping statement PDFs therefore reuse existing observations and canonical transactions.
 
-Cross-source CSV/Plaid/manual overlap remains governed by existing canonical convergence and compound reconciliation. R1 does not delete observations based on merchant and amount alone. Fully automatic bidirectional statement-first versus later CSV/Plaid collapsing needs a shared strong account linkage or provider transaction identity; until then ambiguous cross-source overlap must remain unresolved rather than be silently merged.
+Cross-source CSV/Plaid overlap is eligible only after customer-confirmed account equivalence. Manual activity continues through its existing customer-confirmed compound path. No observation is deleted based on merchant and amount alone.
 
 ## Security and privacy
 
@@ -62,14 +77,17 @@ Native text is the default. Work is limited by 25 pages per lease, 500 pages per
 
 The existing `/api/internal/processing/drain` runner claims statement jobs alongside receipt jobs. Production should schedule the bounded runner once per minute and may invoke it more frequently under queue depth. Operators inspect service-only queue observability and use the guarded terminal-job recovery function; they must not mutate statement observations.
 
-## Intentionally unsupported in R1
+## Browser coverage
+
+The local Playwright journey signs in, reaches Import through the customer UI, uploads a synthetic statement, leaves before worker drain, returns to persistent state, verifies the canonical transaction, checks Reports, retries the exact document, and repeats the history view at a 390-pixel viewport. It uses the local durable worker directly instead of timing sleeps.
+
+## Intentionally unsupported after R2
 
 - password-protected PDFs
 - handwritten statements
-- image-only/scanned statement OCR
 - arbitrary institution-specific columns not safely recognized by the generic adapter
 - full account-number storage
-- automatic account merging based on last four
+- automatic account linking based on last four
 - automatic tax/business classification
-- guaranteed cross-source collapsing without strong source/account identity
+- multimodal statement fallback
 - customer-facing confidence percentages

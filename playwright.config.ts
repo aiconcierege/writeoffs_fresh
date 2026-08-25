@@ -10,6 +10,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
+  webServer:{command:'npm run dev -- -p 3100',url:'http://127.0.0.1:3100',reuseExistingServer:true,timeout:120_000},
   projects: [
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
   ],

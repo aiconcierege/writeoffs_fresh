@@ -6,6 +6,7 @@ validateEnvironment(process.env)
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  serverExternalPackages: ['@napi-rs/canvas', 'pdfjs-dist'],
   async headers() {
     return [{
       source: '/(.*)',

@@ -8,7 +8,7 @@ export async function GET() {
   const supabase=await createServerSupabase();const{data:{user}}=await supabase.auth.getUser()
   if(!user)return NextResponse.json({error:'unauthorized'},{status:401})
   const{data,error}=await supabase.from('current_customer_statement_status')
-    .select('id,original_name,bytes,created_at,processing_status,attempt_count,transaction_count,institution_name,masked_account,account_type,period_start,period_end')
+    .select('id,original_name,bytes,created_at,processing_status,attempt_count,transaction_count,institution_name,masked_account,account_type,period_start,period_end,statement_account_id,account_link_id,account_link_event_id,target_account_id')
     .order('created_at',{ascending:false}).limit(200)
   if(error)return NextResponse.json({error:'Statements could not be loaded.'},{status:503})
   return NextResponse.json({ok:true,documents:data??[]})

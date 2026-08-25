@@ -2,6 +2,7 @@ import 'server-only'
 
 import { createHash, randomUUID } from 'node:crypto'
 import { PDFDocument } from 'pdf-lib'
+import type { PDFPageProxy } from 'pdfjs-dist'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServerAdminSupabase } from '../../../utils/supabase/admin'
 import { parseStatementPages,periodToRpc } from './statement-intelligence'
@@ -11,6 +12,7 @@ export const CANONICAL_DOCUMENT_BATCH_MAX = 10
 export const ORDINARY_VISION_PAGE_LIMIT = 10
 export const STATEMENT_PAGE_LIMIT = 500
 export const STATEMENT_CHUNK_PAGES = 25
+export const STATEMENT_OCR_CHUNK_PAGES = 5
 export const RECEIPT_FILE_BYTES_MAX = 20 * 1024 * 1024
 export const STATEMENT_FILE_BYTES_MAX = 100 * 1024 * 1024
 const VISION_ENDPOINT = 'https://vision.googleapis.com/v1/images:annotate'
@@ -76,6 +78,15 @@ async function googleVision(bytes: Uint8Array) {
   } finally { clearTimeout(timeout) }
 }
 
+async function rasterizeStatementPage(page: PDFPageProxy) {
+  const {createCanvas}=await import('@napi-rs/canvas');const viewport=page.getViewport({scale:1.5})
+  const canvas=createCanvas(Math.ceil(viewport.width),Math.ceil(viewport.height));const context=canvas.getContext('2d')
+  await page.render({canvas,canvasContext:context,viewport} as never).promise
+  const sample=context.getImageData(0,0,canvas.width,canvas.height).data;let nonWhite=0
+  for(let index=0;index<sample.length;index+=16){if(sample[index]<245||sample[index+1]<245||sample[index+2]<245)nonWhite+=1}
+  return {blank:nonWhite<sample.length/16*0.001,bytes:new Uint8Array(canvas.toBuffer('image/png'))}
+}
+
 export function parseReceiptText(text: string) {
   const lines = text.replace(/\r/g, '').split('\n').map((line) => line.trim()).filter(Boolean)
   const joined = lines.join(' ')
@@ -138,7 +149,7 @@ async function processReceipt(admin: SupabaseClient, job: Row) {
     reason: result?.state === 'matched' || result?.state === 'retained' ? null : 'DETAILS_UNAVAILABLE' }
 }
 
-async function processStatement(admin: SupabaseClient, job: Row) {
+async function processStatement(admin: SupabaseClient, job: Row,ocr: (bytes:Uint8Array)=>Promise<string>) {
   const target = await loadTarget(admin, job)
   if (target.mimeType !== 'application/pdf' || !isPdf(target.bytes)) return { state: 'unreadable', reason: 'MIME_CONTENT_MISMATCH' }
   const pdf = await PDFDocument.load(target.bytes, { ignoreEncryption: true }).catch(() => null)
@@ -147,14 +158,32 @@ async function processStatement(admin: SupabaseClient, job: Row) {
   if (pageCount < 1 || pageCount > STATEMENT_PAGE_LIMIT) return { state: 'needs_attention', reason: 'STATEMENT_PROTECTIVE_PAGE_BOUND' }
   const chunkCount = Math.ceil(pageCount / STATEMENT_CHUNK_PAGES)
   const startPage=Math.max(1,Number(job.next_page??1)),endPage=Math.min(pageCount,startPage+STATEMENT_CHUNK_PAGES-1)
-  const pdfjs=await import('pdfjs-dist/legacy/build/pdf.mjs')
+  const pdfjs=await import(/* webpackIgnore: true */ 'pdfjs-dist/legacy/build/pdf.mjs')
   const source=await pdfjs.getDocument({data:target.bytes.slice()}).promise.catch(()=>null)
   if(!source)return {state:'unreadable',reason:'PDF_UNREADABLE'}
-  const pages:{page:number;text:string}[]=[]
-  for(let pageNumber=startPage;pageNumber<=endPage;pageNumber+=1){const page=await source.getPage(pageNumber);const content=await page.getTextContent()
-    const text=content.items.map(item=>'str' in item?item.str:'').filter(Boolean).join('\n');pages.push({page:pageNumber,text})}
+  let pages:{page:number;text:string}[]=[];let ocrNeeded=false
+  const cached=await admin.from('statement_page_extractions').select('page_number,normalized_text,extraction_status')
+    .eq('business_id',String(job.business_id)).eq('document_id',target.documentId).eq('extraction_version','statement-page:r2')
+    .gte('page_number',startPage).lte('page_number',endPage)
+  const cachedByPage=new Map((cached.data??[]).map(row=>[Number(row.page_number),row]))
+  for(let pageNumber=startPage;pageNumber<=endPage;pageNumber+=1){const prior=cachedByPage.get(pageNumber)
+    if(prior){pages.push({page:pageNumber,text:prior.extraction_status==='usable'?String(prior.normalized_text??''):''});continue}
+    const page=await source.getPage(pageNumber),started=Date.now(),content=await page.getTextContent()
+    let text=content.items.map(item=>'str' in item?item.str:'').filter(Boolean).join('\n').trim(),method='native_text',status='usable'
+    if(text.length<30){ocrNeeded=true;if(pageNumber>=startPage+STATEMENT_OCR_CHUNK_PAGES)break
+      const rendered=await rasterizeStatementPage(page);method='ocr'
+      if(rendered.blank){text='';status='blank'}else{text=(await ocr(rendered.bytes)).trim();status=text?'usable':'unreadable'}
+    }
+    const inserted=await admin.from('statement_page_extractions').insert({business_id:job.business_id,document_id:target.documentId,
+      page_number:pageNumber,extraction_version:'statement-page:r2',method,extraction_status:status,normalized_text:text?text.slice(0,50000):null,
+      provider:method==='ocr'?'google_vision':'pdfjs',duration_ms:Math.min(120000,Date.now()-started)})
+    if(inserted.error?.code!=='23505'&&inserted.error)throw new Error('STATEMENT_PAGE_CACHE_FAILED')
+    pages.push({page:pageNumber,text})
+  }
+  if(ocrNeeded&&pages.length>STATEMENT_OCR_CHUNK_PAGES)pages=pages.slice(0,STATEMENT_OCR_CHUNK_PAGES)
+  const processedEnd=pages.at(-1)?.page??startPage
   const nativeText=pages.some(page=>page.text.trim())
-  if(!nativeText)return {state:'needs_attention',reason:'STATEMENT_OCR_REQUIRED'}
+  if(!nativeText)return {state:'needs_attention',reason:'STATEMENT_OCR_UNREADABLE'}
   if(startPage>1&&!pages.some(page=>/statement\s+period/i.test(page.text))){const prior=await admin.from('statement_periods')
       .select('institution_name,masked_account,period_start,period_end').eq('business_id',String(job.business_id))
       .eq('document_id',target.documentId).order('source_page_end',{ascending:false}).limit(1).maybeSingle()
@@ -165,7 +194,7 @@ async function processStatement(admin: SupabaseClient, job: Row) {
   for(const period of periods){ambiguous+=period.ambiguousRowCount;const payload=periodToRpc(period)
     const result=await admin.rpc('ingest_statement_period',{p_job_id:job.id,p_period:payload.period,p_rows:payload.rows})
     if(result.error)throw new Error('STATEMENT_CANONICAL_INGESTION_FAILED');imported+=Number((result.data as Row)?.imported??0)}
-  if(endPage<pageCount)return {state:'continue',reason:null,nextPage:endPage+1}
+  if(processedEnd<pageCount)return {state:'continue',reason:null,nextPage:processedEnd+1}
   const outcome=imported>0?(ambiguous>0?'needs_attention':'completed'):'needs_attention'
   const { error } = await admin.from('document_processing_results').insert({
     business_id: job.business_id,document_id: target.documentId,job_id: job.id,
@@ -178,7 +207,8 @@ async function processStatement(admin: SupabaseClient, job: Row) {
   return { state: outcome, reason: outcome==='completed'?null:imported?'STATEMENT_ROWS_AMBIGUOUS':'STATEMENT_NO_TRANSACTIONS' }
 }
 
-export async function drainCanonicalDocumentJobs(input: { admin?: SupabaseClient; batchSize?: number } = {}) {
+export async function drainCanonicalDocumentJobs(input: { admin?: SupabaseClient; batchSize?: number;
+  statementOcr?: (bytes:Uint8Array)=>Promise<string> } = {}) {
   const admin = input.admin ?? createServerAdminSupabase(); const leaseId = randomUUID()
   const batchSize = Math.max(1, Math.min(CANONICAL_DOCUMENT_BATCH_MAX, Math.trunc(input.batchSize ?? 5)))
   const { data, error } = await admin.rpc('claim_receipt_processing_jobs_by_type', { p_lease_id: leaseId,
@@ -187,7 +217,7 @@ export async function drainCanonicalDocumentJobs(input: { admin?: SupabaseClient
   const claimed = asRows(data); let completed = 0; let attention = 0; let unreadable = 0; let retried = 0
   for (const job of claimed) {
     try {
-      const result = job.job_type === 'statement_inspection' ? await processStatement(admin, job) : await processReceipt(admin, job)
+      const result = job.job_type === 'statement_inspection' ? await processStatement(admin, job,input.statementOcr??googleVision) : await processReceipt(admin, job)
       if(result.state==='continue'&&'nextPage' in result){
         const continuation=await admin.rpc('continue_document_processing_job',{p_job_id:job.id,p_lease_id:leaseId,p_next_page:result.nextPage})
         if(continuation.error||continuation.data!==true)throw new Error('DOCUMENT_PROCESSING_LEASE_LOST')

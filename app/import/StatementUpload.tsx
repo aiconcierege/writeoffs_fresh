@@ -8,8 +8,13 @@ export function StatementUpload() {
   const input = useRef<HTMLInputElement>(null); const busyRef = useRef(false)
   const [busy,setBusy] = useState(false); const [message,setMessage] = useState<string | null>(null)
   const [documents,setDocuments]=useState<Array<{id:string;original_name:string|null;processing_status:string;transaction_count:number;
-    institution_name:string|null;masked_account:string|null;period_start:string|null;period_end:string|null}>>([])
-  async function refresh(){const response=await fetch('/api/documents/statements',{cache:'no-store'});if(response.ok){const body=await response.json();setDocuments(body.documents??[])}}
+    institution_name:string|null;masked_account:string|null;period_start:string|null;period_end:string|null;statement_account_id:string|null;
+    account_link_id:string|null;account_link_event_id:string|null;target_account_id:string|null}>>([])
+  const [candidates,setCandidates]=useState<Array<{statement_account_id:string;target_account_id:string;display_name:string;provider:string;strong_identity:boolean}>>([])
+  const [choices,setChoices]=useState<Record<string,string>>({})
+  async function refresh(){const [response,accounts]=await Promise.all([fetch('/api/documents/statements',{cache:'no-store'}),
+    fetch('/api/documents/statements/accounts',{cache:'no-store'})]);if(response.ok){const body=await response.json();setDocuments(body.documents??[])}
+    if(accounts.ok){const body=await accounts.json();setCandidates(body.candidates??[])}}
   useEffect(()=>{void refresh()},[])
   async function upload(files: File[]) {
     if (!files.length || busyRef.current) return
@@ -37,6 +42,13 @@ export function StatementUpload() {
     await refresh()
     if(input.current)input.current.value=''
   }
+  async function linkAccount(statementAccountId:string){const targetAccountId=choices[statementAccountId];if(!targetAccountId)return
+    setMessage('Linking account…');const response=await fetch('/api/documents/statements/accounts',{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({statementAccountId,targetAccountId,requestKey:crypto.randomUUID()})});const body=await response.json().catch(()=>({}))
+    setMessage(response.ok?'Account linked. WriteOffs will avoid duplicate activity.':body.error??'We could not link that account.');if(response.ok)await refresh()}
+  async function unlink(linkId:string,eventId:string){setMessage('Removing account link…');const response=await fetch('/api/documents/statements/accounts',{method:'DELETE',
+    headers:{'content-type':'application/json'},body:JSON.stringify({linkId,expectedEventId:eventId})});const body=await response.json().catch(()=>({}))
+    setMessage(response.ok?'Account link removed.':body.error??'We could not remove that link.');if(response.ok)await refresh()}
   return <section className="mt-10 border-t border-slate-200 pt-8" aria-labelledby="statement-upload-heading">
     <h2 id="statement-upload-heading" className="text-xl font-semibold text-slate-950">Bank or card statements</h2>
     <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Upload monthly or combined PDF statements. WriteOffs stores each file and inspects it in the background.</p>
@@ -44,7 +56,10 @@ export function StatementUpload() {
     <input ref={input} type="file" multiple accept="application/pdf" className="sr-only" aria-label="Upload bank or card statement PDFs"
       onChange={(event)=>void upload(Array.from(event.target.files??[]))}/>
     {message&&<p role="status" aria-live="polite" className="mt-3 text-sm text-slate-600">{message}</p>}
-    {documents.length>0&&<ul className="mt-5 divide-y divide-slate-200 border-y border-slate-200">{documents.map(document=><li key={document.id} className="flex min-h-12 items-center justify-between gap-4 py-3 text-sm"><span className="min-w-0"><span className="block truncate font-medium text-slate-800">{document.institution_name??document.original_name??'Statement'}{document.masked_account?` · •••• ${document.masked_account}`:''}</span>{document.period_start&&document.period_end&&<span className="mt-0.5 block text-xs text-slate-500">{document.period_start}–{document.period_end}{document.transaction_count?` · ${document.transaction_count} transactions`:''}</span>}</span><span className="shrink-0 text-slate-600">{statementStatus(document.processing_status)}</span></li>)}</ul>}
+    {documents.length>0&&<ul className="mt-5 divide-y divide-slate-200 border-y border-slate-200">{documents.map(document=>{const options=candidates.filter(candidate=>candidate.statement_account_id===document.statement_account_id)
+      return <li key={document.id} className="py-4 text-sm"><div className="flex min-h-12 items-start justify-between gap-4"><span className="min-w-0"><span className="block break-words font-medium text-slate-800">{document.institution_name??document.original_name??'Statement'}{document.masked_account?` · •••• ${document.masked_account}`:''}</span>{document.period_start&&document.period_end&&<span className="mt-0.5 block text-xs text-slate-500">{document.period_start}–{document.period_end}{document.transaction_count?` · ${document.transaction_count} transactions`:''}</span>}</span><span className="shrink-0 text-slate-600">{statementStatus(document.processing_status)}</span></div>
+      {document.statement_account_id&&options.length>0&&!document.account_link_id&&<div className="mt-3 max-w-md rounded-xl bg-slate-50 p-3"><label className="block text-sm font-medium text-slate-800" htmlFor={`account-${document.id}`}>Is this the same account as one you already use with WriteOffs?</label><div className="mt-2 flex flex-col gap-2 sm:flex-row"><select id={`account-${document.id}`} className="input min-h-11 flex-1" value={choices[document.statement_account_id]??''} onChange={event=>setChoices(current=>({...current,[document.statement_account_id!]:event.target.value}))}><option value="">Not sure — leave separate</option>{options.map(option=><option key={option.target_account_id} value={option.target_account_id}>{option.display_name}{option.strong_identity?' · Suggested':''}</option>)}</select><button className="btn btn-secondary min-h-11" type="button" disabled={!choices[document.statement_account_id]} onClick={()=>void linkAccount(document.statement_account_id!)}>Link account</button></div></div>}
+      {document.account_link_id&&document.account_link_event_id&&<div className="mt-3 flex items-center gap-3 text-xs text-slate-600"><span>Linked to an existing account</span><button type="button" className="font-semibold text-blue-700 underline-offset-2 hover:underline" onClick={()=>void unlink(document.account_link_id!,document.account_link_event_id!)}>Remove link</button></div>}</li>})}</ul>}
   </section>
 }
 
