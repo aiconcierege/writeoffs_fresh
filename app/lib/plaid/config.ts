@@ -10,8 +10,14 @@ export function plaidEnvironment(): PlaidEnvironmentName {
   return value
 }
 
+function plaidEnabled() {
+  const applicationEnvironment = process.env.WRITEOFFS_ENVIRONMENT ?? 'local'
+  if (applicationEnvironment === 'production') return process.env.PLAID_PRODUCTION_ENABLED === 'true'
+  return plaidEnvironment() !== 'production'
+}
+
 export function plaidIsConfigured() {
-  return Boolean(process.env.PLAID_CLIENT_ID && process.env.PLAID_SECRET && process.env.PLAID_TOKEN_ENCRYPTION_KEY)
+  return plaidEnabled() && Boolean(process.env.PLAID_CLIENT_ID && process.env.PLAID_SECRET && process.env.PLAID_TOKEN_ENCRYPTION_KEY)
 }
 
 export function plaidSandboxLinkEnabled() {
@@ -23,6 +29,7 @@ export function requirePlaidSandboxLink() {
 }
 
 export function requirePlaidConfig() {
+  if (!plaidEnabled()) throw new Error('Plaid is not enabled in this environment.')
   const clientId = process.env.PLAID_CLIENT_ID
   const secret = process.env.PLAID_SECRET
   const webhook = process.env.PLAID_WEBHOOK_URL

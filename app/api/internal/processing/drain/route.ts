@@ -20,10 +20,16 @@ async function run(request: Request) {
   if (!authorized(request)) return NextResponse.json({ error: 'Not authorized.' }, { status: 401 })
   const expiration=await createServerAdminSupabase().rpc('expire_elapsed_business_memberships',{p_now:new Date().toISOString()})
   if(expiration.error)throw new Error('MEMBERSHIP_EXPIRATION_UNAVAILABLE')
-  const documents = await drainCanonicalDocumentJobs({ batchSize: 8 })
+  // Emergency cost control: intake remains durable while new OCR/AI work pauses.
+  const expensiveProcessingEnabled = process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED !== 'false'
+  const documents = expensiveProcessingEnabled
+    ? await drainCanonicalDocumentJobs({ batchSize: 8 })
+    : { paused: true, claimed: 0, completed: 0, needsAttention: 0, failed: 0, retryScheduled: 0 }
   const bookkeeping = await drainBookkeepingProcessingJobs({ batchSize: 12 })
-  const shadow = await drainReceiptUnderstandingJobs({ batchSize: 3 })
-  return NextResponse.json({ documents,bookkeeping,shadow,membershipsExpired:expiration.data,health: await documentQueueHealth() })
+  const shadow = expensiveProcessingEnabled
+    ? await drainReceiptUnderstandingJobs({ batchSize: 3 })
+    : { paused: true, claimed: 0, completed: 0, failed: 0 }
+  return NextResponse.json({ documents,bookkeeping,shadow,expensiveProcessingEnabled,membershipsExpired:expiration.data,health: await documentQueueHealth() })
 }
 
 export async function GET(request: Request) { try { return await run(request) } catch {

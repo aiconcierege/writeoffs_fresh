@@ -1,5 +1,7 @@
 # Stripe Membership Operations
 
+Production activation is governed by `PRODUCTION_SECURITY_OPERATIONS.md` and `PRODUCTION_LAUNCH_GATE.md`. Set `STRIPE_MEMBERSHIP_ENABLED=true` only with live-mode credentials, both live monthly Price IDs, signed webhook secret, and the restricted live Portal configuration. Keep it false while the application is staged without live billing.
+
 This guide operates the membership model defined in [MEMBERSHIP_ARCHITECTURE.md](./MEMBERSHIP_ARCHITECTURE.md). Stripe collects payment; `business_memberships` is WriteOffs’ current product-access projection. Never grant access from a browser redirect, email address, legacy `subscriptions` row, or an unverified webhook.
 
 ## Architecture and environments

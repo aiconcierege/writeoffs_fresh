@@ -84,6 +84,30 @@ describe('account protection', () => {
     expect(() => validateEnvironment({ NODE_ENV:'development', WRITEOFFS_ENVIRONMENT:'local', NEXT_PUBLIC_SUPABASE_URL:'https://staging.example.supabase.co', ALLOW_REMOTE_SUPABASE_IN_DEV:'true' })).not.toThrow()
   })
 
+  it('fails closed for production identity, provider mode, MFA, and worker configuration', () => {
+    const production = {
+      NODE_ENV: 'production', WRITEOFFS_ENVIRONMENT: 'production',
+      NEXT_PUBLIC_SUPABASE_URL: 'https://prod-ref.supabase.co', SUPABASE_URL: 'https://prod-ref.supabase.co',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-placeholder', SUPABASE_SERVICE_ROLE_KEY: 'service-placeholder',
+      WRITEOFFS_EXPECTED_SUPABASE_HOST: 'prod-ref.supabase.co', NEXT_PUBLIC_BASE_URL: 'https://writeoffs.example',
+      MFA_ENFORCEMENT_MODE: 'required', CRON_SECRET: 'x'.repeat(32), DOCUMENT_EXPENSIVE_PROCESSING_ENABLED: 'true', GCV_API_KEY: 'provider-placeholder',
+      STRIPE_MEMBERSHIP_ENABLED: 'false', WRITEOFFS_STRIPE_MODE: 'test',
+      PLAID_PRODUCTION_ENABLED: 'false', PLAID_ENV: 'sandbox', PLAID_SANDBOX_LINK_ENABLED: 'false',
+    }
+    expect(() => validateEnvironment(production)).not.toThrow()
+    expect(() => validateEnvironment({ ...production, MFA_ENFORCEMENT_MODE: 'enrolled' })).toThrow(/mandatory MFA/)
+    expect(() => validateEnvironment({ ...production, CRON_SECRET: 'short' })).toThrow(/32 characters/)
+    expect(() => validateEnvironment({ ...production, GCV_API_KEY: '' })).toThrow(/GCV_API_KEY/)
+    expect(() => validateEnvironment({ ...production, PLAID_SANDBOX_LINK_ENABLED: 'true' })).toThrow(/Sandbox Link/)
+    expect(() => validateEnvironment({ ...production, STRIPE_MEMBERSHIP_ENABLED: 'true' })).toThrow(/STRIPE_SECRET_KEY/)
+    expect(() => validateEnvironment({ ...production, NEXT_PUBLIC_SUPABASE_URL: 'https://wrong.supabase.co' })).toThrow(/EXPECTED_SUPABASE_HOST/)
+  })
+
+  it('forbids live financial providers outside production', () => {
+    expect(() => validateEnvironment({ WRITEOFFS_ENVIRONMENT:'local', PLAID_ENV:'production' })).toThrow(/Plaid Production/)
+    expect(() => validateEnvironment({ WRITEOFFS_ENVIRONMENT:'staging', WRITEOFFS_STRIPE_MODE:'live' })).toThrow(/Stripe live/)
+  })
+
   it('keeps service-role credentials server-only', () => {
     expect(read('utils/supabase/admin.ts')).toContain("import 'server-only'")
     expect(read('.env.example')).not.toMatch(/NEXT_PUBLIC_SUPABASE_SERVICE_ROLE/)
@@ -94,7 +118,7 @@ describe('account protection', () => {
 
   it('documents every security and environment control without values', () => {
     const example = read('.env.example')
-    for (const variable of ['WRITEOFFS_ENVIRONMENT','ALLOW_REMOTE_SUPABASE_IN_DEV','MFA_ENFORCEMENT_MODE','NEXT_PUBLIC_SUPABASE_URL','NEXT_PUBLIC_SUPABASE_ANON_KEY','SUPABASE_SERVICE_ROLE_KEY']) expect(example).toContain(`${variable}=`)
+    for (const variable of ['WRITEOFFS_ENVIRONMENT','WRITEOFFS_EXPECTED_SUPABASE_HOST','ALLOW_REMOTE_SUPABASE_IN_DEV','MFA_ENFORCEMENT_MODE','NEXT_PUBLIC_SUPABASE_URL','NEXT_PUBLIC_SUPABASE_ANON_KEY','SUPABASE_SERVICE_ROLE_KEY','STRIPE_MEMBERSHIP_ENABLED','PLAID_PRODUCTION_ENABLED','DOCUMENT_EXPENSIVE_PROCESSING_ENABLED','GCV_API_KEY']) expect(example).toContain(`${variable}=`)
     expect(read('.gitignore')).toContain('.env.*')
     const robots = read('app/robots.ts')
     for (const path of ['/login','/signup','/recover','/reset-password','/mfa']) expect(robots).toContain(`"${path}"`)

@@ -63,6 +63,8 @@ Cross-source CSV/Plaid overlap is eligible only after customer-confirmed account
 
 ## Security and privacy
 
+Production operators may pause new OCR/AI claims with `DOCUMENT_EXPENSIVE_PROCESSING_ENABLED=false`. Uploaded statements, persisted OCR chunks, and jobs remain private and durable; resuming processing reuses completed extraction and does not require customer re-upload.
+
 - PDFs remain in the existing private Business-owned storage path.
 - RLS protects documents, periods, and observations.
 - Provider/service credentials remain server-only.

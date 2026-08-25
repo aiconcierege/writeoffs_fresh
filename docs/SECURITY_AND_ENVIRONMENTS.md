@@ -34,6 +34,10 @@ Ordinary bookkeeping does not repeatedly prompt for MFA. Security settings may b
 
 ## Environment model
 
+Production validation binds both Supabase URLs to `WRITEOFFS_EXPECTED_SUPABASE_HOST`, requires an HTTPS application origin, mandatory MFA, a strong cron secret, and explicit enable/disable decisions for Stripe, Plaid, and expensive processing. Local/staging reject live Stripe and Plaid Production. Production never falls back to Plaid Sandbox; Plaid remains disabled until `PLAID_PRODUCTION_ENABLED=true` and all Production credentials are present.
+
+Use `DOCUMENT_EXPENSIVE_PROCESSING_ENABLED=false` as an emergency production circuit breaker. It pauses new OCR/AI claims without deleting uploads or durable jobs.
+
 Next.js loads more-specific files after general files. In development, `.env.development.local` overrides `.env.local`, which overrides `.env.development` and `.env`. Never assume `.env.local` won when another environment-specific file exists.
 
 Set `WRITEOFFS_ENVIRONMENT` explicitly:

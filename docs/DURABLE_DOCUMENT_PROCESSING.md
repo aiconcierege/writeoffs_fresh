@@ -84,7 +84,7 @@ Existing controls include:
 - 500-page/100 MiB statement protective maximum;
 - append-only bounded result metadata and no duplicate image storage in audit rows.
 
-Future Business processing budgets, rate limits, circuit breakers, monthly provider-spend alerts, and anomaly signals should slow suspicious automation rather than reject normal bookkeeping catch-up. No monthly receipt quota or paid-plan metering was introduced.
+Business processing budgets, distributed edge rate limits, provider-spend alerts, and anomaly signals should slow suspicious automation rather than reject normal bookkeeping catch-up. `DOCUMENT_EXPENSIVE_PROCESSING_ENABLED=false` is the launch emergency circuit breaker: intake remains durable and queued while the worker pauses new document/OCR and receipt-understanding claims. No monthly receipt quota or paid-plan metering was introduced.
 
 ## Current-record correctness
 
