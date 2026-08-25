@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { deriveTaxYearReadiness, documentationSummaryCsv, readinessIssuesCsv, type TaxYearReadinessContext } from '../../app/lib/bookkeeping/tax-year-readiness'
+import { deriveTaxYearReadiness, documentationSummaryCsv, readinessIssuesCsv, scopeTaxYearReadiness,
+  type TaxYearReadinessContext } from '../../app/lib/bookkeeping/tax-year-readiness'
 
 function context(overrides: Partial<TaxYearReadinessContext> = {}): TaxYearReadinessContext {
   return {
@@ -35,13 +36,27 @@ describe('tax-year readiness', () => {
     expect(readiness.status).toBe('needs_attention')
     expect(readiness.dimensions.find(d => d.key === 'documentation')?.status).toBe('needs_attention')
   })
-  it('fails closed for unsupported years and unresolved tax or deduction facts', () => {
-    const unsupported = deriveTaxYearReadiness(2026, context())
+  it('supports 2026 and fails closed for 2027 while retaining unresolved tax facts', () => {
+    const supported = deriveTaxYearReadiness(2026, context())
+    expect(supported.supportedTaxYear).toBe(true)
+    expect(supported.totals.estimatedDeductionsCents).toBe(50000)
+    const unsupported = deriveTaxYearReadiness(2027, context())
     expect(unsupported.status).toBe('incomplete')
     expect(unsupported.totals.estimatedDeductionsCents).toBeNull()
     const unresolved = context({ openDeductionAttentionCount:1, incompleteHomeOfficeProfile:true })
     unresolved.report.completeness.unresolvedTaxTreatmentCount = 1
     expect(deriveTaxYearReadiness(2025, unresolved).status).toBe('needs_attention')
+  })
+
+  it('keeps expense-scoped 2026 readiness independent from income completeness', () => {
+    const source = context()
+    source.report.rows[0] = { ...source.report.rows[0], treatment: 'Still being worked on' }
+    const value = scopeTaxYearReadiness(deriveTaxYearReadiness(2026, source), 'expenses')
+    expect(value.supportedTaxYear).toBe(true)
+    expect(value.status).toBe('ready')
+    expect(value.dimensions.some(dimension => dimension.key === 'income')).toBe(false)
+    expect(value.issues.some(issue => issue.code === 'INCOME_NATURE_UNRESOLVED'
+      || issue.code === 'UNSUPPORTED_TAX_YEAR')).toBe(false)
   })
   it('separates mileage facts, contractor attention, and invoice integrity', () => {
     const contractor = { id:'c',currentEventId:'e',displayName:'Joe',businessName:null,active:true,totalPaidCents:90000,

@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServerAdminSupabase } from '../../../utils/supabase/admin'
 import { getAuthenticatedCanonicalReport } from './reporting-service'
 import { listCustomerQuestions } from './customer-questions'
-import { deriveTaxYearReadiness } from './tax-year-readiness'
+import { deriveTaxYearReadiness, scopeTaxYearReadiness } from './tax-year-readiness'
 
 export function validateTaxYear(value: unknown) {
   const year = typeof value === 'number' ? value : Number(value)
@@ -68,9 +68,5 @@ export async function getAuthenticatedTaxYearReadiness(input: { supabase: Supaba
       || row.connection_status === 'reconnect_required' || row.connection_status === 'disconnected'
       || row.consent_status !== 'active').length,
   })
-  if(input.scope!=='expenses')return readiness
-  const issues=readiness.issues.filter(issue=>issue.code!=='INCOME_NATURE_UNRESOLVED'&&issue.code!=='PAID_INVOICE_LINK_MISSING')
-  const dimensions=readiness.dimensions.filter(dimension=>dimension.key!=='income')
-  const status=issues.some(issue=>issue.kind==='integrity')?'incomplete':issues.some(issue=>['customer_action','data_source','documentation'].includes(issue.kind))?'needs_attention':issues.some(issue=>issue.kind==='processing')?'still_processing':'ready'
-  return{...readiness,status:status as typeof readiness.status,issues,dimensions,caveat:'Expense records ready means supported expense and deduction records are complete based on the information currently in WriteOffs. Income is not tracked as part of this membership.'}
+  return scopeTaxYearReadiness(readiness, input.scope ?? 'business')
 }

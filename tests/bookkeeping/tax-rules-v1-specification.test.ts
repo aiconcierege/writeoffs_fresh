@@ -9,7 +9,7 @@ const jobMaterials = readFileSync('docs/CUSTOMER_JOB_MATERIALS_V1_PROPOSAL.md', 
 
 describe('Tax Rules v1 approval specification', () => {
   it('keeps researched Tier B/C/D rules inactive while documenting the seven approved Tier A rules', () => {
-    expect(PRODUCTION_TAX_RULE_CATALOG.rules).toHaveLength(7)
+    expect(PRODUCTION_TAX_RULE_CATALOG.rules.filter(rule => rule.taxYears.from === 2025)).toHaveLength(7)
     expect(proposal).toMatch(/ACTIVE 2025 TIER A/i)
     expect(catalog).toMatch(/Tier B\/C\/D[\s\S]*candidate\/inactive/i)
   })
@@ -42,7 +42,7 @@ describe('Tax Rules v1 approval specification', () => {
   })
 
   it('keeps customer-job materials as research without activating inventory or tax treatment', () => {
-    expect(PRODUCTION_TAX_RULE_CATALOG.rules).toHaveLength(7)
+    expect(PRODUCTION_TAX_RULE_CATALOG.rules.filter(rule => rule.taxYears.from === 2025)).toHaveLength(7)
     expect(jobMaterials).toMatch(/research and product specification only/i)
     expect(jobMaterials).toMatch(/specific_customer_job[\s\S]*held_for_future_sale/i)
     expect(jobMaterials).toMatch(/not by itself the\s+legal timing rule/i)

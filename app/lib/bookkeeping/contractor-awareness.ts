@@ -6,7 +6,7 @@ export const CONTRACTOR_AWARENESS_VERSION = 'contractor-awareness:v1'
 export type ContractorAwareness = 'tracking'|'information_incomplete'|'w9_needed'|'potential_1099_attention'|'no_current_action'
 export type ContractorSummary = { id:string; currentEventId:string; displayName:string; businessName:string|null; active:boolean;
   totalPaidCents:number; paymentCount:number; paymentMethods:string[]; w9Status:string; w9EventId:string;
-  awareness:ContractorAwareness; taxYear:number }
+  awareness:ContractorAwareness; taxYear:number; ruleVersion?:string }
 
 const currentDecision=(decisions:{id:string;supersedesDecisionId:string|null;bookkeepingNature:string|null;treatment:string}[])=>{
  const superseded=new Set(decisions.map(row=>row.supersedesDecisionId).filter(Boolean));return decisions.find(row=>!superseded.has(row.id))
@@ -29,8 +29,8 @@ export async function listContractorSummaries(input:{supabase:SupabaseClient;bus
   input.supabase.from('current_canonical_contractors').select('*').eq('business_id',input.businessId),
   input.supabase.from('current_contractor_payments').select('*').eq('business_id',input.businessId).gte('paid_on',start).lte('paid_on',end),
   input.supabase.from('current_contractor_w9_status').select('*').eq('business_id',input.businessId),
-  input.supabase.from('contractor_awareness_rule_versions').select('attention_amount_cents').eq('tax_year',input.taxYear)
-    .eq('rule_key','contractor_information_reporting_attention').eq('rule_version',CONTRACTOR_AWARENESS_VERSION)
+  input.supabase.from('current_contractor_awareness_rules').select('attention_amount_cents,rule_version').eq('tax_year',input.taxYear)
+    .eq('rule_key','contractor_information_reporting_attention')
     .eq('status','active').maybeSingle(),
   new SupabaseCanonicalFinancialSummaryRepository(input.supabase).loadRecords({businessId:input.businessId,periodStart:start,periodEnd:end}),
   loadCurrentRecordConvergences({supabase:input.supabase,businessId:input.businessId}),
@@ -50,11 +50,12 @@ export async function listContractorSummaries(input:{supabase:SupabaseClient;bus
   const w9Status=String(status?.status??'unknown')
   return{id:String(contractor.id),currentEventId:String(contractor.current_event_id),displayName:String(contractor.display_name),businessName:contractor.business_name?String(contractor.business_name):null,
    active:Boolean(contractor.active),totalPaidCents,paymentCount:rows.length,paymentMethods,w9Status,w9EventId:String(status?.id??''),
-   awareness:evaluateContractorAwareness({totalPaidCents,paymentMethods,w9Status,attentionAmountCents}),taxYear:input.taxYear}
+   awareness:evaluateContractorAwareness({totalPaidCents,paymentMethods,w9Status,attentionAmountCents}),taxYear:input.taxYear,
+   ruleVersion:rule?String(rule.rule_version):'unsupported'}
  })
 }
 
 export function contractorSummaryCsv(rows:ContractorSummary[]){
  const clean=(value:string|number)=>{const text=String(value);return /[",\n\r]/.test(text)?`"${text.replace(/"/g,'""')}"`:text}
- return[['contractor','business_name','tax_year','payments_tracked','payment_count','payment_methods','w9_status','awareness_version','awareness'],...rows.map(row=>[row.displayName,row.businessName??'',row.taxYear,(row.totalPaidCents/100).toFixed(2),row.paymentCount,row.paymentMethods.join(' / '),row.w9Status,CONTRACTOR_AWARENESS_VERSION,row.awareness])].map(row=>row.map(clean).join(',')).join('\r\n')
+ return[['contractor','business_name','tax_year','payments_tracked','payment_count','payment_methods','w9_status','awareness_version','awareness'],...rows.map(row=>[row.displayName,row.businessName??'',row.taxYear,(row.totalPaidCents/100).toFixed(2),row.paymentCount,row.paymentMethods.join(' / '),row.w9Status,row.ruleVersion??CONTRACTOR_AWARENESS_VERSION,row.awareness])].map(row=>row.map(clean).join(',')).join('\r\n')
 }

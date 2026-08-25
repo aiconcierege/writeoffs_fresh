@@ -53,7 +53,7 @@ suite('canonical tax treatment against local PostgreSQL', () => {
       estimatedDeductionsCents: 7_000, estimatedTaxableIncomeCents: null })
 
     const unsupported = await provisionLocalCanonicalOwner({ admin, url: url!, anonKey: anonKey!,
-      label: 'tier-a-unsupported-year', amounts: [-1_000] })
+      label: 'tier-a-unsupported-year', amounts: [-1_000], occurredYear: 2027 })
     const unsupportedState = await resolveFinancialTransactionRecord({ supabase: unsupported.customer,
       financialTransactionId: unsupported.transactionIds[0] })
     const unsupportedService = new CanonicalBookkeepingService(new SupabaseBookkeepingRepository(unsupported.customer))

@@ -1,5 +1,8 @@
 # Tax Rules v1 — active catalog and candidate safety matrix
 
+Historical 2025 specification. The separately versioned 2026 production release is
+documented in `TAX_RULES_2026.md`; this file's 2025 decisions are unchanged.
+
 Status: **the seven Tier A entries are active for federal tax year 2025; Tier B/C/D
 entries remain candidate/inactive**. “Full” and “zero” below are downstream tax-
 preparation outcomes only. Every row preserves the full economic business portion on the P&L.

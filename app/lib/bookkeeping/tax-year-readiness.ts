@@ -2,7 +2,7 @@ import type { CanonicalReport } from './reporting-model'
 import type { ContractorSummary } from './contractor-awareness'
 
 export const TAX_YEAR_READINESS_VERSION = 'tax-year-readiness:v1'
-export const SUPPORTED_TAX_YEARS = [2025] as const
+export const SUPPORTED_TAX_YEARS = [2025, 2026] as const
 
 export type ReadinessStatus = 'ready' | 'needs_attention' | 'still_processing' | 'incomplete'
 export type DimensionStatus = 'complete' | 'needs_attention' | 'still_processing' | 'incomplete' | 'not_applicable' | 'good'
@@ -134,6 +134,18 @@ export function deriveTaxYearReadiness(taxYear: number, input: TaxYearReadinessC
     caveat: 'Ready for tax preparation means records are complete based on the information currently in WriteOffs. It is not a guarantee that a tax return is complete or correct.',
     dataSourceLimitation: 'WriteOffs can identify known connection problems, but cannot verify that every relevant account or cash source has been provided.',
   }
+}
+
+export function scopeTaxYearReadiness(readiness: ReturnType<typeof deriveTaxYearReadiness>, scope: 'expenses' | 'business') {
+  if (scope === 'business') return readiness
+  const issues = readiness.issues.filter(issue => issue.code !== 'INCOME_NATURE_UNRESOLVED'
+    && issue.code !== 'PAID_INVOICE_LINK_MISSING')
+  const dimensions = readiness.dimensions.filter(dimension => dimension.key !== 'income')
+  const status: ReadinessStatus = issues.some(issue => issue.kind === 'integrity') ? 'incomplete'
+    : issues.some(issue => ['customer_action','data_source','documentation'].includes(issue.kind)) ? 'needs_attention'
+      : issues.some(issue => issue.kind === 'processing') ? 'still_processing' : 'ready'
+  return { ...readiness, status, issues, dimensions,
+    caveat: 'Expense records ready means supported expense and deduction records are complete based on the information currently in WriteOffs. Income is not tracked as part of this membership.' }
 }
 
 export function readinessIssuesCsv(readiness: ReturnType<typeof deriveTaxYearReadiness>) {

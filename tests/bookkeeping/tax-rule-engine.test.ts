@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { PRODUCTION_TAX_RULE_CATALOG, validateTaxRuleCatalog } from '../../app/lib/bookkeeping/tax-rule-catalog'
+import { PRODUCTION_TAX_RULE_CATALOG, TAX_RULE_CATALOG_RELEASES, TAX_RULE_SOURCE_MANIFEST_2026,
+  validateTaxRuleCatalog } from '../../app/lib/bookkeeping/tax-rule-catalog'
 import { evaluateFixtureTaxRules, evaluateProductionTaxRules } from '../../app/lib/bookkeeping/tax-rule-engine'
 import { FICTIONAL_TAX_RULE_CATALOG } from '../fixtures/tax-rule-catalog'
 
@@ -8,15 +9,17 @@ const input = (category: string, extra: Record<string, unknown> = {}) => ({
   facts: { businessPurpose: 'Synthetic test fact' }, ...extra })
 
 describe('versioned tax-rule engine', () => {
-  it('exposes exactly the seven approved 2025 rules and no caller-selected production catalog', () => {
+  it('exposes the same seven approved rules independently for 2025 and 2026', () => {
     const rules = validateTaxRuleCatalog(PRODUCTION_TAX_RULE_CATALOG).rules
-    expect(rules).toHaveLength(7)
-    expect(rules.map((rule) => rule.key)).toEqual([
+    expect(rules).toHaveLength(14)
+    expect(rules.filter(rule => rule.taxYears.from === 2025).map((rule) => rule.key)).toEqual([
       'tax.advertising', 'tax.office-expense', 'tax.supplies', 'tax.postage-shipping',
       'tax.software-cloud', 'tax.payment-bank-fees', 'tax.business-license',
     ])
-    expect(rules.every((rule) => rule.lifecycle === 'active'
-      && rule.taxYears.from === 2025 && rule.taxYears.through === 2025)).toBe(true)
+    expect(rules.filter(rule => rule.taxYears.from === 2026).map(rule => rule.key))
+      .toEqual(rules.filter(rule => rule.taxYears.from === 2025).map(rule => rule.key))
+    expect(rules.every((rule) => rule.lifecycle === 'active' && rule.taxYears.from === rule.taxYears.through)).toBe(true)
+    expect(TAX_RULE_CATALOG_RELEASES).toEqual({ 2025: 'tax-rules:2025:v1', 2026: 'tax-rules:2026:v1' })
     expect(evaluateProductionTaxRules(input('fixture-full')))
       .toMatchObject({ status: 'unresolved', reason: 'no_active_rule' })
     expect(evaluateProductionTaxRules).toHaveLength(1)
@@ -39,17 +42,20 @@ describe('versioned tax-rule engine', () => {
       expenseNature: 'business_license', governmentPaymentType: 'ordinary_current_business_license', currentBusiness: true } },
   ] as const
 
-  it.each(productionCases)('resolves qualifying $key evidence and pins authority/version', ({ category, key, facts }) => {
-    const result = evaluateProductionTaxRules({ taxYear: 2025, taxCategoryKey: category,
+  it.each(productionCases)('resolves qualifying 2025 and 2026 $key evidence with year-specific provenance', ({ category, key, facts }) => {
+    const evaluateYear = (taxYear: 2025 | 2026) => evaluateProductionTaxRules({ taxYear, taxCategoryKey: category,
       businessAllocationAmountCents: -7_000, facts: { transactionNature: 'expense',
         businessPurpose: 'Established current business purpose.', businessUseTreatment: 'mixed',
         conflictingEvidence: false, ...facts } })
-    expect(result).toMatchObject({ status: 'resolved', ruleKey: key, ruleVersion: 1,
-      taxYear: 2025, deductibleAmountCents: -7_000, outcomeType: 'full_deduction' })
-    if (result.status === 'resolved') {
-      expect(result.authorityReferences).toHaveLength(2)
-      expect(result.authorityReferences.every((reference) => reference.officialUrl.startsWith('https://www.irs.gov/')
-        && reference.lastVerifiedOn === '2026-08-19')).toBe(true)
+    for (const taxYear of [2025, 2026] as const) {
+      const result = evaluateYear(taxYear)
+      expect(result).toMatchObject({ status: 'resolved', ruleKey: key, ruleVersion: taxYear === 2025 ? 1 : 2,
+        taxYear, deductibleAmountCents: -7_000, outcomeType: 'full_deduction' })
+      if (result.status === 'resolved') {
+        expect(result.authorityReferences).toHaveLength(2)
+        expect(result.authorityReferences.every(reference => reference.lastVerifiedOn
+          === (taxYear === 2025 ? '2026-08-19' : '2026-08-25'))).toBe(true)
+      }
     }
   })
 
@@ -64,7 +70,7 @@ describe('versioned tax-rule engine', () => {
         .toMatchObject({ status: 'unresolved' })
       expect(evaluateProductionTaxRules({ ...base, facts: { ...base.facts, businessUseTreatment: 'personal' } }))
         .toMatchObject({ status: 'unresolved' })
-      expect(evaluateProductionTaxRules({ ...base, taxYear: 2026 }))
+      expect(evaluateProductionTaxRules({ ...base, taxYear: 2027 }))
         .toMatchObject({ status: 'unresolved', reason: 'unsupported_tax_year' })
     })
 
@@ -118,9 +124,9 @@ describe('versioned tax-rule engine', () => {
     expect(evaluateProductionTaxRules({ ...base, facts: { ...base.facts,
       supplyUseContext: 'held_for_future_sale', inventoryOrResale: true } }))
       .toMatchObject({ status: 'unresolved' })
-    expect(PRODUCTION_TAX_RULE_CATALOG.rules.filter((rule) => rule.lifecycle === 'active')).toHaveLength(7)
+    expect(PRODUCTION_TAX_RULE_CATALOG.rules.filter((rule) => rule.lifecycle === 'active')).toHaveLength(14)
     const otherRules = PRODUCTION_TAX_RULE_CATALOG.rules.filter((rule) => rule.key !== 'tax.supplies')
-    expect(otherRules).toHaveLength(6)
+    expect(otherRules).toHaveLength(12)
     expect(otherRules.every((rule) => !rule.requiredFacts.includes('supplyUseContext'))).toBe(true)
   })
 
@@ -171,6 +177,14 @@ describe('versioned tax-rule engine', () => {
       .toThrow(/approval or authority/i)
     expect(() => validateTaxRuleCatalog({ kind: 'production', catalogVersion: 1,
       rules: [FICTIONAL_TAX_RULE_CATALOG.rules[0]] })).toThrow(/external authority/i)
+  })
+
+  it('records structured 2026 source status and never treats the draft form as production authority', () => {
+    expect(TAX_RULE_SOURCE_MANIFEST_2026).toHaveLength(3)
+    expect(TAX_RULE_SOURCE_MANIFEST_2026.filter(source => source.approvalStatus === 'approved')
+      .every(source => source.sourceStatus !== 'preliminary_not_relied_upon')).toBe(true)
+    expect(TAX_RULE_SOURCE_MANIFEST_2026.find(source => source.sourceStatus === 'preliminary_not_relied_upon'))
+      .toMatchObject({ approvalStatus: 'reference_only', taxYear: 2026 })
   })
 
   it('uses one tax namespace and treats business profile only as optional factual context', () => {
