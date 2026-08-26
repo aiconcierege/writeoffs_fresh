@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe,expect,it } from 'vitest'
 
 const migration=readFileSync('supabase/migrations/20260826000100_add_canonical_weekly_review_periods.sql','utf8')
+const customerEventFix=readFileSync('supabase/migrations/20260826000200_fix_weekly_review_customer_event.sql','utf8')
 const processing=readFileSync('app/lib/bookkeeping/weekly-review-processing.ts','utf8')
 
 describe('canonical period-level weekly review',()=>{
@@ -33,4 +34,11 @@ describe('canonical period-level weekly review',()=>{
   expect(processing).toContain("from('bookkeeping_review_events')")
   expect(processing).not.toContain("insert({ review_issue")
  })
+})
+
+it('keeps customer period actions separate from correction-link idempotency',()=>{
+ expect(customerEventFix).toContain('create or replace function public.append_customer_review_period_event')
+ expect(customerEventFix).not.toContain('p_correction_request_id')
+ expect(customerEventFix).toContain("current_event.event_type not in ('presented','correction_linked')")
+ expect(customerEventFix).toContain("where business_id=selected_business and request_id=p_request_id")
 })
