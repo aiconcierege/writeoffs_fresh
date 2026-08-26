@@ -7,7 +7,7 @@ test('established realtor customer surfaces render from canonical staging data',
  const errors:Error[]=[];page.on('pageerror',error=>errors.push(error))
  await page.goto('/login');await page.getByPlaceholder('you@example.com').fill(email!);await page.getByPlaceholder('Your password').fill(password!)
  await page.getByRole('button',{name:'Log in'}).click();await page.waitForURL('**/home')
- await expect(page.getByText(/209 potential writeoffs this year\./)).toBeVisible()
+ await expect(page.getByRole('heading',{name:/209 potential writeoffs found this year/})).toBeVisible()
  await expect(page.getByText(/I have 20 quick questions/)).toBeVisible()
  for(const route of ['/transactions','/questions','/receipts','/reports','/mileage','/invoices']){
   const response=await page.goto(route);expect(response?.status(),route).toBeLessThan(400);await expect(page.locator('main').first()).toBeVisible()

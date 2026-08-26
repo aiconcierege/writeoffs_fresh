@@ -1,6 +1,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import WaitlistForm from "./components/WaitlistForm"
+import { BettiIllustration } from "./components/BettiIllustration"
 
 const steps = [
   {
@@ -110,10 +111,14 @@ export default function Page() {
           </div>
           <div className="mt-11 grid gap-9 lg:grid-cols-3 lg:gap-0">
             {steps.map((step, index) => (
-              <article key={step.number} className={`relative ${index ? "lg:border-l lg:border-[#cfd8d2] lg:pl-10" : "lg:pr-10"}`}>
+              <article key={step.number} className={`relative ${index ? "lg:border-l lg:border-[#cfd8d2] lg:pl-10" : "lg:pr-10"} ${index === 1 ? "overflow-hidden rounded-[1.5rem] border-0 bg-[#e5f3e7] px-6 pb-0 pt-6 shadow-[0_20px_48px_rgba(23,83,62,.11)] lg:-my-7 lg:mx-6 lg:border-0 lg:px-8 lg:pb-0 lg:pt-8" : ""}`}>
                 <span className="font-mono text-sm font-semibold text-[#178368]">{step.number}</span>
                 <h3 className="mt-5 text-2xl font-semibold tracking-[-0.03em]">{step.title}</h3>
                 <p className="mt-3 max-w-sm text-base leading-7 text-[#59665f]">{step.body}</p>
+                {index === 1 && <div className="relative mt-4 h-52 sm:h-64 lg:h-60" aria-hidden="true">
+                  <div className="absolute -bottom-20 -right-14 h-64 w-64 rounded-full bg-white/55"/>
+                  <BettiIllustration state="working" decorative sizes="(max-width: 639px) 17rem, 21rem" className="absolute -bottom-10 left-1/2 w-72 max-w-none -translate-x-1/2 drop-shadow-[0_18px_22px_rgba(23,83,62,.15)] sm:w-80 lg:-bottom-12 lg:w-80"/>
+                </div>}
               </article>
             ))}
           </div>

@@ -22,8 +22,10 @@ describe('approved potential-writeoff selector', () => {
         { id: 'personal', kind: 'personal', amountCents: -4000 },
       ] }] })
     expect(select([record(), mixed])).toEqual([
-      { recordId: 'record', decisionId: 'decision', businessAmountCents: 10000 },
-      { recordId: 'mixed', decisionId: 'mixed-decision', businessAmountCents: 6000 },
+      { recordId: 'record', decisionId: 'decision', businessAmountCents: 10000,
+        occurredOn: '2026-08-26', hasEvidence: false },
+      { recordId: 'mixed', decisionId: 'mixed-decision', businessAmountCents: 6000,
+        occurredOn: '2026-08-26', hasEvidence: false },
     ])
   })
 

@@ -10,11 +10,11 @@ describe('bookkeeper-centered Home',()=>{
  it('uses only the approved canonical potential-writeoff selector',()=>{
   expect(home).toContain('getAuthenticatedPotentialWriteoffs')
   expect(home).toContain('potential.count')
-  expect(home).toContain("potential {potential.count===1?'writeoff':'writeoffs'}")
+  expect(home).toContain("potential {potential.count === 1 ? 'writeoff' : 'writeoffs'}")
   expect(home).not.toContain(".from('transactions')")
  })
  it('invites factual questions without manufacturing urgency or approval',()=>{
-  expect(home).toContain('<QuestionInvitation count={questions.length}/>')
+  expect(home).toContain('<QuestionInvitation count={questions.length} compact/>')
   expect(questions).toContain('Not right now')
   expect(questions).toContain('writeoffs-question-prompt-after')
   expect(questions).not.toContain('confirmed')
@@ -26,9 +26,9 @@ describe('bookkeeper-centered Home',()=>{
   expect(weekly).toContain("action('confirmed')")
  })
  it('keeps financial figures secondary and membership scoped',()=>{
-  expect(home.indexOf('potential.count')).toBeLessThan(home.indexOf('Business expenses'))
-  expect(home).toContain("isBusiness&&")
-  expect(home).toContain('Estimated business profit')
+  expect(home.indexOf('potential.count')).toBeLessThan(home.indexOf('<FinancialRelationship'))
+  expect(home).toContain('business={isBusiness}')
+  expect(home).toContain('income={summary.businessIncomeCents}')
  })
  it('makes Home a record hub and uses one global menu',()=>{
   for(const label of ['Transactions','Receipts','Mileage','Reports'])expect(home).toContain(label)

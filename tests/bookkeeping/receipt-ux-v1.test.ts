@@ -11,7 +11,7 @@ const routePolicy = source('app/lib/route-policy.ts')
 
 describe('autonomous Receipt UX v1', () => {
   it('keeps receipt intake easy to reach without making it routine bookkeeping work', () => {
-    expect(home).toContain("['/receipts','Receipts'")
+    expect(home).toContain("['/receipts', 'Receipts'")
     expect(source('app/get-started/GetStartedFlow.tsx')).toContain('Upload whatever you have')
     expect(upload).toContain('onChange={(event) => void select(Array.from(event.target.files ?? []))}')
     expect(upload).toContain('multiple')

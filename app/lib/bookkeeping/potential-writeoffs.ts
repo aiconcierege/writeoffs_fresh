@@ -4,6 +4,8 @@ export type PotentialWriteoff = {
   recordId: string
   decisionId: string
   businessAmountCents: number
+  occurredOn: string
+  hasEvidence: boolean
 }
 
 function currentDecision(record: CanonicalSummaryRecord) {
@@ -39,7 +41,8 @@ export function selectPotentialWriteoffs(input: {
     // writeoff; convergence/reconciliation determines the one current record.
     if (!Number.isSafeInteger(businessAmountCents) || businessAmountCents >= 0) continue
     found.push({ recordId: record.id, decisionId: decision.id,
-      businessAmountCents: -businessAmountCents })
+      businessAmountCents: -businessAmountCents, occurredOn: record.occurredOn,
+      hasEvidence: record.hasEvidence === true })
   }
   return found
 }

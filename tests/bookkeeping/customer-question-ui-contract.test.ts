@@ -16,7 +16,7 @@ describe('customer question UI contract', () => {
 
   it('shows the canonical actionable count on Home', () => {
     expect(home).toContain('listCustomerQuestions')
-    expect(home).toContain('<QuestionInvitation count={questions.length}/>')
+    expect(home).toContain('<QuestionInvitation count={questions.length} compact/>')
     expect(readFileSync('app/home/QuestionInvitation.tsx','utf8')).toContain('Yes, let’s do it')
   })
 
