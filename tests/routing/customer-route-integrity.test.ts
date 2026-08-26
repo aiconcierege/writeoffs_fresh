@@ -28,10 +28,10 @@ describe('customer route integrity', () => {
 
   it('keeps customer actions discoverable from implemented product surfaces', () => {
     const home = read('app/home/page.tsx')
-    expect(home).toContain('<ReceiptUploadAction />')
-    for (const action of ['Record money received', 'Record money spent', 'Add mileage', 'Create invoice']) {
-      expect(home).toContain(action)
-    }
+    expect(home).toContain("['/receipts','Receipts'")
+    expect(home).toContain("['/mileage','Mileage'")
+    expect(home).toContain("['/invoices','Invoices'")
+    expect(read('app/get-started/page.tsx')).toContain('<GetStartedFlow')
     expect(read('app/reports/ReportsSummary.tsx')).toContain('href="/reports/tax-time"')
     expect(read('app/settings/page.tsx')).toContain('href="/settings/banking"')
     expect(read('app/questions/page.tsx')).toContain('<QuestionFlow')

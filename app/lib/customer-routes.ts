@@ -1,6 +1,7 @@
 /** Canonical customer destinations. Query parameters select a workflow; they do not create routes. */
 export const customerRoutes = {
   home: '/home',
+  getStarted: '/get-started',
   transactions: '/transactions',
   uploadReceipts: '/receipts',
   moneyReceived: '/money?kind=received',

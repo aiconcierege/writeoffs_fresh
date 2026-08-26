@@ -15,9 +15,9 @@ describe('customer question UI contract', () => {
   })
 
   it('shows the canonical actionable count on Home', () => {
-    expect(home).toContain('customerQuestionHeadline(questionCount)')
-    expect(home).toContain('href="/questions"')
-    expect(home).toContain('Answer questions')
+    expect(home).toContain('listCustomerQuestions')
+    expect(home).toContain('<QuestionInvitation count={questions.length}/>')
+    expect(readFileSync('app/home/QuestionInvitation.tsx','utf8')).toContain('Yes, let’s do it')
   })
 
   it('submits button answers immediately and keeps defer distinct from Not sure', () => {

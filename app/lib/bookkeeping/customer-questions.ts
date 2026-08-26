@@ -19,6 +19,7 @@ export type CustomerQuestion = {
     currency: string
     date: string | null
   }
+  evidence?: { receiptUrl: string; label: string }
 }
 
 type TransactionContext = CustomerQuestion['transaction']
@@ -102,16 +103,28 @@ export async function listCustomerQuestions(input: { supabase: SupabaseClient; s
     supabase: input.supabase, businessId,
   })
 
-  const [{ data: records, error: recordError }, { data: sources, error: sourceError }] =
+  const [{ data: records, error: recordError }, { data: sources, error: sourceError }, documentResult] =
     await Promise.all([
       input.supabase.from('bookkeeping_records')
         .select('id,amount_cents,currency,occurred_on').in('id', recordIds),
       input.supabase.from('bookkeeping_financial_sources')
         .select('bookkeeping_record_id,financial_transaction_id')
         .in('bookkeeping_record_id', recordIds).is('revoked_at', null),
+      input.supabase.from('bookkeeping_document_links').select('bookkeeping_record_id,receipt_id')
+        .eq('business_id', businessId).in('bookkeeping_record_id', recordIds).is('revoked_at', null),
     ])
   if (recordError) throw new Error(`Unable to load question records: ${recordError.message}`)
   if (sourceError) throw new Error(`Unable to load question sources: ${sourceError.message}`)
+  if (documentResult.error) throw new Error(`Unable to load question evidence: ${documentResult.error.message}`)
+
+  const receiptIds=[...new Set((documentResult.data??[]).map((row)=>row.receipt_id))]
+  const receiptResult=receiptIds.length?await input.supabase.from('receipts').select('id,storage_path,original_name')
+    .in('id',receiptIds):{data:[],error:null}
+  if(receiptResult.error)throw new Error(`Unable to load question evidence: ${receiptResult.error.message}`)
+  const receiptById=new Map((receiptResult.data??[]).map((row)=>[row.id,row]))
+  const evidenceByRecord=new Map<string,{receiptUrl:string;label:string}>()
+  for(const link of documentResult.data??[]){const receipt=receiptById.get(link.receipt_id);if(!receipt)continue
+    evidenceByRecord.set(link.bookkeeping_record_id,{receiptUrl:`/api/receipts/${receipt.id}/view`,label:receipt.original_name??'Receipt'})}
 
   const currentSources = [
     ...(sources ?? []),
@@ -158,7 +171,8 @@ export async function listCustomerQuestions(input: { supabase: SupabaseClient; s
       date: transaction?.transaction_date ?? record?.occurred_on ?? null,
     }
     const question = projectCustomerQuestion(item, context)
-    return question ? [{ ...question, source: 'bookkeeping' as const }] : []
+    return question ? [{ ...question, source: 'bookkeeping' as const,
+      evidence:evidenceByRecord.get(item.record.id) }] : []
   })
   const scopedBookkeeping=input.scope==='expenses'?bookkeepingQuestions.filter(question=>(question.transaction.amountCents??0)<=0):bookkeepingQuestions
   return [...scopedBookkeeping, ...deductionQuestions, ...contractorQuestions]

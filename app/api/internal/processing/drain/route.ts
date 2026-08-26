@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { drainCanonicalDocumentJobs, documentQueueHealth } from '../../../../lib/documents/durable-processing'
 import { drainBookkeepingProcessingJobs } from '../../../../lib/bookkeeping/processing'
 import { drainReceiptUnderstandingJobs } from '../../../../lib/receipts/receipt-understanding'
+import { prepareWeeklyReviews } from '../../../../lib/bookkeeping/weekly-review-processing'
 import {createServerAdminSupabase} from '../../../../../utils/supabase/admin'
 
 export const runtime = 'nodejs'
@@ -26,10 +27,11 @@ async function run(request: Request) {
     ? await drainCanonicalDocumentJobs({ batchSize: 8 })
     : { paused: true, claimed: 0, completed: 0, needsAttention: 0, failed: 0, retryScheduled: 0 }
   const bookkeeping = await drainBookkeepingProcessingJobs({ batchSize: 12 })
+  const weeklyReviews = await prepareWeeklyReviews({ limit: 12 })
   const shadow = expensiveProcessingEnabled
     ? await drainReceiptUnderstandingJobs({ batchSize: 3 })
     : { paused: true, claimed: 0, completed: 0, failed: 0 }
-  return NextResponse.json({ documents,bookkeeping,shadow,expensiveProcessingEnabled,membershipsExpired:expiration.data,health: await documentQueueHealth() })
+  return NextResponse.json({ documents,bookkeeping,weeklyReviews,shadow,expensiveProcessingEnabled,membershipsExpired:expiration.data,health: await documentQueueHealth() })
 }
 
 export async function GET(request: Request) { try { return await run(request) } catch {

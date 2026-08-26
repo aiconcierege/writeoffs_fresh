@@ -11,10 +11,10 @@ describe('tax-time customer surface', () => {
     expect(page).toContain('/reports/schedule-c?year=')
     expect(page).not.toMatch(/trial balance|closing entr|audit proof|IRS compliant|1099 required/i)
   })
-  it('keeps Home restrained and points to derived readiness', () => {
+  it('keeps Home restrained and points customers to canonical Reports', () => {
     const home = readFileSync('app/home/page.tsx','utf8')
-    expect(home).toContain('View annual records')
-    expect(home).toContain('getAuthenticatedTaxYearReadiness')
+    expect(home).toContain('href="/reports"')
+    expect(home).toContain('See reports')
   })
   it('keeps the selected tax year on the Schedule C preparation summary', () => {
     const page = readFileSync('app/reports/schedule-c/page.tsx','utf8')

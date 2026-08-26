@@ -30,11 +30,11 @@ describe('invoice workflow contracts', () => {
     expect(`${list}${detail}${printable}`).not.toMatch(/accounts receivable|debit|credit|journal entry/i)
   })
 
-  it('protects invoice routes and does not add invoices to primary navigation', () => {
+  it('protects invoice routes and makes invoices available from the Home/menu record areas', () => {
     expect(read('app/lib/route-policy.ts')).toContain("'/invoices'")
-    expect(read('app/home/page.tsx')).toContain('Create invoice')
+    expect(read('app/home/page.tsx')).toContain("['/invoices','Invoices'")
     const header = read('app/components/Header.tsx')
-    expect(header).not.toMatch(/href=["']\/invoices/)
+    expect(header).toContain('["Invoices", "/invoices"]')
   })
 
   it('projects linked invoice context without adding invoice amounts to summaries', () => {

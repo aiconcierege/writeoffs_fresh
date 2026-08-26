@@ -12,7 +12,7 @@ import { SupabaseBookkeepingRepository } from './supabase-repository'
 export type CustomerQuestionAction =
   | { action: 'defer' }
   | { action: 'not_sure' }
-  | { action: 'business_use'; use: 'business' | 'personal' }
+  | { action: 'business_use'; use: 'business' | 'personal' | 'mixed' }
   | { action: 'business_purpose'; businessPurpose: string }
   | { action: 'mixed_all_business' }
   | { action: 'mixed_personal_amount'; personalAmountCents: number }
@@ -40,9 +40,10 @@ export async function actOnCustomerQuestion(input: {
   const repository = new SupabaseBookkeepingRepository(input.supabase)
   const businessId = item.event.businessId
   if (input.command.action === 'defer') {
+    const deferredUntil = new Date(Date.now() + 7 * 86_400_000).toISOString()
     return new CanonicalWeeklyReviewService(repository).skipIssue({
       businessId, userId: user.id, issueId: input.issueId,
-      expectedCurrentEventId: input.expectedEventId, deferredUntil: null,
+      expectedCurrentEventId: input.expectedEventId, deferredUntil,
     })
   }
   const common = {

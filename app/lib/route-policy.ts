@@ -1,5 +1,6 @@
 export const AUTHENTICATED_ROUTE_PREFIXES = [
   '/home',
+  '/get-started',
   '/transactions',
   '/reports',
   '/settings',

@@ -58,7 +58,7 @@ describe('canonical v1 onboarding UI', () => {
   })
 
   it('hands completion to the selected activity while keeping Home available', () => {
-    expect(flow).toContain("body.destination === '/receipts' ? '/receipts' : '/import'")
+    expect(flow).toContain("router.push('/get-started')")
     expect(flow).toContain('Home remains available from the main navigation.')
   })
 })

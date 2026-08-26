@@ -63,11 +63,10 @@ describe('WriteOffs product design system', () => {
     expect(text).not.toMatch(/append_bookkeeping_decision|create allocation|guaranteed deduction|IRS compliant/i)
   })
 
-  it('uses an underline for active navigation while retaining a separate focus indicator', () => {
+  it('uses clear current-page semantics while retaining a focus indicator', () => {
     const header = read('app/components/Header.tsx')
-    expect(header).toContain('after:scale-x-100')
+    expect(header).toContain('aria-current=')
     expect(header).toContain('focus-visible:outline')
-    expect(header).not.toContain('active\n                      ? "border')
   })
 
   it('distinguishes standard, form, and data page widths', () => {

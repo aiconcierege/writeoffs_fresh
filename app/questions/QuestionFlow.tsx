@@ -85,6 +85,7 @@ export function QuestionFlow({ initialQuestions }: { initialQuestions: CustomerQ
             {question.transaction.date && <span>{question.transaction.date}</span>}
           </div>
         </div>
+        {question.evidence&&<a href={question.evidence.receiptUrl} target="_blank" rel="noreferrer" className="mt-4 flex min-h-12 items-center justify-between rounded-xl border border-[#dce3de] bg-white px-4 text-sm font-semibold text-[#243186]"><span>View supporting receipt</span><span aria-hidden="true">↗</span></a>}
         <h1 ref={heading} tabIndex={-1} className="mt-8 text-[1.75rem] font-semibold leading-tight tracking-[-.035em] text-[#17211d] outline-none sm:text-3xl">
           {showAmount ? 'About how much was personal?' : question.prompt}
         </h1>
@@ -95,6 +96,7 @@ export function QuestionFlow({ initialQuestions }: { initialQuestions: CustomerQ
           {question.kind === 'business_use' && <>
             <Action onClick={() => submit({ action: 'business_use', use: 'business' })} busy={busy}>Yes, business</Action>
             <Action onClick={() => submit({ action: 'business_use', use: 'personal' })} busy={busy}>No, personal</Action>
+            <Action onClick={() => submit({ action: 'business_use', use: 'mixed' })} busy={busy}>Partly</Action>
             <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>Not sure</Action>
           </>}
           {question.kind === 'business_purpose' && <>

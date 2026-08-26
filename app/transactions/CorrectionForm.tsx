@@ -2,8 +2,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export function CorrectionForm({ transactionId, currentDecisionId, totalCents }: {
+export function CorrectionForm({ transactionId, currentDecisionId, totalCents, reviewContext }: {
   transactionId: string; currentDecisionId: string; totalCents: number
+  reviewContext?:{reviewPeriodId:string;reviewSnapshotId:string;expectedReviewEventId:string}
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -24,7 +25,7 @@ export function CorrectionForm({ transactionId, currentDecisionId, totalCents }:
       const response = await fetch(`/api/bookkeeping/transactions/${transactionId}/correction`, {
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ expectedCurrentDecisionId: currentDecisionId,
-          correctionRequestId: crypto.randomUUID(), answer }),
+          correctionRequestId: crypto.randomUUID(), answer, ...(reviewContext ? { reviewContext } : {}) }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error ?? 'Unable to save correction.')
@@ -34,8 +35,8 @@ export function CorrectionForm({ transactionId, currentDecisionId, totalCents }:
   }
   if (!open) return <button onClick={() => setOpen(true)} className="text-sm font-semibold text-[#243186] underline-offset-4 hover:underline">Correct this</button>
   return <div className="mt-4 border-l-2 border-[#243186] pl-4">
-    <p className="font-medium text-slate-950">Was this purchase for your business?</p>
-    <div className="mt-3 flex flex-wrap gap-2">{([['business','Business'],['personal','Personal'],['mixed','Both']] as const).map(([value,label]) =>
+    <p className="font-medium text-slate-950">What should I change?</p>
+    <div className="mt-3 flex flex-wrap gap-2">{([['business','This was for my business'],['personal',"This isn't a business expense"],['mixed','Only part was for business']] as const).map(([value,label]) =>
       <button key={value} onClick={() => setUse(value)} className={`rounded-md border px-3 py-2 text-sm ${use === value ? 'border-[#243186] bg-[#243186] text-white' : 'border-slate-300 bg-white text-slate-700'}`}>{label}</button>)}</div>
     {use === 'mixed' && <label className="mt-4 block text-sm text-slate-700">About how much was personal?
       <span className="mt-1 flex max-w-xs items-center rounded-md border border-slate-300 bg-white px-3"><span>$</span><input value={personal} onChange={(event) => setPersonal(event.target.value)} inputMode="decimal" placeholder="0.00" className="min-h-10 w-full px-2 outline-none" /></span>

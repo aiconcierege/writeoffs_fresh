@@ -15,14 +15,16 @@ async function continueStep(page: Page) {
 }
 
 async function completeBasics(page: Page, profileLabel = 'My business') {
+  await page.getByLabel('Business name').fill(profileLabel)
   await page.getByLabel('What does your business do?').fill('Independent service and consulting work.')
-  await page.getByText(profileLabel, { exact: true }).click()
   await continueStep(page)
+  await expect(page.getByRole('heading', { name: 'Is this business reported on Schedule C with your personal tax return?' })).toBeVisible()
   await page.getByText('Yes', { exact: true }).click()
   await continueStep(page)
+  await expect(page.getByRole('heading', { name: 'Are you starting fresh or bringing in an existing business?' })).toBeVisible()
 }
 
-test('new service business resumes after refresh and hands off to CSV import', async ({ page }) => {
+test('new service business resumes after refresh and reaches the bookkeeper-led start', async ({ page }) => {
   await signUp(page)
   await completeBasics(page)
   await page.reload()
@@ -38,8 +40,10 @@ test('new service business resumes after refresh and hands off to CSV import', a
   await continueStep(page)
   await expect(page.getByRole('heading', { name: 'You’re ready to use WriteOffs.' })).toBeVisible()
   await page.getByRole('button', { name: 'Finish setup' }).click()
-  await expect(page).toHaveURL(/\/import$/, { timeout: 15_000 })
-  await expect(page.getByRole('link', { name: 'Home', exact: true })).toBeVisible()
+  await expect(page).toHaveURL(/\/get-started$/, { timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: 'Let WriteOffs get to work.' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Upload statements or a CSV' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Go to Home', exact: true })).toBeVisible()
 })
 
 test('trade business remains supported with job materials and normal leftover stock', async ({ page }) => {
@@ -60,7 +64,10 @@ test('trade business remains supported with job materials and normal leftover st
   await continueStep(page)
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   await page.getByRole('button', { name: 'Finish setup' }).click()
-  await expect(page).toHaveURL(/\/receipts$/, { timeout: 15_000 })
+  await expect(page).toHaveURL(/\/get-started$/, { timeout: 15_000 })
+  await page.getByText('Some of them', { exact: true }).click()
+  await expect(page.getByRole('link', { name: 'Upload whatever you have' })).toBeVisible()
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
 test('Realtor context uses the same path and unsupported or uncertain answers fail closed', async ({ page }) => {

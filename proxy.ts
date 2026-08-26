@@ -1,12 +1,13 @@
 /* File: proxy.ts
  * Version: v2
  * Date: 2025-10-13
- * Notes: Blocks /signup unless NEXT_PUBLIC_ENABLE_SIGNUP === 'true'. Keeps Supabase auth cookies in sync.
+ * Notes: Opens signup in staging, keeps production waitlist-only, and keeps Supabase auth cookies in sync.
  */
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { isAuthenticatedRoute } from './app/lib/route-policy'
 import { isMfaWorkflow, mfaEnforcementMode, SECURITY_SETTINGS_PATH } from './app/lib/auth/mfa-policy'
+import { isCustomerSignupEnabled } from './app/lib/auth/signup-policy'
 
 function redirectWithRefreshedAuthCookies(url: URL, response: NextResponse) {
   const redirectResponse = NextResponse.redirect(url)
@@ -43,7 +44,7 @@ export async function proxy(req: NextRequest) {
     return redirectWithRefreshedAuthCookies(url, res)
   }
 
-  const signupEnabled = process.env.NEXT_PUBLIC_ENABLE_SIGNUP === 'true'
+  const signupEnabled = isCustomerSignupEnabled()
   if (!signupEnabled && pathname.startsWith('/signup')) {
     url.pathname = '/'
     url.searchParams.set('waitlist', '1')

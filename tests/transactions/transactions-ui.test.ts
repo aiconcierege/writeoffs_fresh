@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 const source = (file: string) => readFileSync(join(process.cwd(), file), 'utf8')
 describe('customer Transactions experience', () => {
   it('uses the canonical route and plain-language history UI', () => {
-    expect(source('app/components/Header.tsx')).toContain('{ name: "Transactions", href: "/transactions", section: "transactions" }')
+    expect(source('app/components/Header.tsx')).toContain('["Transactions", "/transactions"]')
     const page = source('app/transactions/page.tsx')
     expect(page).toContain('listTransactionReadModel')
     expect(page).toContain('Search merchant or description')

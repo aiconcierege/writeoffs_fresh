@@ -112,7 +112,7 @@ export default function OnboardingFlow({ initialBusiness, editing = false }: {
       const response = await fetch('/api/onboarding/complete', { method: 'POST' })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(body.error || 'A required answer still needs attention.')
-      router.push(body.destination === '/receipts' ? '/receipts' : '/import')
+      router.push('/get-started')
       router.refresh()
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'We couldn’t complete setup.')

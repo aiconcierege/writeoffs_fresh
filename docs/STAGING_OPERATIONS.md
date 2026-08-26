@@ -8,6 +8,8 @@ The verified staging Supabase project is named `writeoffs-staging`, project refe
 
 Staging is not production. It uses a dedicated Supabase project, Stripe TEST, Plaid Sandbox, non-production OCR credentials, unique worker/cron secrets, and an HTTPS staging origin. `WRITEOFFS_ENVIRONMENT=staging` is mandatory. Production Supabase, Stripe live, Plaid Production, and production webhook/service credentials are prohibited.
 
+The signup proxy deliberately permits `/signup` only when the validated application environment is `staging` (or when the legacy local-development flag is explicitly enabled). `production` remains waitlist-only even if `NEXT_PUBLIC_ENABLE_SIGNUP` is accidentally set. Keep staging behind Deployment Protection while allowing invited testers to exercise the real Auth signup path.
+
 The local `.env.staging.local` is an operator convenience file, not a Vercel deployment source. Never commit it. Next.js production/staging deployments receive variables from Vercel environment configuration.
 
 ## Configuration checklist

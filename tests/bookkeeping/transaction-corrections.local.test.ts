@@ -77,6 +77,32 @@ describe.skipIf(!runLocal)('canonical transaction corrections on local Supabase'
     ])
   })
 
+  it('corrects a receipt-only expense without changing its immutable source record', async () => {
+    const admin = client(serviceKey!)
+    const owner = await provisionLocalCanonicalOwner({ admin, url: url!, anonKey: anonKey!,
+      label: 'correction-receipt-only', amounts: [-2_500] })
+    const record = await admin.from('bookkeeping_records').insert({ business_id: owner.businessId,
+      source_kind: 'receipt', ingestion_key: `receipt-correction:${crypto.randomUUID()}`,
+      amount_cents: -8_417, currency: 'USD', occurred_on: '2026-08-12' }).select('id').single()
+    expect(record.error).toBeNull()
+    const service = new CanonicalBookkeepingService(new SupabaseBookkeepingRepository(owner.customer))
+    const decision = await service.recordDecision({ actor: { businessId: owner.businessId,
+      userId: owner.userId, provenance: 'user' }, recordId: record.data!.id,
+      expectedCurrentDecisionId: null, decision: { bookkeepingNature: 'expense', treatment: 'business',
+        reviewStatus: 'resolved', reason: 'Synthetic receipt-only established purchase.',
+        allocations: [{ kind: 'business', amountCents: -8_417, taxCategoryKey: null }] } })
+    await correctCanonicalTransactionUse({ supabase: owner.customer,
+      financialTransactionId: record.data!.id, expectedCurrentDecisionId: decision.id,
+      correctionRequestId: crypto.randomUUID(), answer: { schemaVersion: 1, use: 'personal' } })
+    const [source,current] = await Promise.all([
+      admin.from('bookkeeping_records').select('source_kind,amount_cents').eq('id',record.data!.id).single(),
+      admin.from('bookkeeping_decisions').select('treatment,supersedes_decision_id')
+        .eq('bookkeeping_record_id',record.data!.id).eq('treatment','personal').single(),
+    ])
+    expect(source.data).toEqual({ source_kind: 'receipt', amount_cents: -8_417 })
+    expect(current.data).toMatchObject({ treatment: 'personal', supersedes_decision_id: decision.id })
+  })
+
   it('rejects cross-Business, stale, over-total, and unresolved corrections', async () => {
     const owner = await establishedExpense('correction-owner', -5_000)
     const other = await provisionLocalCanonicalOwner({ admin: client(serviceKey!), url: url!,

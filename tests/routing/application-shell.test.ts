@@ -38,13 +38,13 @@ describe('canonical application and public shell routes', () => {
     expect(applicationNavigationSection('/receipts')).toBeNull()
   })
 
-  it('limits primary navigation to Home, Transactions, Reports, and Account', () => {
+  it('uses Home plus one global record and account menu', () => {
     const header = source('app/components/Header.tsx')
-    expect(header).toContain('href: "/home"')
-    expect(header).toContain('href: "/transactions"')
-    expect(header).toContain('href: "/reports"')
+    expect(header).toContain('href="/home"')
+    expect(header).toContain('["Transactions", "/transactions"]')
+    expect(header).toContain('["Reports", "/reports"]')
     expect(header).toContain('href="/settings"')
-    expect(header).not.toMatch(/href: ["']\/(receipts|import|questions)["']/)
+    expect(header).toContain('Menu')
   })
 
   it('protects product routes and redirects authenticated auth-page visitors', () => {

@@ -209,11 +209,12 @@ and retain their old API compatibility paths outside the new Transactions surfac
 The current foundation does not implement provider synchronization, tax-return
 preparation, official tax forms, or a canonical tax-treatment layer.
 
-## Canonical Weekly Review foundation
+## Canonical factual-question foundation
 
 `bookkeeping_review_events` is a separate append-only history of specific material
-questions. An unresolved bookkeeping decision alone is agent-processing backlog;
-it does not enter customer Weekly Review until trusted processing opens one of the
+questions. Its historical name predates period-level sign-off; these rows are
+question issues, not weekly batches or customer approval. An unresolved bookkeeping decision alone is agent-processing backlog;
+it does not enter the customer question queue until trusted processing opens one of the
 five approved typed issues. Current Weekly Review items are derived only from the
 leaf event of each issue, never from legacy transaction flags or category state.
 
@@ -506,10 +507,9 @@ record why a calculation is incomplete without inventing a transaction-level
 deduction. Historical conclusions remain pinned to their original rule version;
 there is no automatic historical reprocessing.
 
-Business profile is optional factual context in that one evaluator. It can
-strengthen merchant or purpose evidence when a rule declares it as a prerequisite,
-but it cannot select another catalog or replace business-use facts. General means
-the absence of more-specific profile context; Realtor does not create a separate
+The customer's plain-language business description is contextual evidence in that
+one evaluator. Retained legacy profile values are compatibility state only: they
+cannot select another catalog, replace business-use facts, or create a separate
 bookkeeping, tax, question, reporting, or customer path.
 
 Accounting-sensitive Business context is independently historical. The current

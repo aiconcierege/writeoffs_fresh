@@ -54,6 +54,19 @@ export async function correctCanonicalTransactionUse(input: {
     if (error) throw new Error(error.message)
     return data
   }
+  const { data: receiptRecord, error: receiptRecordError } = await input.supabase
+    .from('bookkeeping_records').select('id,source_kind').eq('id', input.financialTransactionId)
+    .eq('source_kind','receipt').maybeSingle()
+  if (receiptRecordError) throw new Error('Could not verify the current receipt-only expense.')
+  if (receiptRecord) {
+    const { data, error } = await input.supabase.rpc('correct_compound_bookkeeping_record_use', {
+      p_bookkeeping_record_id: input.financialTransactionId,
+      p_expected_current_decision_id: input.expectedCurrentDecisionId,
+      p_correction_request_id: input.correctionRequestId, p_answer: answer,
+    })
+    if (error) throw new Error(error.message)
+    return data
+  }
   const { data: compound, error: compoundError } = await input.supabase
     .from('current_bookkeeping_compound_reconciliations')
     .select('reconciliation_id')

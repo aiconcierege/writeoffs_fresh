@@ -3,17 +3,15 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { cn } from "../lib/utils"
-
 import BrandLogo from "../components/BrandLogo"
 import SignOutButton from "../components/SignOutButton"
-import { applicationNavigationSection, isAuthenticatedRoute } from "../lib/route-policy"
+import { isAuthenticatedRoute } from "../lib/route-policy"
 
-const navItems = [
-  { name: "Home", href: "/home", section: "home" },
-  { name: "Transactions", href: "/transactions", section: "transactions" },
-  { name: "Reports", href: "/reports", section: "reports" },
-]
+const recordItems = [
+  ["Transactions", "/transactions"], ["Receipts", "/receipts"],
+  ["Mileage", "/mileage"], ["Invoices", "/invoices"], ["Reports", "/reports"],
+  ["Questions", "/questions"],
+] as const
 
 export function Header() {
   const pathname = usePathname()
@@ -58,62 +56,16 @@ export function Header() {
     )
   }
 
-  return (
-    <header className="fixed top-0 z-50 w-full border-b border-[#dce3de]/80 bg-[#fbfaf7]/92 shadow-[0_1px_0_rgba(23,33,29,0.02)] backdrop-blur-xl">
-      <div className="mx-auto grid h-16 max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-self-start">
-          <span className="sm:hidden"><BrandLogo href="/home" heightPx={26} /></span>
-          <span className="hidden sm:inline-flex"><BrandLogo href="/home" heightPx={32} /></span>
-        </div>
-
-        <div className="min-w-0 justify-self-center">
-          <nav aria-label="Primary" className="flex items-center gap-3 sm:gap-7">
-            {navItems.map((item) => {
-              const active = applicationNavigationSection(pathname) === item.section
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "relative px-0.5 py-5 text-xs transition-colors after:absolute after:inset-x-0 after:bottom-[.85rem] after:h-0.5 after:origin-center after:rounded-full after:bg-[#243186] after:transition-transform focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#243186] sm:text-sm",
-                    active
-                      ? "font-semibold text-slate-950 after:scale-x-100"
-                      : "font-medium text-[#65736b] after:scale-x-0 hover:text-[#17211d]"
-                  )}
-                  aria-current={active ? "page" : undefined}
-                >
-                  {item.name}
-                </Link>
-              )
-            })}
-          </nav>
-        </div>
-
-        <div className="justify-self-end">
-          <details className="group relative">
-            <summary
-              aria-current={applicationNavigationSection(pathname) === "account" ? "page" : undefined}
-              className={`flex min-h-10 cursor-pointer list-none items-center gap-1 rounded-xl px-2 text-xs font-semibold transition-colors hover:bg-white hover:text-[#17211d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#243186] sm:px-3 sm:text-sm [&::-webkit-details-marker]:hidden ${applicationNavigationSection(pathname) === "account" ? "bg-white text-[#17211d] shadow-sm" : "text-[#65736b]"}`}
-            >
-              Account
-              <span aria-hidden="true" className="text-[10px] transition-transform group-open:rotate-180">▾</span>
-            </summary>
-            <div className="absolute right-0 mt-2 w-52 rounded-xl border border-[#dce3de] bg-white p-2 shadow-[0_18px_45px_rgba(23,33,29,0.14)]">
-              <Link
-                href="/settings"
-                className="block rounded px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#243186]"
-              >
-                Account / Settings
-              </Link>
-              <Link href="/settings/security" className="block rounded px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#243186]">Security</Link>
-              <Link href="/settings/billing" className="block rounded px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#243186]">Membership</Link>
-              <div className="mt-1 border-t border-slate-100 pt-1">
-                <SignOutButton className="w-full justify-center rounded-md border-0 bg-white px-3 py-2 text-slate-700 shadow-none hover:bg-slate-50" />
-              </div>
-            </div>
-          </details>
-        </div>
-      </div>
-    </header>
-  )
+  return <header className="fixed top-0 z-50 w-full border-b border-[#dce3de]/80 bg-[#fbfaf7]/94 backdrop-blur-xl">
+    <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-7">
+      <BrandLogo href="/home" heightPx={32}/>
+      <details className="group relative"><summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-xl px-3 text-sm font-semibold text-[#17211d] hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#243186] [&::-webkit-details-marker]:hidden"><span>Menu</span><span aria-hidden="true" className="grid gap-1"><i className="block h-0.5 w-5 bg-current"/><i className="block h-0.5 w-5 bg-current"/><i className="block h-0.5 w-5 bg-current"/></span></summary>
+        <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-[#dce3de] bg-[#fffefa] p-3 shadow-[0_24px_65px_rgba(23,33,29,.17)]">
+          <Link href="/home" aria-current={pathname==='/home'?'page':undefined} className="block rounded-xl bg-[#eef7f2] px-4 py-3 font-semibold text-[#17211d]">Home</Link>
+          <nav aria-label="Your records" className="mt-2 grid grid-cols-2 gap-1">{recordItems.map(([name,href])=><Link key={href} href={href} aria-current={pathname.startsWith(href)?'page':undefined} className="flex min-h-12 items-center rounded-lg px-3 text-sm font-medium text-[#435149] hover:bg-white">{name}</Link>)}</nav>
+          <div className="my-2 border-t border-[#dce3de]"/><Link href="/get-started" className="block min-h-11 rounded-lg px-3 py-3 text-sm font-medium text-[#435149] hover:bg-white">Add or connect records</Link><Link href="/settings" className="block min-h-11 rounded-lg px-3 py-3 text-sm font-medium text-[#435149] hover:bg-white">Account and settings</Link><Link href="/settings/billing" className="block min-h-11 rounded-lg px-3 py-3 text-sm font-medium text-[#435149] hover:bg-white">Membership</Link>
+          <div className="mt-2 border-t border-[#dce3de] pt-2"><SignOutButton className="w-full justify-center border-0 bg-transparent shadow-none"/></div>
+        </div></details>
+    </div>
+  </header>
 }

@@ -13,9 +13,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   try { body = await request.json() } catch {
     return NextResponse.json({ error: 'invalid json' }, { status: 400 })
   }
+  const keys=Object.keys(body).sort().join(',')
+  const review=body.reviewContext as Record<string,unknown>|undefined
   if (!UUID.test(id) || !UUID.test(String(body.expectedCurrentDecisionId ?? ''))
     || !UUID.test(String(body.correctionRequestId ?? ''))
-    || Object.keys(body).sort().join(',') !== 'answer,correctionRequestId,expectedCurrentDecisionId') {
+    || !['answer,correctionRequestId,expectedCurrentDecisionId','answer,correctionRequestId,expectedCurrentDecisionId,reviewContext'].includes(keys)
+    || (review&&(!UUID.test(String(review.reviewPeriodId??''))||!UUID.test(String(review.reviewSnapshotId??''))
+      ||!UUID.test(String(review.expectedReviewEventId??''))))) {
     return NextResponse.json({ error: 'invalid correction request' }, { status: 400 })
   }
   try {
@@ -23,6 +27,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       financialTransactionId: id,
       expectedCurrentDecisionId: String(body.expectedCurrentDecisionId),
       correctionRequestId: String(body.correctionRequestId), answer: body.answer })
+    if(review){const linked=await supabase.rpc('link_weekly_review_correction',{
+      p_review_period_id:review.reviewPeriodId,p_review_snapshot_id:review.reviewSnapshotId,
+      p_expected_review_event_id:review.expectedReviewEventId,p_prior_decision_id:body.expectedCurrentDecisionId,
+      p_resulting_decision_id:(result as Record<string,unknown>).decision_id,p_correction_request_id:body.correctionRequestId})
+      if(linked.error)throw new Error('The correction was saved, but the weekly review changed. Refresh Home.')}
     return NextResponse.json({ ok: true, result })
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : 'Unable to save correction.'

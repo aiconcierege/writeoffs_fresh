@@ -10,13 +10,13 @@ const header = source('app/components/Header.tsx')
 const routePolicy = source('app/lib/route-policy.ts')
 
 describe('autonomous Receipt UX v1', () => {
-  it('starts an immediate receipt upload from Home without primary navigation', () => {
-    expect(home).toContain('<ReceiptUploadAction />')
-    expect(home).toContain('View receipts')
+  it('keeps receipt intake easy to reach without making it routine bookkeeping work', () => {
+    expect(home).toContain("['/receipts','Receipts'")
+    expect(source('app/get-started/GetStartedFlow.tsx')).toContain('Upload whatever you have')
     expect(upload).toContain('onChange={(event) => void select(Array.from(event.target.files ?? []))}')
     expect(upload).toContain('multiple')
     expect(upload).not.toContain('Upload selected')
-    expect(header).not.toMatch(/name: ["']Receipts["']/)
+    expect(header).toContain('["Receipts", "/receipts"]')
   })
 
   it('uses device-appropriate labels and a standard file chooser', () => {

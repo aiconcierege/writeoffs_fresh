@@ -17,7 +17,7 @@ function parseCommand(value: unknown): CustomerQuestionAction | null {
   if (body.action === 'defer' || body.action === 'not_sure') {
     return keys.join(',') === 'action' ? { action: body.action } : null
   }
-  if (body.action === 'business_use' && (body.use === 'business' || body.use === 'personal')) {
+  if (body.action === 'business_use' && (body.use === 'business' || body.use === 'personal' || body.use === 'mixed')) {
     return keys.join(',') === 'action,use' ? { action: body.action, use: body.use } : null
   }
   if (body.action === 'business_purpose' && typeof body.businessPurpose === 'string') {

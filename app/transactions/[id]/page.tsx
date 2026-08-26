@@ -9,10 +9,11 @@ import { ReceiptActions } from '../ReceiptActions'
 export const dynamic = 'force-dynamic'
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
-export default async function TransactionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function TransactionDetailPage({ params,searchParams }: { params: Promise<{ id: string }>;searchParams:Promise<{review?:string;snapshot?:string;event?:string}> }) {
   const supabase = await createServerSupabase(); const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
   const { id } = await params
+  const reviewContext=await searchParams
   const transaction = await getTransactionDetailReadModel({ supabase, userId: user.id, transactionId: id })
   if (!transaction) notFound()
   let canMarkLost = false
@@ -35,7 +36,8 @@ export default async function TransactionDetailPage({ params }: { params: Promis
         <p className="mt-2 text-sm leading-6 text-slate-600">{transaction.decisionReason ?? (transaction.sourceModel === 'canonical' ? 'WriteOffs is still working on this transaction.' : 'This is a historical transaction.')}</p>
         {transaction.contractorName && <p className="mt-2 text-sm text-slate-600">Contractor: <span className="font-medium text-slate-900">{transaction.contractorName}</span></p>}
         {transaction.sourceModel === 'canonical' && transaction.sourceKind !== 'manual' && transaction.bookkeepingNature === 'expense' && transaction.currentDecisionId
-          ? <CorrectionForm transactionId={transaction.id} currentDecisionId={transaction.currentDecisionId} totalCents={transaction.amountCents} />
+          ? <CorrectionForm transactionId={transaction.id} currentDecisionId={transaction.currentDecisionId} totalCents={transaction.amountCents}
+              reviewContext={reviewContext.review&&reviewContext.snapshot&&reviewContext.event?{reviewPeriodId:reviewContext.review,reviewSnapshotId:reviewContext.snapshot,expectedReviewEventId:reviewContext.event}:undefined}/>
           : transaction.sourceModel === 'canonical' && transaction.treatment === 'unresolved'
             ? <Link href="/questions" className="mt-4 inline-block text-sm font-semibold text-[#243186]">Answer questions →</Link> : null}</div>
       <div><h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Receipt and documentation</h2>

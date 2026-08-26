@@ -1,5 +1,9 @@
 # WriteOffs v1 onboarding architecture
 
+The current customer relationship and first-run sequence are governed by
+`CUSTOMER_BOOKKEEPER_EXPERIENCE.md`. Receipt availability answers such as Most,
+Some, or None are transient routing choices, not durable bookkeeping facts.
+
 Onboarding asks customers how their business operates and leaves accounting
 interpretation to the one canonical bookkeeping and tax-treatment path. It does not
 configure accounts, categories, Packs, tax rates, home-office calculations, vehicles,

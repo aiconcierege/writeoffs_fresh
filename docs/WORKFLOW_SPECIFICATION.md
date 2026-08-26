@@ -138,7 +138,9 @@ Teller is not the future provider.
 
 4. Weekly Operating Rhythm
 
-WriteOffs should normally synchronize financial activity and request user involvement on a weekly rhythm.
+WriteOffs should synchronize financial activity continuously and offer review on
+the Business's selected weekly check-in day only when relevant activity exists.
+Future cadence changes never rewrite historical review periods or confirmations.
 
 Benefits include:
 
