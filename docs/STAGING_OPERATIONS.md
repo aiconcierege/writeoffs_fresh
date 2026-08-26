@@ -58,6 +58,27 @@ Create plan access through `npm run grant:membership -- --business-id <staging-b
 
 Remote Auth tests must be paced and sequential. The first rehearsal launched many local-oriented suites in parallel and hit the staging Auth rate limiter. Production-shaped staging E2E should reuse a small set of fixtures or create users serially, then remove them.
 
+### Reusable UX test customer
+
+The reusable-customer utility is operator-only; there is no HTTP route or customer UI. Configure an exact, comma-separated allowlist in `WRITEOFFS_STAGING_TEST_USERS`. Optional ordinary-UX MFA bypass additionally requires `WRITEOFFS_STAGING_MFA_BYPASS_ENABLED=true`. Both controls are ignored by application policy unless `WRITEOFFS_ENVIRONMENT=staging`, and environment validation rejects them outside staging. The bypass does not forge or alter Supabase AAL: it is a centralized prerequisite-policy exception for the exact authenticated staging email. Turn it off to run the real MFA enrollment/challenge journey; normal staging users always retain mandatory MFA.
+
+Canonical data is deliberately append-only and extensively protected by `ON DELETE RESTRICT`. A reset therefore does not partially purge tables. It archives the entire old Auth/Business aggregate, including onboarding and business facts; financial accounts and source observations; transactions and canonical bookkeeping decisions/history; receipts, documents, imports and processing jobs; invoices, mileage and contractors; questions and answers; review cadence, periods, snapshots, items and events; deduction/tax records; membership/grant/provider/event history; and tenant-owned Storage paths. The archived Business loses no evidence and is no longer owned by the newly provisioned identity.
+
+If the archived Business has a Stripe membership, the utility first cancels its Stripe TEST subscription. It retains the TEST Customer and canonical provider/event history for auditability. Late signed webhooks still resolve only to the archived Business. The old Auth email is moved to a unique invalid staging archive address, then a new email-confirmed Auth user is created with the designated reusable email. The normal signup trigger creates a genuinely empty Business. No production Stripe object is accepted, no canonical row is deleted, and no service-role credential reaches a browser.
+
+Run from a controlled operator shell loaded with the complete staging server environment. Supply the new password without placing it in shell history, for example:
+
+```sh
+read -s WRITEOFFS_STAGING_TEST_PASSWORD
+export WRITEOFFS_STAGING_TEST_PASSWORD
+npm run staging:test-user:reset -- --email ux-tester@example.test --confirm-reset
+unset WRITEOFFS_STAGING_TEST_PASSWORD
+```
+
+Before confirming, verify `WRITEOFFS_ENVIRONMENT=staging`, `WRITEOFFS_EXPECTED_SUPABASE_HOST` names the dedicated staging project, Stripe mode is `test`, and the email is present exactly in `WRITEOFFS_STAGING_TEST_USERS`. Then log in with the new password. With bypass enabled the sequence begins at Membership, followed by onboarding, Get Started and Home. With bypass disabled it begins at real MFA enrollment, then follows the same sequence. Real signup and confirmation email testing remains available through `/signup` using a separate synthetic address.
+
+This archive strategy intentionally trades a small amount of staging-only retained data for canonical safety. Periodically inventory archived synthetic tenants and Stripe TEST Customers; any eventual purge must be a separately reviewed retention operation, not an extension of this reset command.
+
 ## Stripe TEST and Plaid Sandbox
 
 Stripe staging requires canonical TEST monthly Prices, a restricted TEST Portal configuration, a staging HTTPS signed webhook, and webhook event subscriptions from the membership runbook. Checkout is enabled only after a signed staging event is observed and invalid signatures are rejected. Deployment Protection must permit only the webhook path/provider mechanism.

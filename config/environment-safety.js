@@ -49,6 +49,14 @@ function validateEnvironment(env = process.env) {
 
   const plaidMode = env.PLAID_ENV || 'sandbox'
   const stripeMode = env.WRITEOFFS_STRIPE_MODE || 'test'
+  const stagingTestUsersConfigured = Boolean((env.WRITEOFFS_STAGING_TEST_USERS || '').trim())
+  const stagingMfaBypassEnabled = env.WRITEOFFS_STAGING_MFA_BYPASS_ENABLED === 'true'
+  if (name !== 'staging' && (stagingTestUsersConfigured || stagingMfaBypassEnabled)) {
+    throw new Error('Staging test-user configuration is forbidden outside staging.')
+  }
+  if (stagingMfaBypassEnabled && !stagingTestUsersConfigured) {
+    throw new Error('Staging MFA bypass requires an explicit test-user allowlist.')
+  }
   if (name !== 'production' && plaidMode === 'production') throw new Error('Plaid Production is forbidden outside the production environment.')
   if (name !== 'production' && stripeMode === 'live') throw new Error('Stripe live mode is forbidden outside the production environment.')
 

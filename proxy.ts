@@ -10,6 +10,7 @@ import { mfaEnforcementMode } from './app/lib/auth/mfa-policy'
 import { isCustomerSignupEnabled } from './app/lib/auth/signup-policy'
 import { nextRequiredCustomerDestination } from './app/lib/auth/prerequisite-policy'
 import { onboardingNeedsFollowUp, type OnboardingBusinessData } from './app/lib/onboarding/progress'
+import { hasStagingTestMfaBypass } from './app/lib/auth/staging-test-user'
 
 function redirectWithRefreshedAuthCookies(url: URL, response: NextResponse) {
   const redirectResponse = NextResponse.redirect(url)
@@ -61,9 +62,10 @@ export async function proxy(req: NextRequest) {
 
   if (user && isAuthenticatedRoute(pathname)) {
     const mode = mfaEnforcementMode()
-    let mfaSatisfied = mode === 'off'
+    const stagingTestBypass = hasStagingTestMfaBypass(user.email)
+    let mfaSatisfied = mode === 'off' || stagingTestBypass
     let mfaFactorEnrolled = false
-    if (mode !== 'off') {
+    if (mode !== 'off' && !stagingTestBypass) {
       const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
       mfaSatisfied = assurance?.currentLevel === 'aal2'
       mfaFactorEnrolled = assurance?.nextLevel === 'aal2'

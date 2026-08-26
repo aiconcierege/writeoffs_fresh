@@ -14,6 +14,7 @@
     "e2e": "playwright test --reporter=line",
     "ci-checks": "npm run typecheck && npm run lint && npm run build && npm run test",
     "grant:membership": "node scripts/grant-local-membership.mjs",
+    "staging:test-user:reset": "node scripts/reset-staging-test-user.mjs",
     "prepare": "husky"
   },
   "dependencies": {
