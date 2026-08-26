@@ -2,8 +2,12 @@ import { expect, test, type Page } from '@playwright/test'
 
 async function signUp(page: Page, profile: 'general' | 'realtor' = 'general') {
   const nonce = crypto.randomUUID()
+  const configuredEmail = process.env.PLAYWRIGHT_SIGNUP_EMAIL
+  const email = configuredEmail
+    ? configuredEmail.replace('@', `+onboarding-${nonce}@`)
+    : `onboarding-browser-${nonce}@example.test`
   await page.goto(`/signup?vertical=${profile}`)
-  await page.getByLabel('Email').fill(`onboarding-browser-${nonce}@example.test`)
+  await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill(`Browser-${nonce}-password`)
   await page.getByRole('button', { name: 'Create account' }).click()
   await expect(page).toHaveURL(/\/onboarding/, { timeout: 20_000 })
