@@ -62,7 +62,9 @@ export function GetStartedFlow({ initialCheckInWeekday, ...props }: React.Compon
       {cadenceSaved&&<p role="status" className="mt-3 text-sm text-[#176c54]">Got it. I’ll only check in when there’s something worth reviewing.</p>}
       {error&&<p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
     </section>
-    {cadenceSaved?<Link href="/home" className="btn btn-primary">Go to Home</Link>
+    {/* The cadence write changes prerequisite state. Use a document navigation so
+        the proxy evaluates the newly persisted preference instead of a prefetched response. */}
+    {cadenceSaved?<a href="/home" className="btn btn-primary">Go to Home</a>
       :<p className="text-sm text-[#59665f]">Choose a check-in day before heading Home.</p>}
   </div>
 }

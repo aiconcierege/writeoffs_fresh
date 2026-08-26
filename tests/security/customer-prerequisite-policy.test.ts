@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { nextRequiredCustomerDestination, type CustomerPrerequisiteState } from '../../app/lib/auth/prerequisite-policy'
 
@@ -35,5 +36,10 @@ describe('authenticated customer prerequisite policy', () => {
     expect(nextRequiredCustomerDestination({ ...complete, membershipLifecycle: 'expired_read_only' }, '/home')).toBe('/membership/read-only')
     expect(nextRequiredCustomerDestination({ ...complete, mfaSatisfied: false }, '//evil.example'))
       .toBe('/mfa/challenge?next=%2Fhome')
+  })
+
+  it('re-evaluates prerequisites after the check-in cadence is saved', () => {
+    const flow = readFileSync('app/get-started/GetStartedFlow.tsx', 'utf8')
+    expect(flow).toContain('cadenceSaved?<a href="/home"')
   })
 })
