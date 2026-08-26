@@ -45,7 +45,9 @@ export function SecuritySettings({ enrollmentRequired, next }: { enrollmentRequi
     setBusy(false)
     if (verifyError) { setError('That code didn’t work. Try again.'); return }
     setEnrollment(null); setCode(''); setMessage('Two-factor authentication is on.'); await refresh()
-    if (enrollmentRequired) router.replace(next)
+    // A full navigation ensures the proxy sees the newly issued AAL2 session
+    // instead of evaluating a prefetched response with the prior assurance level.
+    if (enrollmentRequired) window.location.replace(next)
     else router.refresh()
   }
 

@@ -60,7 +60,7 @@ describe('account protection', () => {
     const settings = read('app/settings/security/SecuritySettings.tsx')
     expect(settings).toContain('action={SECURITY_SETTINGS_PATH}')
     expect(settings).toContain('event.preventDefault()')
-    expect(settings).toContain('router.replace(next)')
+    expect(settings).toContain('window.location.replace(next)')
   })
 
   it('protects MFA, reset, and security routes and validates redirect destinations', () => {
