@@ -47,7 +47,7 @@ test('new service business resumes after refresh and reaches the bookkeeper-led 
   await expect(page).toHaveURL(/\/get-started$/, { timeout: 15_000 })
   await expect(page.getByRole('heading', { name: 'Let WriteOffs get to work.' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Upload statements or a CSV' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Go to Home', exact: true })).toBeVisible()
+  await expect(page.getByText('Choose a check-in day before heading Home.')).toBeVisible()
 })
 
 test('trade business remains supported with job materials and normal leftover stock', async ({ page }) => {

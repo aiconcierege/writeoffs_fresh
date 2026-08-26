@@ -14,12 +14,16 @@ including on accounts described as mixed-use or business-only.
 
 ## First run
 
-The bounded journey is membership and authentication, a short business
-introduction, payment, Get started, preferred account connection, initial durable
-processing, receipt gathering, optional questions, and Home. Account connection is
-preferred but statement, CSV, and receipt intake remain first-class alternatives.
-Most/Some/None receipt answers are transient conversational routing and are not
-bookkeeping facts.
+The deterministic authenticated journey is signup, email confirmation, mandatory
+MFA, membership/payment, business onboarding, Get Started, then Home. A customer is
+always sent to the earliest unmet prerequisite and never has to discover setup work
+through product navigation. Security and billing recovery remain reachable, while
+refreshing or directly opening a later product route returns to the required step.
+
+Get Started is complete once the Business has chosen its durable weekly check-in
+cadence. Account connection is preferred, but statement, CSV, and receipt intake
+remain first-class alternatives and may be used from Get Started. Most/Some/None
+receipt answers are transient conversational routing and are not bookkeeping facts.
 
 ## Weekly check-in
 

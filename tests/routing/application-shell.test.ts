@@ -54,6 +54,7 @@ describe('canonical application and public shell routes', () => {
     expect(middleware).toContain("pathname === '/login' || pathname === '/signup'")
     expect(middleware).toContain("url.pathname = '/home'")
     expect(middleware).toContain('redirectWithRefreshedAuthCookies(url, res)')
+    expect(middleware).toContain('nextRequiredCustomerDestination')
   })
 
   it('uses canonical Settings and Reports routes with compatibility redirects', () => {

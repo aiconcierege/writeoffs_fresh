@@ -6,8 +6,10 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { isAuthenticatedRoute } from './app/lib/route-policy'
-import { isMfaWorkflow, mfaEnforcementMode, SECURITY_SETTINGS_PATH } from './app/lib/auth/mfa-policy'
+import { mfaEnforcementMode } from './app/lib/auth/mfa-policy'
 import { isCustomerSignupEnabled } from './app/lib/auth/signup-policy'
+import { nextRequiredCustomerDestination } from './app/lib/auth/prerequisite-policy'
+import { onboardingNeedsFollowUp, type OnboardingBusinessData } from './app/lib/onboarding/progress'
 
 function redirectWithRefreshedAuthCookies(url: URL, response: NextResponse) {
   const redirectResponse = NextResponse.redirect(url)
@@ -57,22 +59,31 @@ export async function proxy(req: NextRequest) {
     return redirectWithRefreshedAuthCookies(url, res)
   }
 
-  if (user && isAuthenticatedRoute(pathname) && !isMfaWorkflow(pathname)) {
+  if (user && isAuthenticatedRoute(pathname)) {
     const mode = mfaEnforcementMode()
+    let mfaSatisfied = mode === 'off'
+    let mfaFactorEnrolled = false
     if (mode !== 'off') {
       const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-      if (assurance?.currentLevel !== 'aal2' && assurance?.nextLevel === 'aal2') {
-        url.pathname = '/mfa/challenge'
-        url.search = ''
-        url.searchParams.set('next', `${pathname}${req.nextUrl.search}`)
-        return redirectWithRefreshedAuthCookies(url, res)
-      }
-      if (mode === 'required' && assurance?.currentLevel !== 'aal2' && assurance?.nextLevel !== 'aal2') {
-        url.pathname = SECURITY_SETTINGS_PATH
-        url.search = ''
-        url.searchParams.set('enroll', 'required')
-        return redirectWithRefreshedAuthCookies(url, res)
-      }
+      mfaSatisfied = assurance?.currentLevel === 'aal2'
+      mfaFactorEnrolled = assurance?.nextLevel === 'aal2'
+    }
+    const [{ data: membership }, { data: business }, { data: cadence }] = mfaSatisfied
+      ? await Promise.all([
+        supabase.from('current_customer_membership').select('lifecycle').maybeSingle(),
+        supabase.from('businesses').select('business_description,business_profile_context,schedule_c_eligibility,business_stage,business_start_month,uses_customer_job_materials,keeps_future_sale_merchandise,prior_materials_handling,catch_up_start_date,onboarding_start_method,v1_support_status,onboarding_state,onboarding_version').eq('owner_user_id', user.id).maybeSingle(),
+        supabase.from('current_business_review_cadence').select('id').maybeSingle(),
+      ]) : [{ data: null }, { data: null }, { data: null }]
+    const destination = nextRequiredCustomerDestination({
+      mfaSatisfied,
+      mfaFactorEnrolled,
+      membershipLifecycle: membership?.lifecycle ?? null,
+      onboardingComplete: Boolean(business && !onboardingNeedsFollowUp(business as OnboardingBusinessData)),
+      getStartedComplete: Boolean(cadence),
+    }, `${pathname}${req.nextUrl.search}`)
+    if (destination) {
+      const target = new URL(destination, req.url)
+      return redirectWithRefreshedAuthCookies(target, res)
     }
   }
 

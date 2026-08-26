@@ -6,7 +6,7 @@ import { supabase } from '../../../utils/supabase/client'
 import { startTotpEnrollment, type TotpEnrollment } from '../../lib/auth/totp-enrollment'
 import { MFA_SECURITY_API_PATH, SECURITY_SETTINGS_PATH } from '../../lib/auth/mfa-policy'
 
-export function SecuritySettings({ enrollmentRequired }: { enrollmentRequired: boolean }) {
+export function SecuritySettings({ enrollmentRequired, next }: { enrollmentRequired: boolean; next: string }) {
   const router = useRouter()
   const [verifiedFactorId, setVerifiedFactorId] = useState<string | null>(null)
   const [assured, setAssured] = useState(false)
@@ -44,7 +44,9 @@ export function SecuritySettings({ enrollmentRequired }: { enrollmentRequired: b
     const { error: verifyError } = await supabase.auth.mfa.challengeAndVerify({ factorId: enrollment.factorId, code })
     setBusy(false)
     if (verifyError) { setError('That code didn’t work. Try again.'); return }
-    setEnrollment(null); setCode(''); setMessage('Two-factor authentication is on.'); await refresh(); router.refresh()
+    setEnrollment(null); setCode(''); setMessage('Two-factor authentication is on.'); await refresh()
+    if (enrollmentRequired) router.replace(next)
+    else router.refresh()
   }
 
   async function removeFactor() {

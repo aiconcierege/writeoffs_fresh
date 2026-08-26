@@ -27,7 +27,7 @@ function SignupInner() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
       }
     })
     if (signUpError) { setErr('We couldn’t create that account. Check the details and try again.'); setLoading(false); return }

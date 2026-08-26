@@ -7,10 +7,10 @@ import BankConnect from '../components/BankConnect'
 type ReceiptAnswer = 'most' | 'some' | 'none' | null
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 
-export function GetStartedFlow(props: React.ComponentProps<typeof BankConnect>) {
+export function GetStartedFlow({ initialCheckInWeekday, ...props }: React.ComponentProps<typeof BankConnect> & { initialCheckInWeekday: number | null }) {
   const [receiptAnswer, setReceiptAnswer] = useState<ReceiptAnswer>(null)
-  const [day, setDay] = useState<number | null>(null)
-  const [cadenceSaved, setCadenceSaved] = useState(false)
+  const [day, setDay] = useState<number | null>(initialCheckInWeekday)
+  const [cadenceSaved, setCadenceSaved] = useState(initialCheckInWeekday !== null)
   const [error, setError] = useState('')
 
   async function saveCadence(value: number) {
@@ -62,6 +62,7 @@ export function GetStartedFlow(props: React.ComponentProps<typeof BankConnect>) 
       {cadenceSaved&&<p role="status" className="mt-3 text-sm text-[#176c54]">Got it. I’ll only check in when there’s something worth reviewing.</p>}
       {error&&<p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
     </section>
-    <Link href="/home" className="btn btn-primary">Go to Home</Link>
+    {cadenceSaved?<Link href="/home" className="btn btn-primary">Go to Home</Link>
+      :<p className="text-sm text-[#59665f]">Choose a check-in day before heading Home.</p>}
   </div>
 }

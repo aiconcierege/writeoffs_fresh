@@ -25,9 +25,11 @@ describe('account protection', () => {
     expect(mfaEnforcementMode('required')).toBe('required')
     expect(mfaEnforcementMode('off')).toBe('off')
     const middleware = read('proxy.ts')
-    expect(middleware).toContain("url.pathname = '/mfa/challenge'")
-    expect(middleware).toContain('url.pathname = SECURITY_SETTINGS_PATH')
-    expect(middleware).toContain("assurance?.currentLevel !== 'aal2'")
+    expect(middleware).toContain('nextRequiredCustomerDestination')
+    expect(middleware).toContain("assurance?.currentLevel === 'aal2'")
+    const policy = read('app/lib/auth/prerequisite-policy.ts')
+    expect(policy).toContain('`/mfa/challenge?next=')
+    expect(policy).toContain('`/settings/security?enroll=required&next=')
   })
 
   it('implements enrollment, challenge, and protected removal with customer-safe errors', () => {
@@ -58,6 +60,7 @@ describe('account protection', () => {
     const settings = read('app/settings/security/SecuritySettings.tsx')
     expect(settings).toContain('action={SECURITY_SETTINGS_PATH}')
     expect(settings).toContain('event.preventDefault()')
+    expect(settings).toContain('router.replace(next)')
   })
 
   it('protects MFA, reset, and security routes and validates redirect destinations', () => {
