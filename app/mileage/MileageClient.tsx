@@ -11,7 +11,7 @@ export function MileageClient({ initialVehicles, initialEntries }: { initialVehi
   const [addingVehicle,setAddingVehicle]=useState(vehicles.filter((v)=>!v.archived_at).length===0)
   const [editing,setEditing]=useState<Entry|null>(null); const [message,setMessage]=useState<string|null>(null)
   const active=vehicles.filter((v)=>!v.archived_at); const vehicleNames=useMemo(()=>new Map(vehicles.map((v)=>[v.id,v.display_name])),[vehicles])
-  async function refresh(){const response=await fetch('/api/mileage/list',{cache:'no-store'});if(!response.ok)return
+  async function refresh(){const response=await fetch('/api/mileage/list',{cache:'no-store',signal:AbortSignal.timeout(10_000)});if(!response.ok)throw new Error('Mileage list could not be refreshed.')
     const data=await response.json();setVehicles(data.vehicles);setEntries(data.entries)}
   return <main className="page-container page-container-narrow">
     <header><p className="text-xs font-semibold tracking-[0.16em] text-slate-500">BUSINESS DRIVING</p>
@@ -39,10 +39,13 @@ export function MileageClient({ initialVehicles, initialEntries }: { initialVehi
 
 function MileageForm({vehicles,entry,onDone}:{vehicles:Vehicle[];entry:Entry|null;onDone:()=>Promise<void>}){
   const [busy,setBusy]=useState(false);const [error,setError]=useState<string|null>(null);const key=useRef(crypto.randomUUID())
-  return <form key={entry?.id??'new'} className="surface mt-7 p-5 sm:p-7" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setError(null);const f=new FormData(e.currentTarget)
-    const body={miles:String(f.get('miles')),occurredOn:String(f.get('date')),vehicleId:String(f.get('vehicleId')),jobLabel:String(f.get('jobLabel')??''),destination:String(f.get('destination')??''),businessPurpose:String(f.get('businessPurpose')??''),...(entry?{expectedEventId:entry.current_event_id}:{})}
-    const response=await fetch(entry?`/api/mileage/${entry.id}`:'/api/mileage/create',{method:entry?'PATCH':'POST',headers:{'content-type':'application/json','idempotency-key':`mileage-${key.current}`},body:JSON.stringify(body)})
-    const data=await response.json().catch(()=>({}));if(!response.ok){setError(data.error??'Mileage could not be saved.');setBusy(false);return}key.current=crypto.randomUUID();(e.currentTarget as HTMLFormElement).reset();await onDone();setBusy(false)}}>
+  return <form key={entry?.id??'new'} className="surface mt-7 p-5 sm:p-7" onSubmit={async(e)=>{e.preventDefault();if(busy)return;setBusy(true);setError(null);const form=e.currentTarget;const f=new FormData(form);let saved=false
+    try {const body={miles:String(f.get('miles')),occurredOn:String(f.get('date')),vehicleId:String(f.get('vehicleId')),jobLabel:String(f.get('jobLabel')??''),destination:String(f.get('destination')??''),businessPurpose:String(f.get('businessPurpose')??''),...(entry?{expectedEventId:entry.current_event_id}:{})}
+      const response=await fetch(entry?`/api/mileage/${entry.id}`:'/api/mileage/create',{method:entry?'PATCH':'POST',headers:{'content-type':'application/json','idempotency-key':`mileage-${key.current}`},body:JSON.stringify(body),signal:AbortSignal.timeout(15_000)})
+      const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error??'Mileage could not be saved.')
+      saved=true;key.current=crypto.randomUUID();form.reset();await onDone()
+    } catch(cause) {setError(saved?'Mileage was saved, but the list could not be refreshed. Reload to see it.':cause instanceof Error&&cause.name!=='TimeoutError'?cause.message:'Mileage could not be saved. Please try again.')
+    } finally {setBusy(false)}}}>
     <h2 className="text-lg font-semibold">{entry?'Correct trip':'Add mileage'}</h2><div className="mt-4 grid gap-4 sm:grid-cols-2">
       <label className="text-sm font-medium">Miles<input name="miles" inputMode="decimal" required placeholder="12.5" defaultValue={entry?formatMiles(Number(entry.miles_milli)):''} className="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base"/></label>
       <label className="text-sm font-medium">Date<input name="date" type="date" required max={new Date().toISOString().slice(0,10)} defaultValue={entry?.occurred_on??new Date().toISOString().slice(0,10)} className="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base"/></label>

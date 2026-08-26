@@ -19,6 +19,8 @@ describe('canonical mileage product',()=>{
     expect(policy).toContain("'/mileage'");expect(page).toContain('inputMode="decimal"')
     expect(page).toContain('Business purpose');expect(page).toContain('Job or project')
     expect(page).not.toMatch(/standard mileage|actual expense method|choose.*method/i)
+    expect(page).toContain('finally {setBusy(false)}')
+    expect(page).toContain('AbortSignal.timeout')
   })
   it('keeps legacy APIs on canonical services and reports facts fail closed',()=>{
     expect(source('app/api/mileage/create/route.ts')).toContain("rpc('record_canonical_mileage'")

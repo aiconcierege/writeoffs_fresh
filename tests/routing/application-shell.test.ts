@@ -45,6 +45,9 @@ describe('canonical application and public shell routes', () => {
     expect(header).toContain('["Reports", "/reports"]')
     expect(header).toContain('href="/settings"')
     expect(header).toContain('Menu')
+    expect(header).toContain('onClick={closeMenu}')
+    expect(header).toContain("event.key !== 'Escape'")
+    expect(header).toContain('menu.current.querySelector(\'summary\')?.focus()')
   })
 
   it('protects product routes and redirects authenticated auth-page visitors', () => {

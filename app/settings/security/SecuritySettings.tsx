@@ -47,8 +47,10 @@ export function SecuritySettings({ enrollmentRequired, next }: { enrollmentRequi
     setEnrollment(null); setCode(''); setMessage('Two-factor authentication is on.'); await refresh()
     // A full navigation ensures the proxy sees the newly issued AAL2 session
     // instead of evaluating a prefetched response with the prior assurance level.
-    if (enrollmentRequired) window.location.replace(next)
-    else router.refresh()
+    // Always leave the completed prerequisite through a full request. The proxy
+    // applies the one canonical prerequisite policy to `next`, whether this
+    // enrollment began from the required setup route or directly in Settings.
+    window.location.replace(next)
   }
 
   async function removeFactor() {

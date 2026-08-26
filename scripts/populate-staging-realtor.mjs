@@ -70,37 +70,65 @@ if(profile.error)die(`Business profile failed: ${profile.error.message}`)
 
 const transactions=await admin.from('financial_transactions').select('id,transaction_date,original_description,amount_cents').eq('business_id',business.id)
 const links=await admin.from('bookkeeping_financial_sources').select('bookkeeping_record_id,financial_transaction_id').eq('business_id',business.id).is('revoked_at',null)
-const initial=await admin.from('bookkeeping_decisions').select('id,bookkeeping_record_id,supersedes_decision_id,reason').eq('business_id',business.id)
-if(transactions.error||links.error||initial.error)die(`Canonical records could not be resolved: ${transactions.error?.message??links.error?.message??initial.error?.message}`)
+const initial=await admin.from('bookkeeping_decisions').select('id,bookkeeping_record_id,supersedes_decision_id,reason,bookkeeping_nature,treatment,review_status,provenance,confidence,business_purpose').eq('business_id',business.id)
+const initialAllocations=await admin.from('bookkeeping_allocations').select('bookkeeping_decision_id,allocation_kind,amount_cents,tax_category_key,memo').eq('business_id',business.id)
+if(transactions.error||links.error||initial.error||initialAllocations.error)die(`Canonical records could not be resolved: ${transactions.error?.message??links.error?.message??initial.error?.message??initialAllocations.error?.message}`)
 const superseded=new Set(initial.data.map(x=>x.supersedes_decision_id).filter(Boolean))
 const leafByRecord=new Map(initial.data.filter(x=>!superseded.has(x.id)).map(x=>[x.bookkeeping_record_id,x]))
+const initialAllocationsByDecision=new Map()
+for(const allocation of initialAllocations.data)initialAllocationsByDecision.set(allocation.bookkeeping_decision_id,[...(initialAllocationsByDecision.get(allocation.bookkeeping_decision_id)??[]),allocation])
 const recordByTx=new Map(links.data.map(x=>[x.financial_transaction_id,x.bookkeeping_record_id]))
+function supportedCategory(description){
+ if(/META ADS|GOOGLE ADS|ADOBE|CANVA|PHOTOGRAPHY|SIGNS BY TOMORROW/.test(description))return'advertising'
+ if(/FOLLOW UP BOSS|DOCUSIGN/.test(description))return'software-cloud'
+ if(/OFFICE DEPOT/.test(description))return'office-expense'
+ if(/USPS|FEDEX/.test(description))return'postage-shipping'
+ return null
+}
 const counts={income:0,business:0,personal:0,mixed:0,unresolved:0,transfer:0},unresolved=[]
 for(const tx of transactions.data){const facts=fixture.get(`${tx.transaction_date}|${tx.original_description}|${tx.amount_cents}`)??{state:'unresolved',purpose:null};counts[facts.state]++
  const recordId=recordByTx.get(tx.id),leaf=leafByRecord.get(recordId),decisionId=leaf?.id;if(!recordId||!decisionId)die('A source link was missing.')
  if(facts.state==='unresolved'){
-  let currentDecisionId=decisionId
-  if(leaf.reason!=='Deterministic staging realtor unresolved fact.'){
+ let currentDecisionId=decisionId
+  if(leaf.reason!=='Deterministic staging realtor unresolved fact.'&&leaf.reason!=='Likely business purchase; factual purpose is still required.'){
    const pending=await admin.rpc('append_bookkeeping_decision',{p_business_id:business.id,p_bookkeeping_record_id:recordId,p_expected_current_decision_id:decisionId,
     p_bookkeeping_nature:'expense',p_treatment:'unresolved',p_review_status:'needs_review',p_provenance:'automation',p_confidence:null,
     p_reason:'Deterministic staging realtor unresolved fact.',p_business_purpose:null,p_allocations:[]})
    if(pending.error)die(`Unresolved decision failed: ${pending.error.message}`);currentDecisionId=pending.data
   }
-  unresolved.push({...tx,recordId,decisionId:currentDecisionId});continue}
- if(leaf.reason?.startsWith('Deterministic staging realtor fixture:'))continue
+  unresolved.push({...tx,recordId,decisionId:currentDecisionId,treatment:leaf.reason==='Likely business purchase; factual purpose is still required.'?'business':'unresolved'});continue}
+ const category=supportedCategory(tx.original_description)
+ if(leaf.reason?.startsWith('Deterministic staging realtor fixture:')){
+  const currentAllocations=initialAllocationsByDecision.get(leaf.id)??[]
+  if(!category||currentAllocations.some(a=>a.allocation_kind==='business'&&a.tax_category_key===category))continue
+  const categorized=await admin.rpc('append_bookkeeping_decision',{p_business_id:business.id,p_bookkeeping_record_id:recordId,p_expected_current_decision_id:leaf.id,
+   p_bookkeeping_nature:leaf.bookkeeping_nature,p_treatment:leaf.treatment,p_review_status:leaf.review_status,p_provenance:'system',p_confidence:leaf.confidence,
+   p_reason:`Deterministic staging realtor fixture: ${facts.state}; supported category established.`,p_business_purpose:leaf.business_purpose,
+   p_allocations:currentAllocations.map(a=>({kind:a.allocation_kind,amount_cents:a.amount_cents,tax_category_key:a.allocation_kind==='business'?category:null,memo:a.memo}))})
+  if(categorized.error)die(`Category decision failed: ${categorized.error.message}`)
+  continue
+ }
  const businessPart=facts.state==='mixed'?Math.round(tx.amount_cents*.7):tx.amount_cents
- const allocations=facts.state==='mixed'?[{kind:'business',amount_cents:businessPart},{kind:'personal',amount_cents:tx.amount_cents-businessPart}]
-  :[{kind:['business','income'].includes(facts.state)?'business':facts.state==='transfer'?'excluded':facts.state,amount_cents:tx.amount_cents}]
+ const allocations=facts.state==='mixed'?[{kind:'business',amount_cents:businessPart,tax_category_key:category},{kind:'personal',amount_cents:tx.amount_cents-businessPart}]
+  :[{kind:['business','income'].includes(facts.state)?'business':facts.state==='transfer'?'excluded':facts.state,amount_cents:tx.amount_cents,tax_category_key:facts.state==='business'?category:null}]
  const transfer=facts.state==='transfer',decision=await admin.rpc('append_bookkeeping_decision',{p_business_id:business.id,p_bookkeeping_record_id:recordId,
   p_expected_current_decision_id:decisionId,p_bookkeeping_nature:transfer?'transfer':tx.amount_cents>0?'business_income':'expense',
   p_treatment:facts.state==='mixed'?'mixed_use':transfer?'excluded':facts.state==='income'?'business':facts.state,p_review_status:'resolved',p_provenance:'system',
   p_confidence:['business','income'].includes(facts.state)?.98:null,p_reason:`Deterministic staging realtor fixture: ${facts.state}.`,
   p_business_purpose:facts.purpose,p_allocations:allocations})
  if(decision.error)die(`Decision failed: ${decision.error.message}`)}
-for(const [i,item] of unresolved.slice(0,18).entries()){const reason=['BUSINESS_USE_UNCLEAR','BUSINESS_PURPOSE_NEEDED','MIXED_USE_CLARIFICATION'][i%3]
- const q=await admin.rpc('open_bookkeeping_review_issue_v2',{p_business_id:business.id,p_bookkeeping_record_id:item.recordId,p_based_on_decision_id:item.decisionId,
-  p_reason:reason,p_issue_key:`staging-realtor-v2-${i+1}`,p_context_fingerprint:hash('sha256',`${item.id}:${reason}:v2`),
-  p_question_context:{merchant:item.original_description,occurredOn:item.transaction_date,amountCents:item.amount_cents}});if(q.error)die(`Question failed: ${q.error.message}`)}
+for(const [i,item] of unresolved.slice(0,18).entries()){const reason=i%3===1?'BUSINESS_PURPOSE_NEEDED':'BUSINESS_USE_UNCLEAR'
+ let basedOnDecisionId=item.decisionId
+ if(reason==='BUSINESS_PURPOSE_NEEDED'&&item.treatment!=='business'){
+  const established=await admin.rpc('append_bookkeeping_decision',{p_business_id:business.id,p_bookkeeping_record_id:item.recordId,p_expected_current_decision_id:item.decisionId,
+   p_bookkeeping_nature:'expense',p_treatment:'business',p_review_status:'needs_review',p_provenance:'automation',p_confidence:.8,
+   p_reason:'Likely business purchase; factual purpose is still required.',p_business_purpose:null,
+   p_allocations:[{kind:'business',amount_cents:item.amount_cents,tax_category_key:supportedCategory(item.original_description)}]})
+  if(established.error)die(`Purpose-question decision failed: ${established.error.message}`);basedOnDecisionId=established.data
+ }
+ const q=await admin.rpc('open_bookkeeping_review_issue_v2',{p_business_id:business.id,p_bookkeeping_record_id:item.recordId,p_based_on_decision_id:basedOnDecisionId,
+  p_reason:reason,p_issue_key:`staging-realtor-v3-${i+1}`,p_context_fingerprint:hash('sha256',`${item.id}:${reason}:v3`),
+  p_question_context:{schemaVersion:1,reason,merchant:item.original_description,occurredOn:item.transaction_date,amountCents:item.amount_cents}});if(q.error)die(`Question failed: ${q.error.message}`)}
 
 const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=','base64')
 for(let i=0;i<12;i++){const fingerprint=hash('sha256',`staging-realtor-receipt:${i}`),path=`receipts/${userId}/${fingerprint}`

@@ -61,6 +61,7 @@ describe('account protection', () => {
     expect(settings).toContain('action={SECURITY_SETTINGS_PATH}')
     expect(settings).toContain('event.preventDefault()')
     expect(settings).toContain('window.location.replace(next)')
+    expect(settings).not.toContain('if (enrollmentRequired) window.location.replace(next)')
   })
 
   it('protects MFA, reset, and security routes and validates redirect destinations', () => {

@@ -2,6 +2,7 @@ import {readFileSync} from 'node:fs'
 import {describe,expect,it} from 'vitest'
 
 const script=readFileSync('scripts/populate-staging-realtor.mjs','utf8')
+const repair=readFileSync('scripts/repair-staging-realtor-functional-fixture.mjs','utf8')
 
 describe('staging realtor UX fixture',()=>{
  it('fails closed on environment, host, designated identity, and nonfresh books',()=>{
@@ -16,6 +17,14 @@ describe('staging realtor UX fixture',()=>{
    expect(script).toContain(contract)
   }
   expect(script).not.toContain('potential_writeoff_count')
-  expect(script).not.toContain('attach_bookkeeping_receipt_journey')
+ expect(script).not.toContain('attach_bookkeeping_receipt_journey')
+ })
+ it('keeps functional fixture repair staging-only and append-only',()=>{
+  expect(repair).toContain("need('WRITEOFFS_ENVIRONMENT') !== 'staging'")
+  expect(repair).toContain("new URL(url).host !== need('WRITEOFFS_EXPECTED_SUPABASE_HOST')")
+  expect(repair).toContain('allowed.has(email)')
+  expect(repair).toContain("rpc('append_bookkeeping_decision'")
+  expect(repair).toContain("rpc('open_bookkeeping_review_issue_v2'")
+  expect(repair).not.toMatch(/\.from\([^\n]+\)\.(?:delete|update)\(/)
  })
 })

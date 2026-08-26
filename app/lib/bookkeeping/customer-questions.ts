@@ -48,13 +48,19 @@ export function projectCustomerQuestion(
     transaction,
   }
   const isPurchase = item.decision.bookkeepingNature === 'expense'
+  const context = item.event.questionContext
+  const trustedContext = context?.schemaVersion === 1 && context.reason === item.event.reason
+  if (!trustedContext) return null
   if (item.event.reason === 'BUSINESS_USE_UNCLEAR') {
     return isPurchase
       ? { ...base, kind: 'business_use', prompt: 'Was this purchase for your business?' }
       : null
   }
   if (item.event.reason === 'BUSINESS_PURPOSE_NEEDED') {
-    return isPurchase ? {
+    const hasBusinessPortion = item.decision.allocations.some((allocation) =>
+      allocation.kind === 'business' && allocation.amountCents !== 0)
+    return isPurchase && ['business', 'mixed_use'].includes(item.decision.treatment)
+      && hasBusinessPortion ? {
       ...base,
       kind: 'business_purpose',
       prompt: 'What was this purchase for?',
@@ -62,7 +68,7 @@ export function projectCustomerQuestion(
     } : null
   }
   if (item.event.reason === 'MIXED_USE_CLARIFICATION') {
-    return isPurchase
+    return isPurchase && context?.businessUse === 'mixed'
       ? { ...base, kind: 'mixed_use', prompt: 'Was any of this purchase personal?' }
       : null
   }

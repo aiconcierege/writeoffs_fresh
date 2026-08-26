@@ -35,6 +35,13 @@ function withNature(
   return { ...value, decision: { ...value.decision, bookkeepingNature } }
 }
 
+function withDecision(
+  value: CanonicalWeeklyReviewItem,
+  decision: Partial<CanonicalWeeklyReviewItem['decision']>
+) {
+  return { ...value, decision: { ...value.decision, ...decision } }
+}
+
 const transaction = { merchant: 'Office Depot', amountCents: -18600, currency: 'USD', date: '2026-08-17' }
 
 describe('customer question projection', () => {
@@ -55,8 +62,12 @@ describe('customer question projection', () => {
   it('projects the canonical queue in its existing continuous order', () => {
     const queue = [
       projectCustomerQuestion(item('BUSINESS_USE_UNCLEAR'), transaction),
-      projectCustomerQuestion(item('BUSINESS_PURPOSE_NEEDED'), transaction),
-      projectCustomerQuestion(item('MIXED_USE_CLARIFICATION'), transaction),
+      projectCustomerQuestion(withDecision(item('BUSINESS_PURPOSE_NEEDED'), {
+        treatment: 'business', allocations: [{ kind: 'business', amountCents: -18600 }],
+      }), transaction),
+      projectCustomerQuestion(withDecision(item('MIXED_USE_CLARIFICATION', { businessUse: 'mixed' }), {
+        treatment: 'unresolved', allocations: [],
+      }), transaction),
     ]
     expect(queue.map((question) => question?.kind)).toEqual([
       'business_use', 'business_purpose', 'mixed_use',
@@ -112,5 +123,13 @@ describe('customer question projection', () => {
       expect(projectCustomerQuestion(withNature(item(reason), null), transaction)).toBeNull()
       expect(projectCustomerQuestion(withNature(item(reason), 'transfer'), transaction)).toBeNull()
     }
+  })
+
+  it('fails closed for malformed fixture or stale question contracts', () => {
+    expect(projectCustomerQuestion(item('BUSINESS_PURPOSE_NEEDED'), transaction)).toBeNull()
+    expect(projectCustomerQuestion(item('MIXED_USE_CLARIFICATION'), transaction)).toBeNull()
+    const malformed = item('BUSINESS_USE_UNCLEAR')
+    malformed.event.questionContext = { merchant: 'Office Depot' }
+    expect(projectCustomerQuestion(malformed, transaction)).toBeNull()
   })
 })

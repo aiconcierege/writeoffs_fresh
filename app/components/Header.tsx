@@ -3,6 +3,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useEffect, useRef, type KeyboardEvent } from "react"
 import BrandLogo from "../components/BrandLogo"
 import SignOutButton from "../components/SignOutButton"
 import { isAuthenticatedRoute } from "../lib/route-policy"
@@ -15,6 +16,22 @@ const recordItems = [
 
 export function Header() {
   const pathname = usePathname()
+  const menu = useRef<HTMLDetailsElement>(null)
+
+  useEffect(() => {
+    if (menu.current) menu.current.open = false
+  }, [pathname])
+
+  function closeMenu() {
+    if (menu.current) menu.current.open = false
+  }
+
+  function handleMenuKeyDown(event: KeyboardEvent<HTMLDetailsElement>) {
+    if (event.key !== 'Escape' || !menu.current?.open) return
+    event.preventDefault()
+    menu.current.open = false
+    menu.current.querySelector('summary')?.focus()
+  }
 
   if (!isAuthenticatedRoute(pathname)) {
     return (
@@ -59,11 +76,11 @@ export function Header() {
   return <header className="fixed top-0 z-50 w-full border-b border-[#dce3de]/80 bg-[#fbfaf7]/94 backdrop-blur-xl">
     <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-7">
       <BrandLogo href="/home" heightPx={32}/>
-      <details className="group relative"><summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-xl px-3 text-sm font-semibold text-[#17211d] hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#243186] [&::-webkit-details-marker]:hidden"><span>Menu</span><span aria-hidden="true" className="grid gap-1"><i className="block h-0.5 w-5 bg-current"/><i className="block h-0.5 w-5 bg-current"/><i className="block h-0.5 w-5 bg-current"/></span></summary>
+      <details ref={menu} onKeyDown={handleMenuKeyDown} className="group relative"><summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-xl px-3 text-sm font-semibold text-[#17211d] hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#243186] [&::-webkit-details-marker]:hidden"><span>Menu</span><span aria-hidden="true" className="grid gap-1"><i className="block h-0.5 w-5 bg-current"/><i className="block h-0.5 w-5 bg-current"/><i className="block h-0.5 w-5 bg-current"/></span></summary>
         <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-[#dce3de] bg-[#fffefa] p-3 shadow-[0_24px_65px_rgba(23,33,29,.17)]">
-          <Link href="/home" aria-current={pathname==='/home'?'page':undefined} className="block rounded-xl bg-[#eef7f2] px-4 py-3 font-semibold text-[#17211d]">Home</Link>
-          <nav aria-label="Your records" className="mt-2 grid grid-cols-2 gap-1">{recordItems.map(([name,href])=><Link key={href} href={href} aria-current={pathname.startsWith(href)?'page':undefined} className="flex min-h-12 items-center rounded-lg px-3 text-sm font-medium text-[#435149] hover:bg-white">{name}</Link>)}</nav>
-          <div className="my-2 border-t border-[#dce3de]"/><Link href="/get-started" className="block min-h-11 rounded-lg px-3 py-3 text-sm font-medium text-[#435149] hover:bg-white">Add or connect records</Link><Link href="/settings" className="block min-h-11 rounded-lg px-3 py-3 text-sm font-medium text-[#435149] hover:bg-white">Account and settings</Link><Link href="/settings/billing" className="block min-h-11 rounded-lg px-3 py-3 text-sm font-medium text-[#435149] hover:bg-white">Membership</Link>
+          <Link onClick={closeMenu} href="/home" aria-current={pathname==='/home'?'page':undefined} className="block rounded-xl bg-[#eef7f2] px-4 py-3 font-semibold text-[#17211d]">Home</Link>
+          <nav aria-label="Your records" className="mt-2 grid grid-cols-2 gap-1">{recordItems.map(([name,href])=><Link onClick={closeMenu} key={href} href={href} aria-current={pathname.startsWith(href)?'page':undefined} className="flex min-h-12 items-center rounded-lg px-3 text-sm font-medium text-[#435149] hover:bg-white">{name}</Link>)}</nav>
+          <div className="my-2 border-t border-[#dce3de]"/><Link onClick={closeMenu} href="/get-started" className="block min-h-11 rounded-lg px-3 py-3 text-sm font-medium text-[#435149] hover:bg-white">Add or connect records</Link><Link onClick={closeMenu} href="/settings" className="block min-h-11 rounded-lg px-3 py-3 text-sm font-medium text-[#435149] hover:bg-white">Account and settings</Link><Link onClick={closeMenu} href="/settings/billing" className="block min-h-11 rounded-lg px-3 py-3 text-sm font-medium text-[#435149] hover:bg-white">Membership</Link>
           <div className="mt-2 border-t border-[#dce3de] pt-2"><SignOutButton className="w-full justify-center border-0 bg-transparent shadow-none"/></div>
         </div></details>
     </div>
