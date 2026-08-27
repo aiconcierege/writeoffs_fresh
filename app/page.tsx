@@ -2,6 +2,7 @@ import Image from "next/image"
 import Link from "next/link"
 import WaitlistForm from "./components/WaitlistForm"
 import { BettiIllustration } from "./components/BettiIllustration"
+import { PublicFooter } from "./components/PublicFooter"
 
 const steps = [
   {
@@ -30,7 +31,7 @@ const outcomes = [
 
 export default function Page() {
   return (
-    <div className="-mx-4 -mb-10 overflow-hidden bg-[#fffaf3] text-[#17211d] sm:-mx-6 lg:-mx-8">
+    <div className="public-site -mx-4 -mb-10 overflow-hidden bg-[#fffaf3] text-[#17211d] sm:-mx-6 lg:-mx-8">
       <section className="relative overflow-hidden bg-[#fff8ee]">
         <div className="relative mx-auto grid max-w-[90rem] lg:min-h-[36rem] lg:grid-cols-[1.08fr_0.92fr] xl:min-h-[39rem]">
           <div className="relative z-10 flex items-center px-6 py-12 sm:px-10 sm:py-16 lg:px-16 lg:py-14 xl:px-24">
@@ -115,9 +116,10 @@ export default function Page() {
                 <span className="font-mono text-sm font-semibold text-[#178368]">{step.number}</span>
                 <h3 className="mt-5 text-2xl font-semibold tracking-[-0.03em]">{step.title}</h3>
                 <p className="mt-3 max-w-sm text-base leading-7 text-[#59665f]">{step.body}</p>
-                {index === 1 && <div className="relative mt-4 h-52 sm:h-64 lg:h-60" aria-hidden="true">
-                  <div className="absolute -bottom-20 -right-14 h-64 w-64 rounded-full bg-white/55"/>
-                  <BettiIllustration state="working" decorative sizes="(max-width: 639px) 17rem, 21rem" className="absolute -bottom-10 left-1/2 w-72 max-w-none -translate-x-1/2 drop-shadow-[0_18px_22px_rgba(23,83,62,.15)] sm:w-80 lg:-bottom-12 lg:w-80"/>
+                {index === 1 && <div className="relative mt-7 overflow-hidden rounded-xl border border-[#c4ddce] bg-white/60 p-4" aria-hidden="true">
+                  <div className="flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-[#178368] text-sm font-bold text-white">✓</span><span className="h-2 flex-1 rounded-full bg-[#bddfce]"/></div>
+                  <div className="mt-3 flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-[#243186] text-sm font-bold text-white">↗</span><span className="h-2 w-4/5 rounded-full bg-[#d7dcf1]"/></div>
+                  <div className="mt-3 flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-[#e8a528] text-sm font-bold text-white">▤</span><span className="h-2 w-3/5 rounded-full bg-[#eadfca]"/></div>
                 </div>}
               </article>
             ))}
@@ -217,16 +219,7 @@ export default function Page() {
         </div>
       </section>
 
-      <footer className="bg-[#0d1713] text-[#c8d9d1]">
-        <div className="mx-auto flex max-w-7xl flex-col gap-7 px-6 py-9 sm:px-10 md:flex-row md:items-center md:justify-between lg:px-16">
-          <p className="text-sm">© {new Date().getFullYear()} WriteOffs.io. All rights reserved.</p>
-          <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-3 text-sm">
-            <Link href="/legal/privacy" className="transition hover:text-white">Privacy</Link>
-            <Link href="/legal/terms" className="transition hover:text-white">Terms</Link>
-            <Link href="/press" className="transition hover:text-white">Press</Link>
-          </nav>
-        </div>
-      </footer>
+      <PublicFooter/>
 
     </div>
   )

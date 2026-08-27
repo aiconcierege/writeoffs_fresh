@@ -1,3 +1,5 @@
+import { PublicPageShell } from '../../components/PublicPageShell'
+
 export const metadata = {
   title: "Terms of Service | WriteOffs.io",
   description: "The rules for using WriteOffs.io.",
@@ -5,9 +7,8 @@ export const metadata = {
 
 export default function Page() {
   return (
-    <main className="prose prose-zinc max-w-3xl mx-auto px-4 py-12">
-      <h1>Terms of Service</h1>
-      <p><strong>Last updated:</strong> September 30, 2025</p>
+    <PublicPageShell eyebrow="Legal" title="Terms of Service" introduction="Last updated September 30, 2025">
+      <article className="public-legal">
 
       <p>
         These Terms of Service (“Terms”) govern your access to and use of the Services provided by
@@ -98,6 +99,7 @@ export default function Page() {
       <p>
         Questions about these Terms: <a href="mailto:rick@aiconciergeinc.com">rick@aiconciergeinc.com</a>.
       </p>
-    </main>
+      </article>
+    </PublicPageShell>
   );
 }

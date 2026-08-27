@@ -1,3 +1,5 @@
+import { PublicPageShell } from '../../components/PublicPageShell'
+
 export const metadata = {
   title: "Privacy Policy | WriteOffs.io",
   description:
@@ -6,9 +8,8 @@ export const metadata = {
 
 export default function Page() {
   return (
-    <main className="prose prose-zinc max-w-3xl mx-auto px-4 py-12">
-      <h1>Privacy Policy</h1>
-      <p><strong>Last updated:</strong> September 30, 2025</p>
+    <PublicPageShell eyebrow="Legal" title="Privacy Policy" introduction="Last updated September 30, 2025">
+      <article className="public-legal">
 
       <p>
         This Privacy Policy explains how <strong>AI Concierge Inc. d/b/a WriteOffs.io</strong>
@@ -93,6 +94,7 @@ export default function Page() {
       <p>
         Questions or requests: <a href="mailto:rick@aiconciergeinc.com">rick@aiconciergeinc.com</a>.
       </p>
-    </main>
+      </article>
+    </PublicPageShell>
   );
 }

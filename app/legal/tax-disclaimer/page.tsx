@@ -1,3 +1,5 @@
+import { PublicPageShell } from '../../components/PublicPageShell'
+
 export const metadata = {
   title: "Tax Disclaimer | WriteOffs.io",
   description:
@@ -6,9 +8,8 @@ export const metadata = {
 
 export default function Page() {
   return (
-    <main className="prose prose-zinc max-w-3xl mx-auto px-4 py-12">
-      <h1>Tax Disclaimer</h1>
-      <p><strong>Last updated:</strong> September 30, 2025</p>
+    <PublicPageShell eyebrow="Legal" title="Tax Disclaimer" introduction="Last updated September 30, 2025">
+      <article className="public-legal">
 
       <p>
         The content and tools provided by <strong>AI Concierge Inc. d/b/a WriteOffs.io</strong>
@@ -49,6 +50,7 @@ export default function Page() {
       <p>
         For questions, contact <a href="mailto:rick@aiconciergeinc.com">rick@aiconciergeinc.com</a>.
       </p>
-    </main>
+      </article>
+    </PublicPageShell>
   );
 }

@@ -66,7 +66,7 @@ export function DocumentationStrip({ documented, undocumented, processing }: { d
     <dl className="home-document-states">
       <div className="home-document-connected"><dt><span aria-hidden="true">✓</span>Receipts connected</dt><dd>{documented}</dd><small>Supporting these expenses</small></div>
       <div className="home-document-open"><dt><span aria-hidden="true">○</span>Without a receipt yet</dt><dd>{undocumented}</dd><small>Still included in your records</small></div>
-      <div className="home-document-processing-state"><dt><span aria-hidden="true">•••</span>Being worked on</dt><dd>{processing}</dd><small>Uploaded receipts in progress</small></div>
+      {processing > 0 && <div className="home-document-processing-state"><dt><span aria-hidden="true">•••</span>Being worked on</dt><dd>{processing}</dd><small>Uploaded receipts in progress</small></div>}
     </dl>
   </div>
 }

@@ -22,7 +22,7 @@ const recordAreas = [
   ['/receipts', 'Receipts', 'See your documentation', 'receipts'],
   ['/mileage', 'Mileage', 'Keep business miles', 'mileage'],
   ['/contractors', 'Contractors', 'Keep W-9 facts together', 'contractors'],
-  ['/deductions', 'Deduction details', 'See the facts behind the work', 'deductions'],
+  ['/deductions', 'Business details', 'Review facts WriteOffs remembers', 'deductions'],
   ['/reports', 'Reports', 'See the bigger picture', 'reports'],
 ] as const
 
@@ -45,13 +45,17 @@ export default async function HomePage() {
   const year = today.slice(0, 4)
   const businessResult = await supabase.from('businesses').select('business_description,business_profile_context,schedule_c_eligibility,business_stage,business_start_month,uses_customer_job_materials,keeps_future_sale_merchandise,prior_materials_handling,catch_up_start_date,onboarding_start_method,v1_support_status,onboarding_state,onboarding_version')
     .eq('owner_user_id', user.id).maybeSingle()
-  const [summary, potential, questions, receiptWorkflow, weeklyReview] = await Promise.all([
+  const [summary, potential, questions, receiptWorkflow, weeklyReview, cadenceResult] = await Promise.all([
     getAuthenticatedCanonicalReport({ supabase, periodStart: `${year}-01-01`, periodEnd: today, currency: 'USD' }),
     getAuthenticatedPotentialWriteoffs({ supabase, periodStart: `${year}-01-01`, periodEnd: today }),
     listCustomerQuestions({ supabase, scope: membership.plan! }),
     summarizeReceiptDocumentation(supabase),
     getCurrentCustomerWeeklyReview(supabase),
+    supabase.from('current_business_review_cadence').select('timezone_name').maybeSingle(),
   ])
+  if (cadenceResult.error || !cadenceResult.data?.timezone_name) {
+    throw new Error('Your business timezone could not be loaded safely.')
+  }
 
   const needsSetup = businessResult.data
     ? onboardingNeedsFollowUp(businessResult.data as OnboardingBusinessData) : true
@@ -65,7 +69,7 @@ export default async function HomePage() {
     ? 'question' : receiptWorkflow.processing > 0 ? 'working' : 'caught-up'
 
   return <main className="home-page"><div className="home-shell">
-    <HomeGreeting firstName={firstName(user.user_metadata ?? {})}/>
+    <HomeGreeting firstName={firstName(user.user_metadata ?? {})} timeZone={cadenceResult.data.timezone_name}/>
 
     <section className="home-hero" aria-labelledby="home-heading">
       <div className="home-writeoff-story">
@@ -93,7 +97,7 @@ export default async function HomePage() {
 
     <section className="home-dashboard-row" aria-label="Documentation and recent work">
       <div className="home-documentation">
-        <div className="home-section-heading"><div><p className="home-kicker">Documentation</p><h2>Your proof is staying with your books.</h2></div><Link href="/receipts">See receipts <span aria-hidden="true">→</span></Link></div>
+        <div className="home-section-heading"><div><p className="home-kicker">Documentation</p><h2>Your receipts stay with your expenses.</h2></div><Link href="/receipts">See receipts <span aria-hidden="true">→</span></Link></div>
         <DocumentationStrip documented={documented} undocumented={undocumented} processing={receiptWorkflow.processing}/>
         <p className="home-help-copy">A missing receipt doesn’t automatically make an expense invalid.</p>
       </div>
@@ -101,7 +105,7 @@ export default async function HomePage() {
         <p className="home-kicker">WriteOffs at work</p><h2>What I’m handling</h2>
         <ul>
           <li><span>✓</span><strong>{potential.count} potential writeoffs identified</strong></li>
-          <li><span>✓</span><strong>{documented} connected to documentation</strong></li>
+          <li><span>✓</span><strong>{documented} receipts connected to expenses</strong></li>
           {receiptWorkflow.processing > 0 && <li><span className="home-work-dot">•</span><strong>{receiptWorkflow.processing} still being organized</strong></li>}
           {questions.length > 0 && <li><span className="home-work-question">?</span><strong>{questions.length} waiting for a fact from you</strong></li>}
         </ul>
@@ -115,7 +119,7 @@ export default async function HomePage() {
     </section>
 
     <section className="home-records" aria-labelledby="records-heading">
-      <div className="home-section-heading"><div><p className="home-kicker">Your records</p><h2 id="records-heading">Everything in its place.</h2></div></div>
+      <div className="home-section-heading"><div><p className="home-kicker">Your records</p><h2 id="records-heading">Find what you need.</h2></div></div>
       <RecordIndex areas={areas}/>
     </section>
 
