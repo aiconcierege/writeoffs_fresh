@@ -77,7 +77,7 @@ export default async function HomePage() {
       <div className={`home-betti home-betti-${bettiState}`}>
         <div className="home-betti-copy">
           {questions.length > 0
-            ? <><p className="home-betti-title">I have {questions.length} quick {questions.length === 1 ? 'question' : 'questions'} for you.</p><p>Is now a good time?</p></>
+            ? <><p className="home-betti-title">{questions.length > 8 ? 'I have a few things I need your help with.' : `I have ${questions.length} quick ${questions.length === 1 ? 'question' : 'questions'} for you.`}</p><p>Is now a good time?</p>{questions.length > 8 && <span className="sr-only">There are {questions.length} questions in your continuous question queue.</span>}</>
             : receiptWorkflow.processing > 0
               ? <><p className="home-betti-title">I’m working on it.</p><p>{receiptWorkflow.processing} {receiptWorkflow.processing === 1 ? 'receipt is' : 'receipts are'} still being organized.</p></>
               : <><p className="home-betti-title">You’re all caught up.</p><p>I’ve got the rest.</p></>}

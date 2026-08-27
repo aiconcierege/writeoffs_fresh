@@ -125,6 +125,21 @@ export default function Page() {
         </div>
       </section>
 
+      <section className="bg-[#193f35] text-white" aria-labelledby="meet-betti-heading">
+        <div className="mx-auto grid max-w-7xl overflow-hidden px-6 sm:px-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-center lg:px-16">
+          <div className="relative order-2 h-72 sm:h-80 lg:order-1 lg:h-[25rem]">
+            <div className="absolute -bottom-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-[#8ce6cb]/15 blur-2xl" aria-hidden="true"/>
+            <BettiIllustration state="welcome" decorative sizes="(max-width: 1023px) 18rem, 24rem" className="absolute -bottom-40 left-1/2 w-[19rem] max-w-none -translate-x-1/2 drop-shadow-[0_24px_28px_rgba(0,0,0,.22)] sm:-bottom-48 sm:w-[23rem] lg:-bottom-52 lg:w-[26rem]"/>
+          </div>
+          <div className="order-1 pt-14 sm:pt-16 lg:order-2 lg:py-20 lg:pl-12">
+            <p className="text-sm font-semibold text-[#8ce6cb]">Meet Betti the Bookkeeper</p>
+            <h2 id="meet-betti-heading" className="mt-4 max-w-2xl text-balance text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">She’s already working.</h2>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-[#cde4da]">Betti is the careful bookkeeper inside WriteOffs—organizing the activity, connecting the proof, and bringing you only the facts she genuinely needs.</p>
+            <p className="mt-5 max-w-xl text-sm font-semibold leading-6 text-white">WriteOffs does the books. You keep running the business.</p>
+          </div>
+        </div>
+      </section>
+
       <section id="features" className="relative overflow-hidden bg-[#e9f5ef]">
         <div className="absolute -left-28 top-16 h-72 w-72 rounded-full bg-[#9ce0c8]/30 blur-3xl" aria-hidden="true" />
         <div className="relative mx-auto grid max-w-7xl gap-12 px-6 py-16 sm:px-10 sm:py-20 lg:grid-cols-[0.82fr_1.18fr] lg:items-start lg:gap-20 lg:px-16 lg:py-24">

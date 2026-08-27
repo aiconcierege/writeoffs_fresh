@@ -327,6 +327,47 @@ body { background: var(--canvas); color: var(--ink); }
   .home-shell { padding-inline: .65rem; }.home-writeoff-story { padding-inline: 1rem; }.home-writeoff-story h1 strong { font-size: 5.15rem; }.home-writeoff-story h1 span { font-size: 1.65rem; }.home-betti-copy { margin-inline: .85rem; }.home-betti-actions { right: .75rem; left: .75rem; }.home-review-heading,.home-review-sheet,.home-review-footer { padding-left: 1.7rem; padding-right: 1rem; }.home-documentation,.home-recent-work,.home-financial { padding: 1rem; }
 }
 
+/* Home refinement: conversation, review, evidence, and records read as one page. */
+.home-rhythm { margin-top: 1.2rem; padding-top: .8rem; }
+.home-rhythm-chart { display: block; width: 100%; height: 6.4rem; overflow: visible; }
+.home-rhythm-months { display: flex; justify-content: space-between; margin-top: -.25rem; color: #68756e; font-size: .58rem; }
+.home-betti-copy { margin-top: 1.8rem; max-width: 14.5rem; border: 1px solid rgba(117,160,137,.25); border-radius: 1.2rem .45rem 1.2rem 1.2rem; background: rgba(255,255,255,.82); padding: 1rem 1.05rem 1rem 1.15rem; box-shadow: 0 18px 42px rgba(29,74,56,.09); }
+.home-betti-copy::after { position: absolute; top: 1.25rem; right: -.65rem; width: 1.25rem; height: 2px; border-radius: 999px; background: #178368; content: ''; transform: rotate(-18deg); transform-origin: left center; }
+.home-betti-question .home-betti-image { right: -2rem; bottom: -3.4rem; width: min(19rem,76vw); }
+.home-review-sheet { padding-top: 1.1rem; padding-bottom: .25rem; }
+.home-review-totals { margin-bottom: .35rem; border-bottom: 1px dashed #cbd8d0; padding-top: 0; padding-bottom: 1.2rem; }
+.home-review-items { display: grid; gap: .42rem; border: 0; }
+.home-review-items li { border: 0; }
+.home-review-items a { display: grid; grid-template-columns: 1.7rem minmax(0,1fr) auto; min-height: 3.65rem; border-radius: .75rem; background: #f5f7f2; padding: .62rem .7rem; transition: background-color .18s ease,transform .18s ease; }
+.home-review-items a:hover { transform: translateX(2px); background: #edf4ed; }
+.home-review-items i { display: grid; width: 1.45rem; height: 1.45rem; place-items: center; border-radius: 50%; background: #dff1e7; color: #176c54; font-size: .7rem; font-style: normal; font-weight: 800; }
+.home-review-items li[data-kind="income"] i { background: #dfe5fa; color: #243186; }.home-review-items li[data-kind="mixed"] i { background: #fff0cf; color: #895e08; }
+.home-document-states { display: grid; gap: .7rem; margin-top: 1.25rem; }
+.home-document-states > div { position: relative; min-height: 7rem; overflow: hidden; border-radius: 1rem; padding: 1rem; }
+.home-document-connected { background: #e3f3e8; }.home-document-open { background: #f4f2eb; }.home-document-processing-state { background: #eef0fa; }
+.home-document-states dt { display: flex; align-items: center; gap: .45rem; color: #536159; font-size: .7rem; font-weight: 700; }.home-document-states dt span { display: grid; width: 1.25rem; height: 1.25rem; place-items: center; border-radius: 50%; background: rgba(255,255,255,.78); color: #178368; font-size: .65rem; }.home-document-processing-state dt span { color: #243186; letter-spacing: -.15em; }
+.home-document-states dd { margin-top: .45rem; color: #17211d; font-size: 2rem; line-height: 1; font-weight: 740; letter-spacing: -.05em; font-variant-numeric: tabular-nums; }.home-document-states small { display: block; margin-top: .35rem; color: #66736c; font-size: .64rem; line-height: 1.35; }
+.home-financial-flow { display: grid; gap: .7rem; margin-top: 1.35rem; }
+.home-financial-node { position: relative; min-width: 0; padding: .95rem 1rem; }.home-financial-node span { display: block; color: #176c54; font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }.home-financial-node small { display: block; margin-top: .15rem; color: #5e6b64; font-size: .68rem; }.home-financial-node strong { display: block; margin-top: .45rem; color: #17211d; font-size: clamp(1.4rem,5vw,2rem); line-height: 1; font-weight: 730; letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
+.home-financial-income { border-left: 3px solid #178368; }.home-financial-spent { border-left: 3px solid #f0a21a; }.home-financial-spent span { color: #a86408; }.home-financial-profit { border-radius: 1rem; background: rgba(255,255,255,.65); box-shadow: 0 12px 28px rgba(36,49,134,.07); }.home-financial-profit span { color: #243186; }.home-financial-profit strong { color: #243186; }
+.home-financial-operator { display: grid; width: 1.7rem; height: 1.7rem; place-items: center; justify-self: center; border-radius: 50%; background: rgba(255,255,255,.8); color: #68756e; font-size: 1rem; font-weight: 700; }
+.home-record-index { gap: 0; border-top: 1px solid #cfd9d2; }
+.home-record-link { min-height: 4rem; border: 0; border-bottom: 1px solid #d9e0db; border-radius: 0; background: transparent; padding: .65rem .25rem; box-shadow: none; }
+.home-record-link:hover { transform: none; background: rgba(255,255,255,.55); box-shadow: none; }.home-record-icon { width: 2.35rem; height: 2.35rem; border-radius: 50%; background: transparent; border: 1px solid #bcd4c6; }.home-record-icon svg { width: 1.15rem; height: 1.15rem; }.home-record-arrow { display: block; }
+
+@media (min-width:640px) {
+  .home-betti-copy { margin: 2.25rem 0 0 1.5rem; }.home-betti-question .home-betti-image { right: -3.2rem; bottom: -4rem; width: 25rem; }
+  .home-document-states { grid-template-columns: 1fr 1fr; }.home-document-processing-state { grid-column: 1/-1; min-height: 5.5rem !important; }
+  .home-financial-flow { grid-template-columns: minmax(0,1fr) 1.7rem minmax(0,1fr) 1.7rem minmax(0,1.18fr); align-items: center; }.home-financial-operator { align-self: center; }
+  .home-record-index { grid-template-columns: repeat(2,minmax(0,1fr)); }.home-record-link:nth-child(odd) { padding-right: 1rem; }.home-record-link:nth-child(even) { border-left: 1px solid #d9e0db; padding-left: 1rem; }
+}
+@media (min-width:1024px) {
+  .home-document-states { grid-template-columns: 1fr 1.35fr; }.home-document-processing-state { grid-column: 1/-1; }.home-record-index { grid-template-columns: repeat(4,minmax(0,1fr)); }.home-record-link { grid-template-columns: 2.35rem minmax(0,1fr) auto; min-height: 4.75rem; align-content: center; padding-inline: .8rem; }.home-record-link:nth-child(n) { border-left: 0; }.home-record-link:not(:nth-child(4n+1)) { border-left: 1px solid #d9e0db; }.home-record-arrow { display: block; }
+}
+@media (max-width:639px) {
+  .home-betti { min-height: 23.5rem; }.home-betti-copy { max-width: 13rem; }.home-betti-question .home-betti-image { right: -1.1rem; bottom: -1rem; width: 15rem; }.home-betti-actions { right: .8rem; bottom: .8rem; left: .8rem; }.home-question-actions { max-width: 100%; }.home-review-items a { grid-template-columns: 1.55rem minmax(0,1fr) auto; }
+}
+
 @media print {
   body:has(.invoice-print-page) > header { display: none; }
   body:has(.invoice-print-page) > main { padding: 0; }

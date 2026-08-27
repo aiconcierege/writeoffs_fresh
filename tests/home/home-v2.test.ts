@@ -17,7 +17,9 @@ describe('bookkeeper-centered Home',()=>{
   expect(home).toContain('<QuestionInvitation count={questions.length} compact/>')
   expect(questions).toContain('Not right now')
   expect(questions).toContain('writeoffs-question-prompt-after')
-  expect(questions).not.toContain('confirmed')
+ expect(questions).not.toContain('confirmed')
+  expect(home).toContain("questions.length > 8 ? 'I have a few things I need your help with.'")
+  expect(home).toContain('There are {questions.length} questions in your continuous question queue.')
  })
  it('presents one period-level review with correction and confirmation choices',()=>{
   expect(home).toContain('<WeeklyReview review={weeklyReview}/>')
@@ -28,7 +30,8 @@ describe('bookkeeper-centered Home',()=>{
  it('keeps financial figures secondary and membership scoped',()=>{
   expect(home.indexOf('potential.count')).toBeLessThan(home.indexOf('<FinancialRelationship'))
   expect(home).toContain('business={isBusiness}')
-  expect(home).toContain('income={summary.businessIncomeCents}')
+ expect(home).toContain('income={summary.businessIncomeCents}')
+  expect(readFileSync('app/home/HomeVisuals.tsx','utf8')).toContain('<polyline points={points}')
  })
  it('makes Home a record hub and uses one global menu',()=>{
   for(const label of ['Transactions','Receipts','Mileage','Reports'])expect(home).toContain(label)

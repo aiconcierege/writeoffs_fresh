@@ -17,14 +17,23 @@ export function monthlyWriteoffRhythm(items: { occurredOn: string }[], year: num
 export function WriteoffRhythm({ months }: { months: WriteoffMonth[] }) {
   const visible = months.slice(0, Math.max(1, months.findLastIndex((month) => month.count > 0) + 1))
   const max = Math.max(1, ...visible.map((month) => month.count))
+  const width = 520, height = 104, left = 10, right = 10, top = 12, bottom = 18
+  const x = (index: number) => visible.length === 1 ? width / 2
+    : left + index * ((width - left - right) / (visible.length - 1))
+  const y = (count: number) => top + (max - count) / max * (height - top - bottom)
+  const points = visible.map((month, index) => `${x(index)},${y(month.count)}`).join(' ')
+  const area = visible.length > 1
+    ? `M ${x(0)} ${height - bottom} L ${points.replaceAll(',', ' ')} L ${x(visible.length - 1)} ${height - bottom} Z`
+    : ''
   return <figure className="home-rhythm" aria-labelledby="writeoff-rhythm-title">
     <figcaption id="writeoff-rhythm-title" className="home-rhythm-title">Writeoffs found by month</figcaption>
-    <div className="home-rhythm-bars" aria-hidden="true">{visible.map((month) =>
-      <div key={month.label} className="home-rhythm-column">
-        <span className="home-rhythm-value">{month.count}</span>
-        <span className="home-rhythm-bar" style={{ height: `${Math.max(8, Math.round(month.count / max * 72))}px` }}/>
-        <span className="home-rhythm-label">{month.label}</span>
-      </div>)}</div>
+    <svg className="home-rhythm-chart" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true">
+      <defs><linearGradient id="writeoff-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#00b889" stopOpacity=".3"/><stop offset="1" stopColor="#00b889" stopOpacity="0"/></linearGradient></defs>
+      {area && <path d={area} fill="url(#writeoff-area)"/>}
+      {visible.length > 1 && <polyline points={points} fill="none" stroke="#178368" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>}
+      {visible.map((month, index) => <circle key={month.label} cx={x(index)} cy={y(month.count)} r={index === visible.length - 1 ? 6 : 4} fill={index === visible.length - 1 ? '#243186' : '#fffaf3'} stroke={index === visible.length - 1 ? '#243186' : '#178368'} strokeWidth="3" vectorEffect="non-scaling-stroke"/>)}
+    </svg>
+    <div className="home-rhythm-months" aria-hidden="true">{visible.map((month) => <span key={month.label}>{month.label}</span>)}</div>
     <p className="sr-only">{visible.map((month) => `${month.label}: ${month.count}`).join('. ')}</p>
   </figure>
 }
@@ -53,17 +62,11 @@ export function RecordIndex({ areas }: { areas: readonly (readonly [string, stri
 }
 
 export function DocumentationStrip({ documented, undocumented, processing }: { documented: number; undocumented: number; processing: number }) {
-  const total = documented + undocumented
-  const width = (value: number) => total > 0 ? `${value / total * 100}%` : '0%'
-  return <div>
-    <div className="home-document-strip" role="img" aria-label={`${documented} potential writeoffs have documentation and ${undocumented} do not currently have documentation. ${processing} uploaded receipts are still being worked on.`}>
-      <span className="home-document-documented" style={{ width: width(documented) }}/>
-      <span className="home-document-undocumented" style={{ width: width(undocumented) }}/>
-    </div>
-    <dl className="home-document-legend">
-      <div><dt><i className="bg-[#178368]"/>Documented</dt><dd>{documented}</dd></div>
-      <div><dt><i className="bg-[#f2a91d]"/>Still being worked on</dt><dd>{processing}</dd></div>
-      <div><dt><i className="bg-[#d7dcd8]"/>Without documentation</dt><dd>{undocumented}</dd></div>
+  return <div role="group" aria-label="Documentation status">
+    <dl className="home-document-states">
+      <div className="home-document-connected"><dt><span aria-hidden="true">✓</span>Receipts connected</dt><dd>{documented}</dd><small>Supporting these expenses</small></div>
+      <div className="home-document-open"><dt><span aria-hidden="true">○</span>Without a receipt yet</dt><dd>{undocumented}</dd><small>Still included in your records</small></div>
+      <div className="home-document-processing-state"><dt><span aria-hidden="true">•••</span>Being worked on</dt><dd>{processing}</dd><small>Uploaded receipts in progress</small></div>
     </dl>
   </div>
 }
@@ -71,14 +74,11 @@ export function DocumentationStrip({ documented, undocumented, processing }: { d
 export function FinancialRelationship({ income, expenses, profit, business }: { income: number; expenses: number; profit: number; business: boolean }) {
   const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
   if (!business) return <div className="home-financial-expenses"><span>Business expenses</span><strong>{money.format(expenses / 100)}</strong><div className="home-financial-line"/></div>
-  const max = Math.max(1, income, expenses, Math.max(0, profit))
-  const metrics = [
-    ['Business income', income, '#178368'],
-    ['Business expenses', expenses, '#f0a21a'],
-    ['Estimated profit', profit, '#243186'],
-  ] as const
-  return <div className="home-financial-grid">{metrics.map(([label, value, color]) => <div key={label} className="home-financial-metric">
-    <span>{label}</span><strong>{money.format(value / 100)}</strong>
-    <div className="home-financial-track"><i style={{ width: `${Math.max(3, Math.abs(value) / max * 100)}%`, backgroundColor: color }}/></div>
-  </div>)}</div>
+  return <div className="home-financial-flow" role="img" aria-label={`${money.format(income / 100)} in business income, minus ${money.format(expenses / 100)} in business expenses, leaves approximately ${money.format(profit / 100)} in estimated business profit.`}>
+    <div className="home-financial-node home-financial-income"><span>Came in</span><small>Business income</small><strong>{money.format(income / 100)}</strong></div>
+    <span className="home-financial-operator" aria-hidden="true">−</span>
+    <div className="home-financial-node home-financial-spent"><span>Spent</span><small>On the business</small><strong>{money.format(expenses / 100)}</strong></div>
+    <span className="home-financial-operator" aria-hidden="true">=</span>
+    <div className="home-financial-node home-financial-profit"><span>What’s left</span><small>Estimated business profit</small><strong>{money.format(profit / 100)}</strong></div>
+  </div>
 }
