@@ -122,9 +122,9 @@ export default function Page() {
         </div>
       </section>
 
-      <section className="bg-[#193f35] text-white" aria-labelledby="meet-betti-heading">
-        <div className="mx-auto grid max-w-7xl overflow-hidden px-6 sm:px-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-center lg:px-16">
-          <div className="relative order-2 h-72 sm:h-80 lg:order-1 lg:h-[25rem]">
+      <section className="betti-landing-section relative z-10 overflow-visible bg-[#193f35] text-white" aria-labelledby="meet-betti-heading">
+        <div className="mx-auto grid max-w-7xl overflow-visible px-6 sm:px-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-center lg:px-16">
+          <div className="betti-landing-art relative order-2 h-72 overflow-visible sm:h-80 lg:order-1 lg:h-[25rem]">
             <div className="absolute -bottom-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-[#8ce6cb]/15 blur-2xl" aria-hidden="true"/>
             <BettiIllustration state="welcome" decorative sizes="(max-width: 1023px) 18rem, 24rem" className="absolute -bottom-14 left-1/2 w-[18rem] max-w-none -translate-x-1/2 drop-shadow-[0_24px_28px_rgba(0,0,0,.22)] sm:-bottom-16 sm:w-[21rem] lg:-bottom-20 lg:w-[24rem]"/>
           </div>
@@ -137,7 +137,7 @@ export default function Page() {
         </div>
       </section>
 
-      <section id="features" className="relative overflow-hidden bg-[#e9f5ef]">
+      <section id="features" className="relative z-0 overflow-hidden bg-[#e9f5ef]">
         <div className="absolute -left-28 top-16 h-72 w-72 rounded-full bg-[#9ce0c8]/30 blur-3xl" aria-hidden="true" />
         <div className="relative mx-auto grid max-w-7xl gap-12 px-6 py-16 sm:px-10 sm:py-20 lg:grid-cols-[0.82fr_1.18fr] lg:items-start lg:gap-20 lg:px-16 lg:py-24">
           <div className="lg:sticky lg:top-28">

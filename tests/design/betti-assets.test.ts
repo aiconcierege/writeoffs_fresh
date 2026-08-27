@@ -36,4 +36,11 @@ describe('Betti illustration contract', () => {
     expect(contract).toContain('no clothing')
     expect(contract).toContain('not a production asset')
   })
+
+  it('forbids accidental cropping of full-body Betti compositions', () => {
+    expect(contract).toContain('must never be unintentionally cropped')
+    expect(contract).toContain('controlled overflow')
+    expect(contract).toContain('head and glasses, shell, hands, legs, and')
+    expect(contract).toContain('Responsive layout must not create an')
+  })
 })

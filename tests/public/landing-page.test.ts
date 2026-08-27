@@ -47,4 +47,17 @@ describe('public landing page', () => {
     expect(page).toContain('Meet Betti the Bookkeeper')
     expect(page).not.toContain('grid h-8 w-8 place-items-center')
   })
+
+  it('lets full-body Welcome Betti bridge the Meet Betti and features sections', () => {
+    const meetBetti = page.slice(
+      page.indexOf('betti-landing-section'),
+      page.indexOf('<section id="features"'),
+    )
+
+    expect(meetBetti).toContain('relative z-10 overflow-visible')
+    expect(meetBetti).toContain('betti-landing-art')
+    expect(meetBetti).not.toContain('overflow-hidden')
+    expect(meetBetti).toContain('-bottom-14')
+    expect(page).toContain('<section id="features" className="relative z-0')
+  })
 })
