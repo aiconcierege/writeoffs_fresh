@@ -27,10 +27,11 @@ export async function getCurrentCustomerWeeklyReview(supabase:SupabaseClient):Pr
     const leaf=events.data?.[0]
     if(!leaf||['confirmed','closed_unreviewed'].includes(leaf.event_type))continue
     const workflow=await supabase.from('bookkeeping_weekly_review_workflow_events').select('*')
-      .eq('review_period_id',period.id).order('created_at',{ascending:false}).limit(1)
+      .eq('review_period_id',period.id)
     // A deployment without the additive workflow migration remains fail-closed.
     if(workflow.error&&workflow.error.code!=='42P01')throw new Error('Weekly review progress could not be loaded.')
-    const workflowLeaf=workflow.data?.[0]??null
+    const supersededWorkflowEvents=new Set((workflow.data??[]).map(event=>event.supersedes_event_id).filter(Boolean))
+    const workflowLeaf=(workflow.data??[]).find(event=>!supersededWorkflowEvents.has(event.id))??null
     const nextStage:WeeklyReviewStage=!workflowLeaf?'personal':({personal:'mixed',mixed:'questions',questions:'documentation',
       documentation:'mileage',mileage:'final',final:'final'} as Record<string,WeeklyReviewStage>)[workflowLeaf.stage]??'personal'
     const raw=await listTransactionReadModel({supabase,userId:user.id,start:period.period_start,end:period.period_end,limit:1000})

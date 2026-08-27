@@ -147,10 +147,12 @@ export async function prepareWeeklyReviews(input:{admin?:SupabaseClient;asOf?:st
     let leaf=events.data?.[0] as Row|undefined
     if(!leaf){const id=await appendEvent(admin,{businessId,periodId:String(period.id),predecessorId:null,sequence:1,type:'opened'});
       leaf={id,sequence_number:1,event_type:'opened'};opened+=1}
-    const workflow=await admin.from('bookkeeping_weekly_review_workflow_events').select('stage,event_type')
-      .eq('review_period_id',period.id).order('created_at',{ascending:false}).limit(1)
+    const workflow=await admin.from('bookkeeping_weekly_review_workflow_events').select('id,supersedes_event_id,stage,event_type')
+      .eq('review_period_id',period.id)
     if(workflow.error&&workflow.error.code!=='42P01')throw new Error('Weekly review workflow state could not be loaded.')
-    const workflowReady=workflow.data?.[0]?.stage==='final'&&workflow.data?.[0]?.event_type==='stage_completed'
+    const supersededWorkflowEvents=new Set((workflow.data??[]).map(event=>event.supersedes_event_id).filter(Boolean))
+    const workflowLeaf=(workflow.data??[]).find(event=>!supersededWorkflowEvents.has(event.id))
+    const workflowReady=workflowLeaf?.stage==='final'&&workflowLeaf?.event_type==='stage_completed'
     if(!workflowReady||questions>0){waiting+=1;continue}
     if(['opened','questions_pending','ready','reopened'].includes(String(leaf.event_type))&&await present(admin,{businessId,
       period,scope:membership.plan as 'expenses'|'business',predecessorId:String(leaf.id),sequence:Number(leaf.sequence_number)+1,

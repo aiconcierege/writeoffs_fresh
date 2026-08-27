@@ -4,6 +4,7 @@ const weekly=readFileSync('app/home/WeeklyReview.tsx','utf8')
 const processing=readFileSync('app/lib/bookkeeping/weekly-review-processing.ts','utf8')
 const questions=readFileSync('app/questions/page.tsx','utf8')
 const workflowRoute=readFileSync('app/api/bookkeeping/reviews/[id]/workflow/route.ts','utf8')
+const weeklyReadModel=readFileSync('app/lib/bookkeeping/weekly-review.ts','utf8')
 
 describe('transaction-first weekly review',()=>{
  it('orders exception sweeps before questions and documentation',()=>{
@@ -21,6 +22,8 @@ describe('transaction-first weekly review',()=>{
   expect(questions).toContain('question.transaction.date>=query.start!')
   expect(processing).toContain("stage==='final'")
   expect(processing).toContain('if(!workflowReady||questions>0)')
+  expect(processing).toContain('supersededWorkflowEvents')
+  expect(weeklyReadModel).toContain('supersededWorkflowEvents')
  })
  it('includes mileage before final review',()=>{
   expect(weekly).toContain('Did you drive for your business this week?')
