@@ -4,9 +4,10 @@ import { useRef, useState } from 'react'
 import { supabase } from '../../utils/supabase/client'
 import { runBoundedBatch } from '../lib/documents/batch-intake'
 
-export function ReceiptUploadAction({ onComplete, variant = 'home' }: {
+export function ReceiptUploadAction({ onComplete, variant = 'home', intendedTransactionId }: {
   onComplete?: () => void | Promise<void>
   variant?: 'home' | 'history'
+  intendedTransactionId?: string
 }) {
   const input = useRef<HTMLInputElement>(null)
   const inFlight = useRef(false)
@@ -25,7 +26,7 @@ export function ReceiptUploadAction({ onComplete, variant = 'home' }: {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { window.location.href = '/login'; return }
       const userId = user.id
-      let accepted = 0; let duplicates = 0
+      let accepted = 0; let duplicates = 0; let attachmentFailed = false
       const results = await runBoundedBatch({ items: files,concurrency: 4,onSettled: (settled,total) => setMessage(`${settled} of ${total} received…`),
         process: async (file) => {
             const fingerprint = await sha256(file); const requestedId = crypto.randomUUID()
@@ -39,19 +40,29 @@ export function ReceiptUploadAction({ onComplete, variant = 'home' }: {
                 originalName: file.name,mimeType: file.type,bytes: file.size }) })
             const registered = await registration.json().catch(() => ({}))
             if (!registration.ok || !registered.receipt?.id) throw new Error('REGISTRATION_FAILED')
+            if(intendedTransactionId){
+              const attachment=await fetch(`/api/bookkeeping/financial-transactions/${intendedTransactionId}/receipts`,{
+                method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({receipt_id:registered.receipt.id})})
+              if(!attachment.ok){attachmentFailed=true;throw new Error('ATTACHMENT_FAILED')}
+            }
             if (registered.receipt.id === requestedId) accepted += 1; else duplicates += 1
             return registered.receipt.id
         } })
       const failures = files.filter((_,index) => results[index].status === 'rejected')
       setFailed(failures)
-      if (accepted + duplicates === 0) throw new Error('BATCH_FAILED')
+      if (accepted + duplicates === 0) {
+        if(attachmentFailed)throw new Error('ATTACHMENT_FAILED')
+        throw new Error('BATCH_FAILED')
+      }
       setStatus(failures.length ? 'error' : 'done')
       setMessage(accepted === 1 && duplicates === 0 && failures.length === 0
-        ? 'Receipt added. WriteOffs is organizing it.'
+        ? intendedTransactionId?'Receipt attached. WriteOffs is organizing it.':'Receipt added. WriteOffs is organizing it.'
         : `${accepted} ${accepted === 1 ? 'receipt' : 'receipts'} received${duplicates ? ` · ${duplicates} already added` : ''}${failures.length ? ` · ${failures.length} could not upload` : ''}. WriteOffs will keep organizing them after you leave.`)
       await onComplete?.()
-    } catch {
-      setStatus('error'); setMessage('The receipts could not be added. Try again.')
+    } catch (cause) {
+      setStatus('error'); setMessage(cause instanceof Error&&cause.message==='ATTACHMENT_FAILED'
+        ? 'The receipt was saved, but I couldn’t safely attach it to this transaction. Try again or find it in Receipts.'
+        : 'The receipts could not be added. Try again.')
     } finally {
       inFlight.current = false
       if (input.current) input.current.value = ''

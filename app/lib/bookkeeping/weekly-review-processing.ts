@@ -6,6 +6,7 @@ import { createServerAdminSupabase } from '../../../utils/supabase/admin'
 import { SupabaseCanonicalFinancialSummaryRepository } from './financial-summary-repository'
 import { aggregateCanonicalFinancialSummary } from './financial-summary'
 import { latestCheckInOnOrBefore, nextReviewPeriod } from './review-cadence'
+import { reviewCategoryLabel } from './weekly-review-presentation'
 
 type Row = Record<string, unknown>
 const fingerprint = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex')
@@ -74,18 +75,25 @@ async function present(admin:SupabaseClient,input:{businessId:string;period:Row;
   for(const item of contributors){const key=`${item.recordId}:${item.decisionId}`;grouped.set(key,[...(grouped.get(key)??[]),item])}
   if(!grouped.size)return false
   const recordsById=new Map(input.records.map((record)=>[record.id,record]))
-  const identity=[...grouped.values()].map((items)=>({recordId:items[0].recordId,decisionId:items[0].decisionId,
-    amount:items.reduce((sum,item)=>sum+item.signedAmountCents,0)})).sort((a,b)=>a.recordId.localeCompare(b.recordId))
+  const categories=await admin.from('categories').select('key,label')
+  if(categories.error)throw new Error('Weekly review category labels could not be loaded.')
+  const categoryLabels=Object.fromEntries((categories.data??[]).map((row)=>[String(row.key),String(row.label)]))
   const items=[...grouped.values()].map((values)=>{const record=recordsById.get(values[0].recordId)
     const decision=record?currentDecision(record):null
+    const categoryLabel=reviewCategoryLabel(
+      decision?.allocations.filter((allocation)=>allocation.kind==='business')
+        .map((allocation)=>allocation.taxCategoryKey)??[],categoryLabels)
     return {bookkeepingRecordId:values[0].recordId,
     bookkeepingDecisionId:values[0].decisionId,activityRole:values[0].metric==='business_income'?'income':'expense',
     displayLabel:record?.merchant?.trim()||record?.description?.trim()||
       (values[0].metric==='business_income'?'Business income':'Business purchase'),
     treatment:decision?.treatment==='mixed_use'?'mixed_use':'business',
+    categoryLabel,
     financialTransactionId:record?.financialTransactionId??null,
     signedBusinessAmountCents:values.reduce((sum,item)=>sum+item.signedAmountCents,0),occurredOn:values[0].occurredOn,
     evidenceFingerprint:fingerprint(values)}})
+  const identity=items.map((item)=>({recordId:item.bookkeepingRecordId,decisionId:item.bookkeepingDecisionId,
+    amount:item.signedBusinessAmountCents,categoryLabel:item.categoryLabel})).sort((a,b)=>a.recordId.localeCompare(b.recordId))
   const snapshotResult=await admin.rpc('present_bookkeeping_weekly_review',{p_business_id:input.businessId,
     p_review_period_id:input.period.id,p_expected_event_id:input.predecessorId,p_membership_scope:input.scope,
     p_currency:'USD',p_income_cents:input.scope==='business'?summary.businessIncomeCents:null,
@@ -138,8 +146,11 @@ export async function prepareWeeklyReviews(input:{admin?:SupabaseClient;asOf?:st
     let leaf=events.data?.[0] as Row|undefined
     if(!leaf){const id=await appendEvent(admin,{businessId,periodId:String(period.id),predecessorId:null,sequence:1,type:'opened'});
       leaf={id,sequence_number:1,event_type:'opened'};opened+=1}
-    if(questions>0){if(leaf.event_type!=='questions_pending')await appendEvent(admin,{businessId,periodId:String(period.id),
-      predecessorId:String(leaf.id),sequence:Number(leaf.sequence_number)+1,type:'questions_pending'});waiting+=1;continue}
+    const workflow=await admin.from('bookkeeping_weekly_review_workflow_events').select('stage,event_type')
+      .eq('review_period_id',period.id).order('created_at',{ascending:false}).limit(1)
+    if(workflow.error&&workflow.error.code!=='42P01')throw new Error('Weekly review workflow state could not be loaded.')
+    const workflowReady=workflow.data?.[0]?.stage==='final'&&workflow.data?.[0]?.event_type==='stage_completed'
+    if(!workflowReady||questions>0){waiting+=1;continue}
     if(['opened','questions_pending','ready','reopened'].includes(String(leaf.event_type))&&await present(admin,{businessId,
       period,scope:membership.plan as 'expenses'|'business',predecessorId:String(leaf.id),sequence:Number(leaf.sequence_number)+1,
       records:loaded.records}))presented+=1

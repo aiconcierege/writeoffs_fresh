@@ -22,21 +22,25 @@ describe('bookkeeper-centered Home',()=>{
   expect(home).toContain('There are {questions.length} questions in your continuous question queue.')
  })
  it('presents one period-level review with correction and confirmation choices',()=>{
-  expect(home).toContain('<WeeklyReview review={weeklyReview}/>')
+  expect(home).toContain('<WeeklyReview review={weeklyReview} currentQuestionCount={currentReviewQuestions}/>')
   expect(weekly).toContain('Everything looks right')
   expect(weekly).toContain('Make a change')
   expect(weekly).toContain("action('confirmed')")
+  expect(weekly).toContain('home-review-category')
+  expect(weekly).toContain('formatReviewActivityDate')
  })
  it('keeps financial figures secondary and membership scoped',()=>{
   expect(home.indexOf('potential.count')).toBeLessThan(home.indexOf('<FinancialRelationship'))
   expect(home).toContain('business={isBusiness}')
  expect(home).toContain('income={summary.businessIncomeCents}')
-  expect(readFileSync('app/home/HomeVisuals.tsx','utf8')).toContain('<polyline points={points}')
+ expect(home).toContain('getHomeOperatingStatus')
+ expect(home).toContain('<HomeOperatingStatus status={operatingStatus}/>')
  })
  it('makes Home a record hub and uses one global menu',()=>{
   for(const label of ['Transactions','Receipts','Mileage','Reports'])expect(home).toContain(label)
   expect(header).toContain('Menu')
-  expect(header).toContain('aria-label="Your records"')
+  expect(header).toContain('aria-label="Authenticated navigation"')
+  for(const group of ['Your books','Betti','Your account'])expect(header).toContain(group)
   expect(header).not.toContain('aria-label="Primary"')
  })
  it('keeps Betti work in the hero without a greeting or duplicate work card',()=>{

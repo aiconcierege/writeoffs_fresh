@@ -35,7 +35,11 @@ export default async function TransactionDetailPage({ params,searchParams }: { p
         <p className="mt-3"><span className="status-badge">{transaction.treatmentLabel}</span></p>
         <p className="mt-2 text-sm leading-6 text-slate-600">{transaction.decisionReason ?? (transaction.sourceModel === 'canonical' ? 'WriteOffs is still working on this transaction.' : 'This is a historical transaction.')}</p>
         {transaction.contractorName && <p className="mt-2 text-sm text-slate-600">Contractor: <span className="font-medium text-slate-900">{transaction.contractorName}</span></p>}
-        {transaction.sourceModel === 'canonical' && transaction.sourceKind !== 'manual' && transaction.bookkeepingNature === 'expense' && transaction.currentDecisionId
+        {transaction.sourceModel==='canonical'&&transaction.currentDecisionId&&transaction.treatment==='personal'
+          ?<CorrectionForm transactionId={transaction.id} currentDecisionId={transaction.currentDecisionId} totalCents={transaction.amountCents} restoreMode="personal"/>
+          :transaction.sourceModel==='canonical'&&transaction.currentDecisionId&&transaction.treatment==='excluded'&&transaction.decisionProvenance==='user'
+          ?<CorrectionForm transactionId={transaction.id} currentDecisionId={transaction.currentDecisionId} totalCents={transaction.amountCents} restoreMode="exclusion"/>
+          :transaction.sourceModel === 'canonical' && transaction.sourceKind !== 'manual' && transaction.bookkeepingNature === 'expense' && transaction.currentDecisionId
           ? <CorrectionForm transactionId={transaction.id} currentDecisionId={transaction.currentDecisionId} totalCents={transaction.amountCents}
               reviewContext={reviewContext.review&&reviewContext.snapshot&&reviewContext.event?{reviewPeriodId:reviewContext.review,reviewSnapshotId:reviewContext.snapshot,expectedReviewEventId:reviewContext.event}:undefined}/>
           : transaction.sourceModel === 'canonical' && transaction.treatment === 'unresolved'

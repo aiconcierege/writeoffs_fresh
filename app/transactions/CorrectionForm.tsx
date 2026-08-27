@@ -2,9 +2,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export function CorrectionForm({ transactionId, currentDecisionId, totalCents, reviewContext }: {
+export function CorrectionForm({ transactionId, currentDecisionId, totalCents, reviewContext,restoreMode }: {
   transactionId: string; currentDecisionId: string; totalCents: number
   reviewContext?:{reviewPeriodId:string;reviewSnapshotId:string;expectedReviewEventId:string}
+  restoreMode?:'personal'|'exclusion'
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -19,8 +20,8 @@ export function CorrectionForm({ transactionId, currentDecisionId, totalCents, r
       setBusy(false); return
     }
     const cents = Math.round(Number(personal) * 100)
-    const answer = use === 'mixed' ? { schemaVersion: 1, use, personalAmountCents: cents }
-      : { schemaVersion: 1, use }
+    const answer = restoreMode?{schemaVersion:1,use:restoreMode==='personal'?'restore_previous':'restore_exclusion'}
+      :use === 'mixed' ? { schemaVersion: 1, use, personalAmountCents: cents } : { schemaVersion: 1, use }
     try {
       const response = await fetch(`/api/bookkeeping/transactions/${transactionId}/correction`, {
         method: 'POST', headers: { 'content-type': 'application/json' },
@@ -33,12 +34,13 @@ export function CorrectionForm({ transactionId, currentDecisionId, totalCents, r
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to save correction.') }
     finally { setBusy(false) }
   }
-  if (!open) return <button onClick={() => setOpen(true)} className="text-sm font-semibold text-[#243186] underline-offset-4 hover:underline">Correct this</button>
+  if (!open) return <button onClick={() => setOpen(true)} className="text-sm font-semibold text-[#243186] underline-offset-4 hover:underline">{restoreMode==='personal'?'Undo personal choice':restoreMode==='exclusion'?'Include this expense again':'Correct this'}</button>
   return <div className="mt-4 border-l-2 border-[#243186] pl-4">
-    <p className="font-medium text-slate-950">What should I change?</p>
-    <div className="mt-3 flex flex-wrap gap-2">{([['business','This was for my business'],['personal',"This isn't a business expense"],['mixed','Only part was for business']] as const).map(([value,label]) =>
-      <button key={value} onClick={() => setUse(value)} className={`rounded-md border px-3 py-2 text-sm ${use === value ? 'border-[#243186] bg-[#243186] text-white' : 'border-slate-300 bg-white text-slate-700'}`}>{label}</button>)}</div>
-    {use === 'mixed' && <label className="mt-4 block text-sm text-slate-700">About how much was personal?
+    <p className="font-medium text-slate-950">{restoreMode==='personal'?'Put this back for WriteOffs to review?':restoreMode==='exclusion'?'Include this expense again?':'What should I change?'}</p>
+    {!restoreMode&&<div className="mt-3 flex flex-wrap gap-2">{([['business','This was for my business'],['personal',"This isn't a business expense"],['mixed','Only part was for business']] as const).map(([value,label]) =>
+      <button key={value} onClick={() => setUse(value)} className={`rounded-md border px-3 py-2 text-sm ${use === value ? 'border-[#243186] bg-[#243186] text-white' : 'border-slate-300 bg-white text-slate-700'}`}>{label}</button>)}</div>}
+    {restoreMode&&<p className="mt-2 text-sm leading-6 text-slate-600">WriteOffs will restore the prior decision and continue from there. The correction history stays with the transaction.</p>}
+    {!restoreMode&&use === 'mixed' && <label className="mt-4 block text-sm text-slate-700">About how much was personal?
       <span className="mt-1 flex max-w-xs items-center rounded-md border border-slate-300 bg-white px-3"><span>$</span><input value={personal} onChange={(event) => setPersonal(event.target.value)} inputMode="decimal" placeholder="0.00" className="min-h-10 w-full px-2 outline-none" /></span>
       <span className="mt-1 block text-xs text-slate-500">Enter less than {(Math.abs(totalCents)/100).toFixed(2)}.</span></label>}
     {error && <p className="mt-3 text-sm text-red-700">{error}</p>}

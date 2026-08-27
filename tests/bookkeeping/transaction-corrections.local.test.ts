@@ -126,6 +126,6 @@ describe.skipIf(!runLocal)('canonical transaction corrections on local Supabase'
     await expect(correctCanonicalTransactionUse({ supabase: unresolved.customer,
       financialTransactionId: unresolved.transactionIds[0], expectedCurrentDecisionId: unresolvedState.decision.id,
       correctionRequestId: crypto.randomUUID(), answer: { schemaVersion: 1, use: 'personal' } }))
-      .rejects.toThrow(/established purchases/i)
+      .resolves.toMatchObject({ bookkeeping_record_id: unresolvedState.record.id })
   })
 })

@@ -9,7 +9,7 @@ import {
 
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
-export function QuestionFlow({ initialQuestions }: { initialQuestions: CustomerQuestion[] }) {
+export function QuestionFlow({ initialQuestions,range }: { initialQuestions: CustomerQuestion[];range?:{start:string;end:string} }) {
   const [questions, setQuestions] = useState(initialQuestions)
   const [answered, setAnswered] = useState(0)
   const [purpose, setPurpose] = useState('')
@@ -42,9 +42,8 @@ export function QuestionFlow({ initialQuestions }: { initialQuestions: CustomerQ
         throw new Error(queueResult.error || 'Unable to load the next question.')
       }
       setAnswered((value) => value + 1)
-      setQuestions(queueResult.questions.filter(
-        (candidate) => !deferredInThisSession.current.has(candidate.id)
-      ))
+      setQuestions(queueResult.questions.filter((candidate) => !deferredInThisSession.current.has(candidate.id)
+        &&(!range||(candidate.transaction.date!=null&&candidate.transaction.date>=range.start&&candidate.transaction.date<=range.end))))
       setPurpose('')
       setPersonalAmount('')
       setShowAmount(false)

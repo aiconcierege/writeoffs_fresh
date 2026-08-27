@@ -64,6 +64,8 @@ export async function listTransactionReadModel(input: {
   supabase: SupabaseClient
   userId: string
   year?: number | null
+  start?: string | null
+  end?: string | null
   limit?: number
   transactionId?: string
   after?: { date: string; id: string } | null
@@ -76,8 +78,8 @@ export async function listTransactionReadModel(input: {
     supabase: input.supabase, businessId,
   })
   const limit = Math.min(Math.max(input.limit ?? 1000, 1), 1000)
-  const start = input.year ? `${input.year}-01-01` : null
-  const end = input.year ? `${input.year}-12-31` : null
+  const start = input.start ?? (input.year ? `${input.year}-01-01` : null)
+  const end = input.end ?? (input.year ? `${input.year}-12-31` : null)
 
   let canonicalRecordIds: string[] = []
   if (input.transactionId) {

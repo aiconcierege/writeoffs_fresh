@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 export type TransactionUseCorrection =
   | { schemaVersion: 1; use: 'business' | 'personal' }
   | { schemaVersion: 1; use: 'mixed'; personalAmountCents: number }
+  | { schemaVersion: 1; use: 'restore_previous' | 'restore_exclusion' }
 
 export function validateTransactionUseCorrection(value: unknown): TransactionUseCorrection {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -11,7 +12,8 @@ export function validateTransactionUseCorrection(value: unknown): TransactionUse
   const answer = value as Record<string, unknown>
   const keys = Object.keys(answer).sort().join(',')
   if (answer.schemaVersion !== 1) throw new Error('This correction needs to be refreshed.')
-  if (answer.use === 'business' || answer.use === 'personal') {
+  if (answer.use === 'business' || answer.use === 'personal' || answer.use === 'restore_previous'
+    || answer.use === 'restore_exclusion') {
     if (keys !== 'schemaVersion,use') throw new Error('Correction contains unsupported fields.')
     return { schemaVersion: 1, use: answer.use }
   }
@@ -37,6 +39,24 @@ export async function correctCanonicalTransactionUse(input: {
   const { data: { user }, error: authError } = await input.supabase.auth.getUser()
   if (authError || !user) throw new Error('An authenticated user is required.')
   const answer = validateTransactionUseCorrection(input.answer)
+  if(answer.use==='restore_exclusion'){
+    const{data,error}=await input.supabase.rpc('restore_documentation_excluded_transaction',{
+      p_financial_transaction_id:input.financialTransactionId,p_expected_current_decision_id:input.expectedCurrentDecisionId,
+      p_correction_request_id:input.correctionRequestId})
+    if(error)throw new Error(error.message)
+    return data
+  }
+  if(answer.use==='personal'||answer.use==='restore_previous'){
+    const {data,error}=await input.supabase.rpc('correct_imported_transaction_personal_scope',{
+      p_financial_transaction_id:input.financialTransactionId,
+      p_expected_current_decision_id:input.expectedCurrentDecisionId,
+      p_correction_request_id:input.correctionRequestId,
+      p_action:answer.use==='personal'?'personal':'restore_previous',
+    })
+    if(!error)return data
+    // Receipt-only and compound established expenses retain their existing correction path.
+    if(answer.use==='restore_previous'||!/Eligible imported activity was not found/i.test(error.message))throw new Error(error.message)
+  }
   const { data: component, error: componentError } = await input.supabase
     .from('current_bookkeeping_compound_components')
     .select('bookkeeping_record_id')
