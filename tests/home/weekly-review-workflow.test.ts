@@ -3,6 +3,7 @@ import{readFileSync}from'node:fs'
 const weekly=readFileSync('app/home/WeeklyReview.tsx','utf8')
 const processing=readFileSync('app/lib/bookkeeping/weekly-review-processing.ts','utf8')
 const questions=readFileSync('app/questions/page.tsx','utf8')
+const workflowRoute=readFileSync('app/api/bookkeeping/reviews/[id]/workflow/route.ts','utf8')
 
 describe('transaction-first weekly review',()=>{
  it('orders exception sweeps before questions and documentation',()=>{
@@ -33,5 +34,10 @@ describe('transaction-first weekly review',()=>{
   expect(weekly).toContain('setEventId(result.eventId??eventId)')
   expect(weekly).toContain('completeStage:false')
   expect(weekly).toContain("stage==='documentation'&&missing.length>0")
+ })
+ it('opens canonical missing-documentation requests before entering that stage',()=>{
+  expect(workflowRoute).toContain('ensurePeriodDocumentationRequests')
+  expect(workflowRoute).toContain("open_bookkeeping_documentation_request")
+  expect(workflowRoute).toContain("p_reason:'MISSING_SUPPORTING_DOCUMENTATION'")
  })
 })

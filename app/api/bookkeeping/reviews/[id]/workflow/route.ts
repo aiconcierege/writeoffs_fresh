@@ -2,9 +2,28 @@ import {NextResponse}from'next/server'
 import{createServerSupabase}from'../../../../../../utils/supabase/server'
 import{correctCanonicalTransactionUse}from'../../../../../lib/bookkeeping/transaction-corrections'
 import{listCustomerQuestions}from'../../../../../lib/bookkeeping/customer-questions'
+import{listTransactionReadModel}from'../../../../../lib/bookkeeping/transaction-read-model'
+import{createServerAdminSupabase}from'../../../../../../utils/supabase/admin'
+import{createHash}from'node:crypto'
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const stages=['personal','mixed','questions','documentation','mileage','final'] as const
+
+async function ensurePeriodDocumentationRequests(input:{supabase:Awaited<ReturnType<typeof createServerSupabase>>;
+ userId:string;businessId:string;start:string;end:string}){
+ const rows=await listTransactionReadModel({supabase:input.supabase,userId:input.userId,start:input.start,end:input.end,limit:1000})
+ const candidates=rows.filter(row=>row.sourceModel==='canonical'&&row.recordId&&row.amountCents<0
+  &&row.bookkeepingNature==='expense'&&['business','mixed_use'].includes(row.treatment??'')
+  &&!row.has_receipt&&!row.receiptLost)
+ const admin=createServerAdminSupabase()
+ for(const row of candidates){const contextFingerprint=createHash('sha256').update(`weekly-missing-receipt:v1:${row.recordId}`).digest('hex')
+  const opened=await admin.rpc('open_bookkeeping_documentation_request',{p_business_id:input.businessId,
+   p_bookkeeping_record_id:row.recordId,p_reason:'MISSING_SUPPORTING_DOCUMENTATION',
+   p_issue_key:'weekly-missing-supporting-documentation',p_context_fingerprint:contextFingerprint,
+   p_question_context:{schemaVersion:1,reason:'MISSING_SUPPORTING_DOCUMENTATION',requirement:{type:'receipt_for_record',version:1}}})
+  if(opened.error)throw new Error('The receipt check could not be prepared safely.')
+ }
+}
 
 export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){
  const supabase=await createServerSupabase(),{data:{user}}=await supabase.auth.getUser()
@@ -14,7 +33,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
  const stage=String(body.stage??''),requestId=String(body.requestId??''),expectedEventId=body.expectedEventId==null?null:String(body.expectedEventId)
  if(!UUID.test(id)||!stages.includes(stage as typeof stages[number])||!UUID.test(requestId)
   ||(expectedEventId!==null&&!UUID.test(expectedEventId)))return NextResponse.json({error:'Invalid review action.'},{status:400})
- const period=await supabase.from('bookkeeping_review_periods').select('period_start,period_end').eq('id',id).single()
+ const period=await supabase.from('bookkeeping_review_periods').select('business_id,period_start,period_end').eq('id',id).single()
  if(period.error)return NextResponse.json({error:'Review period was not found.'},{status:404})
  try{
   if(stage==='documentation'){
@@ -59,6 +78,8 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
    const remaining=questions.filter(question=>question.transaction.date&&question.transaction.date>=period.data.period_start
     &&question.transaction.date<=period.data.period_end)
    if(remaining.length)throw new Error(`There ${remaining.length===1?'is':'are'} still ${remaining.length} current-week ${remaining.length===1?'question':'questions'} to answer.`)
+   await ensurePeriodDocumentationRequests({supabase,userId:user.id,businessId:period.data.business_id,
+    start:period.data.period_start,end:period.data.period_end})
   }
   const result=await supabase.rpc('append_weekly_review_workflow_event',{p_review_period_id:id,
    p_expected_event_id:expectedEventId,p_stage:stage,p_event_type:'stage_completed',
