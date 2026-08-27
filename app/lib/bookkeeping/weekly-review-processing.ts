@@ -21,6 +21,10 @@ function currentDecision(record: Awaited<ReturnType<SupabaseCanonicalFinancialSu
   return record.decisions.find((item) => !superseded.has(item.id)) ?? null
 }
 
+function periodRecordIds(records:Awaited<ReturnType<SupabaseCanonicalFinancialSummaryRepository['loadRecords']>>['records'],start:string,end:string){
+ return records.filter(record=>record.occurredOn!==null&&record.occurredOn>=start&&record.occurredOn<=end).map(record=>record.id)
+}
+
 async function outstandingQuestions(admin: SupabaseClient, businessId: string, recordIds: string[]) {
   if (!recordIds.length) return 0
   const { data, error } = await admin.from('bookkeeping_review_events')
@@ -130,7 +134,7 @@ export async function prepareWeeklyReviews(input:{admin?:SupabaseClient;asOf?:st
         .order('period_end',{ascending:false}).limit(1).maybeSingle()
       const boundary=nextReviewPeriod({checkInDate,checkInWeekday:weekday,previousPeriodEnd:previous.data?.period_end??null})
       const loaded=await repository.loadRecords({businessId,periodStart:boundary.periodStart,periodEnd:boundary.periodEnd})
-      const questions=await outstandingQuestions(admin,businessId,loaded.records.map((record)=>record.id))
+      const questions=await outstandingQuestions(admin,businessId,periodRecordIds(loaded.records,boundary.periodStart,boundary.periodEnd))
       const relevant=loaded.records.some((record)=>{const decision=currentDecision(record);return decision
         && (membership.plan==='business'||decision.bookkeepingNature==='expense')})||questions>0
       if(!relevant)continue
@@ -141,7 +145,7 @@ export async function prepareWeeklyReviews(input:{admin?:SupabaseClient;asOf?:st
       period=created.data as Row
     }
     const loaded=await repository.loadRecords({businessId,periodStart:String(period.period_start),periodEnd:String(period.period_end)})
-    const questions=await outstandingQuestions(admin,businessId,loaded.records.map((record)=>record.id))
+    const questions=await outstandingQuestions(admin,businessId,periodRecordIds(loaded.records,String(period.period_start),String(period.period_end)))
     const events=await admin.from('bookkeeping_review_period_events').select('*').eq('review_period_id',period.id)
       .order('sequence_number',{ascending:false}).limit(1)
     let leaf=events.data?.[0] as Row|undefined

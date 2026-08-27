@@ -23,6 +23,7 @@ describe('transaction-first weekly review',()=>{
   expect(processing).toContain("stage==='final'")
   expect(processing).toContain('if(!workflowReady||questions>0)')
   expect(processing).toContain('supersededWorkflowEvents')
+  expect(processing).toContain('periodRecordIds(loaded.records')
   expect(weeklyReadModel).toContain('supersededWorkflowEvents')
  })
  it('includes mileage before final review',()=>{
