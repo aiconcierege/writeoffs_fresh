@@ -41,9 +41,9 @@ function WorkflowReview({review,currentQuestionCount}:{review:CustomerWeeklyRevi
  async function decideOne(item:WeeklyReviewTransaction,decision:'include_missing'|'exclude_missing'){
   setBusy(true);setError('')
   const response=await fetch(`/api/bookkeeping/reviews/${review.id}/workflow`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({stage:'documentation',expectedEventId:eventId,requestId:crypto.randomUUID(),documentationDecision:decision,recordIds:[item.recordId],completeStage:false})})
-  const result=await response.json().catch(()=>({})) as{error?:string}
+  const result=await response.json().catch(()=>({})) as{error?:string;eventId?:string}
   if(!response.ok){setError(result.error??'This documentation choice could not be saved.');setBusy(false);return}
-  setResolvedDocumentation(value=>new Set([...value,item.recordId]));setBusy(false);router.refresh()
+  setEventId(result.eventId??eventId);setResolvedDocumentation(value=>new Set([...value,item.recordId]));setBusy(false);router.refresh()
  }
  const copy=stageCopy[stage]
  return <section className="home-review weekly-workflow" aria-labelledby="weekly-review-heading"><header className="home-review-heading"><div><p className="home-kicker">Your weekly check-in</p><p className="home-review-period">{formatReviewPeriod(review.periodStart,review.periodEnd)}</p><h2 id="weekly-review-heading">{copy.title}</h2><p>{copy.kicker}</p></div></header>

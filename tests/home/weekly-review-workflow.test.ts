@@ -30,6 +30,7 @@ describe('transaction-first weekly review',()=>{
   expect(weekly).toContain("advance('exclude_missing')")
   expect(weekly).toContain("decideOne(item,'include_missing')")
   expect(weekly).toContain("decideOne(item,'exclude_missing')")
+  expect(weekly).toContain('setEventId(result.eventId??eventId)')
   expect(weekly).toContain('completeStage:false')
   expect(weekly).toContain("stage==='documentation'&&missing.length>0")
  })
