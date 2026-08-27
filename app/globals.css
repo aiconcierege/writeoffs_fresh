@@ -292,11 +292,11 @@ body { background: var(--canvas); color: var(--ink); }
 .home-betti-working .home-betti-image { top: -1.75rem; right: -3rem; width: 20rem; }
 .home-betti-caught-up .home-betti-image { top: -1.4rem; right: -3.5rem; width: 23rem; }
 .home-betti-work { position: absolute; z-index: 3; bottom: 5.7rem; left: 1rem; width: min(13rem,58%); background: linear-gradient(90deg,rgba(231,245,232,.95) 78%,rgba(231,245,232,0)); padding: .65rem 1.6rem .65rem 0; color: #34453c; }
-.home-betti-work > p { color: #176c54; font-size: .8rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.home-betti-work > p { color: #176c54; font-size: .875rem; font-weight: 800; letter-spacing: .075em; text-transform: uppercase; }
 .home-betti-work dl { display: flex; flex-wrap: wrap; gap: .7rem 1rem; margin-top: .55rem; }
 .home-betti-work dl > div { min-width: 4.5rem; max-width: 6rem; }
 .home-betti-work dd { color: #17211d; font-size: 1.6rem; line-height: 1; font-weight: 760; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
-.home-betti-work dt { margin-top: .25rem; color: #526159; font-size: .8rem; line-height: 1.4; }
+.home-betti-work dt { margin-top: .25rem; color: #526159; font-size: .875rem; line-height: 1.4; }
 .home-betti-actions { position: absolute; z-index: 4; right: 1rem; bottom: 1rem; left: 1rem; }
 .home-question-actions { border-radius: 1rem; background: rgba(255,255,255,.93); padding: .65rem; box-shadow: 0 14px 32px rgba(29,74,56,.12); backdrop-filter: blur(8px); }
 .home-question-actions .btn { flex: 1 1 8rem; }
@@ -399,7 +399,7 @@ body { background: var(--canvas); color: var(--ink); }
 .home-review-items li { border: 0; }
 .home-review-items a { display: grid; grid-template-columns: 1.7rem minmax(0,1fr) auto; min-height: 4.25rem; align-items: center; border-radius: .75rem; background: #f5f7f2; padding: .7rem .8rem; transition: background-color .18s ease,transform .18s ease; }
 .home-review-items strong { grid-column: 2; max-width: none; font-size: .84rem; }
-.home-review-meta { grid-column: 2/4; margin-top: -.15rem; font-size: .75rem; line-height: 1.45; }
+.home-review-meta { grid-column: 2/4; margin-top: -.15rem; font-size: .875rem; line-height: 1.45; }
 .home-review-items b { grid-column: 3; grid-row: 1; font-size: .84rem; white-space: nowrap; }
 .home-review-items a:hover { transform: translateX(2px); background: #edf4ed; }
 .home-review-items i { display: grid; width: 1.45rem; height: 1.45rem; place-items: center; border-radius: 50%; background: #dff1e7; color: #176c54; font-size: .7rem; font-style: normal; font-weight: 800; }
