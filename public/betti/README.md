@@ -12,8 +12,14 @@ The application uses these approved transparent PNG illustrations:
 - `betti-welcome.png`
 
 Keep Betti separate from the WriteOffs logo. Do not redraw, recolor, or
-construct new poses in application code. Working and Question are transparent
-cutouts; Caught Up and Welcome include an approved translucent atmospheric glow.
+construct new poses in application code. Canonical Betti is a natural green
+turtle with a brown shell, brown eyes, thick black glasses, subtle feminine
+features, and polished coral leather sneakers. She wears no clothing and no
+logo or standalone W mark. All four production files are transparent PNGs;
+approved atmospheric shading within an illustration is part of the artwork.
+
+The historical ` betti-working.webp` mockup may remain as a design reference,
+but it is not a production asset and must never be rendered by the application.
 
 The application renders these files only through
 `app/components/BettiIllustration.tsx`.

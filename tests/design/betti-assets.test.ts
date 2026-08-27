@@ -24,4 +24,16 @@ describe('Betti illustration contract', () => {
     expect(source).toContain("alt={decorative ? '' : descriptions[state]}")
     expect(source).toContain('sizes={sizes}')
   })
+
+  it('uses the canonical natural Betti dimensions and never renders the historical mockup', () => {
+    for (const dimensions of [
+      'working: { width: 1230, height: 1278 }',
+      'question: { width: 1024, height: 1536 }',
+      "'caught-up': { width: 1536, height: 1024 }",
+      'welcome: { width: 1237, height: 1272 }',
+    ]) expect(source).toContain(dimensions)
+    expect(source).not.toContain('.webp')
+    expect(contract).toContain('no clothing')
+    expect(contract).toContain('not a production asset')
+  })
 })

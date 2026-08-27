@@ -112,15 +112,10 @@ export default function Page() {
           </div>
           <div className="mt-11 grid gap-9 lg:grid-cols-3 lg:gap-0">
             {steps.map((step, index) => (
-              <article key={step.number} className={`relative ${index ? "lg:border-l lg:border-[#cfd8d2] lg:pl-10" : "lg:pr-10"} ${index === 1 ? "overflow-hidden rounded-[1.5rem] border-0 bg-[#e5f3e7] px-6 pb-0 pt-6 shadow-[0_20px_48px_rgba(23,83,62,.11)] lg:-my-7 lg:mx-6 lg:border-0 lg:px-8 lg:pb-0 lg:pt-8" : ""}`}>
+              <article key={step.number} className={`relative ${index ? "lg:border-l lg:border-[#cfd8d2] lg:pl-10" : "lg:pr-10"} ${index === 1 ? "rounded-[1.5rem] border-0 bg-[#e5f3e7] px-6 py-6 shadow-[0_20px_48px_rgba(23,83,62,.11)] lg:-my-7 lg:mx-6 lg:border-0 lg:px-8 lg:py-8" : ""}`}>
                 <span className="font-mono text-sm font-semibold text-[#178368]">{step.number}</span>
                 <h3 className="mt-5 text-2xl font-semibold tracking-[-0.03em]">{step.title}</h3>
                 <p className="mt-3 max-w-sm text-base leading-7 text-[#59665f]">{step.body}</p>
-                {index === 1 && <div className="relative mt-7 overflow-hidden rounded-xl border border-[#c4ddce] bg-white/60 p-4" aria-hidden="true">
-                  <div className="flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-[#178368] text-sm font-bold text-white">✓</span><span className="h-2 flex-1 rounded-full bg-[#bddfce]"/></div>
-                  <div className="mt-3 flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-[#243186] text-sm font-bold text-white">↗</span><span className="h-2 w-4/5 rounded-full bg-[#d7dcf1]"/></div>
-                  <div className="mt-3 flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-[#e8a528] text-sm font-bold text-white">▤</span><span className="h-2 w-3/5 rounded-full bg-[#eadfca]"/></div>
-                </div>}
               </article>
             ))}
           </div>
@@ -131,7 +126,7 @@ export default function Page() {
         <div className="mx-auto grid max-w-7xl overflow-hidden px-6 sm:px-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-center lg:px-16">
           <div className="relative order-2 h-72 sm:h-80 lg:order-1 lg:h-[25rem]">
             <div className="absolute -bottom-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-[#8ce6cb]/15 blur-2xl" aria-hidden="true"/>
-            <BettiIllustration state="welcome" decorative sizes="(max-width: 1023px) 18rem, 24rem" className="absolute -bottom-40 left-1/2 w-[19rem] max-w-none -translate-x-1/2 drop-shadow-[0_24px_28px_rgba(0,0,0,.22)] sm:-bottom-48 sm:w-[23rem] lg:-bottom-52 lg:w-[26rem]"/>
+            <BettiIllustration state="welcome" decorative sizes="(max-width: 1023px) 18rem, 24rem" className="absolute -bottom-14 left-1/2 w-[18rem] max-w-none -translate-x-1/2 drop-shadow-[0_24px_28px_rgba(0,0,0,.22)] sm:-bottom-16 sm:w-[21rem] lg:-bottom-20 lg:w-[24rem]"/>
           </div>
           <div className="order-1 pt-14 sm:pt-16 lg:order-2 lg:py-20 lg:pl-12">
             <p className="text-sm font-semibold text-[#8ce6cb]">Meet Betti the Bookkeeper</p>

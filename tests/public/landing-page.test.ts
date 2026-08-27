@@ -40,4 +40,11 @@ describe('public landing page', () => {
     expect(header).toContain('href="/#for-you"')
     expect(header).not.toContain('href="/#faq"')
   })
+
+  it('introduces canonical Betti once and keeps How It Works mascot-free', () => {
+    expect(page.match(/<BettiIllustration/g)).toHaveLength(1)
+    expect(page).toContain('state="welcome"')
+    expect(page).toContain('Meet Betti the Bookkeeper')
+    expect(page).not.toContain('grid h-8 w-8 place-items-center')
+  })
 })

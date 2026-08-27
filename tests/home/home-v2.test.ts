@@ -39,4 +39,13 @@ describe('bookkeeper-centered Home',()=>{
   expect(header).toContain('aria-label="Your records"')
   expect(header).not.toContain('aria-label="Primary"')
  })
+ it('keeps Betti work in the hero without a greeting or duplicate work card',()=>{
+  expect(home).toContain('className="home-betti-work"')
+  expect(home).toContain('potential writeoffs found')
+  expect(home).toContain('receipts staying with expenses')
+  expect(home).toContain('still need a fact from you')
+  expect(home).not.toContain('HomeGreeting')
+  expect(home).not.toContain('current_business_review_cadence')
+  expect(home).not.toContain('className="home-recent-work"')
+ })
 })
