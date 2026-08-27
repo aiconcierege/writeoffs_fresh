@@ -104,10 +104,11 @@ async function present(admin:SupabaseClient,input:{businessId:string;period:Row;
 }
 
 /** Repeated, bounded worker pass. It never copies question rows into a period. */
-export async function prepareWeeklyReviews(input:{admin?:SupabaseClient;asOf?:string;limit?:number}={}) {
+export async function prepareWeeklyReviews(input:{admin?:SupabaseClient;asOf?:string;limit?:number;businessId?:string}={}) {
   const admin=input.admin??createServerAdminSupabase()
-  const cadenceResult=await admin.from('current_business_review_cadence').select('*')
-    .limit(Math.min(input.limit??12,50))
+  let cadenceQuery=admin.from('current_business_review_cadence').select('*')
+  if(input.businessId)cadenceQuery=cadenceQuery.eq('business_id',input.businessId)
+  const cadenceResult=await cadenceQuery.limit(Math.min(input.limit??12,50))
   if(cadenceResult.error)throw new Error('Weekly review cadence could not be loaded.')
   let opened=0,presented=0,waiting=0
   for(const cadence of cadenceResult.data??[]){
@@ -116,7 +117,7 @@ export async function prepareWeeklyReviews(input:{admin?:SupabaseClient;asOf?:st
     await settlePriorReviews(admin,businessId,asOf)
     const checkInDate=latestCheckInOnOrBefore(asOf,weekday)
     if(checkInDate<String(cadence.effective_from))continue
-    const membershipResult=await admin.from('current_customer_membership').select('plan,lifecycle')
+    const membershipResult=await admin.from('business_memberships').select('plan,lifecycle')
       .eq('business_id',businessId).maybeSingle()
     const membership=membershipResult.data
     if(!membership||!['active','payment_issue','canceling'].includes(membership.lifecycle))continue

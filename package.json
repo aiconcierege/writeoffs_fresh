@@ -17,6 +17,7 @@
     "staging:test-user:reset": "node scripts/reset-staging-test-user.mjs",
     "staging:fixture:realtor": "node scripts/populate-staging-realtor.mjs",
     "staging:fixture:realtor:report": "vite-node --script scripts/report-staging-realtor.ts",
+    "staging:review:open": "NODE_OPTIONS=--conditions=react-server tsx scripts/open-staging-test-weekly-review.ts",
     "prepare": "husky"
   },
   "dependencies": {
@@ -47,7 +48,9 @@
     "husky": "^9.1.7",
     "postcss": "8.5.26",
     "postcss-selector-parser": "^6.0.13",
+    "server-only": "^0.0.1",
     "tailwindcss": "^3.4.13",
+    "tsx": "^4.23.12",
     "typescript": "^5.4.5",
     "vitest": "3.2.6"
   }

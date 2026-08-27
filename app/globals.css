@@ -431,8 +431,22 @@ body { background: var(--canvas); color: var(--ink); }
   .home-document-states { grid-template-columns: 1fr 1.35fr; }.home-document-states:has(.home-document-processing-state) { grid-template-columns: repeat(3,minmax(0,1fr)); }.home-record-index { grid-template-columns: repeat(4,minmax(0,1fr)); }.home-record-link { grid-template-columns: 2.35rem minmax(0,1fr) auto; min-height: 4.75rem; align-content: center; padding-inline: .8rem; }.home-record-link:nth-child(n) { border-left: 0; }.home-record-link:not(:nth-child(4n+1)) { border-left: 1px solid #d9e0db; }.home-record-arrow { display: block; }
 }
 @media (max-width:639px) {
-  .home-betti { min-height: 25rem; }.home-betti-copy { max-width: 12.5rem; }.home-betti-actions { right: .8rem; bottom: .8rem; left: .8rem; }.home-question-actions { max-width: 100%; }.home-review-items a { grid-template-columns: 1.55rem minmax(0,1fr) auto; }
+  .home-betti { min-height: 31rem; }.home-betti-copy { max-width: 13.25rem; }.home-betti-actions { right: .8rem; bottom: .8rem; left: .8rem; }.home-question-actions { max-width: 100%; }.home-review-items a { grid-template-columns: 1.55rem minmax(0,1fr) auto; }
 }
+
+/* Required customer information uses a real 16px floor. Eyebrows remain decorative. */
+.home-story-copy,.home-operating-facts p,.home-operating-facts strong,.home-operating-facts small,
+.home-check-action,.home-operating-action p,.home-betti-copy,.home-betti-work > p,.home-betti-work dt,
+.home-betti-actions .btn,.home-question-saved,.home-inline-link,.home-review-heading > p,
+.home-review-totals dt,.home-review-items strong,.home-review-meta,.home-review-items b,
+.home-review-footer p,.home-review-actions .btn,.weekly-workflow-guidance,.weekly-stage-message,
+.weekly-transaction-main strong,.weekly-transaction-meta,.weekly-transaction-row b,.weekly-receipt-state,
+.weekly-business-amount,.weekly-row-note,.weekly-row-receipt .btn,.weekly-document-actions .btn,
+.weekly-workflow-actions .btn,.weekly-mileage-list,.weekly-workflow-error,.home-section-heading > a,
+.home-document-states dt,.home-document-states small,.home-help-copy,.home-financial-node span,
+.home-financial-node small,.home-record-link strong,.home-record-link small { font-size: 1rem; }
+.home-betti-title { font-size: 1.125rem; }
+.home-betti-work dd { font-size: 1.75rem; }
 
 @media print {
   body:has(.invoice-print-page) > header { display: none; }
