@@ -7,11 +7,13 @@ import { getAuthenticatedPotentialWriteoffs } from '../lib/bookkeeping/potential
 import { listCustomerQuestions } from '../lib/bookkeeping/customer-questions'
 import { summarizeReceiptDocumentation } from '../lib/bookkeeping/receipt-workflow'
 import { getCurrentCustomerWeeklyReview } from '../lib/bookkeeping/weekly-review'
+import { getHomeOperatingStatus } from '../lib/home/operating-status'
 import { loadCustomerEntitlements } from '../lib/membership/entitlements'
 import { onboardingNeedsFollowUp, type OnboardingBusinessData } from '../lib/onboarding/progress'
 import { QuestionInvitation } from './QuestionInvitation'
 import { WeeklyReview } from './WeeklyReview'
-import { DocumentationStrip, FinancialRelationship, monthlyWriteoffRhythm, RecordIndex, WriteoffRhythm } from './HomeVisuals'
+import { HomeOperatingStatus } from './HomeOperatingStatus'
+import { DocumentationStrip, FinancialRelationship, RecordIndex } from './HomeVisuals'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -38,12 +40,13 @@ export default async function HomePage() {
   const year = today.slice(0, 4)
   const businessResult = await supabase.from('businesses').select('business_description,business_profile_context,schedule_c_eligibility,business_stage,business_start_month,uses_customer_job_materials,keeps_future_sale_merchandise,prior_materials_handling,catch_up_start_date,onboarding_start_method,v1_support_status,onboarding_state,onboarding_version')
     .eq('owner_user_id', user.id).maybeSingle()
-  const [summary, potential, questions, receiptWorkflow, weeklyReview] = await Promise.all([
+  const [summary, potential, questions, receiptWorkflow, weeklyReview, operatingStatus] = await Promise.all([
     getAuthenticatedCanonicalReport({ supabase, periodStart: `${year}-01-01`, periodEnd: today, currency: 'USD' }),
     getAuthenticatedPotentialWriteoffs({ supabase, periodStart: `${year}-01-01`, periodEnd: today }),
     listCustomerQuestions({ supabase, scope: membership.plan! }),
     summarizeReceiptDocumentation(supabase),
     getCurrentCustomerWeeklyReview(supabase),
+    getHomeOperatingStatus(supabase),
   ])
 
   const needsSetup = businessResult.data
@@ -51,7 +54,6 @@ export default async function HomePage() {
   const areas = isBusiness
     ? [...recordAreas, ['/invoices', 'Invoices', 'Create or review invoices', 'invoices'] as const]
     : recordAreas
-  const months = monthlyWriteoffRhythm(potential.items, Number(year))
   const documented = potential.items.filter((item) => item.hasEvidence).length
   const undocumented = potential.count - documented
   const bettiState: BettiState = questions.length > 0
@@ -63,7 +65,7 @@ export default async function HomePage() {
         <p className="home-kicker">Your year with WriteOffs</p>
         <h1 id="home-heading"><strong>{potential.count}</strong><span>potential {potential.count === 1 ? 'writeoff' : 'writeoffs'}<br/>found this year</span></h1>
         <p className="home-story-copy">We’re keeping your business expenses organized and documented as you go.</p>
-        <WriteoffRhythm months={months}/>
+        <HomeOperatingStatus status={operatingStatus}/>
       </div>
       <div className={`home-betti home-betti-${bettiState}`}>
         <div className="home-betti-copy">

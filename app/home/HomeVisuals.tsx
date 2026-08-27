@@ -1,43 +1,5 @@
 import Link from 'next/link'
 
-export type WriteoffMonth = { label: string; count: number }
-
-export function monthlyWriteoffRhythm(items: { occurredOn: string }[], year: number): WriteoffMonth[] {
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  const counts = Array.from({ length: 12 }, () => 0)
-  for (const item of items) {
-    const match = /^(\d{4})-(\d{2})-\d{2}$/.exec(item.occurredOn)
-    if (!match || Number(match[1]) !== year) continue
-    const month = Number(match[2]) - 1
-    if (month >= 0 && month < 12) counts[month] += 1
-  }
-  return counts.map((count, index) => ({ label: monthNames[index], count }))
-}
-
-export function WriteoffRhythm({ months }: { months: WriteoffMonth[] }) {
-  const visible = months.slice(0, Math.max(1, months.findLastIndex((month) => month.count > 0) + 1))
-  const max = Math.max(1, ...visible.map((month) => month.count))
-  const width = 520, height = 104, left = 10, right = 10, top = 12, bottom = 18
-  const x = (index: number) => visible.length === 1 ? width / 2
-    : left + index * ((width - left - right) / (visible.length - 1))
-  const y = (count: number) => top + (max - count) / max * (height - top - bottom)
-  const points = visible.map((month, index) => `${x(index)},${y(month.count)}`).join(' ')
-  const area = visible.length > 1
-    ? `M ${x(0)} ${height - bottom} L ${points.replaceAll(',', ' ')} L ${x(visible.length - 1)} ${height - bottom} Z`
-    : ''
-  return <figure className="home-rhythm" aria-labelledby="writeoff-rhythm-title">
-    <figcaption id="writeoff-rhythm-title" className="home-rhythm-title">Writeoffs found by month</figcaption>
-    <svg className="home-rhythm-chart" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true">
-      <defs><linearGradient id="writeoff-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#00b889" stopOpacity=".3"/><stop offset="1" stopColor="#00b889" stopOpacity="0"/></linearGradient></defs>
-      {area && <path d={area} fill="url(#writeoff-area)"/>}
-      {visible.length > 1 && <polyline points={points} fill="none" stroke="#178368" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>}
-      {visible.map((month, index) => <circle key={month.label} cx={x(index)} cy={y(month.count)} r={index === visible.length - 1 ? 6 : 4} fill={index === visible.length - 1 ? '#243186' : '#fffaf3'} stroke={index === visible.length - 1 ? '#243186' : '#178368'} strokeWidth="3" vectorEffect="non-scaling-stroke"/>)}
-    </svg>
-    <div className="home-rhythm-months" aria-hidden="true">{visible.map((month) => <span key={month.label}>{month.label}</span>)}</div>
-    <p className="sr-only">{visible.map((month) => `${month.label}: ${month.count}`).join('. ')}</p>
-  </figure>
-}
-
 const paths: Record<string, string> = {
   transactions: 'M4 7h16M4 12h10M4 17h13M18 14v6m-3-3h6',
   receipts: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm3 5h6m-6 4h6',
