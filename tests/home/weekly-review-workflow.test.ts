@@ -34,6 +34,7 @@ describe('transaction-first weekly review',()=>{
   expect(weekly).toContain('setEventId(result.eventId??eventId)')
   expect(weekly).toContain('completeStage:false')
   expect(weekly).toContain("stage==='documentation'&&missing.length>0")
+  expect(weekly).toContain("['business','mixed_use'].includes(item.treatment)")
  })
  it('opens canonical missing-documentation requests before entering that stage',()=>{
   expect(workflowRoute).toContain('ensurePeriodDocumentationRequests')

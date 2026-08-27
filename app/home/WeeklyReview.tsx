@@ -25,7 +25,8 @@ function WorkflowReview({review,currentQuestionCount}:{review:CustomerWeeklyRevi
  const[personalIds,setPersonalIds]=useState(new Set(review.transactions.filter(item=>item.treatment==='personal').map(item=>item.id)))
  const[busy,setBusy]=useState(false),[error,setError]=useState('')
  const visible=useMemo(()=>review.transactions.filter(item=>!personalIds.has(item.id)),[review.transactions,personalIds])
- const missing=visible.filter(item=>item.amountCents<0&&!item.hasReceipt&&!item.receiptLost&&!resolvedDocumentation.has(item.recordId))
+ const missing=visible.filter(item=>item.amountCents<0&&item.bookkeepingNature==='expense'
+  &&['business','mixed_use'].includes(item.treatment)&&!item.hasReceipt&&!item.receiptLost&&!resolvedDocumentation.has(item.recordId))
  function toggle(id:string){setSelected(value=>{const next=new Set(value);if(next.has(id))next.delete(id);else next.add(id);return next})}
  async function advance(documentationDecision?:'include_missing'|'exclude_missing'|'no_missing'){setBusy(true);setError('')
   const changes:Array<Record<string,unknown>>=stage==='personal'?review.transactions.filter(item=>selected.has(item.id)).map(item=>({transactionId:item.id,decisionId:item.currentDecisionId,use:'personal'}))
