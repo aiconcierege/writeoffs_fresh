@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReceiptReadItem } from '../lib/bookkeeping/receipt-workflow'
 import { ReceiptUploadAction } from './ReceiptUploadAction'
 import { centsToDollars, validateReceiptFacts, type ReceiptFactErrors } from './receipt-form'
-import { EmptyState, PageContainer, PageHeader, StatusBadge } from '../components/ui'
+import { BettiPageIntro, EmptyState, PageContainer, StatusBadge } from '../components/ui'
 
 export default function ReceiptsInner() {
   const [receipts, setReceipts] = useState<ReceiptReadItem[]>([])
@@ -26,8 +26,10 @@ export default function ReceiptsInner() {
   const removed = receipts.filter((receipt) => receipt.displayStatus === 'discarded')
   return <main className="app-page">
     <PageContainer>
-      <PageHeader eyebrow="Documents" title="Receipts" description="Upload a receipt and WriteOffs will retain it, organize it, and look for matching activity."
-        actions={<ReceiptUploadAction variant="history" onComplete={refresh} />} />
+      <BettiPageIntro state="working" eyebrow="Receipts" title="Send me your receipts."
+        action={<ReceiptUploadAction variant="history" onComplete={refresh} />}>
+        I’ll read them, keep them with your records, and connect them to the right expenses whenever I can.
+      </BettiPageIntro>
 
       {error && <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
       <section className="mt-11 section-rule" aria-labelledby="receipt-history-heading">
@@ -35,7 +37,7 @@ export default function ReceiptsInner() {
           {!loading && receipts.length > 0 && <p className="text-sm text-slate-600">{summary(receipts)}</p>}</div>
         {loading ? <div role="status" aria-label="Loading receipts" className="mt-5 grid gap-4 sm:grid-cols-2"><div className="skeleton h-36"/><div className="skeleton hidden h-36 sm:block"/></div>
           : current.length === 0 ? <EmptyState title="No receipts yet" description="Upload one and WriteOffs will take it from there." />
-          : <div className="mt-5 grid gap-4 sm:grid-cols-2">{current.map((receipt) =>
+          : <div className="receipt-history-list mt-5 grid gap-4">{current.map((receipt) =>
             <ReceiptCard key={receipt.id} receipt={receipt} refresh={refresh} />)}</div>}
       </section>
       {removed.length > 0 && <details className="border-t border-slate-200 py-6">
@@ -70,13 +72,13 @@ function ReceiptCard({ receipt, refresh }: { receipt: ReceiptReadItem; refresh: 
     } catch { setError('This receipt could not be removed. It may need a guarded correction.'); setBusy(false) }
   }
 
-  return <article className="surface p-5">
+  return <article className="receipt-record surface p-5 sm:p-6">
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0"><h3 className="truncate font-medium text-slate-950">{receipt.merchant ?? receipt.originalName}</h3>
         <p className="mt-1 text-sm text-slate-600">{[receipt.occurredOn, amount].filter(Boolean).join(' · ') || 'Details unavailable'}</p></div>
       <StatusBadge tone={receipt.displayStatus === 'matched' ? 'positive' : receipt.displayStatus === 'processing' ? 'muted' : receipt.displayStatus === 'details_unavailable' ? 'attention' : 'neutral'}>{status}</StatusBadge>
     </div>
-    <p className="mt-3 text-xs leading-5 text-slate-500">{statusDescription(receipt.displayStatus)}</p>
+    <p className="mt-3 text-base leading-6 text-slate-600">{statusDescription(receipt.displayStatus)}</p>
     <div className="mt-3 flex flex-wrap items-center gap-3">
       {receipt.signedUrl && <a href={receipt.signedUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-sm font-semibold text-[#243186] hover:underline">View receipt</a>}
       {mayCorrect && <button type="button" onClick={() => setEditing((value) => !value)} className="min-h-11 text-sm font-semibold text-[#243186]">Edit details</button>}

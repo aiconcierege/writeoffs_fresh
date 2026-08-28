@@ -22,7 +22,7 @@ export default async function TaxTimePage({ searchParams }: { searchParams: Prom
   const readiness = await getAuthenticatedTaxYearReadiness({ supabase, taxYear: year,scope:membership.plan! })
   const customerIssues = readiness.issues.filter(issue => issue.kind !== 'processing')
   const processingIssues = readiness.issues.filter(issue => issue.kind === 'processing')
-  return <main className="page-container max-w-5xl">
+  return <main className="app-page -mx-4 -mb-10 sm:-mx-6 lg:-mx-8"><div className="page-container max-w-5xl">
     <header className="max-w-3xl"><p className="text-xs font-semibold tracking-[0.16em] text-slate-500">ANNUAL RECORDS</p>
       <div className="mt-2 flex flex-wrap items-end justify-between gap-4"><div><h1 className="page-title">{year} {isBusiness?'tax-time readiness':'expense-record readiness'}</h1>
         <p className="mt-4"><span className="status-badge" data-tone={readiness.status === 'ready' ? 'positive' : readiness.status === 'still_processing' ? 'muted' : 'attention'}>{labels[readiness.status]}</span></p></div>
@@ -45,5 +45,5 @@ export default async function TaxTimePage({ searchParams }: { searchParams: Prom
       <div className="mt-5 grid gap-2 sm:grid-cols-2"><a className="btn btn-secondary justify-between" href={`/api/export/csv?year=${year}`}>Transaction CSV <span aria-hidden="true">↓</span></a><a className="btn btn-secondary justify-between" href={`/api/mileage/export?year=${year}`}>Mileage CSV <span aria-hidden="true">↓</span></a><a className="btn btn-secondary justify-between" href={`/api/contractors/export?year=${year}`}>Contractor CSV <span aria-hidden="true">↓</span></a><a className="btn btn-secondary justify-between" href={`/api/reports/annual-package?year=${year}&file=documentation`}>Documentation summary <span aria-hidden="true">↓</span></a><a className="btn btn-secondary justify-between" href={`/api/reports/annual-package?year=${year}&file=unresolved-items`}>Unresolved items <span aria-hidden="true">↓</span></a><Link className="btn btn-secondary justify-between" href={`/reports/schedule-c?year=${year}`}>Schedule C categories <span aria-hidden="true">→</span></Link></div>
     </section>
     <p className="mt-10 max-w-3xl text-xs leading-5 text-slate-500">{readiness.caveat} {readiness.dataSourceLimitation}</p>
-  </main>
+  </div></main>
 }

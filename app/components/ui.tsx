@@ -1,4 +1,5 @@
 import type { ElementType, HTMLAttributes, ReactNode } from 'react'
+import { BettiIllustration, type BettiState } from './BettiIllustration'
 
 function classes(...values: Array<string | false | null | undefined>) { return values.filter(Boolean).join(' ') }
 
@@ -10,6 +11,17 @@ export function PageHeader({ eyebrow, title, description, actions, className = '
   return <header className={classes('flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between', className)}><div className="page-header">
     {eyebrow && <p className="eyebrow">{eyebrow}</p>}<h1 className="page-title">{title}</h1>{description && <p className="page-description">{description}</p>}
   </div>{actions && <div className="shrink-0">{actions}</div>}</header>
+}
+
+export function BettiPageIntro({ state, eyebrow, title, children, action, className = '' }: {
+  state: BettiState; eyebrow?: string; title: ReactNode; children: ReactNode; action?: ReactNode; className?: string
+}) {
+  return <section className={classes('betti-page-intro', `betti-page-intro-${state}`, className)}>
+    <div className="betti-page-intro-copy">{eyebrow && <p className="eyebrow">{eyebrow}</p>}<h1 className="page-title">{title}</h1>
+      <div className="betti-page-intro-description">{children}</div>{action && <div className="betti-page-intro-action">{action}</div>}
+    </div>
+    <div className="betti-page-intro-art" aria-hidden="true"><BettiIllustration state={state} decorative sizes="(max-width: 639px) 9rem, 14rem" /></div>
+  </section>
 }
 
 export function SectionHeader({ title, description, action }: { title: ReactNode; description?: ReactNode; action?: ReactNode }) {

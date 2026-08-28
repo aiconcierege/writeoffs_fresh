@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { validateOnboardingBusinessPatch } from '../lib/onboarding/validation'
+import { BettiIllustration } from '../components/BettiIllustration'
 import {
   activeOnboardingSteps, getFirstIncompleteOnboardingStep,
   type OnboardingBusinessData, type OnboardingUiStep,
@@ -136,7 +137,8 @@ export default function OnboardingFlow({ initialBusiness, editing = false }: {
       </div>
       <div className="card overflow-hidden">
         <form aria-busy={saving} onSubmit={(event) => { event.preventDefault(); void (step === 'review' ? complete() : continueStep()) }}>
-          <div className="p-5 sm:p-8">
+          <div className="relative overflow-visible p-5 sm:p-8">
+            {!editing && step === 'business' && <BettiIllustration state="welcome" decorative className="onboarding-betti-welcome" sizes="(max-width: 639px) 6rem, 8rem" />}
             <p className="text-sm font-semibold uppercase tracking-wide text-[#243186]">Set up WriteOffs</p>
             <div className="mt-4"><Step step={step} business={business} update={update} headingRef={headingRef} edit={setStep} /></div>
             {error && <div role="alert" aria-live="assertive" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>}

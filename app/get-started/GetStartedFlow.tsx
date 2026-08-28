@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import BankConnect from '../components/BankConnect'
+import { BettiPageIntro } from '../components/ui'
 
 type ReceiptAnswer = 'most' | 'some' | 'none' | null
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
@@ -31,11 +32,11 @@ export function GetStartedFlow({ initialCheckInWeekday, ...props }: React.Compon
 
   return <div className="space-y-14">
     <section aria-labelledby="connect-heading">
-      <p className="eyebrow">Start here</p>
-      <h1 id="connect-heading" className="page-title">Let WriteOffs get to work.</h1>
-      <p className="page-description">Connect your accounts and WriteOffs will begin organizing the activity it finds. You can leave while it works.</p>
+      <BettiPageIntro state="welcome" eyebrow="Start here" title={<span id="connect-heading">Let’s get your books started.</span>}>
+        Connect your accounts and I’ll begin organizing the activity I find. You can leave while I work.
+      </BettiPageIntro>
       <div className="mt-7"><BankConnect {...props}/></div>
-      <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+      <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-base">
         <Link href="/import" className="font-semibold text-[#243186]">Upload statements or a CSV</Link>
         <Link href="/receipts" className="font-semibold text-[#243186]">Start with receipts instead</Link>
       </div>

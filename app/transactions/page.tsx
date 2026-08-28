@@ -26,21 +26,21 @@ export default async function TransactionsPage({ searchParams }: {
   const nextCursor=hasMore&&rows.length?transactionCursor(rows[rows.length-1]):null
   return <main className="app-page">
     <PageContainer wide>
-      <PageHeader title="Transactions" description="A clear history of your business activity."
+      <PageHeader eyebrow="Your books" title="Transactions" description="Here’s everything WriteOffs is keeping track of for your business."
         actions={<form className="w-full sm:w-80"><label htmlFor="transaction-search" className="sr-only">Search transactions</label>
           <input id="transaction-search" name="q" defaultValue={query} placeholder="Search merchant or description"
             className="field text-sm" /></form>} />
       {rows.length === 0 ? <EmptyState title={query ? 'No matching transactions' : 'No activity yet'}
         description={query ? 'Try a different search.' : 'Connect or import an account and WriteOffs will start organizing it.'}
         action={query ? null : <div className="flex flex-col justify-center gap-3 sm:flex-row"><Link href="/settings/banking" className="btn btn-primary">Connect an account</Link><Link href="/import" className="btn btn-secondary">Import a CSV</Link></div>} />
-      : <div className="record-list mt-8">
+      : <div className="record-list transaction-records mt-8">
         {rows.map((row) => <Link key={`${row.sourceModel}:${row.id}`} href={`/transactions/${row.id}`}
-          className="record-row grid min-h-[5.25rem] grid-cols-[1fr_auto] gap-4 px-1 py-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#243186] sm:grid-cols-[7rem_1fr_12rem_8rem] sm:items-center sm:px-3">
-          <time className="hidden text-sm text-slate-500 sm:block">{formatDate(row.date)}</time>
-          <div className="min-w-0"><p className="truncate font-medium text-slate-950">{row.vendor}</p>
+          className="record-row transaction-record-row grid min-h-[5.75rem] grid-cols-[1fr_auto] gap-4 px-2 py-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#243186] sm:grid-cols-[8rem_1fr_13rem_9rem] sm:items-center sm:px-4">
+          <time className="hidden text-base text-slate-600 sm:block">{formatDate(row.date)}</time>
+          <div className="min-w-0"><p className="truncate text-lg font-semibold text-slate-950">{row.vendor}</p>
             <p className="mt-1 text-xs text-slate-500 sm:hidden">{formatDate(row.date)}</p>
             <div className="mt-2 flex flex-wrap items-center gap-2"><StatusBadge tone={row.treatmentLabel === 'Business' ? 'positive' : row.treatmentLabel.includes('working') ? 'attention' : 'muted'}>{row.treatmentLabel}</StatusBadge>{row.sourceLabel&&<span className="text-xs text-slate-500">{row.sourceLabel}</span>}</div></div>
-          <div className="hidden text-sm text-slate-600 sm:block">{row.has_receipt ? 'Receipt attached' : row.receiptLost ? 'Receipt unavailable' : 'No receipt'}</div>
+          <div className="hidden text-base font-medium text-slate-600 sm:block">{row.has_receipt ? 'Receipt attached' : row.receiptLost ? 'Receipt unavailable' : 'No receipt'}</div>
           <p className={`money-display text-right text-base font-semibold ${row.amountCents > 0 ? 'money-positive' : ''}`}>{money.format(row.amount)}</p>
         </Link>)}
       </div>}

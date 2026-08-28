@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react'
 import { formatMiles } from '../lib/mileage/validation'
+import { BettiPageIntro } from '../components/ui'
 
 type Vehicle = { id:string;display_name:string;vehicle_year:number|null;make:string|null;model:string|null;is_mixed_use:boolean|null;archived_at:string|null }
 type Entry = { id:string;current_event_id:string;miles_milli:number;occurred_on:string;vehicle_id:string;job_label:string|null;destination:string|null;business_purpose:string|null }
@@ -13,10 +14,10 @@ export function MileageClient({ initialVehicles, initialEntries }: { initialVehi
   const active=vehicles.filter((v)=>!v.archived_at); const vehicleNames=useMemo(()=>new Map(vehicles.map((v)=>[v.id,v.display_name])),[vehicles])
   async function refresh(){const response=await fetch('/api/mileage/list',{cache:'no-store',signal:AbortSignal.timeout(10_000)});if(!response.ok)throw new Error('Mileage list could not be refreshed.')
     const data=await response.json();setVehicles(data.vehicles);setEntries(data.entries)}
-  return <main className="page-container page-container-narrow">
-    <header><p className="text-xs font-semibold tracking-[0.16em] text-slate-500">BUSINESS DRIVING</p>
-      <h1 className="page-title">Mileage</h1>
-      <p className="mt-2 text-sm leading-6 text-slate-600">Record the miles and business facts. WriteOffs keeps tax-method decisions separate.</p></header>
+  return <main className="app-page -mx-4 -mb-10 sm:-mx-6 lg:-mx-8"><div className="page-container page-container-narrow">
+    <BettiPageIntro state="welcome" eyebrow="Business driving" title="Tell me about your business driving.">
+      Add the miles, date, and business reason. I’ll keep the records together for you.
+    </BettiPageIntro>
     {addingVehicle&&<VehicleForm firstVehicle={active.length===0} onDone={async()=>{setAddingVehicle(false);await refresh()}}/>}
     {!addingVehicle&&active.length>0&&<MileageForm vehicles={active} entry={editing} onDone={async()=>{setEditing(null);setMessage('Mileage saved.');await refresh()}}/>}
     <div className="mt-4"><button onClick={()=>setAddingVehicle((v)=>!v)} className="min-h-11 text-sm font-semibold text-[#243186]">{addingVehicle?'Cancel':'Add vehicle'}</button></div>
@@ -34,7 +35,7 @@ export function MileageClient({ initialVehicles, initialEntries }: { initialVehi
           className="mt-2 min-h-11 text-sm font-semibold text-slate-600">Remove</button>
       </article>)}</div>}
     </section>
-  </main>
+  </div></main>
 }
 
 function MileageForm({vehicles,entry,onDone}:{vehicles:Vehicle[];entry:Entry|null;onDone:()=>Promise<void>}){

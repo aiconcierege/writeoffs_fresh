@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useRef, useState } from 'react'
+import { BettiIllustration } from '../components/BettiIllustration'
 import {
   parsePositiveDollarCents,
   type CustomerQuestion,
@@ -58,8 +59,8 @@ export function QuestionFlow({ initialQuestions,range }: { initialQuestions: Cus
 
   if (!question) {
     return (
-      <main className="app-page -mx-4 -mb-10 sm:-mx-6 lg:-mx-8"><section className="mx-auto flex min-h-[72vh] max-w-xl flex-col items-center justify-center px-6 py-16 text-center">
-          <span className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#e0f5ec] text-xl text-[#176c54]" aria-hidden="true">✓</span>
+      <main className="app-page -mx-4 -mb-10 sm:-mx-6 lg:-mx-8"><section className="question-caught-up mx-auto flex min-h-[72vh] max-w-2xl flex-col items-center justify-center px-6 py-16 text-center">
+          <BettiIllustration state="caught-up" className="question-betti-caught" priority sizes="(max-width: 639px) 13rem, 18rem" />
           <h1 ref={heading} tabIndex={-1} className="text-4xl font-semibold tracking-[-.045em] text-[#17211d]">You’re all caught up.</h1>
           <p className="mt-4 text-[#59665f]">WriteOffs will keep working in the background.</p>
           <Link href="/home" className="btn btn-primary mt-8">Back to Home</Link>
@@ -75,8 +76,9 @@ export function QuestionFlow({ initialQuestions,range }: { initialQuestions: Cus
 
   return (
     <main className="app-page -mx-4 -mb-10 px-4 sm:-mx-6 sm:px-6 lg:-mx-8">
-      <div className="mx-auto max-w-xl py-10 sm:py-16"><div className="flex items-center justify-between text-sm font-medium text-[#65736b]"><p>Question {answered + 1} of {total}</p><Link href="/home" className="text-[#243186]">Finish later</Link></div>
-      <section className="surface mt-4 p-5 sm:p-8">
+      <div className="mx-auto max-w-2xl py-6 sm:py-10"><div className="flex items-center justify-between text-base font-medium text-[#65736b]"><p>Question {answered + 1} of {total}</p><Link href="/home" className="text-[#243186]">Finish later</Link></div>
+      <section className="question-conversation surface relative mt-4 overflow-visible p-5 sm:p-8">
+        <BettiIllustration state="question" className="question-betti" priority sizes="(max-width: 639px) 7rem, 10rem" />
         <div className="surface-subtle p-4 text-sm">
           <div className="font-semibold">{question.transaction.merchant}</div>
           <div className="mt-1 flex flex-wrap gap-x-4 text-muted">

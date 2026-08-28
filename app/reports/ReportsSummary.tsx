@@ -26,7 +26,7 @@ export function ReportsSummary({scope,readOnly}:{scope:'expenses'|'business';rea
     .catch(() => setData(null)).finally(() => setLoading(false)) }, [])
   if (loading) return <div role="status" aria-label="Loading report" className="page-container"><div className="skeleton h-12 max-w-md"/><div className="mt-8 grid gap-5 sm:grid-cols-2"><div className="skeleton h-28"/><div className="skeleton h-28"/></div></div>
   if (!data) return <div className="page-container"><div role="alert" className="notice notice-error">Your report is temporarily unavailable. Please try again.</div></div>
-  return <main className="page-container max-w-5xl space-y-11">
+  return <main className="app-page -mx-4 -mb-10 sm:-mx-6 lg:-mx-8"><div className="page-container max-w-5xl space-y-11">
     <header><p className="text-xs font-semibold tracking-[0.16em] text-slate-500">YEAR TO DATE</p>
       <h1 className="page-title">{scope==='business'?'Your business at a glance':'Your expenses at a glance'}</h1>
       {readOnly&&<p className="mt-2 text-sm font-medium text-[#243186]">Historical records · read only</p>}
@@ -54,5 +54,5 @@ export function ReportsSummary({scope,readOnly}:{scope:'expenses'|'business';rea
       <div className="mt-4 border-t border-slate-200">{data.contractorSummaries.filter(row=>row.totalPaidCents>0).map(row=><div key={row.id} className="grid gap-1 border-b border-slate-200 py-4 sm:grid-cols-[1fr_auto] sm:gap-5"><div><p className="font-medium">{row.displayName}</p><p className="text-sm text-slate-600">W-9: {row.w9Status.replaceAll('_',' ')} · {row.awareness.replaceAll('_',' ')}</p></div><p className="font-medium tabular-nums">{usd.format(row.totalPaidCents/100)}</p></div>)}{data.contractorSummaries.every(row=>row.totalPaidCents===0)&&<p className="py-5 text-sm text-slate-600">No contractor payments are currently tracked.</p>}</div>
     </section>
     {data.completeness.unresolvedTaxTreatmentCount>0&&<section className="border-t border-slate-200 pt-7"><h2 className="text-lg font-semibold text-slate-950">Tax details still being checked</h2><p className="mt-2 text-sm text-slate-600">{data.completeness.unresolvedTaxTreatmentCount} business expense {data.completeness.unresolvedTaxTreatmentCount===1?'needs':'need'} more supported tax-treatment information. No deduction has been assumed.</p></section>}
-  </main>
+  </div></main>
 }
