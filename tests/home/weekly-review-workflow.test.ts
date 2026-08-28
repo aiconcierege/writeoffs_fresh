@@ -9,9 +9,26 @@ const weeklyReadModel=readFileSync('app/lib/bookkeeping/weekly-review.ts','utf8'
 describe('transaction-first weekly review',()=>{
  it('orders exception sweeps before questions and documentation',()=>{
   expect(weekly).toContain("personal:'mixed',mixed:'questions',questions:'documentation',documentation:'mileage',mileage:'final'")
-  expect(weekly).toContain('Which of these were personal?')
-  expect(weekly).toContain('Did any include business and personal spending?')
+  expect(weekly).toContain('First, take a quick look at this week’s transactions.')
+  expect(weekly).toContain('Check anything that was personal.')
+  expect(weekly).toContain('Did any of these include both business and personal expenses?')
   expect(weekly).toContain('businessAmountCents')
+ })
+ it('keeps sweep instructions and actions visible before a long list',()=>{
+  expect(weekly).toContain('weekly-sweep-intro')
+  expect(weekly).toContain('weekly-sweep-actions')
+  expect(weekly).toContain('Mark as personal')
+  expect(weekly).toContain('{selectedCount} selected')
+  expect(weekly).toContain("stage==='personal'?'personal':'business + personal'")
+  expect(weekly).toContain('None were {noun}')
+  expect(weekly).toContain('Continue with selected')
+  expect(weekly).toContain('How much of the')
+ })
+ it('uses stage-specific accessible checkbox names and keeps final review clean',()=>{
+  expect(weekly).toContain('Mark ${item.merchant} as personal')
+  expect(weekly).toContain('Mark ${item.merchant} as business and personal')
+  expect(weekly).toContain("if(!review.snapshotId)return <WorkflowReview")
+  expect(weekly).not.toMatch(/function FinalReview[\s\S]*?<input type="checkbox"/)
  })
  it('shows readable transaction facts and receipt state',()=>{
   expect(weekly).toContain('weekly-transaction-meta')
