@@ -6,12 +6,11 @@
 html,
 body {
   min-height: 100%;
-  overflow-y: auto;          /* ensure pages scroll */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
 }
-html { scroll-padding-top: 6rem; }
+html { overflow-y: auto; scroll-padding-top: 6rem; }
 
 .public-header { transition: background-color .2s ease,border-color .2s ease,box-shadow .2s ease; }
 .public-header > div { height: 5rem; transition: height .2s ease; }
@@ -50,7 +49,7 @@ body:has(.public-site) > main { padding-top: 5rem; }
 }
 
 /* Avoid accidental horizontal scrollbars */
-body { overflow-x: clip; }
+body { overflow-x: clip; overflow-y: visible; }
 
 /* ========== WriteOffs.io tokens & utilities (brand navy + mint) ========== */
 :root {
