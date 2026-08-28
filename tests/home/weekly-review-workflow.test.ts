@@ -24,7 +24,7 @@ describe('transaction-first weekly review',()=>{
   expect(weekly).toContain('None were {noun}')
   expect(weekly).toContain('Continue with selected')
   expect(weekly).toContain('How much of the')
-  expect(styles).toContain('body:has(.weekly-workflow) { overflow-x: clip; }')
+  expect(styles).toContain('body { overflow-x: clip; }')
   expect(styles).toContain('.weekly-sweep-actions { position: sticky;')
  })
  it('uses stage-specific accessible checkbox names and keeps final review clean',()=>{
