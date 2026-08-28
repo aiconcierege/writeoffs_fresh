@@ -304,6 +304,7 @@ body { background: var(--canvas); color: var(--ink); }
 .home-inline-link { display: inline-flex; min-height: 2.75rem; align-items: center; gap: .65rem; border-radius: .8rem; background: rgba(255,255,255,.92); padding: .65rem .85rem; color: #243186; font-size: .8rem; font-weight: 700; box-shadow: 0 12px 28px rgba(29,74,56,.1); }
 .home-review { position: relative; margin-top: 1.35rem; overflow: hidden; border: 1px solid #cad9d0; border-radius: 1.5rem; background: #fffdf8; box-shadow: 0 18px 48px rgba(23,33,29,.07); }
 .home-review.weekly-workflow { overflow: visible; }
+body:has(.weekly-workflow) { overflow-x: clip; }
 .home-review::before { position: absolute; inset: 0 auto 0 1.3rem; border-left: 1px solid rgba(218,113,92,.24); content: ''; }
 .home-review-heading { display: flex; flex-direction: column; gap: .7rem; border-bottom: 1px solid #dce3de; padding: 1.4rem 1.35rem 1.15rem 2.3rem; background: linear-gradient(90deg,#eff7f0,#fffdf8 70%); }
 .home-review-heading h2,.home-documentation h2,.home-financial h2,.home-records h2,.home-setup h2 { margin-top: .3rem; font-size: 1.45rem; line-height: 1.15; font-weight: 690; letter-spacing: -.035em; }

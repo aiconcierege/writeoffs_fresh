@@ -5,6 +5,7 @@ const processing=readFileSync('app/lib/bookkeeping/weekly-review-processing.ts',
 const questions=readFileSync('app/questions/page.tsx','utf8')
 const workflowRoute=readFileSync('app/api/bookkeeping/reviews/[id]/workflow/route.ts','utf8')
 const weeklyReadModel=readFileSync('app/lib/bookkeeping/weekly-review.ts','utf8')
+const styles=readFileSync('app/globals.css','utf8')
 
 describe('transaction-first weekly review',()=>{
  it('orders exception sweeps before questions and documentation',()=>{
@@ -23,6 +24,8 @@ describe('transaction-first weekly review',()=>{
   expect(weekly).toContain('None were {noun}')
   expect(weekly).toContain('Continue with selected')
   expect(weekly).toContain('How much of the')
+  expect(styles).toContain('body:has(.weekly-workflow) { overflow-x: clip; }')
+  expect(styles).toContain('.weekly-sweep-actions { position: sticky;')
  })
  it('uses stage-specific accessible checkbox names and keeps final review clean',()=>{
   expect(weekly).toContain('Mark ${item.merchant} as personal')
