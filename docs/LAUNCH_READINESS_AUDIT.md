@@ -1,6 +1,14 @@
 # WriteOffs Launch Readiness Audit
 
-Status: repository audit completed 2026-08-24 and updated 2026-08-25 after the durable-processing milestone. This document assesses launch readiness; it does not replace canonical product, bookkeeping, tax, security, or legal specifications.
+Status: **historical point-in-time audit; superseded as current repository authority.**
+Completed 2026-08-24 and updated 2026-08-25 after the durable-processing milestone.
+It is retained as evidence of the repository at that time. Its statements about
+missing membership, read-only, routing, receipt, worker, or other implementation
+must not be used as current requirements or current-state findings. Current product
+authority begins with [WORKFLOW_SPECIFICATION.md](./WORKFLOW_SPECIFICATION.md);
+current launch evidence is tracked in
+[PRODUCTION_LAUNCH_GATE.md](./PRODUCTION_LAUNCH_GATE.md) and the relevant operations
+documents.
 
 Update: canonical receipt work is now registered into a durable typed queue, a bounded Vercel-compatible runner is declared, bulk receipt and statement intake are present, and Transactions resolves current leaves before applying its visible limit. Production scheduler activation/monitoring and canonical statement extraction remain deployment/follow-up work; the original findings below are retained as historical audit context.
 

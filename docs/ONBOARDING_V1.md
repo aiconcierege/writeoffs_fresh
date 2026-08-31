@@ -1,37 +1,52 @@
 # WriteOffs v1 onboarding architecture
 
 The current customer relationship and first-run sequence are governed by
-`CUSTOMER_BOOKKEEPER_EXPERIENCE.md`. Receipt availability answers such as Most,
-Some, or None are transient routing choices, not durable bookkeeping facts.
+`CUSTOMER_BOOKKEEPER_EXPERIENCE.md` and `WORKFLOW_SPECIFICATION.md`. Receipt
+availability answers such as Most, Some, or None are transient routing choices,
+not durable bookkeeping facts.
 
-Onboarding asks customers how their business operates and leaves accounting
-interpretation to the one canonical bookkeeping and tax-treatment path. It does not
-configure accounts, categories, Packs, tax rates, home-office calculations, vehicles,
-or bank connections.
+Onboarding asks customers for a minimal set of real-world facts and leaves accounting
+and tax interpretation to the canonical bookkeeping and tax-treatment path. A
+customer does not configure categories, tax treatment, accounting classifications,
+inventory/material accounting, prior tax handling, or other bookkeeping rules.
+WriteOffs may establish product fit, but it must do so with facts the customer can
+reasonably know. **We ask for the facts. We handle the rules.**
 
 ## Required flow
 
 1. Business name (optional) and a plain-language description of what the business does.
-2. Plain-language confirmation that the business is reported on Schedule C.
-3. New versus existing business and start month.
-4. Customer-job materials and substantial future-sale merchandise facts.
-5. For an existing business using job materials, prior handling at tax time.
-6. Historical catch-up start date, defaulted in the UI to January 1 of the current year.
-7. First activity: canonical CSV import or canonical receipt upload.
+2. Minimal real-world facts needed to determine whether WriteOffs supports the
+   business. Unsupported entity or bookkeeping complexity must be explained plainly;
+   the customer is not asked to perform tax analysis.
+3. Choose the bookkeeping start date/scope based on the customer's circumstances,
+   such as this month, January 1, when previous books stopped, or when the business
+   began. The customer does not select individual transactions to import.
+4. Disclose that membership includes the first day of the previous calendar month
+   forward. Earlier cleanup may carry a separately disclosed one-time charge, but no
+   cleanup price or billing formula is currently approved and this document does not
+   authorize billing.
+5. Choose a weekly Betti check-in weekday. Store the Business IANA timezone. Do not
+   require an exact time; the check-in is a gentle rhythm, not an appointment.
+6. Preferred first activity: connect financial accounts. Canonical statement, CSV,
+   and receipt intake remain available alternatives.
+7. For each connected checking/credit account, record Business only or Business and
+   personal as reusable context, never an irreversible transaction classification.
 8. Review and completion.
 
 Each completed step is persisted on the authenticated user's single Business. The
 server derives product eligibility; the client cannot select another Business or
 declare itself eligible. Completion is versioned, tenant-scoped, and idempotent.
-Completion hands off directly to the selected canonical CSV import or Receipts
-surface; Home remains available in primary navigation.
+Completion hands off through Get Started to the chosen canonical intake surface and
+then Home. The customer is not required to discover prerequisites through navigation.
 
-## Eligibility and unsupported states
+## Product fit and unsupported states
 
-V1 supports U.S. owner-operated Schedule C businesses, including service businesses,
-trades, creators, consultants, contractors, and real estate professionals. The
-plain-language business description provides context inside the same path, not a
-separate workflow or engine.
+V1 supports U.S. owner-operated Schedule C businesses with relatively simple
+cash-basis activity, including service businesses, trades, creators, consultants,
+contractors, and real estate professionals. The plain-language business description
+provides context inside the same path, not a separate workflow or engine. Customer
+copy must not require the customer to know whether a transaction belongs to a tax
+form or accounting category.
 
 Partnerships and corporations, Schedule E activity, payroll, full accrual systems, and
 businesses requiring substantial ongoing merchandise inventory management are outside
@@ -43,25 +58,29 @@ WriteOffs supports parts and materials installed, used, or provided through cust
 jobs. Their Business economics remain valid, while federal tax timing stays unresolved
 until approved business-level accounting-method context exists.
 
-## Invisible accounting behavior
+## Invisible accounting behavior and legacy facts
 
 WriteOffs is designed around its approved cash-basis Schedule C model, but onboarding
-does not ask customers to name an accounting method. Prior handling of customer-job
-materials is captured as factual history only. It never activates a tax rule, changes
-an accounting method, creates COGS, or changes bookkeeping allocation.
+does not ask customers to name an accounting method or explain prior tax treatment.
+Previously persisted material, merchandise, or prior-handling fields are legacy
+implementation facts, not authority to ask accounting questions in the normal
+customer onboarding flow. They never independently activate a tax rule, change an
+accounting method, create COGS, or change bookkeeping allocation.
 
 ## Business fact classes
 
 - Ordinary editable profile/setup facts: name, description, profile context,
-  catch-up preference, and preferred first activity.
-- Accounting-sensitive historical facts: new/existing stage, start month,
-  customer-job-material use, future-sale merchandise, and prior materials handling.
-- Eligibility facts: the customer's Schedule C answer plus the merchandise boundary.
+  coverage/start scope, weekly check-in weekday/timezone, and preferred first activity.
+- Legacy accounting-sensitive historical facts: existing persisted stage, start
+  month, materials, merchandise, and prior-handling events. These remain protected
+  history but are not a normal customer questionnaire contract.
+- Product-fit facts: plain-language facts about the business form and operating
+  complexity that the customer can reasonably know.
 - Derived facts: `v1_support_status` and `v1_support_reason`, generated by PostgreSQL
   and never accepted from a customer write.
 
-Only the accounting-sensitive set uses append-only history. Ordinary edits do not
-create unnecessary accounting events.
+Existing accounting-sensitive legacy facts retain append-only history. Ordinary
+profile and setup edits do not create unnecessary accounting events.
 
 ## Existing users
 
@@ -83,11 +102,11 @@ answer. Null/unknown values are not backfilled.
 ## Later corrections
 
 Business profile remains editable in Settings and stays synchronized with Business
-context. Other accounting-sensitive onboarding facts are reviewed through the
-resumable onboarding surface. Business stage, start month, customer-job-material use,
-future-sale merchandise, and prior materials handling are append-only fact chains.
-Each user correction records actor, source, reason, request identity, predecessor,
-and timestamp. Retry of the same semantic value converges; stale revisions fail.
+context. Legacy accounting-sensitive facts, when correction is genuinely required,
+retain their append-only fact chains and must use a separately approved,
+plain-language factual workflow rather than routine onboarding. Each correction
+records actor, source, reason, request identity, predecessor, and timestamp. Retry of
+the same semantic value converges; stale revisions fail.
 
 The corresponding `businesses` columns are a constrained current-state cache updated
 in the same database transaction as history. Authenticated sessions cannot write

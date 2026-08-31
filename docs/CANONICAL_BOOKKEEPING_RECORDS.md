@@ -189,9 +189,11 @@ and internal provenance are not presented as customer choices. A legacy-only row
 uses the same customer shell but has no fabricated canonical explanation or history.
 
 For an established canonical expense, “Correct this” accepts only the factual use
-choices Business, Personal, or Both. Both accepts a positive personal amount in
-whole cents; PostgreSQL applies the immutable source amount's sign and derives the
-business remainder by subtraction. One authenticated, record-locked operation
+choices Business, Personal, or Both. The canonical customer interaction for Both
+asks for the positive **business dollar amount** in whole cents; WriteOffs derives
+the personal remainder and any percentage internally. A compatibility service may
+translate that fact for an older database contract, but customer workflows must not
+switch to personal dollars or ask for a percentage. One authenticated, record-locked operation
 checks the expected current decision, preserves trusted purpose/category facts,
 and appends a new user-provenance decision with null automated confidence. A
 request UUID makes retries idempotent. Unresolved activity and non-expense natures
@@ -339,12 +341,13 @@ bookkeeping or claiming substantiation or tax compliance.
 ## Customer question experience
 
 The customer question flow is a presentation and orchestration layer over current
-canonical review-event leaves. It does not maintain batches, question rows, mutable
-review flags, or a second bookkeeping state. The Home count projects only current,
-actionable typed issues into plain-language factual questions. A question deferred
-with `Do this later` stays immediately active in that continuous queue and therefore
-remains in the Home count; the current browser session alone remembers not to show
-it again during that session.
+canonical review-event leaves. It does not copy issues into weekly batches or create
+a second bookkeeping state. Stable issue identity remains continuous, while approved
+presentation must distinguish current-period questions, explicitly deferred items,
+and older/historical questions. Older issues do not indefinitely inflate every
+weekly count and receive at most a monthly calm reminder. Implementing that lifecycle
+requires additive orchestration metadata/events; until it exists, the current
+`skipped` leaf remains actionable and must not be mistaken for resolution or approval.
 
 Purchase-specific business-use, purpose, and mixed-use questions are projected only
 after trusted canonical processing has established that the activity is an expense.
@@ -354,10 +357,13 @@ to the customer with a misleading purchase prompt.
 Button and text answers call the existing authenticated canonical answer paths.
 Business and Personal reuse the business-use answer function; purpose text uses the
 business-purpose function; trusted conflict options use the conflict function. The
-customer mixed-use interaction records either all-business use or a positive
-personal dollar amount. PostgreSQL applies the authoritative transaction sign and
-derives the business remainder exactly. None of these contracts accepts a category,
-treatment, allocation kind, confidence, provenance, or Business identity.
+current legacy database contract records either all-business use or a positive
+personal dollar amount and derives the business remainder exactly. This is an
+implementation compatibility detail, not customer-facing authority. Every current
+customer interaction asks for the business dollar amount; its service boundary must
+convert that answer safely into the canonical exact allocation without changing the
+source or asking the customer for a percentage. None of these contracts accepts a
+category, treatment, allocation kind, confidence, provenance, or Business identity.
 
 `Not sure` is factual history, so its narrow database operation appends a
 user-provenance decision without inventing missing facts, then records and resolves

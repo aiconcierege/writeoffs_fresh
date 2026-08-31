@@ -20,7 +20,7 @@ Avoid generic dashboard grids, decorative charts, dense accounting tables, and a
 
 ## Typography
 
-Inter remains the product typeface. Page titles use tight tracking (`-0.042em`), semibold weight, and responsive 32–48px sizing. Section titles use 20px. Body copy is 14–16px with generous 1.6–1.7 line height. Dollar amounts use tabular numerals and tighter tracking.
+Inter remains the product typeface. Page titles use tight tracking (`-0.042em`), semibold weight, and responsive 32–48px sizing. Section titles use 20px. Customer-required body copy, instructions, metadata, status, and form help use approximately 16px or larger with generous line height; smaller type is reserved for supplementary decorative labels. Dollar amounts use tabular numerals and tighter tracking.
 
 ## Components
 
@@ -36,4 +36,31 @@ Motion is subtle and disabled under reduced-motion preferences. Focus remains vi
 
 ## Imagery
 
-Authenticated pages rely on typography, whitespace, and meaningful iconography. No stock photography or filler illustration. The existing logo artwork is unchanged. Illustration is reserved for onboarding or an empty state only when it improves comprehension.
+Authenticated pages rely on typography, whitespace, and meaningful iconography. No stock photography or filler illustration. The existing logo artwork is unchanged. Betti appears selectively when she clarifies what the customer is doing, what WriteOffs is handling, or what fact is needed; she is not repeated as decoration.
+
+The established authenticated Home composition is substantially aligned and is the
+reference surface for later authenticated work. Preserve its result-oriented hero,
+operating status, conversational Betti state, weekly review, documentation,
+membership-scoped financial relationship, and restrained record access. Refinement
+must not turn Home into a generic accounting dashboard or wall of cards.
+
+## Betti character contract
+
+WriteOffs is the brand. Betti is the recognizable bookkeeper/personality inside
+WriteOffs and never replaces, modifies, or combines with the immutable WriteOffs
+logo. **Ask Betti** is the canonical name for a restrained future assistance
+capability limited to WriteOffs, the customer's authorized records/workflows, and
+help understanding or completing WriteOffs tasks. Layouts must not foreclose it, but
+it is not a general-purpose chatbot or a new brand.
+
+Canonical Betti is a natural green turtle with a brown shell, warm brown eyes,
+thick black glasses, subtle feminine features, polished coral leather sneakers,
+and no clothing, bow, jewelry, logos, or W marks. Props may change by state.
+Occasional seasonal accessories may be considered later without changing the
+canonical character.
+
+Full-body Betti must remain readable from glasses and shell through legs and shoes.
+Do not accidentally clip her with a card or section boundary, and do not shrink her
+solely to force her into a rectangle. Controlled overflow and deliberate boundary-
+breaking are preferred. Partial crops are allowed only for an explicitly designed
+headshot or close-up composition.

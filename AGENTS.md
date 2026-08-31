@@ -40,16 +40,27 @@
 
 ## 6. WriteOffs product constraints
 
-- WriteOffs is a deduction-first bookkeeping platform for U.S. solopreneurs.
+- WriteOffs is the bookkeeper for U.S. Schedule C solopreneurs. The customer gives
+  WriteOffs real-world facts; WriteOffs handles bookkeeping and tax logic.
 - It prepares users for tax filing; it does not file tax returns.
 - Do not generate tax returns or official tax forms.
-- Realtor is the primary launch vertical, with General as the fallback.
-- Do not reintroduce user-facing category selection unless explicitly directed.
-- Mileage tracking is not part of the initial product.
+- Do not ask customers to choose accounting categories, tax classifications, or
+  bookkeeping treatment during normal workflows.
+- Do not assume a particular profession is the sole product model. Realtor data may
+  be used for representative testing, but the product serves supported Schedule C
+  solopreneurs.
+- Mileage is an implemented, Business-scoped factual record. Preserve its canonical
+  precision, history, and fail-closed tax-method behavior.
 - Teller is retired and must not be reintroduced as an active provider.
-- Future bank connectivity is intended to use Plaid.
+- Plaid connectivity is read-only and Sandbox-only until Production is explicitly
+  approved. Do not assume Production availability or provider behavior.
 - Preserve historical Teller compatibility only when genuinely required for legacy-data handling or migration.
 - Maintain the Milestone 1 security model, tenant isolation, RLS protections, business provisioning, provider-neutral financial accounts, and immutable financial transaction principles.
+
+Current product and workflow authority is defined by
+`docs/WORKFLOW_SPECIFICATION.md` and the canonical documents it references.
+Point-in-time audits, archived plans, and compatibility documentation are evidence,
+not authority when they conflict with those specifications.
 
 ## 7. When to stop and ask
 

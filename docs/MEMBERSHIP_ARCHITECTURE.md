@@ -2,7 +2,26 @@
 
 Status: canonical product specification. Implemented by the additive Business-owned membership authority; operational details are in [STRIPE_MEMBERSHIP_OPERATIONS.md](./STRIPE_MEMBERSHIP_OPERATIONS.md).
 
-This document defines what WriteOffs promises before Stripe is allowed to define billing behavior. It does not activate billing, gate routes, alter canonical records, or set final prices.
+This document defines what WriteOffs promises before Stripe is allowed to define billing behavior. It does not activate billing, gate routes, or alter canonical records. Membership prices remain separately governed. No historical-cleanup price or billing formula is currently approved.
+
+## Membership bookkeeping coverage
+
+Normal included bookkeeping coverage begins on the first day of the previous
+calendar month, based on the membership start date. This must be disclosed before
+purchase. Membership entitlement and source retention remain distinct: WriteOffs
+may preserve earlier source evidence without promising included cleanup for it.
+
+The customer chooses a bookkeeping start date/scope based on actual circumstances,
+not individual transactions. Membership includes the first day of the previous
+calendar month forward. Earlier historical cleanup may begin on an exact earlier
+date and may carry a separately disclosed one-time charge. No price, proration rule,
+or billing formula is approved. Commercial and customer terms require separate
+approval and must be disclosed before the customer agrees. Cleanup does not include
+tax return preparation, filing, or amendment.
+
+Historical cleanup is a bounded service purchase, not a third recurring membership
+tier, and it must use the same canonical bookkeeping, correction, tax, question,
+review, and tenant-isolation architecture as included periods.
 
 ## A. Product philosophy
 
@@ -375,18 +394,25 @@ WriteOffs is designed for U.S. Schedule C solopreneurs with relatively simple se
 2. Confirm or revise the working 3/8 Plaid Item limits after the Plaid economics meeting.
 3. Confirm the seven-day failed-payment grace period and whether Stripe Smart Retries may extend—but never shorten—it.
 4. Decide the cutoff and communication plan for temporary prelaunch `business` legacy grants.
-5. Decide whether an upgrade reprocesses only the current tax year, as recommended, or offers an explicit paid historical-year option later.
+5. Establish and approve historical-cleanup pricing, billing terms, supported years,
+   and customer disclosures before implementing any cleanup purchase. Cleanup remains
+   separate from recurring plan upgrades.
 6. Approve the account deletion/retention policy that governs read-only historical data.
 7. Define support procedures for payment disputes, chargebacks, and mistaken duplicate subscriptions.
 8. Decide whether tax packages are generated on demand in read-only mode or only previously generated artifacts are retained; data portability favors safe on-demand regeneration without new OCR/AI.
 9. Confirm whether canceling customers may switch the scheduled renewal plan before period end through the Customer Portal.
 10. Approve final pricing-page copy and remove the stale Starter/Pro/Pro+ and Essential/Premium/Premium Plus language before checkout is exposed.
 
-## Repository fit and conflicts found
+## Historical repository fit audit
+
+The observations below were recorded before the current membership implementation.
+They are retained as migration history and are not current product or repository
+authority. Current behavior is governed by this document, the implemented central
+entitlement service, and `STRIPE_MEMBERSHIP_OPERATIONS.md`.
 
 The current canonical architecture supports a capability-based membership layer without another ledger. Receipts, statements, CSV, Plaid, manual money, invoices, mileage, contractor context, deduction facts, reporting, and readiness already converge on Business-owned canonical records and shared current-record resolution.
 
-Conflicts/gaps to resolve in the future billing milestone:
+Historical conflicts/gaps identified before the completed billing milestone:
 
 - `app/api/checkout/route.ts` accepts a caller-supplied price and is not safe membership authority.
 - `app/api/stripe/webhook/route.ts` verifies signatures but does not project subscription lifecycle.
@@ -397,6 +423,10 @@ Conflicts/gaps to resolve in the future billing milestone:
 - Current `/money` defaults to received; future entitlement UX must avoid routing Expenses customers into a denied primary workflow.
 - Existing APIs have authentication/tenant enforcement but no centralized commercial entitlement check.
 - Workers have durable/idempotent processing but no membership snapshot check or accepted-before-expiry transition policy.
-- There is no distinct expired read-only shell, reactivation path, billing settings surface, or data-deletion workflow.
+- At the time of this audit there was no distinct expired read-only shell,
+  reactivation path, billing settings surface, or data-deletion workflow. The current
+  repository now implements the read-only shell, reactivation, billing settings, and
+  centralized entitlement enforcement; data-deletion/retention policy remains a
+  separate unresolved operational decision.
 
 These are inputs to the future Stripe milestone. They do not justify changing canonical bookkeeping or tax logic.

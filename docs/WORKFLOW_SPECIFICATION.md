@@ -1,666 +1,253 @@
-WriteOffs Workflow Specification v1.0
-Purpose
+# WriteOffs workflow specification
 
-This document defines the approved customer experience and workflow direction for the WriteOffs MVP.
+Status: canonical product and workflow authority, revised 2026-08-27.
 
-It supplements the Product Specification and serves as an implementation guardrail for future engineering work.
+This document defines approved product behavior. It does not authorize implementation outside an approved engineering milestone. When legacy UI or workflow documentation conflicts with this document, this document governs; the conflict register near the end records intentional supersessions.
 
-Where the existing prototype UI conflicts with this document, this workflow specification represents the intended product direction.
+## 1. Product relationship
 
-This document does not authorize implementation of all workflows at once. Engineering must continue to work only within the currently approved milestone.
+WriteOffs is conversation-first bookkeeping for non-accountants. WriteOffs does the bookkeeping; the customer runs the business and supervises the result.
 
-1. Product North Star
+**The customer gives WriteOffs real-world facts. Betti/WriteOffs handles the bookkeeping and tax logic.**
 
-WriteOffs is not software that helps a solopreneur do bookkeeping.
+- Ask only for facts the customer can reasonably know.
+- Never require accounting, tax-category, Schedule C, or internal-state decisions in a normal workflow.
+- Do everything safely supported by source evidence, customer facts, established patterns, and approved rules before asking anything.
+- Seek a truthful bulk or pattern decision before asking transaction-by-transaction questions. Individual questions are the last resort.
+- Never fabricate business purpose, category, attendee, receipt, documentation, personal use, or business use.
+- Never infer Personal merely because activity looks nonbusiness, comes from a mixed-use account, or lacks documentation. Personal treatment requires customer input or confirmation. WriteOffs may establish business treatment automatically only when sufficiently strong supported evidence exists.
+- Explain relevant documentation and IRS expectations in plain language without acting as an enforcement authority or giving unsupported tax advice.
+- The customer ultimately chooses inclusion or exclusion when facts or documentation remain incomplete. Missing documentation does not automatically invalidate or exclude an expense; its limitation remains recorded.
 
-WriteOffs does the bookkeeping and gives the solopreneur a simple place to supervise it.
+## 2. Canonical integrity
 
-Every feature and interaction should be evaluated against one primary question:
+Imported transactions and uploaded documents are immutable source facts. Bookkeeping treatment is append-only and correctable. Personal, business, mixed-use, category, inclusion, and exclusion decisions never rewrite source evidence.
 
-Does this reduce the user's time without reducing accounting quality?
+A customer may correct any imported transaction with ordinary language such as **This was personal**, **This was business**, or **Business + personal**. Mixed use asks for the business dollar amount; WriteOffs derives the allocation. Reversal is another superseding canonical decision. Removing an accidental customer-created source is a separate lifecycle operation.
 
-WriteOffs should perform work autonomously whenever sufficient evidence exists.
+Personal activity leaves the normal business workflow, does not generate bookkeeping questions, and does not appear in finished business books. It remains in source/audit history and has a restrained recovery path in Transactions. Mixed-use presentation shows the established business portion.
 
-Human interaction should be requested only when:
+## 3. Membership coverage and historical cleanup
 
-factual information is unavailable to WriteOffs;
-genuine business judgment is required;
-confidence is insufficient for a defensible accounting decision; or
-the user chooses to inspect or correct WriteOffs' work.
+Normal membership bookkeeping coverage includes the first day of the previous
+calendar month forward. For example, a membership begun August 27 includes July 1
+forward. The customer chooses the bookkeeping start date/scope that reflects the
+real situation—such as this month, January 1, when prior books stopped, or when the
+business began—rather than selecting individual transactions to import. The included
+coverage boundary must be disclosed before purchase:
 
-Every interaction must earn its place.
+> Membership includes bookkeeping from the first day of the previous month forward.
+> Earlier historical catch-up may have a separately disclosed one-time charge.
 
-2. Primary Navigation
+The customer may choose **Start with what's included** or **Catch up earlier books**.
+Historical cleanup is optional and may be added later. Earlier work may carry a
+separately disclosed one-time cleanup charge, but no cleanup price or billing formula
+is currently approved. Pricing and customer terms must be approved and shown before
+the customer agrees; this specification does not authorize cleanup billing.
 
-The intended primary navigation is:
+- The customer may select an exact earlier start date based on their circumstances.
+- Cleanup may require statements, receipts, or other records when connected history is insufficient.
+- Cleanup organizes supported books; it does not prepare, file, or amend tax returns.
 
-Dashboard
-Expenses
-Financial Data
-Receipts
-Reports
+Historical cleanup finishes with a durable review state and immutable presented snapshot. Betti processes what is available, uses evidence and bulk decisions, resolves avoidable personal/mixed ambiguity, and presents a factual summary of business expenses, personal/excluded activity, mixed use, documentation limitations, and unresolved category/detail limitations. **Caught up through [date]** means available records and customer decisions were processed and reviewed honestly, not that every source is perfect. The customer may choose **Everything looks right** or **Make a change**.
 
-Profile and account management should be accessed through a familiar user/avatar control in the upper-right rather than occupying primary navigation.
+## 4. Onboarding and account context
 
-Review is not a primary navigation destination.
+The authenticated prerequisite order remains email/session, mandatory MFA, membership, business onboarding, Get Started, then Home. The primary starting path is connected accounts; statements, CSV, and receipts remain valid alternatives.
 
-Review is a workflow surfaced through the Dashboard when WriteOffs needs user input.
+For each connected checking or credit account ask **How do you use this account?** with **Business only** or **Business and personal**. This is reusable context, not an irreversible transaction classification. Every account uses the same review model because even business-only accounts may contain personal or mixed activity.
 
-3. Dashboard
+During onboarding ask for the customer's weekly check-in day:
 
-The Dashboard is the primary WriteOffs experience.
+> When is usually a good time to check in with Betti?
 
-A normal user should spend the overwhelming majority of their active WriteOffs time here.
+Explain that this is a gentle, flexible rhythm rather than a mandatory appointment;
+the review remains available whenever the customer is ready. The Business IANA
+timezone is canonical for cadence and quiet hours. An exact local check-in time is
+not part of the current product contract. Future cadence changes never rewrite
+historical periods or confirmations.
 
-The Dashboard should answer four questions.
+Onboarding asks only real-world facts needed for fit and service. It must not ask the
+customer to choose tax treatment, accounting classifications, deduction categories,
+inventory/material accounting, prior tax treatment, or another rule WriteOffs must
+determine. **We ask for the facts. We handle the rules.**
 
-3.1 Are my books handled?
+Receipt availability answers such as Most/Some/None are transient routing unless a later independent analytics requirement justifies a product event; they are not bookkeeping state.
 
-Provide a clear status such as:
+## 5. Continuous work and customer cadence
 
-You're up to date
+Betti processes new source activity as soon as it is available. Weekly cadence controls customer interruption and review, not when bookkeeping starts. Ordinary questions wait for the scheduled review. Security events may interrupt. Bank reconnection is an operational exception that may be prominent because it blocks fresh activity, but it is not automatically a security incident.
 
-WriteOffs has reviewed your financial activity through August 11.
+No relevant activity means no review is created merely for engagement. No response is never approval, never manufactures sign-off, never stops bookkeeping, and never creates duplicate question batches.
 
-Or:
+Ordinary notifications should avoid delivery before 9:00 AM or after 9:00 PM in the Business timezone. True security notices may bypass quiet hours. Bank reconnection normally waits for the next allowed window unless it is a genuine security issue.
 
-3 things need your attention
+Use one consolidated review notification:
 
-About 2 minutes to finish.
+> Betti has your books ready for review. She has 3 quick questions for you.
 
-The experience should be calm and confidence-building.
+or, when none remain:
 
-3.2 What has WriteOffs done?
+> Betti has your books ready for review. Everything is ready for a quick look.
 
-Show evidence of work performed by the agent.
+## 6. Import review: exception first
 
-Examples:
+Show imported activity so the customer can verify what arrived. Review sessions are resumable and retain progress. Untouched activity is not considered customer-reviewed until an explicit stage-completion action.
 
-Transactions reviewed
-Business expenses identified
-Receipts matched
-Potential deductions tracked
+### Sweep 1: personal
 
-Do not add charts or analytics merely because accounting dashboards traditionally contain them.
+Ask the customer to multi-select activity that was entirely personal. Do not require affirmative business confirmation for every other transaction. Selected activity receives a canonical personal/excluded decision, leaves normal business workflow, and generates no later Betti question.
 
-Dashboard information must be useful.
+### Sweep 2: mixed business and personal
 
-Historical spending insights may be added later once sufficient historical data exists to make them meaningful.
+After personal items leave the workflow, ask whether remaining expenses contained both business and personal spending. For each selected item ask:
 
-3.3 What does WriteOffs need from me?
+> How much of the $247.83 was for your business?
 
-Items requiring human judgment appear as:
+Store the full source amount and customer decision. WriteOffs calculates the percentage/allocation; the customer does not.
 
-Needs Your Attention
+### Ambiguous merchants and recurring patterns
 
-This launches the conversational Review workflow.
+For merchants such as Amazon, Costco, Target, and Walmart, group activity where appropriate and ask the customer to select personal or mixed exceptions, followed by explicit confirmation such as **Everything else was for my business**. Merchant or item type alone never proves personal use.
 
-The Dashboard should never require users to search other areas of the application to discover unresolved bookkeeping questions.
+When multiple charges appear to share a service or use, Betti may ask **Should I treat the other charges from this company the same way?** and show every affected transaction. Explicit permission is required before applying a treatment to the group.
 
-Problems come to the user.
+## 7. Receipts and documentation
 
-The user does not go looking for problems.
+Receipt ingestion and transaction ingestion operate independently and in parallel. WriteOffs preserves originals, extracts evidence, immediately attempts existing canonical matching, and rematches as new activity arrives. Receipt status may appear on transaction rows. Bulk upload remains primary, and a missing-receipt transaction may accept a direct upload in context.
 
-3.4 Quick Actions
+The customer-facing receipt hierarchy is: **Upload receipt** first; then unmatched or
+needs-attention receipts; then receipts still being processed when relevant; and
+finally successfully handled history available quietly when needed. Successfully
+handled receipts recede rather than appearing as equally urgent cards. This hierarchy
+does not change canonical evidence, processing, matching, or history.
 
-The Dashboard should prominently support:
+Early guidance should be:
 
-Add Receipt
+> Give me whatever receipts you have. Receipts help me finish more of your books without asking you questions.
 
-On mobile:
+Actions are **Upload receipts**, **I don't have receipts**, and **I'll do this later**. Deferral never stops supported processing.
 
-Take Photo
-Choose Existing Photo/File
+### Receipt-only expenses
 
-On desktop:
+An unmatched customer-uploaded receipt is strong evidence and may establish a receipt-only expense. Payment method is not required merely to establish the expense, and a bank match must not block processing. Betti may gently offer another likely account connection without requiring it. Explicit customer indication that the purchase was not for business excludes it.
 
-Choose File
-Drag and Drop
+### Receipt intelligence and mixed receipts
 
-The normal workflow should be:
+Betti reads line items to reduce customer work. Groceries, wine, clothing, household goods, and similar items may have legitimate business context; they can trigger ambiguity but never automatic Personal treatment. When evidence supports a factual proposal, Betti may propose it and allow correction. For ambiguous mixed receipts, ask the minimum real-world fact necessary.
 
-Capture → Upload → Done
+### Missing receipts
 
-Do not require immediate bookkeeping data entry when WriteOffs can extract or determine the information itself.
+Handle missing documentation mainly during review/finalization, beginning with a bulk decision when truthful. Explain once that the IRS may ask for records supporting business expenses and that receipts are one form of support. Offer **Include these expenses**, **Exclude these expenses**, **Upload receipts**, and **Review individually**.
 
-Add Financial Data
+Including preserves business totals and missing-documentation status; it does not claim substantiation is complete and should not trigger repeated nagging for the same unavailable receipt. A documentation decision never resolves unrelated business-purpose or business-use ambiguity.
 
-Provide access to:
+## 8. Facts, questions, and deferral
 
-Connect bank or credit card
-Upload CSV transaction file
-Upload PDF bank statement
-Upload PDF credit-card statement
+After exception sweeps, Betti asks only remaining material factual questions, one at a time, with relevant evidence. Customers provide free text and simple factual choices, never tax categories.
 
-Plaid is the intended future connected-account provider.
+For business meals, restaurant recognition may establish meal context but not business purpose. Ask who attended and the business nature/purpose with light examples such as **Sarah Jones, client** and **Discussed a new listing and marketing plan**. For multiple meals, introduce the requirement once, group/pattern where truthful, and move through them efficiently. If facts cannot be recalled, explain the limitation and ask whether to keep or exclude; keeping preserves customer-established business treatment and incomplete substantiation.
 
-Teller is not the future provider.
+When older cleanup expenses cannot be identified, offer a group resolution: **Keep them as business expenses**, **Treat them as personal/exclude**, or **Review individually**. A Keep decision establishes customer-asserted business use but never fabricates category or tax treatment; those may remain unresolved and the documentation limitation remains.
 
-4. Weekly Operating Rhythm
+Distinguish **Yes, I can get the information later** from **No, it's missing/not available**. The latter proceeds to an informed include/exclude resolution. The former defers to the next weekly review and is grouped as **You had 4 things you were going to look for**, with **I have it**, **Still looking**, or **Not available**. After roughly two or three repeated weekly deferrals, explicitly ask whether the information is realistically expected instead of repeating forever.
 
-WriteOffs should synchronize financial activity continuously and offer review on
-the Business's selected weekly check-in day only when relevant activity exists.
-Future cadence changes never rewrite historical review periods or confirmations.
+Weekly review counts contain current/recent-period work. Questions that age beyond that context move to an older/historical context; they are not copied, duplicated, or indefinitely added to every weekly count. Older questions remain accessible. At most monthly, use a calm reminder such as **You have 14 older questions waiting. We'd like to help you get caught up.** No response waits until the next monthly opportunity.
 
-Benefits include:
+## 9. Weekly review sequence and sign-off
 
-Reducing notification fatigue and user annoyance.
-Reducing unnecessary financial-data synchronization activity and associated provider costs.
+For a period with relevant activity:
 
-WriteOffs may process manually supplied data immediately, including:
+1. Import the period's activity; Betti starts processing immediately.
+2. The customer reviews the period transaction list.
+3. Personal sweep removes personal activity from business workflow.
+4. Mixed-use sweep collects business dollar amounts.
+5. Betti asks only remaining factual questions.
+6. Missing-documentation decisions occur during finalization.
+7. Betti finishes supported bookkeeping and creates the exact immutable review snapshot.
+8. Present cleaned business books: income subject to membership scope, business expenses, mixed business portions, receipt status, and established plain-language categories.
+9. Ask **Anything you'd like to change?** with **Everything looks right**, **Make a change**, and a respectful deferral option.
 
-receipts;
-CSV files; and
-PDF statements.
+The review feels like a focused version of Transactions, not a raw bank feed or accounting table. Personal items do not remain. Categories are informational and subordinate; unresolved categories are omitted rather than guessed. Internal keys and Schedule C language are never exposed. Simple business/personal/mixed corrections happen inside the review conversation where practical without forcing the customer to leave and find the review again. They use the same append-only canonical history and provenance as every other correction; Weekly Review never owns a parallel correction system.
 
-However, questions requiring user judgment should normally accumulate for Weekly Review rather than generating constant notifications.
+Items are ordered by activity date with deterministic same-date ordering. The snapshot preserves the exact current canonical record/decision identities, customer-facing established category label, business treatment/portion, receipt status where available, and amount presented. Period identity follows the effective Business cadence, uses date-based timezone-safe boundaries, is unique, and never changes retroactively.
 
-Immediate escalation should be reserved for situations where waiting would materially impair WriteOffs' ability to maintain the books, such as a disconnected financial account.
+**Everything looks right** confirms the exact period-level snapshot; it is not transaction approval. Corrections use ordinary canonical history and link back to the review event. A material later correction may reopen the period without erasing prior history. Durable states distinguish reviewed/confirmed, reviewed with corrections, and unreviewed/no response. **Not right now** is a deferral, not a confirmation, and its copy must never imply approval. Silence is never approval.
 
-The operating principle is:
+### Mileage in weekly review
 
-Work quietly. Interrupt predictably. Escalate immediately only when necessary.
+If the period has no mileage entries, ask **Did you drive for your business this week?** with Yes/No. If entries exist, show them and ask **Any other business trips I should include?** with **Add a trip** or **No, that's everything**.
 
-5. Weekly Review
+## 10. Home, navigation, and connected-account status
 
-Weekly Review should feel like a conversation with an accounting employee, not a bookkeeping queue.
+Home answers: Is WriteOffs doing its job? Does WriteOffs need me? How is my business doing? It uses canonical potential-writeoff, documentation, review, question, membership-scoped financial, and provider-health read models. Its established composition is substantially aligned and protected from another wholesale dashboard redesign. Future work may refine truthful states, wording, responsiveness, and behavior while preserving a calm, result-oriented page focused on what WriteOffs accomplished, whether the customer needs to act, and a useful financial picture. Home remains the hub with a hamburger/global menu and must not become an accounting dashboard or wall of widgets; mobile is a primary composition.
 
-The user interacts in normal business language.
+When caught up, use canonical Caught Up Betti and language such as **Everything's handled. Your books are up to date.** Do not manufacture engagement. Keep the next scheduled check-in, last successful connected-account check, and a secondary **Check for new transactions** action visible.
 
-WriteOffs translates those answers into accounting treatment.
+If an institution requires reauthentication, say **I need your help reconnecting [Bank]. Your bank is asking you to sign in again before I can get your latest transactions.** Offer **Reconnect account**. Successful reconnection triggers immediate refresh and processing, then restores normal Home status.
 
-5.1 Review Introduction
+## 11. Bank refresh direction
 
-Example:
+The approved direction is approximately one normal automatic refresh per week in preparation for the scheduled review, not nightly polling solely for real-time monitoring. Betti processes activity immediately after receipt. Customer-initiated **Check for new transactions** may be rate/cost constrained after Plaid Production behavior is validated; no permanent arbitrary limit is approved yet.
 
-Your weekly review is ready
+When a manual refresh finds activity, state that new transactions were found, add them to the current period, process immediately, and let the customer review when ready. Processing never waits for customer review.
 
-WriteOffs reviewed 52 transactions this week.
+This section is product direction, not authorization to alter current Plaid webhook/cursor safety. Provider validation must determine scheduling, Transactions Sync update semantics, costs, limits, and Production behavior before implementation.
 
-We handled 47. We need your help with 5.
+## 12. Mileage and vehicle methods
 
-About 2 minutes.
+Normal mileage entry asks only miles, date, and business reason in plain language. Remember the customer's normal vehicle and offer **Use a different vehicle**; do not repeatedly require vehicle, destination, job, or project absent an approved substantiation need. Vehicle setup asks once for a useful identity such as **2023 Toyota RAV4** and supports additional vehicles.
 
-Start Review
+WriteOffs must ultimately support standard mileage and actual vehicle expense methods. Betti should recommend standard mileage when allowed and appropriate because it is simpler, offer **Compare my options**, and use authoritative year-specific tax rules to determine availability. Never encode a simplistic leased-vehicle rule.
 
-5.2 Conversational Questions
+Under standard mileage, do not separately count ordinary operating costs already represented by that method, including applicable fuel, maintenance, insurance, and wear/depreciation costs. The approved tax engine governs exact inclusions and exceptions; qualifying parking/tolls are not blindly excluded. Explain the exclusion the first time, then handle quietly. Payment from a business account never creates an additional deduction by itself.
 
-Ask one question at a time.
+Actual-expense support collects sufficient vehicle-year facts such as beginning/ending odometer and business/total miles. WriteOffs derives the business-use percentage and asks the customer to confirm/correct; the customer never calculates it.
 
-Whenever possible, provide quick-answer buttons while still allowing natural-language responses.
+Until authoritative tax-rule support and sufficient vehicle-year facts exist, method eligibility and deduction treatment remain fail-closed. This approved future direction does not silently expand the current 2025/2026 catalogs.
 
-Example:
+## 13. Potential writeoffs and reporting
 
-Fleming's — $142.18
+A potential writeoff is one distinct current canonical economic expense with a nonzero established business portion, even if tax treatment, documentation, or special treatment remains unresolved. It includes current business/mixed and receipt-only expenses, excludes unresolved/personal/income/transfers/card payments/owner funding/loans/standalone credits, converges duplicates through canonical currentness, and changes through the current decision leaf. Mileage remains separate. Both memberships use this same expense metric.
 
-This looks like a business meal.
+Reports derive from canonical records and membership scope. Expenses never implies income completeness or estimated profit. Business may show supported cash-basis income, expenses, and estimated profit. WriteOffs organizes records for tax preparation; it does not file returns or guarantee outcomes.
 
-Who was it with?
+## 14. Ask Betti and character authority
 
-Client
-Prospect
-Business associate
-Personal
+**Ask Betti** is the canonical customer-facing name for a desirable future assistance
+capability. It is limited to WriteOffs, the customer's authorized records and
+workflows, explaining what WriteOffs is asking, and helping the customer understand
+or complete a WriteOffs task. It is read-scoped by default and cannot directly mutate
+canonical records without the appropriate explicit workflow and authorization. It
+is not a general-purpose chatbot and is not implemented by this specification.
 
-The user may alternatively type:
+WriteOffs is the brand; Betti is the bookkeeper/personality inside it. The immutable WriteOffs logo never changes or combines with Betti. Canonical Betti is a natural green turtle with brown shell and eyes, thick black glasses, subtle feminine features, polished coral leather sneakers, no clothing, bow, jewelry, or logo/W marks. Props vary by state. Seasonal accessories may be considered later without changing the canonical character. Full-body Betti must never be accidentally clipped; intentional boundary-breaking is preferred to accidental cropping.
 
-Lunch with Sarah from Keller Williams about the Thompson listing.
+## 15. Mobile and accessibility
 
-WriteOffs should preserve useful business-purpose evidence and derive the accounting treatment.
+All workflows are mobile-first, not compressed desktop: transaction sweeps, receipt upload, questions, review, mileage, cleanup, reconnection, and corrections must be comfortable on a phone. Use readable language, large touch targets, visible focus, semantic controls, and textual equivalents for visual status.
 
-Do not ask the user accounting questions when a business-language question will provide the required facts.
+## 16. Explicitly reconciled conflicts
 
-6. What Earns a Weekly Review Question
+These decisions intentionally supersede earlier guidance:
 
-If WriteOffs has enough evidence to make a defensible accounting decision, WriteOffs should make the decision.
+- Legacy primary Dashboard/Expenses/Financial Data navigation is replaced by Home as hub plus the approved hamburger/global menu.
+- A continuously accumulating weekly question count is replaced by current-period weekly questions plus an older/historical context and no-more-than-monthly reminder. Stable issue identities remain; questions are never copied into weekly batches.
+- “Questions first” as the entire weekly opening is refined: the customer first performs personal and mixed-use exception sweeps on the period list, then Betti asks detailed factual questions.
+- Weekly confirmation grouped by tax category and actions that encourage category management are replaced by cleaned activity review with category as subordinate information and direct factual treatment correction.
+- Unmatched receipt payment method is no longer required merely to establish a receipt-only expense. It may be collected only when materially useful.
+- A dominant documentation percentage/health grade is replaced by factual documentation states and informed owner decisions.
+- Exact-time cadence requirements are superseded by a weekday-only current product rhythm using the Business IANA timezone. Exact time remains non-authoritative future exploration; immutable historical period behavior remains.
+- The former fixed per-calendar-month cleanup price is obsolete. Earlier cleanup may carry a separately disclosed one-time charge, but no price or billing formula is approved.
+- Current mileage facts-only architecture remains the production safety boundary, while standard-mileage and actual-expense support become approved future product requirements gated on authoritative tax rules and additional canonical facts.
+- Current autonomous Plaid webhook/cursor correctness remains intact. The once-weekly normal refresh direction cannot supersede provider-required sync behavior until Plaid validation is complete.
 
-Weekly Review is reserved primarily for situations such as:
+## 17. Engineering guardrails
 
-uncertain business versus personal treatment;
-meals requiring business-purpose information;
-unclear split transactions;
-unmatched receipts requiring payment information;
-unusual transactions lacking sufficient context; or
-classifications where confidence is genuinely insufficient.
+- Preserve source evidence, append-only decisions, convergence, exact money, tenant isolation/RLS, membership scope, and fail-closed tax treatment.
+- Do not create parallel review, correction, receipt, or bookkeeping state.
+- Bulk decisions require explicit scope and provenance; they are not permission to guess.
+- Product copy must distinguish source coverage, bookkeeping completion, documentation completeness, and tax treatment.
+- Implement only approved milestones. This specification is not blanket authorization to build every requirement.
 
-WriteOffs should not routinely ask users to confirm obvious high-confidence classifications.
-
-Example:
-
-Adobe should not repeatedly generate:
-
-We categorized Adobe as Software. Is that correct?
-
-The user can inspect and correct WriteOffs' work from Expenses.
-
-The distinction is:
-
-Weekly Review = WriteOffs needs the user.
-
-Expenses = The user can review WriteOffs.
-
-7. Weekly Expense Confirmation
-
-After conversational questions are resolved, Weekly Review should end with a quick confirmation of the week's completed bookkeeping.
-
-Example:
-
-One last look before we close the week.
-
-We identified 18 business expenses totaling $1,426.37.
-
-Expenses should be presented in a clean format grouped by tax category.
-
-Example:
-
-Advertising — $425.00
-Zillow — $300.00
-Meta — $125.00
-Meals — $186.42
-Fleming's — $142.18
-Starbucks — $44.24
-
-The user is asked to confirm:
-
-These are actually business expenses.
-WriteOffs placed them in the appropriate tax categories.
-
-The user should be able to quickly:
-
-Change Category
-Mark Personal / Not Business
-Split Expense
-
-If everything looks correct:
-
-Looks Good — Close My Week
-
-Closing the week means the owner reviewed the bookkeeping.
-
-It does not permanently lock the records.
-
-Future corrections remain possible and should be preserved in the audit trail.
-
-8. Expenses
-
-Expenses is the owner's window into the bookkeeping WriteOffs has performed.
-
-Its purpose is:
-
-See what WriteOffs considers a business expense, verify it, and correct anything that is wrong.
-
-Expenses is not intended to become a manual bookkeeping workspace.
-
-8.1 Default View
-
-Default to a useful current period such as This Month.
-
-Provide simple controls for:
-
-Date
-This Month
-Last Month
-This Quarter
-This Year
-Custom
-Category
-
-Filter by tax/Schedule C category.
-
-Search
-
-Search merchant or description.
-
-Status
-Business
-Excluded / Personal
-All
-8.2 Expense Information
-
-Each expense should expose the information necessary for review:
-
-Date
-Merchant
-Amount
-Tax category
-Receipt/documentation status
-
-Users should be able to open an expense for additional detail.
-
-9. Categories
-
-Tax categorization remains an essential accounting function.
-
-Correct Schedule C classification matters for:
-
-tax reporting;
-defensibility;
-CPA preparation;
-meaningful expense analysis; and
-avoiding inappropriate overuse of catch-all categories.
-
-WriteOffs should attempt to select the correct tax category automatically.
-
-The product goal is not to eliminate categories.
-
-The goal is to eliminate unnecessary user categorization work.
-
-Users should be able and encouraged to inspect WriteOffs' classifications and correct mistakes.
-
-10. Source Transactions Are Immutable
-
-Financial Transactions represent source evidence.
-
-If a bank reports:
-
-Costco — $186.42 — August 9
-
-that source record should not be rewritten merely because its bookkeeping treatment changes.
-
-The user may change the accounting interpretation.
-
-The source evidence remains intact.
-
-11. Personal / Excluded Transactions
-
-Users must be able to mark an expense:
-
-Not Business
-
-This does not delete the source Financial Transaction.
-
-Instead, WriteOffs records that the transaction has been excluded from business activity.
-
-Excluded transactions:
-
-disappear from normal business-expense views;
-do not contribute to deduction calculations;
-do not appear as deductible Schedule C expenses;
-remain available through an Excluded/Personal filter; and
-can be restored if the user made a mistake.
-
-The audit trail should preserve the decision.
-
-12. Split Expenses
-
-A single source transaction may require multiple bookkeeping allocations.
-
-Example:
-
-Costco — $186.42
-
-$86.42 → Office Expenses
-$50.00 → Client Gifts
-$50.00 → Personal
-
-Splits may occur:
-
-across multiple business tax categories;
-between business and personal; or
-both.
-
-The source Financial Transaction remains unchanged.
-
-The bookkeeping allocations must reconcile exactly to the original transaction amount before the split can be saved.
-
-Receipts remain supporting documentation for the underlying transaction and applicable allocations.
-
-Splits should be available but should not dominate the normal workflow because they are expected to be relatively uncommon.
-
-13. Financial Data
-
-Financial Data answers:
-
-What financial activity happened?
-
-It should be clearly separated from receipt/document uploads.
-
-13.1 Connected Accounts
-
-Preferred future method:
-
-Connect bank or credit card
-
-Plaid is the intended provider.
-
-Connected accounts should eventually show:
-
-institution;
-account;
-connection status; and
-last synchronization.
-13.2 Uploaded Financial Data
-
-Support:
-
-CSV transaction exports
-PDF bank statements
-PDF credit-card statements
-
-CSV and PDF ingestion may use different technical pipelines, but the customer should not need to understand those implementation differences.
-
-The resulting financial activity should ultimately enter the same bookkeeping system.
-
-Multiple-file uploads should be supported where practical to reduce onboarding time.
-
-14. PDF Statements
-
-WriteOffs should support transaction extraction from PDF bank and credit-card statements.
-
-Because PDF statement layouts vary and extraction may be less deterministic than structured CSV or connected-account data, WriteOffs should validate extracted activity before treating it as reliable source evidence.
-
-Where possible, statement-level information such as beginning balance, ending balance, and transaction activity may be used for reconciliation.
-
-The customer should not perform manual extraction.
-
-15. Receipts
-
-Receipts answer:
-
-What documentation supports this transaction or expense?
-
-The normal workflow is:
-
-Capture → WriteOffs processes → WriteOffs matches → Done
-
-WriteOffs should:
-
-preserve the original receipt;
-extract merchant/date/amount where possible;
-identify relevant documentation;
-match the receipt to financial activity when possible; and
-ask the user only when necessary.
-
-The Receipts page is primarily an inspection and documentation area, not another inbox the user must constantly maintain.
-
-Useful states may include:
-
-Matched
-Needs Attention
-Unmatched
-
-Unresolved receipt questions should normally surface through Dashboard Review.
-
-16. Cash and Unmatched Receipts
-
-When WriteOffs cannot match a receipt to financial activity, it may ask:
-
-How did you pay?
-
-Possible responses:
-
-Bank/card — it may appear later
-Cash
-Personal account/card
-
-This allows WriteOffs to correctly handle cash purchases and business purchases made from personal accounts without complicating every receipt upload.
-
-17. Reports
-
-Reports should focus on tax readiness rather than becoming a general accounting suite.
-
-Initial report experiences should include:
-
-Tax Summary
-
-Understandable expense totals organized by relevant tax categories.
-
-Schedule C Summary
-
-Tax-oriented mapping of expenses to applicable Schedule C treatment.
-
-CPA Package
-
-A consolidated tax-preparation handoff containing appropriate:
-
-summaries;
-transaction detail;
-category treatment;
-receipts/documentation;
-business-purpose records; and
-supporting records.
-
-The objective is:
-
-Your records are organized, documented, and ready for tax filing.
-
-WriteOffs prepares the records.
-
-WriteOffs does not file the tax return.
-
-18. Documentation Health
-
-Where useful, Reports or Dashboard may surface documentation readiness.
-
-Example:
-
-Tax readiness
-
-94% of expenses documented.
-
-7 expenses are missing recommended documentation.
-
-Review Missing Documentation
-
-This should identify actionable gaps rather than create another management dashboard.
-
-19. Profile and Account Management
-
-Profile should be accessed through a familiar avatar/user control rather than primary navigation.
-
-Profile may include:
-
-Profile & Business
-General / Realtor selection
-Plan & Billing
-Preferences
-Account/security
-Help
-Sign Out
-
-Subscription management should be easy to find and straightforward.
-
-20. Launch Verticals
-
-The approved MVP supports:
-
-Realtor
-General
-
-Realtor is the primary launch vertical.
-
-General is the fallback for other supported Schedule C solopreneurs.
-
-Driver and Creator are not launch verticals.
-
-The selected vertical influences WriteOffs' internal rules, prompts, examples, and decision-making.
-
-It should not require the customer to manage a category pack or chart of accounts.
-
-21. Onboarding
-
-Onboarding should get WriteOffs working with the minimum necessary setup.
-
-The intended sequence is:
-
-Create account.
-Select Realtor or General.
-Provide only necessary business/profile information.
-Connect or upload financial data.
-Optionally add existing receipts.
-Enter the Dashboard.
-
-Do not require users to categorize sample expenses to train the system.
-
-WriteOffs should learn naturally from actual user corrections and decisions.
-
-22. AI Learning
-
-User corrections may improve future recommendations for that specific business.
-
-Examples include:
-
-repeated merchant classification;
-recurring business-purpose patterns;
-personal/business treatment; and
-category corrections.
-
-Learning must not override tax/accounting rules or convert ambiguous transactions into unjustifiably confident decisions.
-
-The objective is fewer unnecessary questions over time.
-
-23. Auditability
-
-WriteOffs should preserve the distinction between:
-
-source evidence;
-WriteOffs' interpretation;
-user-provided facts;
-user corrections; and
-subsequent accounting treatment.
-
-Changes to bookkeeping treatment should not rewrite historical source evidence.
-
-The system should maintain a defensible record of how significant decisions were reached.
-
-24. Product Scope Discipline
-
-Do not add features merely because traditional accounting software contains them.
-
-The initial product is not intended to become QuickBooks.
-
-Features such as the following should not be introduced without explicit product approval:
-
-accounts receivable;
-accounts payable;
-inventory;
-payroll;
-balance-sheet accounting;
-budgeting;
-forecasting;
-complex financial dashboards; or
-general small-business ERP functionality.
-
-WriteOffs is focused on eliminating the bookkeeping and documentation burden for Schedule C solopreneurs.
-
-25. Engineering Guardrail
-
-This document defines product direction, not immediate implementation scope.
-
-Codex and other engineering agents must:
-
-Read this document before implementing future product workflows.
-Avoid extending legacy prototype behavior where it conflicts with this specification.
-Continue implementing only the currently authorized milestone.
-Not interpret this document as permission to build all described workflows immediately.
-Preserve compatibility where necessary until replacement workflows are intentionally implemented.
-Prefer the simplest architecture that supports this approved direction.
-Core Principle
-
-WriteOffs does the bookkeeping. The owner supervises.
-
-The customer speaks in business language.
-
-WriteOffs handles the accounting language.
-
-The product succeeds when the owner spends less time doing bookkeeping while maintaining accurate, documented, defensible records.
+**WriteOffs does the bookkeeping. The customer supplies facts, corrects when needed, and confirms the result.**
