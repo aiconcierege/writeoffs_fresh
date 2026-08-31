@@ -25,6 +25,10 @@ export async function getCurrentCustomerWeeklyReview(supabase:SupabaseClient):Pr
     const events=await supabase.from('bookkeeping_review_period_events').select('*').eq('review_period_id',period.id)
       .order('sequence_number',{ascending:false}).limit(1)
     const leaf=events.data?.[0]
+    // A customer-deferred presented review stays out of the active Home conversation
+    // until the canonical worker re-presents it. It is neither confirmation nor an
+    // invitation to restart the pre-snapshot workflow on refresh.
+    if(leaf?.event_type==='deferred')return null
     if(!leaf||['confirmed','closed_unreviewed'].includes(leaf.event_type))continue
     const workflow=await supabase.from('bookkeeping_weekly_review_workflow_events').select('*')
       .eq('review_period_id',period.id)

@@ -5,6 +5,7 @@ const processing=readFileSync('app/lib/bookkeeping/weekly-review-processing.ts',
 const questions=readFileSync('app/questions/page.tsx','utf8')
 const workflowRoute=readFileSync('app/api/bookkeeping/reviews/[id]/workflow/route.ts','utf8')
 const weeklyReadModel=readFileSync('app/lib/bookkeeping/weekly-review.ts','utf8')
+const periodActionRoute=readFileSync('app/api/bookkeeping/reviews/[id]/route.ts','utf8')
 const styles=readFileSync('app/globals.css','utf8')
 
 describe('transaction-first weekly review',()=>{
@@ -64,5 +65,27 @@ describe('transaction-first weekly review',()=>{
   expect(workflowRoute).toContain('ensurePeriodDocumentationRequests')
   expect(workflowRoute).toContain("open_bookkeeping_documentation_request")
   expect(workflowRoute).toContain("p_reason:'MISSING_SUPPORTING_DOCUMENTATION'")
+ })
+ it('makes workflow pause controls functional without claiming confirmation',()=>{
+  expect(weekly).toContain('onClick={()=>setPaused(true)}>Not right now</button>')
+  expect(weekly).toContain('Nothing has been confirmed. You can continue when you’re ready.')
+  expect(weekly).toContain('onClick={()=>setPaused(false)}>Continue this review</button>')
+ })
+ it('renders confirmed and deferred final outcomes as different customer states',()=>{
+  expect(weekly).toContain("outcome==='confirmed'")
+  expect(weekly).toContain('Your weekly review is confirmed.')
+  expect(weekly).toContain("outcome==='deferred'")
+  expect(weekly).toContain('Nothing was confirmed. Come back whenever you’re ready.')
+  expect(weekly).not.toContain('Thanks — I’ve recorded your review.')
+  expect(periodActionRoute).toContain("state:body.action")
+ })
+ it('binds both customer outcomes to the exact presented snapshot',()=>{
+  expect(periodActionRoute).toContain("['presented','correction_linked'].includes(current.data.event_type)")
+  expect(periodActionRoute).toContain('current.data.review_snapshot_id!==body.snapshotId')
+  expect(periodActionRoute).toContain("p_event_type:body.action")
+ })
+ it('does not reopen a deferred review as an unfinished workflow on refresh',()=>{
+  expect(weeklyReadModel).toContain("if(leaf?.event_type==='deferred')return null")
+  expect(weeklyReadModel).toContain("['confirmed','closed_unreviewed'].includes(leaf.event_type)")
  })
 })
