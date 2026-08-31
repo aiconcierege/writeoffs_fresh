@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const flow = readFileSync('app/questions/QuestionFlow.tsx', 'utf8')
-const home = readFileSync('app/home/page.tsx', 'utf8')
+const weekly = readFileSync('app/weekly-review/[id]/page.tsx', 'utf8')
 const actions = readFileSync('app/lib/bookkeeping/customer-question-actions.ts', 'utf8')
 
 describe('customer question UI contract', () => {
@@ -18,10 +18,10 @@ describe('customer question UI contract', () => {
     expect(flow).not.toMatch(/Schedule C|confidence score|weekly review|select category/i)
   })
 
-  it('shows the canonical actionable count on Home', () => {
-    expect(home).toContain('listCustomerQuestions')
-    expect(home).toContain('<QuestionInvitation count={questions.length} compact/>')
-    expect(readFileSync('app/home/QuestionInvitation.tsx','utf8')).toContain('Yes, let’s do it')
+  it('loads canonical current-period questions inside the dedicated review', () => {
+    expect(weekly).toContain('listCustomerQuestions')
+    expect(weekly).toContain('question.transaction.date>=review.periodStart')
+    expect(weekly).toContain('<WeeklyReview review={review} currentQuestions={currentQuestions}')
   })
 
   it('submits button answers immediately and keeps defer distinct from Not sure', () => {

@@ -17,12 +17,43 @@ export type CustomerWeeklyReview = {
   mileage:{vehicles:Array<{id:string;displayName:string}>;entries:Array<{id:string;date:string;milesMilli:number;purpose:string|null}>}
 }
 
-export async function getCurrentCustomerWeeklyReview(supabase:SupabaseClient):Promise<CustomerWeeklyReview|null>{
+export type CustomerWeeklyReviewDescriptor={
+  id:string;periodStart:string;periodEnd:string;eventType:string;deferredUntil:string|null;actionable:boolean
+}
+
+async function customerContext(supabase:SupabaseClient){
   const {data:{user}}=await supabase.auth.getUser();if(!user)return null
   const business=await supabase.from('businesses').select('id').eq('owner_user_id',user.id).maybeSingle()
-  if(!business.data)return null
-  const periods=await supabase.from('bookkeeping_review_periods').select('*').eq('business_id',business.data.id)
-    .order('period_end',{ascending:false}).limit(12)
+  const businessId=(business.data?.id as string|undefined)??null
+  return businessId?{businessId,userId:user.id}:null
+}
+
+export async function listCustomerWeeklyReviews(supabase:SupabaseClient):Promise<CustomerWeeklyReviewDescriptor[]>{
+  const context=await customerContext(supabase);if(!context)return[]
+  const{businessId}=context
+  const periods=await supabase.from('bookkeeping_review_periods').select('id,period_start,period_end')
+    .eq('business_id',businessId).order('period_start',{ascending:true}).limit(52)
+  if(periods.error)throw new Error('Weekly reviews could not be loaded.')
+  const result:CustomerWeeklyReviewDescriptor[]=[]
+  for(const period of periods.data??[]){
+    const events=await supabase.from('bookkeeping_review_period_events')
+      .select('event_type,deferred_until').eq('review_period_id',period.id)
+      .order('sequence_number',{ascending:false}).limit(1)
+    if(events.error)throw new Error('Weekly review status could not be loaded.')
+    const leaf=events.data?.[0];if(!leaf||['confirmed','closed_unreviewed'].includes(leaf.event_type))continue
+    result.push({id:period.id,periodStart:period.period_start,periodEnd:period.period_end,eventType:leaf.event_type,
+      deferredUntil:leaf.deferred_until??null,actionable:leaf.event_type!=='deferred'})
+  }
+  return result
+}
+
+async function loadCustomerWeeklyReview(supabase:SupabaseClient,reviewId?:string):Promise<CustomerWeeklyReview|null>{
+  const context=await customerContext(supabase);if(!context)return null
+  const{businessId,userId}=context
+  let periodQuery=supabase.from('bookkeeping_review_periods').select('*').eq('business_id',businessId)
+  if(reviewId)periodQuery=periodQuery.eq('id',reviewId)
+  const periods=await periodQuery.order('period_end',{ascending:true}).limit(reviewId?1:52)
+  if(periods.error)throw new Error('Weekly review could not be loaded.')
   for(const period of periods.data??[]){
     const events=await supabase.from('bookkeeping_review_period_events').select('*').eq('review_period_id',period.id)
       .order('sequence_number',{ascending:false}).limit(1)
@@ -30,7 +61,7 @@ export async function getCurrentCustomerWeeklyReview(supabase:SupabaseClient):Pr
     // A customer-deferred presented review stays out of the active Home conversation
     // until the canonical worker re-presents it. It is neither confirmation nor an
     // invitation to restart the pre-snapshot workflow on refresh.
-    if(leaf?.event_type==='deferred')return null
+    if(leaf?.event_type==='deferred')continue
     if(!leaf||['confirmed','closed_unreviewed'].includes(leaf.event_type))continue
     const workflow=await supabase.from('bookkeeping_weekly_review_workflow_events').select('*')
       .eq('review_period_id',period.id)
@@ -42,7 +73,7 @@ export async function getCurrentCustomerWeeklyReview(supabase:SupabaseClient):Pr
     const nextStage:WeeklyReviewStage=!workflowLeaf?'personal':(guided
       ?({personal:'documentation',documentation:'questions',questions:'final',final:'final'} as Record<string,WeeklyReviewStage>)[workflowLeaf.stage]
       :({personal:'mixed',mixed:'questions',questions:'documentation',documentation:'mileage',mileage:'final',final:'final'} as Record<string,WeeklyReviewStage>)[workflowLeaf.stage])??'personal'
-    const raw=await listTransactionReadModel({supabase,userId:user.id,start:period.period_start,end:period.period_end,limit:1000})
+    const raw=await listTransactionReadModel({supabase,userId,start:period.period_start,end:period.period_end,limit:1000})
     const canonical=raw.filter(row=>row.sourceModel==='canonical'&&row.sourceKind==='financial_transaction'
       &&row.recordId&&row.currentDecisionId)
       .sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id))
@@ -104,4 +135,9 @@ export async function getCurrentCustomerWeeklyReview(supabase:SupabaseClient):Pr
       incomeCents:snapshot.data.income_cents==null?null:links.length?correctedIncome:Number(snapshot.data.income_cents),items:presentedItems}
   }
   return null
+}
+
+export async function getCurrentCustomerWeeklyReview(supabase:SupabaseClient){return loadCustomerWeeklyReview(supabase)}
+export async function getCustomerWeeklyReviewById(supabase:SupabaseClient,reviewId:string){
+  return loadCustomerWeeklyReview(supabase,reviewId)
 }

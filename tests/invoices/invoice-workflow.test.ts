@@ -32,7 +32,7 @@ describe('invoice workflow contracts', () => {
 
   it('protects invoice routes and makes invoices available from the Home/menu record areas', () => {
     expect(read('app/lib/route-policy.ts')).toContain("'/invoices'")
-    expect(read('app/home/page.tsx')).toContain("['/invoices', 'Invoices'")
+    expect(read('app/home/HomeQuickActions.tsx')).toContain('href="/invoices"')
     const header = read('app/components/Header.tsx')
     expect(header).toContain('["Invoices", "/invoices"]')
   })

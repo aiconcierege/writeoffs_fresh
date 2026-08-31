@@ -19,6 +19,7 @@ export const AUTHENTICATED_ROUTE_PREFIXES = [
   '/export',
   '/dashboard',
   '/review',
+  '/weekly-review',
 ] as const
 
 export function pathMatchesPrefix(pathname: string, prefix: string) {

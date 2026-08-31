@@ -11,7 +11,7 @@ const styles=readFileSync('app/globals.css','utf8')
 describe('transaction-first weekly review',()=>{
  it('guides new reviews from exceptions through evidence and questions without mandatory mileage',()=>{
   expect(weekly).toContain("personal:'documentation',documentation:'questions',questions:'final'")
-  expect(weekly).toContain('I went through last week’s activity.')
+  expect(weekly).toContain('Take a look at these transactions. Are any of these not for the business?')
   expect(weekly).toContain('Are any of these not for the business?')
   expect(weekly).toContain('Got it. I’ll leave')
   expect(weekly).not.toContain("documentation:'mileage'")
@@ -90,7 +90,7 @@ describe('transaction-first weekly review',()=>{
  })
  it('renders confirmed and deferred final outcomes as different customer states',()=>{
   expect(weekly).toContain("outcome==='confirmed'")
-  expect(weekly).toContain('Your weekly review is recorded.')
+  expect(weekly).toContain('is reviewed.')
   expect(weekly).toContain("outcome==='deferred'")
   expect(weekly).toContain('Nothing was confirmed. The bookkeeping already supported by your records and decisions still counts.')
   expect(weekly).not.toContain('Thanks — I’ve recorded your review.')
@@ -110,7 +110,7 @@ describe('transaction-first weekly review',()=>{
   expect(weeklyReadModel).toContain('presentedItems')
  })
  it('does not reopen a deferred review as an unfinished workflow on refresh',()=>{
-  expect(weeklyReadModel).toContain("if(leaf?.event_type==='deferred')return null")
+  expect(weeklyReadModel).toContain("if(leaf?.event_type==='deferred')continue")
   expect(weeklyReadModel).toContain("['confirmed','closed_unreviewed'].includes(leaf.event_type)")
  })
 })

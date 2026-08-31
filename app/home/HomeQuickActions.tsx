@@ -1,0 +1,4 @@
+import Link from'next/link'
+import{ReceiptUploadAction}from'../receipts/ReceiptUploadAction'
+
+export function HomeQuickActions({business}:{business:boolean}){return <section className="home-quick" aria-labelledby="home-quick-heading"><div><p className="home-kicker">Right now</p><h2 id="home-quick-heading">A few useful shortcuts</h2></div><div className="home-quick-list"><ReceiptUploadAction variant="home" mobileLabel="Take a picture" capture="environment"/><Link href="/mileage" className="home-quick-link"><span aria-hidden="true">↗</span><strong>Add miles</strong></Link><Link href={business?'/money':'/money?kind=spent'} className="home-quick-link"><span aria-hidden="true">＋</span><strong>Record money</strong></Link><Link href="/invoices" className="home-quick-link"><span aria-hidden="true">→</span><strong>Create invoice</strong></Link></div><Link className="home-choose-receipt" href="/receipts">Choose an existing photo, file, or PDF</Link></section>}

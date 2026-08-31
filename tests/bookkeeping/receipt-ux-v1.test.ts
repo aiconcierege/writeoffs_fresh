@@ -6,12 +6,14 @@ const source = (file: string) => readFileSync(file, 'utf8')
 const page = source('app/receipts/page_inner.tsx')
 const upload = source('app/receipts/ReceiptUploadAction.tsx')
 const home = source('app/home/page.tsx')
+const homeActions = source('app/home/HomeQuickActions.tsx')
 const header = source('app/components/Header.tsx')
 const routePolicy = source('app/lib/route-policy.ts')
 
 describe('autonomous Receipt UX v1', () => {
   it('keeps receipt intake easy to reach without making it routine bookkeeping work', () => {
-    expect(home).toContain("['/receipts', 'Receipts'")
+    expect(home).toContain('<HomeQuickActions business={isBusiness}/>')
+    expect(homeActions).toContain('<ReceiptUploadAction')
     expect(source('app/get-started/GetStartedFlow.tsx')).toContain('Upload whatever you have')
     expect(upload).toContain('onChange={(event) => void select(Array.from(event.target.files ?? []))}')
     expect(upload).toContain('multiple')
@@ -22,9 +24,9 @@ describe('autonomous Receipt UX v1', () => {
   it('uses device-appropriate labels and a standard file chooser', () => {
     expect(routePolicy).toContain("'/receipts'")
     expect(upload).toContain('Upload receipt</span>')
-    expect(upload).toContain('Add receipt</span>')
+    expect(upload).toContain("mobileLabel='Add receipt'")
     expect(upload).toContain('accept="image/jpeg,image/png,image/webp,application/pdf"')
-    expect(upload).not.toContain('capture="environment"')
+    expect(homeActions).toContain('capture="environment"')
   })
 
   it('finishes the normal journey without confirmation or Keep', () => {

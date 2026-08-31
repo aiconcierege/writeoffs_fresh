@@ -4,10 +4,12 @@ import { useRef, useState } from 'react'
 import { supabase } from '../../utils/supabase/client'
 import { runBoundedBatch } from '../lib/documents/batch-intake'
 
-export function ReceiptUploadAction({ onComplete, variant = 'home', intendedTransactionId }: {
+export function ReceiptUploadAction({ onComplete, variant = 'home', intendedTransactionId,mobileLabel='Add receipt',capture }: {
   onComplete?: () => void | Promise<void>
   variant?: 'home' | 'history' | 'guided'
   intendedTransactionId?: string
+  mobileLabel?: string
+  capture?: 'user'|'environment'
 }) {
   const input = useRef<HTMLInputElement>(null)
   const inFlight = useRef(false)
@@ -73,10 +75,10 @@ export function ReceiptUploadAction({ onComplete, variant = 'home', intendedTran
   return <div className={variant === 'history' ? 'w-full' : 'inline-flex flex-col items-start gap-2'}>
     <button type="button" disabled={busy} onClick={() => input.current?.click()}
       className={variant==='guided'?'btn btn-secondary min-h-12':'btn btn-primary min-h-12'}>
-      {busy ? 'Adding receipt…' : <><span className="hidden sm:inline">Upload receipt</span><span className="sm:hidden">Add receipt</span></>}
+      {busy ? 'Adding receipt…' : <><span className="hidden sm:inline">Upload receipt</span><span className="sm:hidden">{mobileLabel}</span></>}
     </button>
     <input ref={input} type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" className="sr-only"
-      aria-label="Upload receipt images or PDFs" onChange={(event) => void select(Array.from(event.target.files ?? []))} />
+      capture={capture} aria-label="Upload receipt images or PDFs" onChange={(event) => void select(Array.from(event.target.files ?? []))} />
     {message && <p role={status === 'error' ? 'alert' : 'status'} aria-live="polite"
       className={`max-w-sm text-sm ${status === 'error' ? 'text-red-700' : 'text-[#59665f]'}`}>{message}</p>}
     {failed.length > 0 && <button type="button" className="min-h-11 text-sm font-semibold text-[#243186]"

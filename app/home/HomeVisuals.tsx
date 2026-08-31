@@ -37,10 +37,10 @@ export function FinancialRelationship({ income, expenses, profit, business }: { 
   const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
   if (!business) return <div className="home-financial-expenses"><span>Business expenses</span><strong>{money.format(expenses / 100)}</strong><div className="home-financial-line"/></div>
   return <div className="home-financial-flow" role="img" aria-label={`${money.format(income / 100)} in business income, minus ${money.format(expenses / 100)} in business expenses, leaves approximately ${money.format(profit / 100)} in estimated business profit.`}>
-    <div className="home-financial-node home-financial-income"><span>Came in</span><small>Business income</small><strong>{money.format(income / 100)}</strong></div>
+    <div className="home-financial-node home-financial-income"><span>Business income</span><small>Money in</small><strong>{money.format(income / 100)}</strong></div>
     <span className="home-financial-operator" aria-hidden="true">−</span>
-    <div className="home-financial-node home-financial-spent"><span>Spent</span><small>On the business</small><strong>{money.format(expenses / 100)}</strong></div>
+    <div className="home-financial-node home-financial-spent"><span>Business expenses</span><small>Money spent on the business</small><strong>{money.format(expenses / 100)}</strong></div>
     <span className="home-financial-operator" aria-hidden="true">=</span>
-    <div className="home-financial-node home-financial-profit"><span>What’s left</span><small>Estimated business profit</small><strong>{money.format(profit / 100)}</strong></div>
+    <div className="home-financial-node home-financial-profit"><span>Estimated business profit</span><small>What’s left</small><strong>{money.format(profit / 100)}</strong></div>
   </div>
 }
