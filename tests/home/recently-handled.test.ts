@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { deriveRecentlyHandled } from '../../app/lib/home/recently-handled'
+import { deriveHomeRecentActivity } from '../../app/lib/home/recently-handled'
 import type { TransactionReadRow } from '../../app/lib/bookkeeping/transaction-read-model'
 
 function row(overrides: Partial<TransactionReadRow>): TransactionReadRow {
@@ -15,26 +15,32 @@ function row(overrides: Partial<TransactionReadRow>): TransactionReadRow {
   }
 }
 
-describe('recently handled Home evidence', () => {
-  it('shows only meaningful completed canonical outcomes', () => {
-    const handled = deriveRecentlyHandled([
-      row({ id: 'expense' }),
-      row({ id: 'income', vendor: 'Square', bookkeepingNature: 'income', amountCents: 9000 }),
-      row({ id: 'receipt', vendor: 'Home Depot', evidenceLinks: [{ id: 'link', receiptId: 'receipt', attachedAt: '2026-08-24T12:00:00.000Z' }] }),
-      row({ id: 'correction', vendor: 'Chevron', correctionCount: 1 }),
-      row({ id: 'unresolved', treatment: 'unresolved' }),
-      row({ id: 'personal', treatment: 'personal' }),
-      row({ id: 'legacy', sourceModel: 'legacy' }),
+describe('Home recent records', () => {
+  it('shows recent relevant transactions with truthful plain-language states', () => {
+    const activity = deriveHomeRecentActivity([
+      row({ id: 'business', date: '2026-08-24' }),
+      row({ id: 'mixed', date: '2026-08-23', treatment: 'mixed_use' }),
+      row({ id: 'income', date: '2026-08-22', bookkeepingNature: 'income', amountCents: 9000 }),
+      row({ id: 'unresolved', date: '2026-08-21', treatment: 'unresolved' }),
+      row({ id: 'personal', date: '2026-08-25', treatment: 'personal' }),
+      row({ id: 'legacy', date: '2026-08-26', sourceModel: 'legacy' }),
     ])
-    expect(handled[0]?.outcome).toBe('Receipt matched')
-    expect(handled.map(item => item.outcome)).toEqual(expect.arrayContaining([
-      'Receipt matched', 'Business expense handled', 'Customer correction applied', 'Income recorded',
-    ]))
-    expect(handled.some(item => item.id.includes('unresolved'))).toBe(false)
+    expect(activity.transactions.map(item => item.status)).toEqual([
+      'Business', 'Business + personal', 'Income', 'Still working on it',
+    ])
+    expect(activity.transactions.map(item=>item.id)).not.toContain('personal')
   })
 
-  it('does not pad the list and caps meaningful outcomes at five', () => {
-    expect(deriveRecentlyHandled([row({ id: 'only' })])).toHaveLength(1)
-    expect(deriveRecentlyHandled(Array.from({ length: 7 }, (_, index) => row({ id: `${index}` })))).toHaveLength(5)
+  it('derives only real receipt links and does not pad either list', () => {
+    const activity=deriveHomeRecentActivity([row({id:'matched',evidenceLinks:[{id:'link',receiptId:'receipt',attachedAt:'2026-08-30T12:00:00.000Z'}]})])
+    expect(activity.transactions).toHaveLength(1)
+    expect(activity.receiptMatches).toEqual([{id:'link',merchant:'Office Depot',date:'2026-08-30',amountCents:-2500,href:'/transactions/matched'}])
+    expect(deriveHomeRecentActivity([row({id:'no-match'})]).receiptMatches).toEqual([])
+  })
+
+  it('caps compact lists at five without fabricating rows',()=>{
+    const activity=deriveHomeRecentActivity(Array.from({length:7},(_,index)=>row({id:`${index}`,date:`2026-08-${String(10+index).padStart(2,'0')}`})))
+    expect(activity.transactions).toHaveLength(5)
+    expect(activity.receiptMatches).toHaveLength(0)
   })
 })

@@ -33,11 +33,12 @@ describe('Home command center', () => {
   it('supports truthful zero, one, and many review language', () => {
     expect(home).toContain('waitingCount=actionable.length')
     expect(home).toContain("waitingCount>0?'Your books need your attention.'")
-    expect(home).toContain("waitingCount===1?'One weekly review is'")
-    expect(home).toContain('`${waitingCount} weekly reviews are`')
+    expect(home).toContain("waitingCount>0?'I’ve done everything I can for now.'")
+    expect(home).not.toContain('weekly reviews are`} waiting for you')
     expect(home).toContain("'Your books are up to date.'")
     expect(home).toContain("'I’ll keep working in the background.'")
-    expect(invitation).toContain("count===1?'One weekly review is waiting.'")
+    expect(invitation).toContain("count===1?'I need a little information from you to finish one weekly review.'")
+    expect(invitation).toContain('finish ${count} weekly reviews')
   })
 
   it('keeps financial presentation within membership scope', () => {
@@ -55,6 +56,7 @@ describe('Home command center', () => {
     expect(upload).toContain('Upload receipt</span>')
     expect(quickActions).toContain('mobileLabel="Take a picture"')
     expect(quickActions).toContain('capture="environment"')
+    for (const copy of ['Get things done','Add a photo or file','Track business miles','Log income or an expense','Send a professional invoice']) expect(quickActions).toContain(copy)
     expect(styles).toContain('.home-quick-list')
     expect(styles).toContain('@media (max-width:639px)')
   })
@@ -66,16 +68,35 @@ describe('Home command center', () => {
     expect(resolveAskBettiDestination('Explain depreciation for my exact situation')).toBeNull()
     const ask = readFileSync('app/home/HomeAskBetti.tsx', 'utf8')
     expect(ask).toContain('I can’t safely answer that question from here yet.')
+    expect(ask).toContain('How can I help?')
+    for(const suggestion of ['Show reports','Add mileage','Recent transactions','Upload a receipt','Create an invoice'])expect(ask).toContain(suggestion)
+    expect(ask).toContain('<BettiIllustration state="welcome" className="home-ask-betti"')
   })
 
-  it('uses one Betti and keeps the established visual hierarchy mobile-safe', () => {
+  it('uses exactly the substantial hero Betti plus one small Ask Betti', () => {
     expect(home.match(/<BettiIllustration/g)).toHaveLength(1)
+    const ask=readFileSync('app/home/HomeAskBetti.tsx','utf8')
+    expect(ask.match(/<BettiIllustration/g)).toHaveLength(1)
     expect(home.indexOf('home-agent-hero')).toBeLessThan(home.indexOf('home-value'))
     expect(home.indexOf('home-value')).toBeLessThan(home.indexOf('home-financial'))
     expect(home.indexOf('home-financial')).toBeLessThan(home.indexOf('home-tools'))
-    expect(home.indexOf('home-tools')).toBeLessThan(home.indexOf('home-recent'))
+    expect(home.indexOf('home-tools')).toBeLessThan(home.indexOf('<HomeRecentActivity'))
     expect(styles).toContain('.home-agent-betti')
     expect(styles).toContain('@media (max-width:340px)')
+    expect(styles).toContain('.home-agent-hero { min-height: 24rem; }')
+    expect(styles).toContain('.home-value h2 strong { font-size: clamp(3.6rem,10vw,6.6rem); }')
+  })
+
+  it('renders recent transactions and receipt matches only from available data',()=>{
+    const recent=readFileSync('app/home/HomeRecentActivity.tsx','utf8')
+    expect(home).toContain('<HomeRecentActivity activity={recentActivity}/>')
+    expect(recent).toContain('Recent transactions')
+    expect(recent).toContain('View all transactions')
+    expect(recent).toContain('Recent receipt matches')
+    expect(recent).toContain('activity.receiptMatches.length>0&&')
+    expect(recent).toContain("if(!activity.transactions.length&&!activity.receiptMatches.length)return null")
+    expect(recent).toContain('home-merchant-fallback')
+    expect(recent).not.toMatch(/logo vendor|clearbit|brandfetch/i)
   })
 })
 

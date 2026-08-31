@@ -31,10 +31,9 @@ export function HomeOperatingStatus({ status }: { status: Status }) {
 
   return <section className="home-operating" aria-label="Bookkeeping schedule">
     <div className="home-operating-facts">
-      <div><p>Accounts checked</p><strong>{checked
-        ?? (status.hasConnectedAccounts ? 'First check in progress' : 'No account connected')}</strong></div>
+      {status.hasConnectedAccounts&&<div><p>Accounts checked</p><strong>{checked??'First check in progress'}</strong></div>}
       <div><p>Next check-in</p><strong>{checkInDay ? `Every ${checkInDay}` : 'Choose your normal check-in day'}</strong>
-        {checkInDay && <small>A specific time isn’t scheduled yet.</small>}</div>
+      </div>
     </div>
     <div className="home-operating-action">
       {status.hasConnectedAccounts

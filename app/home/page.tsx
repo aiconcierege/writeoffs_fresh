@@ -7,7 +7,7 @@ import{getAuthenticatedPotentialWriteoffs}from'../lib/bookkeeping/potential-writ
 import{summarizeReceiptDocumentation}from'../lib/bookkeeping/receipt-workflow'
 import{listCustomerWeeklyReviews}from'../lib/bookkeeping/weekly-review'
 import{getHomeOperatingStatus}from'../lib/home/operating-status'
-import{getRecentlyHandled}from'../lib/home/recently-handled'
+import{getHomeRecentActivity}from'../lib/home/recently-handled'
 import{loadCustomerEntitlements}from'../lib/membership/entitlements'
 import{onboardingNeedsFollowUp,type OnboardingBusinessData}from'../lib/onboarding/progress'
 import{HomeOperatingStatus}from'./HomeOperatingStatus'
@@ -15,6 +15,7 @@ import{FinancialRelationship}from'./HomeVisuals'
 import{HomeAskBetti}from'./HomeAskBetti'
 import{HomeQuickActions}from'./HomeQuickActions'
 import{HomeReviewInvitation}from'./HomeReviewInvitation'
+import{HomeRecentActivity}from'./HomeRecentActivity'
 
 export const dynamic='force-dynamic';export const runtime='nodejs'
 const money=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0})
@@ -26,10 +27,10 @@ export default async function HomePage(){
  const businessResult=await supabase.from('businesses').select('business_description,business_profile_context,schedule_c_eligibility,business_stage,business_start_month,uses_customer_job_materials,keeps_future_sale_merchandise,prior_materials_handling,catch_up_start_date,onboarding_start_method,v1_support_status,onboarding_state,onboarding_version')
   .eq('owner_user_id',user.id).maybeSingle()
  const coveredStart=businessResult.data?.catch_up_start_date&&businessResult.data.catch_up_start_date>yearStart?businessResult.data.catch_up_start_date:yearStart
- const[summary,potential,receiptWorkflow,reviews,operatingStatus,recent]=await Promise.all([
+ const[summary,potential,receiptWorkflow,reviews,operatingStatus,recentActivity]=await Promise.all([
   getAuthenticatedCanonicalReport({supabase,periodStart:coveredStart,periodEnd:today,currency:'USD'}),
   getAuthenticatedPotentialWriteoffs({supabase,periodStart:coveredStart,periodEnd:today}),summarizeReceiptDocumentation(supabase),
-  listCustomerWeeklyReviews(supabase),getHomeOperatingStatus(supabase),getRecentlyHandled(supabase,user.id,coveredStart,today),
+  listCustomerWeeklyReviews(supabase),getHomeOperatingStatus(supabase),getHomeRecentActivity(supabase,user.id,coveredStart,today),
  ])
  const actionable=reviews.filter(review=>review.actionable),waitingCount=actionable.length
  const bettiState:BettiState=waitingCount>0?'question':receiptWorkflow.processing>0?'working':'caught-up'
@@ -39,7 +40,7 @@ export default async function HomePage(){
   <section className={`home-agent-hero home-agent-${bettiState}`} aria-labelledby="home-heading">
    <div className="home-agent-copy"><p className="home-kicker">Your books with WriteOffs</p>
     <h1 id="home-heading">{waitingCount>0?'Your books need your attention.':bettiState==='working'?'I’m still working on your books.':'Your books are up to date.'}</h1>
-    <p>{waitingCount>0?`I’ve done everything I can for now. ${waitingCount===1?'One weekly review is':`${waitingCount} weekly reviews are`} waiting for you.`:bettiState==='working'?`${receiptWorkflow.processing} ${receiptWorkflow.processing===1?'receipt is':'receipts are'} still being organized. You don’t need to wait here.`:'I’ll keep working in the background.'}</p>
+    <p>{waitingCount>0?'I’ve done everything I can for now.':bettiState==='working'?`${receiptWorkflow.processing} ${receiptWorkflow.processing===1?'receipt is':'receipts are'} still being organized. You don’t need to wait here.`:'I’ll keep working in the background.'}</p>
     {waitingCount>0&&actionable.length>0&&<HomeReviewInvitation count={waitingCount}/>}<HomeOperatingStatus status={operatingStatus}/>
    </div>
    <BettiIllustration state={bettiState} priority className="home-agent-betti" sizes="(max-width: 639px) 15rem, 28rem" decorative/>
@@ -51,7 +52,7 @@ export default async function HomePage(){
 
   <div className="home-tools"><HomeQuickActions business={isBusiness}/><HomeAskBetti/></div>
 
-  <section className="home-recent" aria-labelledby="home-recent-heading"><div className="home-section-heading"><div><p className="home-kicker">Recently handled</p><h2 id="home-recent-heading">Work already moving forward</h2></div><Link href="/transactions">View transactions <span aria-hidden="true">→</span></Link></div>{recent.length?<ul>{recent.map(item=><li key={item.id}><Link href={item.href}><strong>{item.merchant}</strong><span>{item.outcome}</span><i aria-hidden="true">→</i></Link></li>)}</ul>:<p className="home-recent-empty">I’ll show recent bookkeeping work here as records are handled.</p>}</section>
+  <HomeRecentActivity activity={recentActivity}/>
 
   {needsSetup&&<section className="home-setup"><div><p className="home-kicker">One more thing</p><h2>A few business details still need an update.</h2></div><Link href="/onboarding" className="btn btn-primary">Continue setup</Link></section>}
  </div></main>

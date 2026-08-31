@@ -13,7 +13,8 @@ describe('Home canonical visual derivations', () => {
     expect(checkInDayLabel(5)).toBe('Friday')
     expect(checkInDayLabel(null)).toBeNull()
     const operating = readFileSync('app/home/HomeOperatingStatus.tsx', 'utf8')
-    expect(operating).toContain('A specific time isn’t scheduled yet.')
+    expect(operating).not.toContain('A specific time isn’t scheduled yet.')
+    expect(operating).toContain('`Every ${checkInDay}`')
   })
 
   it('replaces historical charting with current operating status', () => {
@@ -28,5 +29,7 @@ describe('Home canonical visual derivations', () => {
     expect(repository).toContain("from('current_business_review_cadence')")
     expect(repository).not.toContain("from('plaid_items')")
     expect(operating).toContain("fetch('/api/plaid/sync'")
+    expect(operating).not.toContain('No account connected')
+    expect(operating).toContain('status.hasConnectedAccounts&&<div><p>Accounts checked</p>')
   })
 })
