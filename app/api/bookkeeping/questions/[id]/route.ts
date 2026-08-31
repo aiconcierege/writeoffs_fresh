@@ -29,6 +29,15 @@ function parseCommand(value: unknown): CustomerQuestionAction | null {
     return keys.join(',') === 'action' ? { action: body.action } : null
   }
   if (
+    body.action === 'mixed_business_amount' &&
+    typeof body.businessAmountCents === 'number' &&
+    Number.isSafeInteger(body.businessAmountCents)
+  ) {
+    return keys.join(',') === 'action,businessAmountCents'
+      ? { action: body.action, businessAmountCents: body.businessAmountCents }
+      : null
+  }
+  if (
     body.action === 'mixed_personal_amount' &&
     typeof body.personalAmountCents === 'number' &&
     Number.isSafeInteger(body.personalAmountCents)

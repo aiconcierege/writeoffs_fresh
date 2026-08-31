@@ -4,6 +4,7 @@ import {
   answerBusinessPurposeReviewIssue,
   answerBusinessUseReviewIssue,
   answerConflictingEvidenceReviewIssue,
+  answerMixedUseReviewIssue,
 } from './review-answer-workflow'
 import { listCanonicalReviewQueue } from './review-queue'
 import { projectCustomerQuestion } from './customer-questions'
@@ -15,6 +16,7 @@ export type CustomerQuestionAction =
   | { action: 'business_use'; use: 'business' | 'personal' | 'mixed' }
   | { action: 'business_purpose'; businessPurpose: string }
   | { action: 'mixed_all_business' }
+  | { action: 'mixed_business_amount'; businessAmountCents: number }
   | { action: 'mixed_personal_amount'; personalAmountCents: number }
   | { action: 'factual_choice'; optionId: string }
   | { action: 'deduction_fact'; value: string | number | boolean }
@@ -80,6 +82,11 @@ export async function actOnCustomerQuestion(input: {
       expectedCurrentDecisionId: item.decision.id,
       expectedContextFingerprint: item.event.contextFingerprint,
       expectedEvidenceFingerprint: item.event.evidenceFingerprint ?? '',
+    })
+  }
+  if (input.command.action === 'mixed_business_amount' && item.event.reason === 'MIXED_USE_CLARIFICATION') {
+    return answerMixedUseReviewIssue({ ...common,
+      answer: { schemaVersion: 1, businessAmountCents: input.command.businessAmountCents },
     })
   }
   if (input.command.action === 'mixed_personal_amount' && item.event.reason === 'MIXED_USE_CLARIFICATION') {

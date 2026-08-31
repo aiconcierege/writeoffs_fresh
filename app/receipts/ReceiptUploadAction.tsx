@@ -6,7 +6,7 @@ import { runBoundedBatch } from '../lib/documents/batch-intake'
 
 export function ReceiptUploadAction({ onComplete, variant = 'home', intendedTransactionId }: {
   onComplete?: () => void | Promise<void>
-  variant?: 'home' | 'history'
+  variant?: 'home' | 'history' | 'guided'
   intendedTransactionId?: string
 }) {
   const input = useRef<HTMLInputElement>(null)
@@ -70,9 +70,9 @@ export function ReceiptUploadAction({ onComplete, variant = 'home', intendedTran
   }
 
   const busy = status === 'uploading' || status === 'organizing'
-  return <div className={variant === 'home' ? 'inline-flex flex-col items-start gap-2' : 'w-full'}>
+  return <div className={variant === 'history' ? 'w-full' : 'inline-flex flex-col items-start gap-2'}>
     <button type="button" disabled={busy} onClick={() => input.current?.click()}
-      className="btn btn-primary min-h-12">
+      className={variant==='guided'?'btn btn-secondary min-h-12':'btn btn-primary min-h-12'}>
       {busy ? 'Adding receipt…' : <><span className="hidden sm:inline">Upload receipt</span><span className="sm:hidden">Add receipt</span></>}
     </button>
     <input ref={input} type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" className="sr-only"

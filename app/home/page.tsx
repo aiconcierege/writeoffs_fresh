@@ -59,7 +59,7 @@ export default async function HomePage() {
   const bettiState: BettiState = questions.length > 0
     ? 'question' : receiptWorkflow.processing > 0 ? 'working' : 'caught-up'
   const currentReviewQuestions=weeklyReview?questions.filter(question=>question.transaction.date
-    &&question.transaction.date>=weeklyReview.periodStart&&question.transaction.date<=weeklyReview.periodEnd).length:0
+    &&question.transaction.date>=weeklyReview.periodStart&&question.transaction.date<=weeklyReview.periodEnd):[]
 
   return <main className="home-page"><div className="home-shell">
     <section className="home-hero" aria-labelledby="home-heading">
@@ -92,7 +92,7 @@ export default async function HomePage() {
       </div>
     </section>
 
-    {weeklyReview && <WeeklyReview review={weeklyReview} currentQuestionCount={currentReviewQuestions}/>}
+    {weeklyReview && <WeeklyReview key={`${weeklyReview.id}:${weeklyReview.workflowEventId??'new'}:${weeklyReview.snapshotId||'workflow'}`} review={weeklyReview} currentQuestions={currentReviewQuestions}/>}
 
     <section className="home-dashboard-row" aria-label="Documentation status">
       <div className="home-documentation">

@@ -382,6 +382,23 @@ body { background: var(--canvas); color: var(--ink); }
 .weekly-document-actions,.weekly-workflow-actions { display: flex; flex-wrap: wrap; gap: .65rem; }
 .weekly-workflow-actions { margin-top: 1.25rem; border-top: 1px dashed #cbd8d0; padding-top: 1rem; }.weekly-workflow-actions .btn:first-child { flex: 1 1 16rem; }
 .weekly-workflow-error { margin-top: 1rem; border-radius: .7rem; background: #fff2f1; padding: .75rem; color: #853333; font-size: .88rem; }
+.weekly-transaction-compact { border-radius: .7rem; background: transparent; border-bottom: 1px solid #dfe6e1; }
+.weekly-transaction-compact > label { min-height: 3.7rem; padding: .55rem .45rem; }
+.weekly-transaction-compact > label.is-selectable { min-height: 3.9rem; }
+.weekly-transaction-compact .weekly-transaction-main strong,.weekly-transaction-compact .weekly-transaction-meta,.weekly-transaction-compact b { font-size: 1rem; }
+.weekly-inline-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: .55rem; padding: 0 .45rem .75rem 2.75rem; }
+.weekly-inline-actions .btn { min-height: 3rem; font-size: 1rem; }
+.weekly-acknowledgment,.weekly-question-complete { display: grid; gap: .7rem; border-left: 3px solid #178368; background: #edf7ef; padding: 1.1rem 1.2rem; color: #33453b; font-size: 1rem; line-height: 1.55; }
+.weekly-acknowledgment strong,.weekly-question-complete strong { color: #17211d; font-size: 1.125rem; }
+.weekly-acknowledgment .btn { justify-self: start; margin-top: .35rem; }
+.weekly-guided-lead { margin-bottom: 1rem; color: #34453c; font-size: 1.0625rem; line-height: 1.55; }
+.weekly-question-embedded { border: 1px solid #dbe4de; box-shadow: none; }
+.weekly-question-flow .text-sm,.weekly-question-flow .text-muted { font-size: 1rem; line-height: 1.5; }
+.weekly-final-corrections { display: grid; gap: .65rem; margin: 1rem 0; border-top: 1px dashed #cbd8d0; padding-top: 1rem; font-size: 1rem; }
+.weekly-final-corrections > div { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: .5rem 1rem; border-radius: .75rem; background: #f5f7f2; padding: .8rem; }
+.weekly-final-corrections > div > div,.weekly-final-corrections label { grid-column: 1/-1; display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.weekly-final-corrections label > span { display: flex; min-height: 3rem; align-items: center; border: 1px solid #cbd8d0; border-radius: .65rem; background: white; padding-inline: .75rem; }
+.weekly-final-corrections input { width: 7rem; padding: .65rem .35rem; outline: none; }
 .weekly-mileage-list { display: grid; gap: .55rem; }.weekly-mileage-list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; border-bottom: 1px solid #dce5df; padding-bottom: .55rem; }.weekly-mileage-list span { color: #637068; }
 .home-dashboard-row { margin-top: 1.35rem; }
 .home-documentation,.home-financial { border: 1px solid rgba(196,211,201,.8); border-radius: 1.4rem; background: rgba(255,255,255,.82); padding: 1.3rem; box-shadow: 0 16px 42px rgba(23,33,29,.055); }

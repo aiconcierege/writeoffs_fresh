@@ -52,6 +52,7 @@ describe('customer question API', () => {
     [{ action: 'not_sure' }],
     [{ action: 'business_purpose', businessPurpose: 'Client lunch' }],
     [{ action: 'mixed_all_business' }],
+    [{ action: 'mixed_business_amount', businessAmountCents: 12000 }],
     [{ action: 'mixed_personal_amount', personalAmountCents: 6600 }],
     [{ action: 'factual_choice', optionId: 'bank_amount' }],
     [{ action: 'defer' }],

@@ -22,7 +22,7 @@ describe('bookkeeper-centered Home',()=>{
   expect(home).toContain('There are {questions.length} questions in your continuous question queue.')
  })
  it('presents one period-level review with correction and confirmation choices',()=>{
-  expect(home).toContain('<WeeklyReview review={weeklyReview} currentQuestionCount={currentReviewQuestions}/>')
+  expect(home).toContain('review={weeklyReview} currentQuestions={currentReviewQuestions}')
   expect(weekly).toContain('Everything looks right')
   expect(weekly).toContain('Make a change')
   expect(weekly).toContain("action('confirmed')")

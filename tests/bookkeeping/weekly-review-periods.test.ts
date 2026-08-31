@@ -29,6 +29,10 @@ describe('canonical period-level weekly review',()=>{
   for(const state of ['closed_unreviewed','deferred','correction_linked','confirmed'])expect(migration).toContain(state)
   expect(processing).toContain('WEEKLY_REVIEW_RESPONSE_DAYS')
  })
+ it('supports an immutable review snapshot that discloses unresolved limitations',()=>{
+  expect(migration).toContain('unresolved_question_count integer not null')
+  expect(processing).toContain('p_unresolved_question_count:input.unresolvedQuestionCount')
+ })
  it('does not create empty periods or copy question batches',()=>{
   expect(processing).toContain('if(!relevant)continue')
   expect(processing).toContain("from('bookkeeping_review_events')")

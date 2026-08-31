@@ -35,8 +35,10 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
   ||(expectedEventId!==null&&!UUID.test(expectedEventId)))return NextResponse.json({error:'Invalid review action.'},{status:400})
  const period=await supabase.from('bookkeeping_review_periods').select('business_id,period_start,period_end').eq('id',id).single()
  if(period.error)return NextResponse.json({error:'Review period was not found.'},{status:404})
- try{
+  try{
   if(stage==='documentation'){
+   await ensurePeriodDocumentationRequests({supabase,userId:user.id,businessId:period.data.business_id,
+    start:period.data.period_start,end:period.data.period_end})
    const decision=body.documentationDecision,recordIds=body.recordIds
    const completeStage=body.completeStage!==false
    if(!['include_missing','exclude_missing','no_missing'].includes(String(decision))||!Array.isArray(recordIds)
@@ -58,6 +60,8 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
    const completed=await supabase.rpc('complete_weekly_personal_sweep',{p_review_period_id:id,
     p_expected_workflow_event_id:expectedEventId,p_request_id:requestId,p_items:items})
    if(completed.error)throw new Error(completed.error.message)
+   await ensurePeriodDocumentationRequests({supabase,userId:user.id,businessId:period.data.business_id,
+    start:period.data.period_start,end:period.data.period_end})
    return NextResponse.json({ok:true,eventId:(completed.data as Record<string,unknown>).workflow_event_id})
   }
   for(let index=0;index<changes.length;index++){
@@ -78,8 +82,6 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
    const remaining=questions.filter(question=>question.transaction.date&&question.transaction.date>=period.data.period_start
     &&question.transaction.date<=period.data.period_end)
    if(remaining.length)throw new Error(`There ${remaining.length===1?'is':'are'} still ${remaining.length} current-week ${remaining.length===1?'question':'questions'} to answer.`)
-   await ensurePeriodDocumentationRequests({supabase,userId:user.id,businessId:period.data.business_id,
-    start:period.data.period_start,end:period.data.period_end})
   }
   const result=await supabase.rpc('append_weekly_review_workflow_event',{p_review_period_id:id,
    p_expected_event_id:expectedEventId,p_stage:stage,p_event_type:'stage_completed',

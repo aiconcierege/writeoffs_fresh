@@ -7,6 +7,14 @@ import { resolveFinancialTransactionRecord } from '../../app/lib/bookkeeping/fin
 import { SupabaseBookkeepingRepository } from '../../app/lib/bookkeeping/supabase-repository'
 import { correctCanonicalTransactionUse } from '../../app/lib/bookkeeping/transaction-corrections'
 import { listCanonicalReviewQueue } from '../../app/lib/bookkeeping/review-queue'
+import { actOnCustomerQuestion } from '../../app/lib/bookkeeping/customer-question-actions'
+import { listCustomerQuestions } from '../../app/lib/bookkeeping/customer-questions'
+import { prepareWeeklyReviews } from '../../app/lib/bookkeeping/weekly-review-processing'
+import { getCurrentCustomerWeeklyReview } from '../../app/lib/bookkeeping/weekly-review'
+import { getAuthenticatedCanonicalReport } from '../../app/lib/bookkeeping/reporting-service'
+import { listTransactionReadModel } from '../../app/lib/bookkeeping/transaction-read-model'
+import { reviewTreatmentLabel } from '../../app/lib/bookkeeping/weekly-review-presentation'
+import type { StoredReviewAnswerResult } from '../../app/lib/bookkeeping/review-answer-model'
 import { provisionLocalCanonicalOwner } from '../helpers/local-canonical'
 
 const url = process.env.LOCAL_SUPABASE_URL
@@ -18,7 +26,8 @@ const client = (key: string) => createClient(url!, key, { auth: { persistSession
 async function establishExpense(owner: Awaited<ReturnType<typeof provisionLocalCanonicalOwner>>, index: number) {
   const financialTransactionId = owner.transactionIds[index]
   const resolved = await resolveFinancialTransactionRecord({ supabase: owner.customer, financialTransactionId })
-  const amount = [-1_000, -2_000][index] ?? -1_000
+  const amount = resolved.record.authoritativeAmountCents
+  if (amount == null) throw new Error('Expected an authoritative transaction amount.')
   const service = new CanonicalBookkeepingService(new SupabaseBookkeepingRepository(owner.customer))
   const decision = await service.recordDecision({ actor: { businessId: owner.businessId,
     userId: owner.userId, provenance: 'user' }, recordId: resolved.record.id,
@@ -30,7 +39,7 @@ async function establishExpense(owner: Awaited<ReturnType<typeof provisionLocalC
 
 async function createPeriod(admin: SupabaseClient, owner: Awaited<ReturnType<typeof provisionLocalCanonicalOwner>>) {
   const cadence = await admin.from('business_review_cadence_events').insert({ business_id: owner.businessId,
-    check_in_weekday: 5, timezone_name: 'America/Phoenix', effective_from: '2026-08-01',
+    check_in_weekday: 6, timezone_name: 'America/Phoenix', effective_from: '2026-08-01',
     provenance: 'system' }).select('id').single()
   if (cadence.error) throw cadence.error
   const period = await admin.from('bookkeeping_review_periods').insert({ business_id: owner.businessId,
@@ -38,7 +47,7 @@ async function createPeriod(admin: SupabaseClient, owner: Awaited<ReturnType<typ
     cadence_event_id: cadence.data.id, membership_scope: 'business' }).select('id').single()
   if (period.error) throw period.error
   let eventId: string | null = null
-  for (const stage of ['personal', 'mixed', 'questions'] as const) {
+  for (const stage of ['personal'] as const) {
     const result: { data: string | null; error: { message: string } | null } = await owner.customer.rpc('append_weekly_review_workflow_event', {
       p_review_period_id: period.data.id, p_expected_event_id: eventId, p_stage: stage,
       p_event_type: 'stage_completed', p_details: {}, p_request_id: crypto.randomUUID(),
@@ -58,6 +67,142 @@ async function openMissing(admin: SupabaseClient, businessId: string, recordId: 
 }
 
 describe.skipIf(!runLocal)('weekly review canonical exception decisions on local Supabase', () => {
+  it('carries business-dollar mixed use through the complete version-2 review and reporting lifecycle', async () => {
+    const admin = client(serviceKey!)
+    const owner = await provisionLocalCanonicalOwner({ admin, url: url!, anonKey: anonKey!,
+      label: 'weekly-guided-mixed', amounts: [-18_600, -10_000, -5_000] })
+    const questioned = await establishExpense(owner, 0)
+    const existing = await establishExpense(owner, 1)
+    const limited = await establishExpense(owner, 2)
+    const service = new CanonicalBookkeepingService(new SupabaseBookkeepingRepository(owner.customer))
+    const existingMixed = await service.recordDecision({ actor: { businessId: owner.businessId,
+      userId: owner.userId, provenance: 'user' }, recordId: existing.recordId,
+    expectedCurrentDecisionId: existing.decision.id, decision: { bookkeepingNature: 'expense',
+      treatment: 'mixed_use', reviewStatus: 'resolved', reason: 'Existing mixed-use fact.',
+      allocations: [{ kind: 'business', amountCents: -7_000, taxCategoryKey: null },
+        { kind: 'personal', amountCents: -3_000, taxCategoryKey: null }] } })
+    const mixedIssue = await new CanonicalWeeklyReviewService(new SupabaseBookkeepingRepository(admin)).openIssue({
+      businessId: owner.businessId, recordId: questioned.recordId, decisionId: questioned.decision.id,
+      reason: 'MIXED_USE_CLARIFICATION', issueKey: `mixed-use:${questioned.recordId}`,
+      contextFingerprint: `mixed-use:${questioned.recordId}:v1`, questionContext: {
+        schemaVersion: 1, reason: 'MIXED_USE_CLARIFICATION', businessUse: 'mixed',
+        authoritativeAmountCents: -18_600, authoritativeCurrency: 'USD',
+      },
+    })
+    const unresolvedIssue = await new CanonicalWeeklyReviewService(new SupabaseBookkeepingRepository(admin)).openIssue({
+      businessId: owner.businessId, recordId: limited.recordId, decisionId: limited.decision.id,
+      reason: 'BUSINESS_PURPOSE_NEEDED', issueKey: `purpose:${limited.recordId}`,
+      contextFingerprint: `purpose:${limited.recordId}:v1`, questionContext: {
+        schemaVersion: 1, reason: 'BUSINESS_PURPOSE_NEEDED',
+      },
+    })
+    const period = await createPeriod(admin, owner)
+    await Promise.all([
+      openMissing(admin, owner.businessId, questioned.recordId),
+      openMissing(admin, owner.businessId, existing.recordId),
+      openMissing(admin, owner.businessId, limited.recordId),
+    ])
+    const documentation = await owner.customer.rpc('complete_weekly_missing_documentation_decision', {
+      p_review_period_id: period.id, p_expected_workflow_event_id: period.eventId,
+      p_request_id: crypto.randomUUID(), p_decision: 'include_missing',
+      p_record_ids: [questioned.recordId, existing.recordId, limited.recordId], p_complete_stage: true,
+    })
+    expect(documentation.error).toBeNull()
+
+    const before = await listCustomerQuestions({ supabase: owner.customer })
+    expect(before).toContainEqual(expect.objectContaining({ id: mixedIssue.reviewIssueId,
+      kind: 'mixed_use', transaction: expect.objectContaining({ amountCents: -18_600 }) }))
+    const answer = await actOnCustomerQuestion({ supabase: owner.customer,
+      issueId: mixedIssue.reviewIssueId, expectedEventId: mixedIssue.id,
+      command: { action: 'mixed_business_amount', businessAmountCents: 12_000 } }) as StoredReviewAnswerResult
+    expect(answer.decision).toMatchObject({ treatment: 'mixed_use', provenance: 'user',
+      supersedesDecisionId: questioned.decision.id })
+    expect(answer.decision.allocations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: 'business', amountCents: -12_000 }),
+      expect.objectContaining({ kind: 'personal', amountCents: -6_600 }),
+    ]))
+    expect(answer.decision.allocations.reduce((sum, allocation) => sum + allocation.amountCents, 0))
+      .toBe(-18_600)
+    expect((await listCustomerQuestions({ supabase: owner.customer }))
+      .find(question => question.id === mixedIssue.reviewIssueId)).toBeUndefined()
+    expect((await listCustomerQuestions({ supabase: owner.customer }))
+      .find(question => question.id === unresolvedIssue.reviewIssueId)).toBeDefined()
+
+    const documentationItems = await owner.customer.from('bookkeeping_weekly_documentation_batch_items')
+      .select('bookkeeping_record_id,receipt_lost_event_id').eq('batch_id', documentation.data.batch_id)
+    expect(documentationItems.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({ bookkeeping_record_id: questioned.recordId,
+        receipt_lost_event_id: expect.any(String) }),
+      expect.objectContaining({ bookkeeping_record_id: existing.recordId,
+        receipt_lost_event_id: expect.any(String) }),
+      expect.objectContaining({ bookkeeping_record_id: limited.recordId,
+        receipt_lost_event_id: expect.any(String) }),
+    ]))
+    const transactionState = await listTransactionReadModel({ supabase: owner.customer,
+      userId: owner.userId, start: '2026-08-01', end: '2026-08-07' })
+    expect(transactionState).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: questioned.financialTransactionId, treatment: 'mixed_use',
+        has_receipt: false, receiptLost: true }),
+      expect.objectContaining({ id: existing.financialTransactionId, treatment: 'mixed_use',
+        has_receipt: false, receiptLost: true }),
+    ]))
+
+    let workflowEventId = documentation.data.workflow_event_id as string
+    for (const stage of ['questions', 'final'] as const) {
+      const result = await owner.customer.rpc('append_weekly_review_workflow_event', {
+        p_review_period_id: period.id, p_expected_event_id: workflowEventId, p_stage: stage,
+        p_event_type: 'stage_completed', p_details: {}, p_request_id: crypto.randomUUID(),
+      })
+      expect(result.error).toBeNull()
+      workflowEventId = result.data!
+    }
+    const membership = await admin.from('business_memberships').insert({ business_id: owner.businessId,
+      plan: 'business', lifecycle: 'active', authority: 'grant' })
+    expect(membership.error).toBeNull()
+    expect(await prepareWeeklyReviews({ admin, asOf: '2026-08-08', businessId: owner.businessId }))
+      .toMatchObject({ presented: 1, waiting: 0 })
+
+    const review = await getCurrentCustomerWeeklyReview(owner.customer)
+    expect(review?.snapshotId).toBeTruthy()
+    expect(review?.expenseCents).toBe(24_000)
+    expect(review?.missingDocumentationCount).toBe(3)
+    expect(review?.unresolvedQuestionCount).toBe(1)
+    expect(review?.items).toEqual(expect.arrayContaining([
+      expect.objectContaining({ recordId: questioned.recordId, decisionId: answer.decision.id,
+        treatment: 'mixed_use', amountCents: -12_000 }),
+      expect.objectContaining({ recordId: existing.recordId, decisionId: existingMixed.id,
+        treatment: 'mixed_use', amountCents: -7_000 }),
+    ]))
+    expect(reviewTreatmentLabel(review!.items.find(item => item.recordId === questioned.recordId)!))
+      .toBe('Business + personal')
+    const snapshotItems = await owner.customer.from('bookkeeping_review_snapshot_items')
+      .select('bookkeeping_record_id,bookkeeping_decision_id,treatment,signed_business_amount_cents')
+      .eq('review_snapshot_id', review!.snapshotId)
+    expect(snapshotItems.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({ bookkeeping_record_id: questioned.recordId,
+        bookkeeping_decision_id: answer.decision.id, treatment: 'mixed_use',
+        signed_business_amount_cents: -12_000 }),
+      expect.objectContaining({ bookkeeping_record_id: existing.recordId,
+        bookkeeping_decision_id: existingMixed.id, treatment: 'mixed_use',
+        signed_business_amount_cents: -7_000 }),
+    ]))
+
+    const report = await getAuthenticatedCanonicalReport({ supabase: owner.customer,
+      periodStart: '2026-08-01', periodEnd: '2026-08-07' })
+    expect(report.businessExpensesCents).toBe(24_000)
+    expect(report.rows).toEqual(expect.arrayContaining([
+      expect.objectContaining({ recordId: questioned.recordId, treatment: 'Business and personal',
+        businessAmountCents: 12_000, personalAmountCents: 6_600 }),
+      expect.objectContaining({ recordId: existing.recordId, treatment: 'Business and personal',
+        businessAmountCents: 7_000, personalAmountCents: 3_000 }),
+    ]))
+    const questionedHistory = transactionState.find(row => row.id === questioned.financialTransactionId)!.history
+    expect(questionedHistory.map(item => item.summary)).toEqual([
+      'Business and personal', 'Business', 'Still being worked on',
+    ])
+    expect(questionedHistory[0].id).toBe(answer.decision.id)
+  })
+
   it('marks unresolved imported activity personal, closes its question, and reverses append-only', async () => {
     const admin = client(serviceKey!)
     const owner = await provisionLocalCanonicalOwner({ admin, url: url!, anonKey: anonKey!,

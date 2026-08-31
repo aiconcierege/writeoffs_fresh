@@ -70,14 +70,14 @@ async function settlePriorReviews(admin:SupabaseClient,businessId:string,asOf:st
 }
 
 async function present(admin:SupabaseClient,input:{businessId:string;period:Row;scope:'expenses'|'business';
-  predecessorId:string;sequence:number;records:Awaited<ReturnType<SupabaseCanonicalFinancialSummaryRepository['loadRecords']>>['records']}) {
+  predecessorId:string;sequence:number;unresolvedQuestionCount:number;
+  records:Awaited<ReturnType<SupabaseCanonicalFinancialSummaryRepository['loadRecords']>>['records']}) {
   const start=String(input.period.period_start),end=String(input.period.period_end)
   const summary=aggregateCanonicalFinancialSummary({records:input.records,periodStart:start,periodEnd:end,
-    currency:'USD',unresolvedCustomerQuestionCount:0})
+    currency:'USD',unresolvedCustomerQuestionCount:input.unresolvedQuestionCount})
   const contributors=summary.contributors.filter((item)=>input.scope==='business'||item.metric==='business_expenses')
   const grouped=new Map<string,typeof contributors>()
   for(const item of contributors){const key=`${item.recordId}:${item.decisionId}`;grouped.set(key,[...(grouped.get(key)??[]),item])}
-  if(!grouped.size)return false
   const recordsById=new Map(input.records.map((record)=>[record.id,record]))
   const categories=await admin.from('categories').select('key,label')
   if(categories.error)throw new Error('Weekly review category labels could not be loaded.')
@@ -98,10 +98,17 @@ async function present(admin:SupabaseClient,input:{businessId:string;period:Row;
     evidenceFingerprint:fingerprint(values)}})
   const identity=items.map((item)=>({recordId:item.bookkeepingRecordId,decisionId:item.bookkeepingDecisionId,
     amount:item.signedBusinessAmountCents,categoryLabel:item.categoryLabel})).sort((a,b)=>a.recordId.localeCompare(b.recordId))
+  const personalExcludedCount=input.records.filter((record)=>{
+    const decision=currentDecision(record);return decision&&['personal','excluded'].includes(decision.treatment)
+  }).length
+  const missingDocumentationCount=input.records.filter((record)=>{const decision=currentDecision(record)
+    return decision?.bookkeepingNature==='expense'&&['business','mixed_use'].includes(decision.treatment)
+      &&!record.hasEvidence}).length
   const snapshotResult=await admin.rpc('present_bookkeeping_weekly_review',{p_business_id:input.businessId,
     p_review_period_id:input.period.id,p_expected_event_id:input.predecessorId,p_membership_scope:input.scope,
     p_currency:'USD',p_income_cents:input.scope==='business'?summary.businessIncomeCents:null,
-    p_expense_cents:summary.businessExpensesCents,p_unresolved_question_count:0,
+    p_expense_cents:summary.businessExpensesCents,p_unresolved_question_count:input.unresolvedQuestionCount,
+    p_personal_excluded_count:personalExcludedCount,p_missing_documentation_count:missingDocumentationCount,
     p_activity_fingerprint:fingerprint(identity),p_items:items})
   if(snapshotResult.error)throw new Error(`Weekly review could not be presented: ${snapshotResult.error.message}`)
   return true
@@ -157,9 +164,10 @@ export async function prepareWeeklyReviews(input:{admin?:SupabaseClient;asOf?:st
     const supersededWorkflowEvents=new Set((workflow.data??[]).map(event=>event.supersedes_event_id).filter(Boolean))
     const workflowLeaf=(workflow.data??[]).find(event=>!supersededWorkflowEvents.has(event.id))
     const workflowReady=workflowLeaf?.stage==='final'&&workflowLeaf?.event_type==='stage_completed'
-    if(!workflowReady||questions>0){waiting+=1;continue}
+    if(!workflowReady){waiting+=1;continue}
     if(['opened','questions_pending','ready','reopened'].includes(String(leaf.event_type))&&await present(admin,{businessId,
       period,scope:membership.plan as 'expenses'|'business',predecessorId:String(leaf.id),sequence:Number(leaf.sequence_number)+1,
+      unresolvedQuestionCount:questions,
       records:loaded.records}))presented+=1
   }
   return{opened,presented,waiting}
