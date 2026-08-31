@@ -46,11 +46,13 @@ export default async function HomePage(){
    <BettiIllustration state={bettiState} priority className="home-agent-betti" sizes="(max-width: 639px) 15rem, 28rem" decorative/>
   </section>
 
+  <HomeQuickActions business={isBusiness}/>
+
   <section className="home-value" aria-labelledby="home-value-heading"><div><p className="home-kicker">Value found</p><h2 id="home-value-heading"><strong>{money.format(potentialCents/100)}</strong><span>Potential writeoffs found in {year}</span></h2><p>Based on the business expenses currently in your WriteOffs records. This is not an estimate of tax savings or a refund.</p></div></section>
 
   <section className="home-financial" aria-labelledby="financial-heading"><div className="home-section-heading"><div><p className="home-kicker">Your business picture</p><h2 id="financial-heading">The year so far</h2></div><Link href="/reports">See reports <span aria-hidden="true">→</span></Link></div><FinancialRelationship business={isBusiness} income={summary.businessIncomeCents} expenses={summary.businessExpensesCents} profit={summary.businessProfitCents}/>{!isBusiness&&<p className="home-help-copy">Your Expenses membership organizes business spending. Income and profit are outside its reporting scope.</p>}</section>
 
-  <div className="home-tools"><HomeQuickActions business={isBusiness}/><HomeAskBetti/></div>
+  <HomeAskBetti/>
 
   <HomeRecentActivity activity={recentActivity}/>
 
