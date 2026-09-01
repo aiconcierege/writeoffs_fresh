@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { notFound,redirect } from 'next/navigation'
 import { createServerSupabase } from '../../../utils/supabase/server'
-import { BettiIllustration } from '../../components/BettiIllustration'
 import { listCustomerQuestions } from '../../lib/bookkeeping/customer-questions'
 import { getCustomerWeeklyReviewById,listCustomerWeeklyReviews } from '../../lib/bookkeeping/weekly-review'
 import { formatReviewPeriod } from '../../lib/bookkeeping/weekly-review-presentation'
@@ -31,11 +30,10 @@ export default async function WeeklyReviewPage({params}:{params:Promise<{id:stri
   return <main className="weekly-page"><div className="weekly-page-shell">
     <nav className="weekly-page-back" aria-label="Weekly review navigation"><Link href="/home">← Back to Home</Link></nav>
     <header className="weekly-page-intro">
-      <div><p className="home-kicker">Weekly review</p><h1>{formatReviewPeriod(review.periodStart,review.periodEnd)}</h1>
+      <div><h1>Weekly review · <span>{formatReviewPeriod(review.periodStart,review.periodEnd)}</span></h1>
         <p>{position} of {actionable.length} waiting</p>
         {actionable.length>1&&<details className="weekly-chooser"><summary>Choose another week</summary><nav aria-label="Available weekly reviews">{actionable.map(item=><Link key={item.id} href={`/weekly-review/${item.id}`} aria-current={item.id===id?'page':undefined}>{formatReviewPeriod(item.periodStart,item.periodEnd)}</Link>)}</nav></details>}
       </div>
-      <BettiIllustration state="question" className="weekly-page-betti" priority sizes="(max-width: 639px) 7rem, 10rem" decorative/>
     </header>
     <WeeklyReview review={review} currentQuestions={currentQuestions} waitingCount={actionable.length}/>
   </div></main>
