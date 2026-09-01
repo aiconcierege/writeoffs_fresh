@@ -199,7 +199,7 @@ export default function Page() {
       <section id="waitlist" className="relative overflow-hidden bg-[#15221d] text-white">
         <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#00b889]/20 blur-3xl" aria-hidden="true" />
         <div className="relative mx-auto max-w-5xl px-6 py-16 text-center sm:px-10 sm:py-20 lg:py-24">
-          <p className="text-sm font-semibold text-[#8ce6cb]">Join early access</p>
+          <p className="text-sm font-semibold text-[#8ce6cb]">Join the waitlist</p>
           <h2 className="mx-auto mt-4 max-w-4xl text-balance text-4xl font-semibold tracking-[-0.05em] sm:text-5xl lg:text-6xl">
             Run your business. Leave the books to WriteOffs.
           </h2>
@@ -209,7 +209,7 @@ export default function Page() {
           <div className="mx-auto mt-8 max-w-2xl rounded-2xl bg-[#fffaf3] p-3 text-[#17211d] shadow-[0_24px_70px_rgba(0,0,0,0.24)] sm:p-4">
             <WaitlistForm source="landing#waitlist" appearance="landing" />
           </div>
-          <p className="mt-5 text-sm text-[#9fb8ad]">We’ll share thoughtful updates as early access opens.</p>
+          <p className="mt-5 text-sm text-[#9fb8ad]">We’ll let you know when it’s your turn.</p>
         </div>
       </section>
 

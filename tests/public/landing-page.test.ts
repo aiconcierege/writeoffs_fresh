@@ -38,6 +38,14 @@ describe('public landing page', () => {
     expect(page).not.toContain('Early access for U.S. independent business owners.')
   })
 
+  it('describes public availability consistently as a waitlist', () => {
+    expect(page).toContain('Join the waitlist')
+    expect(page).toContain('Run your business. Leave the books to WriteOffs.')
+    expect(page).toContain('Join the waitlist to hear when WriteOffs is ready for your business.')
+    expect(page).toContain('We’ll let you know when it’s your turn.')
+    expect(page).not.toMatch(/join early access|early access opens/i)
+  })
+
   it('keeps public navigation aligned with the page story', () => {
     expect(header).toContain('href="/#how"')
     expect(header).toContain('href="/#features"')
