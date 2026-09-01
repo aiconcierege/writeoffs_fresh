@@ -90,6 +90,9 @@ describe('Home command center', () => {
     expect(styles).toContain('.home-value h2 strong { font-size: clamp(3.6rem,10vw,6.6rem); }')
     expect(styles).toContain('.home-agent-hero > .home-quick')
     expect(styles).toContain('grid-template-columns: repeat(4,minmax(0,1fr))')
+    expect(styles).toContain('.home-agent-hero > .home-quick .home-shortcut')
+    expect(styles).toContain('box-shadow: 0 10px 24px')
+    expect(quickActions).toContain('<svg')
   })
 
   it('renders recent transactions and receipt matches only from available data',()=>{

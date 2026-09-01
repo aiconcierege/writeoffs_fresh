@@ -22,8 +22,10 @@ describe('transaction-first weekly review',()=>{
  expect(weekly).toContain('{selectedCount} selected')
   expect(weekly).toContain('Everything shown was for the business')
   expect(weekly).toContain('Leave these out')
-  expect(styles).toContain('body { overflow-x: clip; overflow-y: visible; }')
+ expect(styles).toContain('body { overflow-x: clip; overflow-y: visible; }')
   expect(styles).toContain('.weekly-sweep-actions { position: sticky;')
+  expect(styles).toContain('bottom: 1rem;')
+  expect(weekly.indexOf('<ul className="weekly-transaction-list">')).toBeLessThan(weekly.indexOf('<SweepActions selectedCount='))
  })
  it('uses stage-specific accessible checkbox names and keeps final review clean',()=>{
   expect(weekly).toContain('Mark ${item.merchant} as not for the business')
@@ -115,6 +117,15 @@ describe('transaction-first weekly review',()=>{
   expect(weekly).toContain('Make a change')
   expect(weekly).toContain('Not right now')
   expect(styles).toContain('.weekly-review-details')
+ })
+ it('uses a wide desktop workspace and reflows it for mobile',()=>{
+  expect(styles).toContain('max-width: 82rem')
+  expect(styles).toContain('.weekly-page .home-review:not(.weekly-workflow)')
+  expect(styles).toContain('grid-template-columns: minmax(0,1.35fr) minmax(18rem,.65fr)')
+  expect(styles).toContain('.weekly-page .weekly-workflow-body')
+  expect(styles).toContain('@media (max-width:767px)')
+  expect(styles).toContain('grid-template-columns: 1fr;')
+  expect(styles).toContain('.weekly-question-embedded')
  })
  it('binds both customer outcomes to the exact presented snapshot',()=>{
   expect(periodActionRoute).toContain("['presented','correction_linked'].includes(current.data.event_type)")
