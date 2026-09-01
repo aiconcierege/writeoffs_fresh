@@ -1,0 +1,8 @@
+import { readFileSync } from 'node:fs'
+import { describe, expect, it } from 'vitest'
+const sql=readFileSync('supabase/migrations/20260901000300_add_meal_substantiation_facts.sql','utf8')
+describe('canonical meal substantiation schema',()=>{
+ it('stores a narrow append-only tenant-owned attendee/relationship fact',()=>{expect(sql).toContain("values('meals','Business meals')");expect(sql).toContain('create table public.bookkeeping_meal_substantiation_facts');expect(sql).toContain('attendee_relationship text not null');expect(sql).toContain('supersedes_fact_id uuid');expect(sql).toContain('bookkeeping_meal_facts_one_successor_idx');expect(sql).toContain('bookkeeping_meal_facts_no_mutation');expect(sql).not.toMatch(/create table public\.(contacts|attendees|people)/)})
+ it('uses existing question history and evidence-first facts',()=>{expect(sql).toContain("'BUSINESS_PURPOSE_NEEDED','meal-attendee:'");expect(sql).toContain("'factType','meal_attendee_relationship'");expect(sql).toContain('current_bookkeeping_evidence_fingerprint');expect(sql).toContain("nullif(btrim(d.business_purpose),'') is not null");expect(sql).toContain("a.tax_category_key in ('meals','business-meals','tax.business-meals')")})
+ it('enforces RLS and explicit authenticated ACLs',()=>{expect(sql).toContain('enable row level security');expect(sql).toContain('bookkeeping_meal_facts_select_own');expect(sql).toContain('security_invoker=true,security_barrier=true');expect(sql.match(/security definer set search_path=''/g)?.length).toBe(3);expect(sql).toContain('revoke all on public.bookkeeping_meal_substantiation_facts from public,anon,authenticated,service_role');expect(sql).not.toMatch(/grant (insert|update|delete|truncate)/i)})
+})

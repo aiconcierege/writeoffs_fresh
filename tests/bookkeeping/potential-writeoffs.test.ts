@@ -15,6 +15,10 @@ describe('approved potential-writeoff selector', () => {
     records, periodStart: '2026-01-01', periodEnd: '2026-12-31',
   })
 
+  it('excludes a known material treatment or allocation blocker',()=>{
+    expect(select([record({materiallyUnresolved:true})])).toEqual([])
+  })
+
   it('counts established business and mixed-use expenses once', () => {
     const mixed = record({ id: 'mixed', decisions: [{ id: 'mixed-decision', supersedesDecisionId: null,
       bookkeepingNature: 'expense', treatment: 'mixed_use', allocations: [

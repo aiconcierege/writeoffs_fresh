@@ -37,6 +37,7 @@ export type CanonicalSummaryRecord = {
   hasEvidence?: boolean
   receiptLost?: boolean
   specialTreatmentReason?: string | null
+  materiallyUnresolved?: boolean
   decisions: CanonicalSummaryDecision[]
 }
 
@@ -133,7 +134,7 @@ export function aggregateCanonicalFinancialSummary(
     }
 
     const decision = currentDecision(record.decisions)
-    if (!decision || decision.treatment === 'unresolved') {
+    if (record.materiallyUnresolved || !decision || decision.treatment === 'unresolved') {
       unresolvedRecordCount += 1
       if (record.amountCents == null) unresolvedAmountsKnown = false
       else unresolvedSignedTotal = addCents(unresolvedSignedTotal, record.amountCents)

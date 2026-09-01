@@ -46,16 +46,25 @@ async function createPeriod(admin: SupabaseClient, owner: Awaited<ReturnType<typ
     period_start: '2026-08-01', period_end: '2026-08-07', check_in_date: '2026-08-08',
     cadence_event_id: cadence.data.id, membership_scope: 'business' }).select('id').single()
   if (period.error) throw period.error
-  let eventId: string | null = null
-  for (const stage of ['personal'] as const) {
-    const result: { data: string | null; error: { message: string } | null } = await owner.customer.rpc('append_weekly_review_workflow_event', {
-      p_review_period_id: period.data.id, p_expected_event_id: eventId, p_stage: stage,
-      p_event_type: 'stage_completed', p_details: {}, p_request_id: crypto.randomUUID(),
-    })
-    if (result.error) throw result.error
-    eventId = result.data
-  }
-  return { id: period.data.id as string, eventId: eventId! }
+  // This helper intentionally represents an already-underway v2 workflow. New
+  // untouched reviews are v3, while persisted v2 histories retain their order.
+  const event=await admin.from('bookkeeping_weekly_review_workflow_events').insert({
+    business_id:owner.businessId,review_period_id:period.data.id,stage:'personal',event_type:'stage_completed',
+    details:{flowVersion:2},actor_user_id:owner.userId,request_id:crypto.randomUUID(),
+  }).select('id').single()
+  if(event.error)throw event.error
+  return { id: period.data.id as string, eventId: event.data.id as string }
+}
+
+async function createUntouchedV3Period(admin:SupabaseClient,owner:Awaited<ReturnType<typeof provisionLocalCanonicalOwner>>){
+ const cadence=await admin.from('business_review_cadence_events').insert({business_id:owner.businessId,
+  check_in_weekday:6,timezone_name:'America/Phoenix',effective_from:'2026-08-01',provenance:'system'}).select('id').single()
+ if(cadence.error)throw cadence.error
+ const period=await admin.from('bookkeeping_review_periods').insert({business_id:owner.businessId,
+  period_start:'2026-08-01',period_end:'2026-08-07',check_in_date:'2026-08-08',cadence_event_id:cadence.data.id,
+  membership_scope:'business'}).select('id').single()
+ if(period.error)throw period.error
+ return period.data.id as string
 }
 
 async function openMissing(admin: SupabaseClient, businessId: string, recordId: string) {
@@ -67,6 +76,78 @@ async function openMissing(admin: SupabaseClient, businessId: string, recordId: 
 }
 
 describe.skipIf(!runLocal)('weekly review canonical exception decisions on local Supabase', () => {
+  it('persists v3 mixed identification and database-authoritative percentage allocation',async()=>{
+    const admin=client(serviceKey!),owner=await provisionLocalCanonicalOwner({admin,url:url!,anonKey:anonKey!,
+      label:'weekly-v3-percentage',amounts:[-14_235]})
+    const expense=await establishExpense(owner,0),periodId=await createUntouchedV3Period(admin,owner)
+    const foreign=await provisionLocalCanonicalOwner({admin,url:url!,anonKey:anonKey!,label:'weekly-v3-foreign',amounts:[-9_999]})
+    const foreignExpense=await establishExpense(foreign,0)
+    const personal=await owner.customer.rpc('complete_weekly_personal_sweep',{p_review_period_id:periodId,
+      p_expected_workflow_event_id:null,p_request_id:crypto.randomUUID(),p_items:[]})
+    expect(personal.error).toBeNull()
+    expect((await client(anonKey!).rpc('open_weekly_mixed_clarifications',{p_review_period_id:periodId,
+      p_expected_workflow_event_id:personal.data.workflow_event_id,p_request_id:crypto.randomUUID(),p_items:[]})).error)
+      .not.toBeNull()
+    const denied=await owner.customer.rpc('open_weekly_mixed_clarifications',{p_review_period_id:periodId,
+      p_expected_workflow_event_id:personal.data.workflow_event_id,p_request_id:crypto.randomUUID(),p_items:[{
+        recordId:foreignExpense.recordId,transactionId:foreignExpense.financialTransactionId,decisionId:foreignExpense.decision.id}]})
+    expect(denied.error).not.toBeNull()
+    const openRequestId=crypto.randomUUID(),openInput={p_review_period_id:periodId,
+      p_expected_workflow_event_id:personal.data.workflow_event_id,p_request_id:openRequestId,p_items:[{
+        recordId:expense.recordId,transactionId:expense.financialTransactionId,decisionId:expense.decision.id}]}
+    const opened=await owner.customer.rpc('open_weekly_mixed_clarifications',openInput)
+    expect(opened.error).toBeNull()
+    expect(opened.data).toMatchObject({opened_count:1,idempotent:false})
+    expect((await owner.customer.rpc('open_weekly_mixed_clarifications',openInput)).data)
+      .toMatchObject({workflow_event_id:opened.data.workflow_event_id,idempotent:true})
+    expect((await owner.customer.rpc('open_weekly_mixed_clarifications',{...openInput,p_request_id:crypto.randomUUID()})).error)
+      .not.toBeNull()
+    const question=(await listCustomerQuestions({supabase:owner.customer})).find(item=>item.recordId===expense.recordId)
+    expect(question).toMatchObject({kind:'mixed_use',materiality:'totals'})
+    const answered=await actOnCustomerQuestion({supabase:owner.customer,issueId:question!.id,
+      expectedEventId:question!.version,command:{action:'mixed_business_percentage',businessPercentage:'40'}})as StoredReviewAnswerResult
+    expect(answered.decision.treatment).toBe('mixed_use')
+    expect(answered.decision.allocations).toEqual(expect.arrayContaining([
+      expect.objectContaining({kind:'business',amountCents:-5_694}),
+      expect.objectContaining({kind:'personal',amountCents:-8_541}),
+    ]))
+    expect(answered.decision.allocations.reduce((sum,item)=>sum+item.amountCents,0)).toBe(-14_235)
+    const provenance=await owner.customer.from('bookkeeping_mixed_use_answer_provenance')
+      .select('business_basis_points,business_amount_cents,personal_amount_cents').eq('review_issue_id',question!.id).single()
+    expect(provenance.data).toEqual({business_basis_points:4000,business_amount_cents:-5694,personal_amount_cents:-8541})
+    expect((await listCustomerQuestions({supabase:owner.customer})).find(item=>item.id===question!.id)).toBeUndefined()
+  })
+  it('canonicalizes zero and one hundred percent boundaries without a fake mixed split',async()=>{
+    const admin=client(serviceKey!),owner=await provisionLocalCanonicalOwner({admin,url:url!,anonKey:anonKey!,
+      label:'weekly-v3-boundaries',amounts:[-1_001,-1_001,-101]})
+    const expenses=[await establishExpense(owner,0),await establishExpense(owner,1),await establishExpense(owner,2)]
+    const periodId=await createUntouchedV3Period(admin,owner)
+    const personal=await owner.customer.rpc('complete_weekly_personal_sweep',{p_review_period_id:periodId,
+      p_expected_workflow_event_id:null,p_request_id:crypto.randomUUID(),p_items:[]})
+    const opened=await owner.customer.rpc('open_weekly_mixed_clarifications',{p_review_period_id:periodId,
+      p_expected_workflow_event_id:personal.data.workflow_event_id,p_request_id:crypto.randomUUID(),p_items:expenses.map(item=>({
+        recordId:item.recordId,transactionId:item.financialTransactionId,decisionId:item.decision.id}))})
+    expect(opened.error).toBeNull()
+    const questions=(await listCustomerQuestions({supabase:owner.customer})).filter(item=>item.kind==='mixed_use')
+    for(const [index,percentage] of ['0','100','50.00'].entries())await actOnCustomerQuestion({supabase:owner.customer,
+      issueId:questions.find(item=>item.recordId===expenses[index].recordId)!.id,
+      expectedEventId:questions.find(item=>item.recordId===expenses[index].recordId)!.version,
+      command:{action:'mixed_business_percentage',businessPercentage:percentage}})
+    const rows=await owner.customer.from('bookkeeping_decisions').select('bookkeeping_record_id,treatment')
+      .in('bookkeeping_record_id',expenses.map(item=>item.recordId))
+    const leaves=(rows.data??[]).filter(row=>['personal','business','mixed_use'].includes(row.treatment))
+    expect(leaves).toEqual(expect.arrayContaining([
+      expect.objectContaining({bookkeeping_record_id:expenses[0].recordId,treatment:'personal'}),
+      expect.objectContaining({bookkeeping_record_id:expenses[1].recordId,treatment:'business'}),
+      expect.objectContaining({bookkeeping_record_id:expenses[2].recordId,treatment:'mixed_use'}),
+    ]))
+    const allocations=await owner.customer.from('bookkeeping_allocations').select('allocation_kind,amount_cents')
+      .eq('bookkeeping_record_id',expenses[2].recordId)
+    expect(allocations.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({allocation_kind:'business',amount_cents:-51}),
+      expect.objectContaining({allocation_kind:'personal',amount_cents:-50}),
+    ]))
+  })
   it('carries business-dollar mixed use through the complete version-2 review and reporting lifecycle', async () => {
     const admin = client(serviceKey!)
     const owner = await provisionLocalCanonicalOwner({ admin, url: url!, anonKey: anonKey!,

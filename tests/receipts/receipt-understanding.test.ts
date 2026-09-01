@@ -22,14 +22,24 @@ function understood(overrides: Record<string, unknown> = {}) {
 
 describe('receipt understanding validation', () => {
   it('bumps only the processor identity for deterministic validation reevaluation', () => {
-    expect(RECEIPT_UNDERSTANDING_PROCESSOR_VERSION).toBe('receipt-understanding:r1.1')
-    expect(RECEIPT_UNDERSTANDING_PROMPT_VERSION).toBe('receipt-understanding-prompt:v1')
-    expect(RECEIPT_UNDERSTANDING_SCHEMA_VERSION).toBe('receipt-understanding-schema:v1')
+    expect(RECEIPT_UNDERSTANDING_PROCESSOR_VERSION).toBe('receipt-understanding:r1.2')
+    expect(RECEIPT_UNDERSTANDING_PROMPT_VERSION).toBe('receipt-understanding-prompt:v2')
+    expect(RECEIPT_UNDERSTANDING_SCHEMA_VERSION).toBe('receipt-understanding-schema:v2')
   })
   it('accepts the known clean Corner Coffee triplet', () => {
     expect(validateReceiptUnderstandingProposal({ output: understood(), processedPages: 1,
       fingerprintCurrent: true, customerCorrectionCurrent: false, now: new Date('2026-08-21') }))
       .toMatchObject({ accepted: true, codes: [] })
+  })
+  it('accepts only evidence-backed meal candidates without assigning treatment',()=>{
+    const meal=understood({mealCandidate:{support:'meal_line_items',evidence:[{page:1,region:'body',visibleText:'2 Dinner entrees'}]}})
+    const result=validateReceiptUnderstandingProposal({output:meal,processedPages:1,fingerprintCurrent:true,
+      customerCorrectionCurrent:false,now:new Date('2026-08-21')})
+    expect(result).toMatchObject({accepted:true,proposal:{mealCandidate:{support:'meal_line_items'}}})
+    expect(JSON.stringify(result)).not.toMatch(/deduct|business.*treatment|tax_category/i)
+    const uncertain=understood({mealCandidate:{support:'merchant_guess',evidence:[]}})
+    expect(validateReceiptUnderstandingProposal({output:uncertain,processedPages:1,fingerprintCurrent:true,
+      customerCorrectionCurrent:false}).codes).toContain('INVALID_MEAL_CANDIDATE')
   })
 
   it('accepts the known Receipt Match Test triplet', () => {

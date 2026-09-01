@@ -121,6 +121,14 @@ export async function evaluateReceiptUnderstandingJob(input: {
   })
   if (auditError?.code === '23505') return { outcome: 'cached' as const }
   if (auditError) throw new Error('RECEIPT_UNDERSTANDING_AUDIT_WRITE_FAILED')
+  if (validation.accepted && proposal.mealCandidate) {
+    const { error: candidateError } = await input.admin.rpc('worker_record_receipt_meal_candidate', {
+      p_business_id: businessId, p_receipt_id: receiptId, p_document_sha256: actualHash,
+      p_support_kind: proposal.mealCandidate.support, p_evidence: proposal.mealCandidate.evidence,
+      p_processor_version: RECEIPT_UNDERSTANDING_PROCESSOR_VERSION,
+    })
+    if (candidateError) throw new Error('RECEIPT_MEAL_CANDIDATE_WRITE_FAILED')
+  }
   return { outcome: validation.accepted ? 'accepted_shadow' as const : 'rejected_shadow' as const,
     semanticOutcome: proposal.outcome, validationCodes }
 }

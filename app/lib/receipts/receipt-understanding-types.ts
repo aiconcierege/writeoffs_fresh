@@ -1,6 +1,6 @@
-export const RECEIPT_UNDERSTANDING_PROCESSOR_VERSION = 'receipt-understanding:r1.1'
-export const RECEIPT_UNDERSTANDING_PROMPT_VERSION = 'receipt-understanding-prompt:v1'
-export const RECEIPT_UNDERSTANDING_SCHEMA_VERSION = 'receipt-understanding-schema:v1'
+export const RECEIPT_UNDERSTANDING_PROCESSOR_VERSION = 'receipt-understanding:r1.2'
+export const RECEIPT_UNDERSTANDING_PROMPT_VERSION = 'receipt-understanding-prompt:v2'
+export const RECEIPT_UNDERSTANDING_SCHEMA_VERSION = 'receipt-understanding-schema:v2'
 export const RECEIPT_UNDERSTANDING_MAX_PDF_PAGES = 10
 
 export const DOCUMENT_TYPES = ['receipt', 'invoice', 'other_business_document', 'unknown'] as const
@@ -25,6 +25,7 @@ export type ReceiptUnderstandingProposal = {
   total: null | { currency: typeof APPROVED_CURRENCIES[number]; cents: number; support: 'labeled_total' | 'amount_due'; evidence: EvidenceReference }
   ambiguityCodes: typeof AMBIGUITY_CODES[number][]
   documentSignals: typeof DOCUMENT_SIGNALS[number][]
+  mealCandidate?: null | { support: 'explicit_restaurant_context' | 'meal_line_items'; evidence: EvidenceReference[] }
 }
 
 export type EvidenceReference = {
@@ -116,8 +117,9 @@ export function validateReceiptUnderstandingProposal(input: {
   customerCorrectionCurrent: boolean
 }): ReceiptUnderstandingValidation {
   const codes: string[] = []
-  if (!object(input.output) || !exactKeys(input.output,
-    ['documentType', 'outcome', 'merchant', 'purchaseDate', 'total', 'ambiguityCodes', 'documentSignals'])) {
+  if (!object(input.output) || !(exactKeys(input.output,
+    ['documentType', 'outcome', 'merchant', 'purchaseDate', 'total', 'ambiguityCodes', 'documentSignals'])
+    || exactKeys(input.output,['documentType','outcome','merchant','purchaseDate','total','ambiguityCodes','documentSignals','mealCandidate']))) {
     return { accepted: false, codes: ['MALFORMED_STRUCTURED_OUTPUT'], proposal: null }
   }
   const value = input.output
@@ -127,6 +129,13 @@ export function validateReceiptUnderstandingProposal(input: {
     || value.ambiguityCodes.some((code) => !oneOf(code, AMBIGUITY_CODES))) codes.push('INVALID_AMBIGUITY_CODE')
   if (!Array.isArray(value.documentSignals) || value.documentSignals.length > 10
     || value.documentSignals.some((code) => !oneOf(code, DOCUMENT_SIGNALS))) codes.push('INVALID_DOCUMENT_SIGNAL')
+  if (value.mealCandidate !== undefined && value.mealCandidate !== null) {
+    if (!object(value.mealCandidate) || !exactKeys(value.mealCandidate,['support','evidence'])
+      || !oneOf(value.mealCandidate.support,['explicit_restaurant_context','meal_line_items'] as const)
+      || !Array.isArray(value.mealCandidate.evidence) || value.mealCandidate.evidence.length<1
+      || value.mealCandidate.evidence.length>3
+      || value.mealCandidate.evidence.some((item)=>!evidence(item,input.processedPages))) codes.push('INVALID_MEAL_CANDIDATE')
+  }
 
   if (value.merchant !== null) {
     if (!object(value.merchant) || !exactKeys(value.merchant, ['value', 'support', 'evidence'])
@@ -184,6 +193,7 @@ export function validateReceiptUnderstandingProposal(input: {
   if (outcome === 'not_recognized' && (value.documentType !== 'unknown'
     || value.merchant !== null || value.purchaseDate !== null || value.total !== null)) codes.push('NOT_RECOGNIZED_HAS_FACTS')
   if (!input.fingerprintCurrent) codes.push('STALE_DOCUMENT_FINGERPRINT')
+  if (value.mealCandidate && (value.documentType!=='receipt'||value.outcome!=='understood')) codes.push('MEAL_CANDIDATE_REQUIRES_UNDERSTOOD_RECEIPT')
   if (input.customerCorrectionCurrent) codes.push('CUSTOMER_CORRECTION_CURRENT')
   return { accepted: codes.length === 0, codes: [...new Set(codes)], proposal: value as ReceiptUnderstandingProposal }
 }

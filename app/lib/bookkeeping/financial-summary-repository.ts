@@ -69,6 +69,16 @@ implements CanonicalFinancialSummaryRepository {
       if (page.length < 1000) break
     }
     const recordIds = rows.map((row) => text(row, 'id'))
+    const reviewEventRows=await inBatches(recordIds,async(ids)=>{const{data,error}=await this.supabase
+      .from('bookkeeping_review_events').select('id,supersedes_event_id,event_type,reason,bookkeeping_record_id')
+      .eq('business_id',input.businessId).in('bookkeeping_record_id',ids)
+      if(error)throw new Error(`Unable to load canonical material questions: ${error.message}`)
+      return(data??[])as Row[]})
+    const supersededReviewEvents=new Set(reviewEventRows.map(row=>nullableText(row,'supersedes_event_id')).filter(Boolean))
+    const materialReasons=new Set(['BUSINESS_USE_UNCLEAR','MIXED_USE_CLARIFICATION','TRANSACTION_TYPE_UNCLEAR','CONFLICTING_EVIDENCE'])
+    const materiallyUnresolvedRecords=new Set(reviewEventRows.filter(row=>!supersededReviewEvents.has(text(row,'id'))
+      &&['opened','reopened','skipped'].includes(text(row,'event_type'))&&materialReasons.has(text(row,'reason')))
+      .map(row=>text(row,'bookkeeping_record_id')))
     const resolution = await loadCurrentRecordConvergences({
       supabase: this.supabase, businessId: input.businessId,
     })
@@ -297,6 +307,7 @@ implements CanonicalFinancialSummaryRepository {
           hasEvidence: documentedRecords.has(id),
           receiptLost: receiptLostRecords.has(id),
           specialTreatmentReason: specialByRecord.get(id) ?? null,
+          materiallyUnresolved: materiallyUnresolvedRecords.has(id),
           decisions: decisionsByRecord.get(id) ?? [],
         }
       }),

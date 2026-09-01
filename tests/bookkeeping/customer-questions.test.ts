@@ -45,6 +45,14 @@ function withDecision(
 const transaction = { merchant: 'Office Depot', amountCents: -18600, currency: 'USD', date: '2026-08-17' }
 
 describe('customer question projection', () => {
+  it('asks the meal relationship only when trusted meal context requires it',()=>{
+    const meal=withDecision(item('BUSINESS_PURPOSE_NEEDED'),{bookkeepingNature:'expense',treatment:'business',
+      businessPurpose:'Discussed a listing',allocations:[{kind:'business',amountCents:-5000,taxCategoryKey:'meals'}]})
+    meal.event.questionContext={schemaVersion:1,reason:'BUSINESS_PURPOSE_NEEDED',factType:'meal_attendee_relationship'}
+    expect(projectCustomerQuestion(meal,transaction)).toMatchObject({kind:'meal_relationship',prompt:'Who was the meal with?'})
+    meal.event.questionContext={schemaVersion:1,reason:'BUSINESS_PURPOSE_NEEDED'}
+    expect(projectCustomerQuestion(meal,transaction)).toMatchObject({kind:'business_purpose'})
+  })
   it('uses a simple actionable count on Home', () => {
     expect(customerQuestionHeadline(1)).toBe('1 quick question for you')
     expect(customerQuestionHeadline(5)).toBe('5 quick questions for you')
@@ -106,8 +114,14 @@ describe('customer question projection', () => {
     }), transaction)).toBeNull()
   })
 
-  it('does not leak unsupported internal questions into the customer queue', () => {
-    expect(projectCustomerQuestion(item('TRANSACTION_TYPE_UNCLEAR'), transaction)).toBeNull()
+  it('projects transaction nature as real-world activity choices without internal terminology', () => {
+    const typeQuestion=projectCustomerQuestion(item('TRANSACTION_TYPE_UNCLEAR'), transaction)
+    expect(typeQuestion?.kind).toBe('transaction_type')
+    expect(typeQuestion?.options?.map(option=>option.label)).toEqual([
+      'A purchase','Money I earned','Money moved between accounts','A credit card payment',
+      'A refund','Money I added','Money I borrowed',
+    ])
+    expect(JSON.stringify(typeQuestion)).not.toMatch(/ledger|schedule c|tax category|classification/i)
     expect(projectCustomerQuestion(item('CONFLICTING_EVIDENCE', {
       options: [
         { optionId: 'one', factualMeaning: 'Choose a bookkeeping classification.' },

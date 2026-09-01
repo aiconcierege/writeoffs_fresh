@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { supabase } from '../../utils/supabase/client'
 import { runBoundedBatch } from '../lib/documents/batch-intake'
+import { ReceiptMealFollowUp } from './ReceiptMealFollowUp'
 
 export function ReceiptUploadAction({ onComplete, variant = 'home', intendedTransactionId,mobileLabel='Add receipt',capture }: {
   onComplete?: () => void | Promise<void>
@@ -16,6 +17,7 @@ export function ReceiptUploadAction({ onComplete, variant = 'home', intendedTran
   const [status, setStatus] = useState<'idle' | 'uploading' | 'organizing' | 'done' | 'error'>('idle')
   const [message, setMessage] = useState<string | null>(null)
   const [failed, setFailed] = useState<File[]>([])
+  const [followUpReceiptId,setFollowUpReceiptId]=useState<string|null>(null)
 
   async function select(selected: File[]) {
     if (!selected.length || inFlight.current) return
@@ -51,6 +53,8 @@ export function ReceiptUploadAction({ onComplete, variant = 'home', intendedTran
             return registered.receipt.id
         } })
       const failures = files.filter((_,index) => results[index].status === 'rejected')
+      const completedIds=results.flatMap(result=>result.status==='fulfilled'?[result.value]:[])
+      setFollowUpReceiptId(files.length===1&&completedIds.length===1?completedIds[0]:null)
       setFailed(failures)
       if (accepted + duplicates === 0) {
         if(attachmentFailed)throw new Error('ATTACHMENT_FAILED')
@@ -83,6 +87,7 @@ export function ReceiptUploadAction({ onComplete, variant = 'home', intendedTran
       className={`max-w-sm text-sm ${status === 'error' ? 'text-red-700' : 'text-[#59665f]'}`}>{message}</p>}
     {failed.length > 0 && <button type="button" className="min-h-11 text-sm font-semibold text-[#243186]"
       onClick={() => void select(failed)}>Retry {failed.length === 1 ? 'failed receipt' : `${failed.length} failed receipts`}</button>}
+    {followUpReceiptId&&<ReceiptMealFollowUp receiptId={followUpReceiptId}/>}
   </div>
 }
 

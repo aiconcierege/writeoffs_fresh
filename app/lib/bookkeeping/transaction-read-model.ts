@@ -60,6 +60,14 @@ export function customerTreatmentLabel(decision: Row | undefined) {
   }
 }
 
+function customerDecisionExplanation(decision:Row|undefined){
+  const treatment=text(decision??{},'treatment')
+  if(treatment==='business')return'Business'
+  if(treatment==='mixed_use')return'Business + personal'
+  if(treatment==='personal'||treatment==='excluded')return'Not for the business'
+  return decision?'Still working on it':null
+}
+
 export async function listTransactionReadModel(input: {
   supabase: SupabaseClient
   userId: string
@@ -266,7 +274,7 @@ export async function listTransactionReadModel(input: {
           : manual ? text(manual, 'description') : 'Recorded from a receipt', amount: amountCents / 100,
       amountCents, currency: financial && !compoundComponent ? text(financial, 'currency') ?? 'USD' : text(record, 'currency') ?? 'USD', category_key: null,
       has_receipt: documented.has(recordId), receipt_waived: false,
-      treatmentLabel: customerTreatmentLabel(current), decisionReason: current ? text(current, 'reason') : null,
+      treatmentLabel: customerTreatmentLabel(current), decisionReason: customerDecisionExplanation(current),
       decisionProvenance: current ? text(current, 'provenance') : null,
       correctionCount: Math.max(0, history.length - 1),
       recordId, currentDecisionId: current ? text(current, 'id') : null,
@@ -274,7 +282,7 @@ export async function listTransactionReadModel(input: {
       treatment: current ? text(current, 'treatment') : null,
       history: history.map((decision) => ({
         id: text(decision, 'id')!, summary: customerTreatmentLabel(decision),
-        explanation: text(decision, 'reason'), createdAt: text(decision, 'created_at')!,
+        explanation: customerDecisionExplanation(decision), createdAt: text(decision, 'created_at')!,
       })),
       evidenceLinks: documentLinks.filter((link) =>
         resolution.resolve(text(link, 'bookkeeping_record_id')!) === recordId)

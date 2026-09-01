@@ -31,6 +31,7 @@ export function selectPotentialWriteoffs(input: {
   for (const record of input.records) {
     if (!record.occurredOn || record.occurredOn < input.periodStart
       || record.occurredOn > input.periodEnd) continue
+    if(record.materiallyUnresolved)continue
     const decision = currentDecision(record)
     if (!decision || decision.bookkeepingNature !== 'expense'
       || !['business', 'mixed_use'].includes(decision.treatment)) continue

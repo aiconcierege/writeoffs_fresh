@@ -8,8 +8,10 @@ export type CustomerQuestion = {
   id: string
   version: string
   source?: 'bookkeeping' | 'deduction' | 'contractor'
-  kind: 'business_use' | 'business_purpose' | 'mixed_use' | 'factual_choice'
+  kind: 'business_use' | 'business_purpose' | 'meal_relationship' | 'mixed_use' | 'transaction_type' | 'factual_choice'
     | 'percentage' | 'yes_no' | 'integer' | 'date'
+  materiality?:'totals'|'disclosable'
+  recordId?:string
   prompt: string
   guidance?: string
   options?: Array<{ id: string; label: string }>
@@ -59,6 +61,13 @@ export function projectCustomerQuestion(
   if (item.event.reason === 'BUSINESS_PURPOSE_NEEDED') {
     const hasBusinessPortion = item.decision.allocations.some((allocation) =>
       allocation.kind === 'business' && allocation.amountCents !== 0)
+    if (context?.factType === 'meal_attendee_relationship') return isPurchase
+      && ['business', 'mixed_use'].includes(item.decision.treatment) && hasBusinessPortion ? {
+        ...base,
+        kind: 'meal_relationship',
+        prompt: 'Who was the meal with?',
+        guidance: 'List the person or people and their business relationship. For example: Sarah Jones, client.',
+      } : null
     return isPurchase && ['business', 'mixed_use'].includes(item.decision.treatment)
       && hasBusinessPortion ? {
       ...base,
@@ -72,6 +81,13 @@ export function projectCustomerQuestion(
       ? { ...base, kind: 'mixed_use', prompt: 'Was any of this purchase personal?' }
       : null
   }
+  if(item.event.reason==='TRANSACTION_TYPE_UNCLEAR')return{
+    ...base,kind:'transaction_type',materiality:'totals',prompt:'What kind of activity was this?',
+    guidance:'Choose what happened. I’ll handle the bookkeeping rules.',options:[
+      ['purchase','A purchase'],['earned_money','Money I earned'],['moved_money','Money moved between accounts'],
+      ['paid_card','A credit card payment'],['received_refund','A refund'],['added_own_money','Money I added'],
+      ['borrowed_money','Money I borrowed'],
+    ].map(([id,label])=>({id,label}))}
   if (item.event.reason === 'CONFLICTING_EVIDENCE') {
     const raw = item.event.questionContext?.options
     if (!Array.isArray(raw)) return null
@@ -99,6 +115,10 @@ export function projectCustomerQuestion(
 }
 
 export async function listCustomerQuestions(input: { supabase: SupabaseClient; scope?:'expenses'|'business' }) {
+  const ensured = await input.supabase.rpc('ensure_current_meal_substantiation_questions')
+  if (ensured.error && ensured.error.code !== 'PGRST202') throw new Error('Meal substantiation questions could not be prepared.')
+  const receiptMeals = await input.supabase.rpc('ensure_current_receipt_meal_candidate_questions')
+  if (receiptMeals.error && receiptMeals.error.code !== 'PGRST202') throw new Error('Receipt meal questions could not be prepared.')
   const deductionQuestions = await listDeductionQuestions(input.supabase)
   const contractorQuestions = await listContractorQuestions(input.supabase)
   const queue = await listCanonicalReviewQueue(input)
@@ -177,10 +197,16 @@ export async function listCustomerQuestions(input: { supabase: SupabaseClient; s
       date: transaction?.transaction_date ?? record?.occurred_on ?? null,
     }
     const question = projectCustomerQuestion(item, context)
-    return question ? [{ ...question, source: 'bookkeeping' as const,
+    return question ? [{ ...question, source: 'bookkeeping' as const,recordId:item.record.id,
+      materiality:(['BUSINESS_USE_UNCLEAR','MIXED_USE_CLARIFICATION','TRANSACTION_TYPE_UNCLEAR','CONFLICTING_EVIDENCE'].includes(item.event.reason)?'totals':'disclosable') as CustomerQuestion['materiality'],
       evidence:evidenceByRecord.get(item.record.id) }] : []
   })
-  const scopedBookkeeping=input.scope==='expenses'?bookkeepingQuestions.filter(question=>(question.transaction.amountCents??0)<=0):bookkeepingQuestions
+  const precedence:Record<CustomerQuestion['kind'],number>={mixed_use:1,transaction_type:2,business_use:3,business_purpose:4,meal_relationship:5,factual_choice:6,percentage:7,yes_no:7,integer:7,date:7}
+  bookkeepingQuestions.sort((a,b)=>(precedence[a.kind]??99)-(precedence[b.kind]??99))
+  const chosenRecords=new Set<string>()
+  const deduplicated=bookkeepingQuestions.filter(question=>{if(!question.recordId)return true
+    if(chosenRecords.has(question.recordId))return false;chosenRecords.add(question.recordId);return true})
+  const scopedBookkeeping=input.scope==='expenses'?deduplicated.filter(question=>(question.transaction.amountCents??0)<=0):deduplicated
   return [...scopedBookkeeping, ...deductionQuestions, ...contractorQuestions]
 }
 

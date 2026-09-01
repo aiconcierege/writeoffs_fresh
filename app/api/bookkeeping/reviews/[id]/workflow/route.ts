@@ -35,6 +35,9 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
   ||(expectedEventId!==null&&!UUID.test(expectedEventId)))return NextResponse.json({error:'Invalid review action.'},{status:400})
  const period=await supabase.from('bookkeeping_review_periods').select('business_id,period_start,period_end').eq('id',id).single()
  if(period.error)return NextResponse.json({error:'Review period was not found.'},{status:404})
+ const workflowState=expectedEventId?await supabase.from('bookkeeping_weekly_review_workflow_events')
+  .select('id,stage,event_type,details').eq('id',expectedEventId).eq('review_period_id',id).maybeSingle():{data:null,error:null}
+ const flowVersion=workflowState.data?.details?.flowVersion===2?2:workflowState.data?.details?.flowVersion===3?3:expectedEventId?1:3
   try{
   if(stage==='documentation'){
    await ensurePeriodDocumentationRequests({supabase,userId:user.id,businessId:period.data.business_id,
@@ -60,9 +63,30 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
    const completed=await supabase.rpc('complete_weekly_personal_sweep',{p_review_period_id:id,
     p_expected_workflow_event_id:expectedEventId,p_request_id:requestId,p_items:items})
    if(completed.error)throw new Error(completed.error.message)
-   await ensurePeriodDocumentationRequests({supabase,userId:user.id,businessId:period.data.business_id,
+   if(flowVersion!==3)await ensurePeriodDocumentationRequests({supabase,userId:user.id,businessId:period.data.business_id,
     start:period.data.period_start,end:period.data.period_end})
    return NextResponse.json({ok:true,eventId:(completed.data as Record<string,unknown>).workflow_event_id})
+  }
+  if(stage==='mixed'&&flowVersion===3){
+   if(workflowState.data?.stage==='mixed'&&workflowState.data.event_type==='stage_reopened'){
+    const questions=await listCustomerQuestions({supabase})
+    const remaining=questions.filter(question=>question.kind==='mixed_use'&&question.transaction.date
+      &&question.transaction.date>=period.data.period_start&&question.transaction.date<=period.data.period_end)
+    if(remaining.length)throw new Error('A selected shared expense still needs its business portion.')
+    const completed=await supabase.rpc('append_weekly_review_workflow_event',{p_review_period_id:id,
+      p_expected_event_id:expectedEventId,p_stage:'mixed',p_event_type:'stage_completed',
+      p_details:{resolvedCount:0},p_request_id:requestId})
+    if(completed.error)throw new Error(completed.error.message)
+    return NextResponse.json({ok:true,eventId:completed.data})
+   }
+   const items=changes.map(change=>{const value=change as Record<string,unknown>
+    if(value.use!=='mixed'||!UUID.test(String(value.recordId??''))||!UUID.test(String(value.transactionId??''))
+      ||!UUID.test(String(value.decisionId??'')))throw new Error('A mixed-use selection changed. Refresh and try again.')
+    return{recordId:value.recordId,transactionId:value.transactionId,decisionId:value.decisionId}})
+   const opened=await supabase.rpc('open_weekly_mixed_clarifications',{p_review_period_id:id,
+    p_expected_workflow_event_id:expectedEventId,p_request_id:requestId,p_items:items})
+   if(opened.error)throw new Error(opened.error.message)
+   return NextResponse.json({ok:true,eventId:(opened.data as Record<string,unknown>).workflow_event_id})
   }
   for(let index=0;index<changes.length;index++){
    const change=changes[index] as Record<string,unknown>,transactionId=String(change.transactionId??''),decisionId=String(change.decisionId??'')
@@ -81,7 +105,8 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
    const questions=await listCustomerQuestions({supabase})
    const remaining=questions.filter(question=>question.transaction.date&&question.transaction.date>=period.data.period_start
     &&question.transaction.date<=period.data.period_end)
-   if(remaining.length)throw new Error(`There ${remaining.length===1?'is':'are'} still ${remaining.length} current-week ${remaining.length===1?'question':'questions'} to answer.`)
+   const blocking=flowVersion===3?remaining.filter(question=>question.materiality==='totals'):remaining
+   if(blocking.length)throw new Error(`There ${blocking.length===1?'is':'are'} still ${blocking.length} current-week ${blocking.length===1?'question':'questions'} to answer.`)
   }
   const result=await supabase.rpc('append_weekly_review_workflow_event',{p_review_period_id:id,
    p_expected_event_id:expectedEventId,p_stage:stage,p_event_type:'stage_completed',

@@ -47,6 +47,11 @@ function summarize(records: CanonicalSummaryRecord[], overrides: Record<string, 
 }
 
 describe('canonical financial summary aggregation', () => {
+  it('does not count a materially unresolved amount as an established business expense',()=>{
+    const result=summarize([record({materiallyUnresolved:true})])
+    expect(result.businessExpensesCents).toBe(0)
+    expect(result.completeness.unresolvedRecordCount).toBe(1)
+  })
   it('preserves signed income including negative adjustments', () => {
     const result = summarize([
       record({ amountCents: 100_000, decisions: [decision({

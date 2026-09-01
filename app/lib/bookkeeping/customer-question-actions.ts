@@ -6,6 +6,7 @@ import {
   answerConflictingEvidenceReviewIssue,
   answerMixedUseReviewIssue,
 } from './review-answer-workflow'
+import type{TransactionTypeAnswer}from'./review-answer-model'
 import { listCanonicalReviewQueue } from './review-queue'
 import { projectCustomerQuestion } from './customer-questions'
 import { SupabaseBookkeepingRepository } from './supabase-repository'
@@ -15,9 +16,12 @@ export type CustomerQuestionAction =
   | { action: 'not_sure' }
   | { action: 'business_use'; use: 'business' | 'personal' | 'mixed' }
   | { action: 'business_purpose'; businessPurpose: string }
+  | { action: 'meal_relationship'; attendeeRelationship: string }
   | { action: 'mixed_all_business' }
   | { action: 'mixed_business_amount'; businessAmountCents: number }
+  | { action: 'mixed_business_percentage'; businessPercentage: string }
   | { action: 'mixed_personal_amount'; personalAmountCents: number }
+  | { action:'transaction_type';activity:TransactionTypeAnswer['activity'];details?:string }
   | { action: 'factual_choice'; optionId: string }
   | { action: 'deduction_fact'; value: string | number | boolean }
 
@@ -75,6 +79,17 @@ export async function actOnCustomerQuestion(input: {
       answer: { schemaVersion: 1, businessPurpose: input.command.businessPurpose },
     })
   }
+  if (input.command.action === 'meal_relationship' && item.event.reason === 'BUSINESS_PURPOSE_NEEDED'
+    && item.event.questionContext?.factType === 'meal_attendee_relationship') {
+    return repository.answerMealSubstantiation({
+      reviewIssueId: input.issueId,
+      expectedCurrentEventId: input.expectedEventId,
+      expectedCurrentDecisionId: item.decision.id,
+      expectedContextFingerprint: item.event.contextFingerprint,
+      expectedEvidenceFingerprint: item.event.evidenceFingerprint ?? '',
+      attendeeRelationship: input.command.attendeeRelationship,
+    })
+  }
   if (input.command.action === 'mixed_all_business' && item.event.reason === 'MIXED_USE_CLARIFICATION') {
     return repository.answerMixedUseAllBusiness({
       reviewIssueId: input.issueId,
@@ -87,6 +102,16 @@ export async function actOnCustomerQuestion(input: {
   if (input.command.action === 'mixed_business_amount' && item.event.reason === 'MIXED_USE_CLARIFICATION') {
     return answerMixedUseReviewIssue({ ...common,
       answer: { schemaVersion: 1, businessAmountCents: input.command.businessAmountCents },
+    })
+  }
+  if (input.command.action === 'mixed_business_percentage' && item.event.reason === 'MIXED_USE_CLARIFICATION') {
+    return repository.answerMixedUsePercentage({
+      reviewIssueId: input.issueId,
+      expectedCurrentEventId: input.expectedEventId,
+      expectedCurrentDecisionId: item.decision.id,
+      expectedContextFingerprint: item.event.contextFingerprint,
+      expectedEvidenceFingerprint: item.event.evidenceFingerprint ?? '',
+      businessPercentage: input.command.businessPercentage,
     })
   }
   if (input.command.action === 'mixed_personal_amount' && item.event.reason === 'MIXED_USE_CLARIFICATION') {
@@ -106,6 +131,11 @@ export async function actOnCustomerQuestion(input: {
       expectedConflictFingerprint: conflictFingerprint,
       answer: { schemaVersion: 1, optionId: input.command.optionId },
     })
+  }
+  if(input.command.action==='transaction_type'&&item.event.reason==='TRANSACTION_TYPE_UNCLEAR'){
+    const answer=input.command.activity==='other'?{schemaVersion:1 as const,activity:'other' as const,
+      details:input.command.details?.trim()??''}:{schemaVersion:1 as const,activity:input.command.activity}
+    return repository.answerTransactionType({...common,answer})
   }
   throw new Error('That answer does not match this question.')
 }

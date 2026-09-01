@@ -642,6 +642,26 @@ export class SupabaseBookkeepingRepository
     return { answeredEvent, resolvedEvent, decision, followUpEvent: null }
   }
 
+  async answerMealSubstantiation(input: {
+    reviewIssueId: string
+    expectedCurrentEventId: string
+    expectedCurrentDecisionId: string
+    expectedContextFingerprint: string
+    expectedEvidenceFingerprint: string
+    attendeeRelationship: string
+  }) {
+    const { data, error } = await this.supabase.rpc('answer_bookkeeping_meal_substantiation_issue', {
+      p_review_issue_id: input.reviewIssueId,
+      p_expected_current_event_id: input.expectedCurrentEventId,
+      p_expected_current_decision_id: input.expectedCurrentDecisionId,
+      p_expected_context_fingerprint: input.expectedContextFingerprint,
+      p_expected_evidence_fingerprint: input.expectedEvidenceFingerprint,
+      p_attendee_relationship: input.attendeeRelationship,
+    })
+    if (error) fail('answer meal substantiation issue', error)
+    return data
+  }
+
   async answerBusinessUse(input: {
     reviewIssueId: string
     expectedCurrentEventId: string
@@ -669,6 +689,21 @@ export class SupabaseBookkeepingRepository
       'answer_bookkeeping_mixed_use_review_issue',
       'answer bookkeeping mixed-use review issue',
       input
+    )
+  }
+
+  async answerMixedUsePercentage(input: {
+    reviewIssueId: string
+    expectedCurrentEventId: string
+    expectedCurrentDecisionId: string
+    expectedContextFingerprint: string
+    expectedEvidenceFingerprint: string
+    businessPercentage: string
+  }): Promise<StoredReviewAnswerResult> {
+    return this.answerReviewRpc(
+      'answer_bookkeeping_mixed_use_percentage',
+      'answer bookkeeping mixed-use percentage',
+      { ...input, answer: { schemaVersion: 1, businessPercentage: input.businessPercentage } }
     )
   }
 

@@ -10,11 +10,14 @@ import {
 
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
-export function QuestionFlow({ initialQuestions,range,embedded=false,onComplete }: { initialQuestions: CustomerQuestion[];range?:{start:string;end:string};embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void }) {
+export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete }: { initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void }) {
   const [questions, setQuestions] = useState(initialQuestions)
   const [answered, setAnswered] = useState(0)
   const [purpose, setPurpose] = useState('')
+  const [mealRelationship, setMealRelationship] = useState('')
   const [mixedAmount, setMixedAmount] = useState('')
+  const [mixedMode,setMixedMode]=useState<'dollars'|'percentage'>('dollars')
+  const [mixedPercentage,setMixedPercentage]=useState('')
   const [showAmount, setShowAmount] = useState(false)
   const [factValue, setFactValue] = useState('')
   const [busy, setBusy] = useState(false)
@@ -22,6 +25,7 @@ export function QuestionFlow({ initialQuestions,range,embedded=false,onComplete 
   const [unresolvedKept, setUnresolvedKept] = useState(0)
   const heading = useRef<HTMLHeadingElement>(null)
   const deferredInThisSession = useRef(new Set<string>())
+  const mixedOnly=useRef(initialQuestions.length>0&&initialQuestions.every(item=>item.kind==='mixed_use'))
   const total = answered + questions.length
   const question = questions[0]
 
@@ -44,10 +48,15 @@ export function QuestionFlow({ initialQuestions,range,embedded=false,onComplete 
         throw new Error(queueResult.error || 'Unable to load the next question.')
       }
       setAnswered((value) => value + 1)
-      setQuestions(queueResult.questions.filter((candidate) => !deferredInThisSession.current.has(candidate.id)
+      setQuestions(queueResult.questions.filter((candidate) => (!mixedOnly.current||candidate.kind==='mixed_use')
+        &&!deferredInThisSession.current.has(candidate.id)
+        &&(!recordId||candidate.recordId===recordId)
         &&(!range||(candidate.transaction.date!=null&&candidate.transaction.date>=range.start&&candidate.transaction.date<=range.end))))
       setPurpose('')
+      setMealRelationship('')
       setMixedAmount('')
+      setMixedMode('dollars')
+      setMixedPercentage('')
       setShowAmount(false)
       setFactValue('')
       requestAnimationFrame(() => heading.current?.focus())
@@ -120,12 +129,27 @@ export function QuestionFlow({ initialQuestions,range,embedded=false,onComplete 
             <Action onClick={() => submit({ action: 'business_purpose', businessPurpose: purpose })} busy={busy || !purpose.trim()}>Continue</Action>
             <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>Not sure</Action>
           </>}
+          {question.kind === 'meal_relationship' && <>
+            <label htmlFor="meal-relationship" className="sr-only">Who was the meal with?</label>
+            <textarea id="meal-relationship" value={mealRelationship}
+              onChange={(event) => setMealRelationship(event.target.value)} maxLength={1000} rows={4}
+              className="w-full rounded-lg border border-slate-300 p-3"
+              placeholder="For example, Sarah Jones, client; Luis Garcia, prospective customer" />
+            <Action onClick={() => submit({ action: 'meal_relationship', attendeeRelationship: mealRelationship })}
+              busy={busy || !mealRelationship.trim()}>Continue</Action>
+            <Action onClick={() => submit({ action: 'defer' })} busy={busy}>I’ll add this later</Action>
+          </>}
           {question.kind === 'mixed_use' && !showAmount && <>
             <Action onClick={() => submit({ action: 'mixed_all_business' })} busy={busy}>No, all business</Action>
             <Action onClick={() => setShowAmount(true)} busy={busy}>Yes, partly personal</Action>
             <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>Not sure</Action>
           </>}
           {question.kind === 'mixed_use' && showAmount && <>
+            <div className="weekly-mixed-input-modes" role="group" aria-label="How to enter the business portion">
+              <button type="button" className={mixedMode==='dollars'?'is-active':''} onClick={()=>setMixedMode('dollars')}>Business dollars</button>
+              <button type="button" className={mixedMode==='percentage'?'is-active':''} onClick={()=>setMixedMode('percentage')}>Business percentage</button>
+            </div>
+            {mixedMode==='dollars'?<>
             <label htmlFor="mixed-amount" className="text-base font-medium">Business amount</label>
             <div className="flex items-center rounded-lg border border-slate-300 px-3 focus-within:ring-2">
               <span aria-hidden="true">$</span>
@@ -136,6 +160,17 @@ export function QuestionFlow({ initialQuestions,range,embedded=false,onComplete 
             <Action onClick={() => enteredCents != null && enteredCents<transactionTotalCents && submit({
               action: 'mixed_business_amount', businessAmountCents: enteredCents,
             })} busy={busy || enteredCents == null || enteredCents>=transactionTotalCents}>Continue</Action>
+            </>:<>
+            <label htmlFor="mixed-percentage" className="text-base font-medium">Business percentage</label>
+            <div className="flex items-center rounded-lg border border-slate-300 px-3 focus-within:ring-2">
+              <input id="mixed-percentage" inputMode="decimal" value={mixedPercentage}
+                onChange={(event)=>setMixedPercentage(event.target.value)} className="w-full p-3 outline-none" placeholder="40"/>
+              <span aria-hidden="true">%</span>
+            </div>
+            <p className="text-muted">I’ll turn that into an exact dollar split.</p>
+            <Action onClick={()=>submit({action:'mixed_business_percentage',businessPercentage:mixedPercentage})}
+              busy={busy||!/^(100(?:\.0{1,2})?|(?:[0-9]|[1-9][0-9])(?:\.[0-9]{1,2})?)$/.test(mixedPercentage)}>Continue</Action>
+            </>}
             <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>Not sure</Action>
           </>}
           {question.kind === 'factual_choice' && question.options?.map((option) =>
@@ -143,6 +178,8 @@ export function QuestionFlow({ initialQuestions,range,embedded=false,onComplete 
               {option.label}
             </Action>
           )}
+          {question.kind==='transaction_type'&&question.options?.map(option=><Action key={option.id}
+            onClick={()=>submit({action:'transaction_type',activity:option.id})} busy={busy}>{option.label}</Action>)}
           {question.kind === 'percentage' && embedded && <div className="weekly-question-blocked" role="status">
             <strong>I still need a little more information about this item.</strong>
             <p>I’ll keep it on your list while we finish the rest of your review.</p>

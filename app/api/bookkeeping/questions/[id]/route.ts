@@ -25,6 +25,11 @@ function parseCommand(value: unknown): CustomerQuestionAction | null {
       ? { action: body.action, businessPurpose: body.businessPurpose }
       : null
   }
+  if (body.action === 'meal_relationship' && typeof body.attendeeRelationship === 'string') {
+    return keys.join(',') === 'action,attendeeRelationship'
+      ? { action: body.action, attendeeRelationship: body.attendeeRelationship }
+      : null
+  }
   if (body.action === 'mixed_all_business') {
     return keys.join(',') === 'action' ? { action: body.action } : null
   }
@@ -46,10 +51,22 @@ function parseCommand(value: unknown): CustomerQuestionAction | null {
       ? { action: body.action, personalAmountCents: body.personalAmountCents }
       : null
   }
+  if (body.action === 'mixed_business_percentage' && typeof body.businessPercentage === 'string'
+    && /^(100(?:\.0{1,2})?|(?:[0-9]|[1-9][0-9])(?:\.[0-9]{1,2})?)$/.test(body.businessPercentage)) {
+    return keys.join(',') === 'action,businessPercentage'
+      ? { action: body.action, businessPercentage: body.businessPercentage } : null
+  }
   if (body.action === 'factual_choice' && typeof body.optionId === 'string') {
     return keys.join(',') === 'action,optionId'
       ? { action: body.action, optionId: body.optionId }
       : null
+  }
+  if(body.action==='transaction_type'&&typeof body.activity==='string'){
+    const allowed=['purchase','earned_money','moved_money','paid_card','received_refund','added_own_money','borrowed_money','other']
+    if(!allowed.includes(body.activity))return null
+    if(body.activity==='other')return keys.join(',')==='action,activity,details'&&typeof body.details==='string'
+      ?{action:'transaction_type',activity:'other',details:body.details}:null
+    return keys.join(',')==='action,activity'?{action:'transaction_type',activity:body.activity as Exclude<import('../../../../lib/bookkeeping/review-answer-model').TransactionTypeAnswer['activity'],'other'>}:null
   }
   if (body.action === 'deduction_fact' && (typeof body.value === 'number'
     || typeof body.value === 'boolean' || typeof body.value === 'string')) {

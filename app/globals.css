@@ -635,6 +635,12 @@ body { background: var(--canvas); color: var(--ink); }
  .weekly-page .weekly-sweep-actions { bottom: .5rem; }
 }
 
+.weekly-mixed-input-modes{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;padding:.25rem;border:1px solid #d7ded8;border-radius:.8rem;background:#f4f2e8}
+.weekly-mixed-input-modes button{min-height:2.75rem;border-radius:.6rem;font-weight:700;color:#34443b}
+.weekly-mixed-input-modes button.is-active{background:#fff;box-shadow:0 1px 5px rgb(23 33 29/.12);color:#17211d}
+.receipt-meal-follow-up{margin-top:.75rem;width:min(100%,34rem);border:1px solid rgb(33 78 58/.16);border-radius:1rem;background:#fffdf7;padding:1rem;color:#26342d}
+.receipt-meal-follow-up p{margin-top:.25rem;font-size:1rem;line-height:1.5}
+
 @media print {
   body:has(.invoice-print-page) > header { display: none; }
   body:has(.invoice-print-page) > main { padding: 0; }

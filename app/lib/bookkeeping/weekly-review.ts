@@ -13,6 +13,7 @@ export type CustomerWeeklyReview = {
   corrected:boolean; items:Array<{id:string;recordId:string;decisionId:string;transactionId:string|null;role:string;label:string;
     categoryLabel:string|null;treatment:string;date:string;amountCents:number}>
   workflowStage:WeeklyReviewStage;workflowEventId:string|null;transactions:WeeklyReviewTransaction[]
+  flowVersion:1|2|3;workflowEventType:string|null
   workflowCompletedStage:WeeklyReviewStage|null
   mileage:{vehicles:Array<{id:string;displayName:string}>;entries:Array<{id:string;date:string;milesMilli:number;purpose:string|null}>}
 }
@@ -69,8 +70,11 @@ async function loadCustomerWeeklyReview(supabase:SupabaseClient,reviewId?:string
     if(workflow.error&&workflow.error.code!=='42P01')throw new Error('Weekly review progress could not be loaded.')
     const supersededWorkflowEvents=new Set((workflow.data??[]).map(event=>event.supersedes_event_id).filter(Boolean))
     const workflowLeaf=(workflow.data??[]).find(event=>!supersededWorkflowEvents.has(event.id))??null
-    const guided=workflowLeaf?.details?.flowVersion===2
-    const nextStage:WeeklyReviewStage=!workflowLeaf?'personal':(guided
+    const flowVersion:1|2|3=workflowLeaf?.details?.flowVersion===3?3:workflowLeaf?.details?.flowVersion===2?2:workflowLeaf?1:3
+    const nextStage:WeeklyReviewStage=!workflowLeaf?'personal':(flowVersion===3
+      ?(workflowLeaf.stage==='mixed'&&workflowLeaf.event_type==='stage_reopened'?'mixed':
+        ({personal:'mixed',mixed:'documentation',documentation:'questions',questions:'final',final:'final'} as Record<string,WeeklyReviewStage>)[workflowLeaf.stage])
+      :flowVersion===2
       ?({personal:'documentation',documentation:'questions',questions:'final',final:'final'} as Record<string,WeeklyReviewStage>)[workflowLeaf.stage]
       :({personal:'mixed',mixed:'questions',questions:'documentation',documentation:'mileage',mileage:'final',final:'final'} as Record<string,WeeklyReviewStage>)[workflowLeaf.stage])??'personal'
     const raw=await listTransactionReadModel({supabase,userId,start:period.period_start,end:period.period_end,limit:1000})
@@ -98,6 +102,7 @@ async function loadCustomerWeeklyReview(supabase:SupabaseClient,reviewId?:string
       return{id:period.id,eventId:leaf.id,snapshotId:'',periodStart:period.period_start,periodEnd:period.period_end,
         scope:period.membership_scope,incomeCents:null,expenseCents:0,personalExcludedCount:0,missingDocumentationCount:0,corrected:false,items:[],workflowStage:nextStage,
         unresolvedQuestionCount:0,
+        flowVersion,workflowEventType:workflowLeaf?.event_type??null,
         workflowEventId:workflowLeaf?.id??null,workflowCompletedStage:(workflowLeaf?.stage as WeeklyReviewStage|undefined)??null,transactions,mileage}
     }
     const [snapshot,items,corrections]=await Promise.all([
@@ -131,7 +136,7 @@ async function loadCustomerWeeklyReview(supabase:SupabaseClient,reviewId?:string
       expenseCents:links.length?correctedExpenses:Number(snapshot.data.expense_cents),personalExcludedCount:Number(snapshot.data.personal_excluded_count??0)+(items.data??[]).length-presentedItems.length,
       missingDocumentationCount:Number(snapshot.data.missing_documentation_count??0),corrected:(corrections.data?.length??0)>0,
       unresolvedQuestionCount:Number(snapshot.data.unresolved_question_count??0),
-      workflowStage:'final',workflowEventId:workflowLeaf?.id??null,workflowCompletedStage:(workflowLeaf?.stage as WeeklyReviewStage|undefined)??null,transactions,mileage,
+      workflowStage:'final',flowVersion,workflowEventType:workflowLeaf?.event_type??null,workflowEventId:workflowLeaf?.id??null,workflowCompletedStage:(workflowLeaf?.stage as WeeklyReviewStage|undefined)??null,transactions,mileage,
       incomeCents:snapshot.data.income_cents==null?null:links.length?correctedIncome:Number(snapshot.data.income_cents),items:presentedItems}
   }
   return null

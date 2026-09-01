@@ -27,6 +27,7 @@ export default async function WeeklyReviewPage({params}:{params:Promise<{id:stri
   const position=actionable.findIndex(item=>item.id===id)+1
   const currentQuestions=questions.filter(question=>question.transaction.date
     &&question.transaction.date>=review.periodStart&&question.transaction.date<=review.periodEnd)
+    .filter(question=>review.flowVersion===3&&review.workflowStage==='mixed'?question.kind==='mixed_use':true)
   return <main className="weekly-page"><div className="weekly-page-shell">
     <nav className="weekly-page-back" aria-label="Weekly review navigation"><Link href="/home">← Back to Home</Link></nav>
     <header className="weekly-page-intro">
