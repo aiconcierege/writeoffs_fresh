@@ -8,13 +8,14 @@ describe('universal Settings product path', () => {
     const customerSources = [
       'app/settings/page.tsx', 'app/settings/profile/page.tsx',
       'app/settings/profile/SettingsForm.tsx', 'app/onboarding/OnboardingFlow.tsx',
-      'app/import/page.tsx', 'app/login/page.tsx', 'app/signup/page.tsx',
-      'app/components/Pricing.tsx',
+      'app/import/page.tsx', 'app/login/page.tsx', 'app/login/LoginForm.tsx',
+      'app/signup/page.tsx',
     ].map(read).join('\n')
     expect(customerSources).not.toMatch(/Realtor|General Pack|Realtor Pack|vertical pack|industry preset/i)
     expect(existsSync('app/settings/VerticalSwitcher.tsx')).toBe(false)
     expect(existsSync('app/api/profile/vertical/route.ts')).toBe(false)
     expect(existsSync('app/api/profile/init/route.ts')).toBe(false)
+    expect(existsSync('app/components/Pricing.tsx')).toBe(false)
   })
 
   it('makes the existing Plaid banking experience reachable from authenticated Settings', () => {

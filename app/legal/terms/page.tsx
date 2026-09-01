@@ -44,9 +44,10 @@ export default function Page() {
 
       <h2>4. Subscriptions & Payments</h2>
       <ul>
-        <li>Paid features may require a subscription. Prices, features, and billing terms may change with notice.</li>
+        <li>Paid features may require a month-to-month membership. Prices, features, and billing terms may change with notice.</li>
         <li>Taxes may apply and are your responsibility where required.</li>
-        <li>Refunds are handled per our then-current refund policy (if any).</li>
+        <li>You may cancel your membership. Cancellation stops future renewal, and paid access continues through the end of the current paid billing period.</li>
+        <li>We do not provide prorated or partial-month refunds.</li>
       </ul>
 
       <h2>5. Third-Party Services</h2>
@@ -97,7 +98,7 @@ export default function Page() {
 
       <h2>12. Contact</h2>
       <p>
-        Questions about these Terms: <a href="mailto:rick@aiconciergeinc.com">rick@aiconciergeinc.com</a>.
+        Questions about these Terms: <a href="mailto:rick@writeoffs.io">rick@writeoffs.io</a>.
       </p>
       </article>
     </PublicPageShell>

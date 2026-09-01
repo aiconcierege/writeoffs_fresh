@@ -10,7 +10,7 @@ const { validateEnvironment } = require('../../config/environment-safety.js') as
 
 describe('account protection', () => {
   it('associates login labels and announces authentication outcomes accessibly', () => {
-    const login = read('app/login/page.tsx')
+    const login = read('app/login/LoginForm.tsx')
     expect(login).toContain('htmlFor="login-email"')
     expect(login).toContain('id="login-email"')
     expect(login).toContain('autoComplete="email"')

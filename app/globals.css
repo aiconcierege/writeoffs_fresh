@@ -33,6 +33,16 @@ body:has(.public-site) > main { padding-top: 5rem; }
 .public-legal p,.public-legal li { color: #4f5d56; font-size: .94rem; line-height: 1.8; }
 .public-legal p { margin-top: 1rem; }.public-legal ul { margin-top: 1rem; padding-left: 1.25rem; list-style: disc; }.public-legal li + li { margin-top: .55rem; }
 .public-legal strong { color: #29372f; font-weight: 700; }.public-legal a { color: #243186; font-weight: 650; text-decoration: underline; text-decoration-color: #a9b1dc; text-underline-offset: 3px; }
+.public-contact { max-width: 42rem; border-top: 1px solid #cfd9d2; padding-top: 2rem; }
+.public-contact h2 { margin-top: .7rem; color: #17211d; font-size: clamp(2rem,5vw,3.25rem); line-height: 1.04; font-weight: 680; letter-spacing: -.045em; }
+.public-contact p:not(.public-section-label) { margin-top: 1rem; color: #526159; font-size: 1rem; line-height: 1.75; }
+.public-contact a { color: #243186; font-weight: 700; text-decoration: underline; text-decoration-color: #a9b1dc; text-underline-offset: 4px; }
+
+@media (max-width:390px) {
+  .public-page-hero h1 { font-size: 2.45rem; }
+  .public-page-content { min-height: 30rem; }
+  .press-colors { grid-template-columns: 1fr; }
+}
 
 .press-intro { display: grid; gap: 1.5rem; border-bottom: 1px solid #cfd9d2; padding-bottom: 3rem; }
 .press-intro h2,.press-section h2,.press-betti h2,.press-contact h2 { margin-top: .55rem; color: #17211d; font-size: clamp(1.9rem,4vw,3rem); line-height: 1.05; font-weight: 680; letter-spacing: -.045em; }

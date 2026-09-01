@@ -7,8 +7,8 @@ import { PublicFooter } from "./components/PublicFooter"
 const steps = [
   {
     number: "01",
-    title: "Connect",
-    body: "Bring in activity from the accounts you use for business and send over your receipts.",
+    title: "Send it over",
+    body: "Share activity from the accounts you use for business and send over your receipts.",
   },
   {
     number: "02",
@@ -23,7 +23,7 @@ const steps = [
 ]
 
 const outcomes = [
-  ["Know where you stand", "See how your business is doing without building your own reports."],
+  ["Know where you stand", "See the business records WriteOffs is handling without building your own reports."],
   ["Keep the proof together", "Receipts and supporting documents stay organized with the activity they explain."],
   ["Skip the busywork", "Stop spending your evenings sorting transactions into accounting categories."],
   ["Be ready for tax time", "Your records stay clean and organized for you or your tax professional."],
@@ -50,7 +50,7 @@ export default function Page() {
                 <span className="block text-[#243186]">the books.</span>
               </h1>
               <p className="mt-6 max-w-xl text-base leading-7 text-[#4f5d56] sm:text-lg sm:leading-8">
-                Connect your accounts and send us your receipts. WriteOffs organizes the activity, keeps your documentation together, and asks for your help only when it needs a fact from you.
+                Share your business activity and send us your receipts. WriteOffs organizes the records, keeps your documentation together, and asks for your help only when it needs a fact from you.
               </p>
               <div className="mt-7 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
                 <a

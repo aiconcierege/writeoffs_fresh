@@ -8,12 +8,12 @@ describe('public landing page', () => {
   it('leads with the approved universal customer promise', () => {
     expect(page).toContain('You run your business.')
     expect(page).toContain('WriteOffs handles the books.')
-    expect(page).toContain('Connect your accounts and send us your receipts.')
+    expect(page).toContain('Share your business activity and send us your receipts.')
     expect(page).toContain('Join the waitlist')
   })
 
   it('uses the focused Connect, Work, Answer narrative', () => {
-    for (const copy of ['Connect', 'WriteOffs works', 'Answer only when needed']) {
+    for (const copy of ['Send it over', 'WriteOffs works', 'Answer only when needed']) {
       expect(page).toContain(copy)
     }
     expect(page).toContain('What you get')

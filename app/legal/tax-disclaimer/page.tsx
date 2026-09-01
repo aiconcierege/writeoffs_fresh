@@ -13,7 +13,7 @@ export default function Page() {
 
       <p>
         The content and tools provided by <strong>AI Concierge Inc. d/b/a WriteOffs.io</strong>
-        (including FAQs, automated classifications, and in-app explanations) are for
+        (including automated bookkeeping support and in-app explanations) are for
         informational purposes only. They are not legal, tax, accounting, or investment advice,
         and should not be relied upon as a substitute for professional advice tailored to your
         specific circumstances.
@@ -48,7 +48,7 @@ export default function Page() {
 
       <h2>Contact</h2>
       <p>
-        For questions, contact <a href="mailto:rick@aiconciergeinc.com">rick@aiconciergeinc.com</a>.
+        For questions, contact <a href="mailto:rick@writeoffs.io">rick@writeoffs.io</a>.
       </p>
       </article>
     </PublicPageShell>

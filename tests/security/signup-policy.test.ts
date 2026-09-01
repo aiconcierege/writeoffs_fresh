@@ -3,10 +3,14 @@ import { isCustomerSignupEnabled } from '../../app/lib/auth/signup-policy'
 import { readFileSync } from 'node:fs'
 
 describe('customer signup environment policy', () => {
-  it('links the login page directly to the canonical signup route', () => {
+  it('lets the server-rendered login choose signup or waitlist from the canonical policy', () => {
     const login = readFileSync('app/login/page.tsx', 'utf8')
-    expect(login).toContain('<Link href="/signup"')
-    expect(login).toContain('Create an account')
+    const form = readFileSync('app/login/LoginForm.tsx', 'utf8')
+    expect(login).toContain('isCustomerSignupEnabled()')
+    expect(form).toContain('<Link href="/signup"')
+    expect(form).toContain('Create an account')
+    expect(form).toContain('<Link href="/#waitlist"')
+    expect(form).toContain('Join the waitlist →')
   })
 
   it('allows the real customer signup path in staging', () => {
