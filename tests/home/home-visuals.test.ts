@@ -32,4 +32,11 @@ describe('Home canonical visual derivations', () => {
     expect(operating).not.toContain('No account connected')
     expect(operating).toContain('status.hasConnectedAccounts&&<div><p>Accounts checked</p>')
   })
+
+  it('keeps the full Home Betti above the integrated Quick Actions rail', () => {
+    const styles = readFileSync('app/globals.css', 'utf8')
+    expect(styles).toContain('.home-agent-betti { width: auto; max-width: min(82%,20rem); max-height: 22rem; margin-bottom: 0; object-fit: contain; object-position: center bottom; }')
+    expect(styles).toContain('.home-agent-hero > .home-quick')
+    expect(styles).not.toContain('.home-agent-betti { width: min(88%,20rem); margin-bottom: -1.6rem; }')
+  })
 })
