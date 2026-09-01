@@ -63,7 +63,6 @@ export default function Page() {
                   See how it works
                 </a>
               </div>
-              <p className="mt-4 text-xs text-[#68756e] sm:text-sm">Early access for U.S. independent business owners.</p>
             </div>
           </div>
 

@@ -34,6 +34,10 @@ describe('public landing page', () => {
     expect(page).not.toMatch(/Start free|Buy now|Subscribe|per month/i)
   })
 
+  it('keeps the approved hero without the removed early-access qualifier', () => {
+    expect(page).not.toContain('Early access for U.S. independent business owners.')
+  })
+
   it('keeps public navigation aligned with the page story', () => {
     expect(header).toContain('href="/#how"')
     expect(header).toContain('href="/#features"')

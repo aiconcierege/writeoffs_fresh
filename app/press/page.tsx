@@ -25,10 +25,9 @@ export default function PressPage() {
     </section>
 
     <section className="press-section" aria-labelledby="logos-heading">
-      <div className="press-section-heading"><p className="public-section-label">Brand assets</p><h2 id="logos-heading">Official WriteOffs logos</h2><p>Use the artwork as supplied. Do not redraw, recolor, or combine it with another mark.</p></div>
+      <div className="press-section-heading"><p className="public-section-label">Brand assets</p><h2 id="logos-heading">Official WriteOffs logo</h2><p>Use the artwork as supplied. Do not redraw, recolor, or combine it with another mark.</p></div>
       <div className="press-logo-stage">
-        <div><Image src="/logo-header.png" alt="WriteOffs" width={332} height={62}/><a href="/logo.svg" download>Download SVG <span aria-hidden="true">↓</span></a></div>
-        <div className="press-logo-dark"><Image src="/media/writeoffs_logo_clean.png" alt="WriteOffs" width={332} height={92}/><a href="/media/writeoffs_logo_clean.png" download>Download PNG <span aria-hidden="true">↓</span></a></div>
+        <div><Image src="/logo-header.png" alt="WriteOffs" width={332} height={62}/><div className="press-logo-downloads"><a href="/logo-header.png" download>Download PNG <span aria-hidden="true">↓</span></a><a href="/logo.svg" download>Download SVG <span aria-hidden="true">↓</span></a></div></div>
       </div>
       <p className="press-icon-download"><a href="/og/og-default.png" download>Download approved social/app artwork <span aria-hidden="true">↓</span></a></p>
     </section>

@@ -7,7 +7,7 @@ const pressPage = readFileSync(join(root, 'app/press/page.tsx'), 'utf8')
 
 describe('press kit assets', () => {
   const downloads = [
-    '/media/writeoffs_logo_clean.png',
+    '/logo-header.png',
     '/logo.svg',
     '/og/og-default.png',
   ]
@@ -18,8 +18,15 @@ describe('press kit assets', () => {
   })
 
   it('does not reference the missing legacy press downloads', () => {
+    expect(pressPage).not.toContain('/media/writeoffs_logo_clean.png')
     expect(pressPage).not.toContain('/press/writeoffs_logo_clean.png')
     expect(pressPage).not.toContain('/press/writeoffs_logo_clean.svg')
     expect(pressPage).not.toContain('/press/icon.png')
+  })
+
+  it('presents one authoritative canonical logo without an altered background variant', () => {
+    expect(pressPage.match(/<Image src="\/logo-header\.png"/g)).toHaveLength(1)
+    expect(pressPage).not.toContain('press-logo-dark')
+    expect(pressPage).toContain('Official WriteOffs logo')
   })
 })
