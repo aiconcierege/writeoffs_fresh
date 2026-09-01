@@ -14,7 +14,7 @@ describe('Home canonical visual derivations', () => {
     expect(checkInDayLabel(null)).toBeNull()
     const operating = readFileSync('app/home/HomeOperatingStatus.tsx', 'utf8')
     expect(operating).not.toContain('A specific time isn’t scheduled yet.')
-    expect(operating).toContain('`Every ${checkInDay}`')
+    expect(operating).not.toContain('Next check-in')
   })
 
   it('replaces historical charting with current operating status', () => {
@@ -28,14 +28,18 @@ describe('Home canonical visual derivations', () => {
     expect(repository).toContain("rpc('list_plaid_connections')")
     expect(repository).toContain("from('current_business_review_cadence')")
     expect(repository).not.toContain("from('plaid_items')")
-    expect(operating).toContain("fetch('/api/plaid/sync'")
+    expect(operating).not.toContain("fetch('/api/plaid/sync'")
     expect(operating).not.toContain('No account connected')
-    expect(operating).toContain('status.hasConnectedAccounts&&<div><p>Accounts checked</p>')
+    expect(operating).not.toContain('Accounts checked')
+    expect(operating).not.toContain('Next check-in')
+    expect(operating).not.toContain('Every ${checkInDay}')
+    expect(operating).toContain('if(status.hasConnectedAccounts)return null')
+    expect(operating).toContain('Connect an account')
   })
 
   it('keeps the full Home Betti above the integrated Quick Actions rail', () => {
     const styles = readFileSync('app/globals.css', 'utf8')
-    expect(styles).toContain('.home-agent-betti { width: auto; max-width: min(82%,20rem); max-height: 22rem; margin-bottom: 0; object-fit: contain; object-position: center bottom; }')
+    expect(styles).toContain('.home-agent-betti { width: auto; max-width: min(82%,20rem); max-height: 22rem; align-self: center; margin-bottom: 0; object-fit: contain; object-position: center bottom; }')
     expect(styles).toContain('.home-agent-hero > .home-quick')
     expect(styles).not.toContain('.home-agent-betti { width: min(88%,20rem); margin-bottom: -1.6rem; }')
   })

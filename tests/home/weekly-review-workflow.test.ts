@@ -80,7 +80,7 @@ describe('transaction-first weekly review',()=>{
   expect(processing).not.toContain('if(!workflowReady||questions>0)')
   expect(weeklyReadModel).toContain('unresolvedQuestionCount:Number(snapshot.data.unresolved_question_count??0)')
   expect(weekly).toContain('Still need information')
-  expect(weekly).toContain('It does not resolve the items still on your list.')
+  expect(weekly).toContain('the items that still need information will stay on your list')
   expect(weekly).toContain('I’ve reviewed this week')
  })
  it('advances documentation only through a persisted include/exclude decision',()=>{
@@ -112,6 +112,8 @@ describe('transaction-first weekly review',()=>{
  it('shows snapshot summary before visible transaction detail and uses review language',()=>{
   expect(weekly).not.toContain('<summary>Review transactions</summary>')
   expect(weekly).toContain('className="weekly-review-transactions"')
+  expect(weekly.indexOf('Does this week look right?')).toBeLessThan(weekly.indexOf('home-review-totals'))
+  expect(weekly.indexOf('home-review-actions')).toBeLessThan(weekly.indexOf('home-review-totals'))
   expect(weekly.indexOf('home-review-totals')).toBeLessThan(weekly.indexOf('weekly-review-transactions'))
   expect(weekly).toContain('Does this week look right?')
   expect(weekly).toContain('I’ve reviewed this week')
@@ -123,7 +125,7 @@ describe('transaction-first weekly review',()=>{
  it('uses a wide desktop workspace and reflows it for mobile',()=>{
   expect(styles).toContain('max-width: 82rem')
   expect(styles).toContain('.weekly-page .home-review:not(.weekly-workflow)')
-  expect(styles).toContain('.weekly-page .home-review:not(.weekly-workflow) .home-review-footer { margin: 0 2rem 1.5rem;')
+  expect(styles).toContain('.weekly-page .home-review:not(.weekly-workflow) .home-review-footer { margin: 1.15rem 2rem 0;')
   expect(styles).not.toContain('grid-template-columns: minmax(0,1.35fr) minmax(18rem,.65fr)')
   expect(styles).toContain('.weekly-page .weekly-workflow-body')
   expect(styles).toContain('min-height: 2.35rem')
