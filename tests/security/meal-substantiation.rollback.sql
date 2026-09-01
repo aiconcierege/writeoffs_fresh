@@ -16,6 +16,25 @@ insert into public.bookkeeping_meal_substantiation_facts(id,business_id,bookkeep
 values('30000000-0000-4000-8000-000000000002','6fe00fc0-16f9-4966-b4b5-ccad657aedfc',
  '10000000-0000-4000-8000-000000000002','Foreign customer, client','be9ec1e8-7d61-422c-a20c-60d589440b04');
 
+do $$ declare public_execute boolean; mutation_denied boolean:=false; begin
+ select exists(
+   select 1 from pg_proc p
+   cross join lateral aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+   where p.oid='public.reject_meal_substantiation_mutation()'::regprocedure
+     and acl.grantee=0 and acl.privilege_type='EXECUTE'
+ ) into public_execute;
+ if public_execute
+   or has_function_privilege('anon','public.reject_meal_substantiation_mutation()','EXECUTE')
+   or has_function_privilege('authenticated','public.reject_meal_substantiation_mutation()','EXECUTE')
+   or has_function_privilege('service_role','public.reject_meal_substantiation_mutation()','EXECUTE')
+ then raise exception 'meal trigger helper retained direct API-role execution'; end if;
+ begin
+   update public.bookkeeping_meal_substantiation_facts set attendee_relationship='Changed in place'
+     where id='30000000-0000-4000-8000-000000000002';
+ exception when others then mutation_denied:=true; end;
+ if not mutation_denied then raise exception 'meal fact mutation was not blocked by the trigger'; end if;
+end $$;
+
 set local role authenticated;
 select set_config('request.jwt.claim.sub','8777c5e3-b615-4acd-a4dd-01056a1251dd',true);
 do $$ declare n integer; foreign_count integer; begin

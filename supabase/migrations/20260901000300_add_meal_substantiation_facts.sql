@@ -43,6 +43,8 @@ grant select on public.current_bookkeeping_meal_substantiation_facts to authenti
 
 create or replace function public.reject_meal_substantiation_mutation() returns trigger
 language plpgsql set search_path='' as $$ begin raise exception 'meal substantiation facts are append-only'; end $$;
+revoke execute on function public.reject_meal_substantiation_mutation()
+  from public,anon,authenticated,service_role;
 create trigger bookkeeping_meal_facts_no_mutation before update or delete on public.bookkeeping_meal_substantiation_facts
 for each row execute function public.reject_meal_substantiation_mutation();
 
