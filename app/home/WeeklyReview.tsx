@@ -5,6 +5,7 @@ import{useRouter}from'next/navigation'
 import{BettiIllustration}from'../components/BettiIllustration'
 import type{CustomerQuestion}from'../lib/bookkeeping/customer-questions'
 import type{CustomerWeeklyReview,WeeklyReviewStage,WeeklyReviewTransaction}from'../lib/bookkeeping/weekly-review'
+import{isWeeklyMixedUseCandidate}from'../lib/bookkeeping/weekly-review-mixed-eligibility'
 import{formatReviewActivityDate,formatReviewPeriod,reviewTreatmentLabel}from'../lib/bookkeeping/weekly-review-presentation'
 import{QuestionFlow}from'../questions/QuestionFlow'
 import{ReceiptUploadAction}from'../receipts/ReceiptUploadAction'
@@ -43,7 +44,7 @@ function WorkflowReview({review,currentQuestions}:{review:CustomerWeeklyReview;c
  const mixedQuestions=currentQuestions.filter(question=>question.kind==='mixed_use')
  const visible=useMemo(()=>review.transactions.filter(item=>!personalIds.has(item.id)),[review.transactions,personalIds])
  const mixedFollowups=review.flowVersion===3&&stage==='mixed'&&review.workflowEventType==='stage_reopened'
- const mixedEligible=visible.filter(item=>item.amountCents<0&&item.bookkeepingNature==='expense'&&item.treatment==='business')
+ const mixedEligible=visible.filter(isWeeklyMixedUseCandidate)
  const missing=visible.filter(item=>item.amountCents<0&&item.bookkeepingNature==='expense'
   &&['business','mixed_use'].includes(item.treatment)&&!item.hasReceipt&&!item.receiptLost&&!resolvedDocumentation.has(item.recordId))
  function toggle(id:string){setSelected(value=>{const next=new Set(value);if(next.has(id))next.delete(id);else next.add(id);return next})}

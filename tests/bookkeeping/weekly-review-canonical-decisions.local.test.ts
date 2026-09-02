@@ -76,6 +76,46 @@ async function openMissing(admin: SupabaseClient, businessId: string, recordId: 
 }
 
 describe.skipIf(!runLocal)('weekly review canonical exception decisions on local Supabase', () => {
+  it('opens mixed clarification for an unresolved negative leaf without allocating prematurely',async()=>{
+    const admin=client(serviceKey!),owner=await provisionLocalCanonicalOwner({admin,url:url!,anonKey:anonKey!,
+      label:'weekly-v3-unresolved-mixed',amounts:[-14_235,-9_680]})
+    const unresolved=await resolveFinancialTransactionRecord({supabase:owner.customer,
+      financialTransactionId:owner.transactionIds[0]})
+    const blocked=await resolveFinancialTransactionRecord({supabase:owner.customer,
+      financialTransactionId:owner.transactionIds[1]})
+    const blockingIssue=await new CanonicalWeeklyReviewService(new SupabaseBookkeepingRepository(admin)).openIssue({
+      businessId:owner.businessId,recordId:blocked.record.id,decisionId:blocked.decision.id,
+      reason:'TRANSACTION_TYPE_UNCLEAR',issueKey:`type:${blocked.record.id}`,
+      contextFingerprint:`type:${blocked.record.id}:v1`,questionContext:{schemaVersion:1,reason:'TRANSACTION_TYPE_UNCLEAR'},
+    })
+    expect(blockingIssue.reason).toBe('TRANSACTION_TYPE_UNCLEAR')
+    const periodId=await createUntouchedV3Period(admin,owner)
+    const personal=await owner.customer.rpc('complete_weekly_personal_sweep',{p_review_period_id:periodId,
+      p_expected_workflow_event_id:null,p_request_id:crypto.randomUUID(),p_items:[]})
+    expect(personal.error).toBeNull()
+    const blockedOpen=await owner.customer.rpc('open_weekly_mixed_clarifications',{p_review_period_id:periodId,
+      p_expected_workflow_event_id:personal.data.workflow_event_id,p_request_id:crypto.randomUUID(),p_items:[{
+        recordId:blocked.record.id,transactionId:owner.transactionIds[1],decisionId:blocked.decision.id}]})
+    expect(blockedOpen.error?.message).toContain('Another material fact must be resolved first')
+    const before=await owner.customer.from('bookkeeping_decisions').select('id',{count:'exact',head:true})
+      .eq('bookkeeping_record_id',unresolved.record.id)
+    const opened=await owner.customer.rpc('open_weekly_mixed_clarifications',{p_review_period_id:periodId,
+      p_expected_workflow_event_id:personal.data.workflow_event_id,p_request_id:crypto.randomUUID(),p_items:[{
+        recordId:unresolved.record.id,transactionId:owner.transactionIds[0],decisionId:unresolved.decision.id}]})
+    expect(opened.error).toBeNull()
+    expect(opened.data).toMatchObject({opened_count:1,idempotent:false})
+    const after=await owner.customer.from('bookkeeping_decisions').select('id',{count:'exact',head:true})
+      .eq('bookkeeping_record_id',unresolved.record.id)
+    expect(after.count).toBe(before.count)
+    const question=(await listCustomerQuestions({supabase:owner.customer})).find(item=>item.recordId===unresolved.record.id)
+    expect(question).toMatchObject({kind:'mixed_use',materiality:'totals'})
+    const answered=await actOnCustomerQuestion({supabase:owner.customer,issueId:question!.id,
+      expectedEventId:question!.version,command:{action:'mixed_business_percentage',businessPercentage:'40'}})as StoredReviewAnswerResult
+    expect(answered.decision).toMatchObject({bookkeepingNature:null,treatment:'unresolved',reviewStatus:'needs_review'})
+    expect(answered.decision.allocations).toEqual([])
+    expect((await listCustomerQuestions({supabase:owner.customer})).find(item=>item.recordId===unresolved.record.id))
+      .toMatchObject({kind:'transaction_type',materiality:'totals'})
+  })
   it('persists v3 mixed identification and database-authoritative percentage allocation',async()=>{
     const admin=client(serviceKey!),owner=await provisionLocalCanonicalOwner({admin,url:url!,anonKey:anonKey!,
       label:'weekly-v3-percentage',amounts:[-14_235]})

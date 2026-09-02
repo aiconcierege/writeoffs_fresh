@@ -4,7 +4,8 @@ import { listMileageContext } from '../mileage/repository'
 
 export type WeeklyReviewStage='personal'|'mixed'|'questions'|'documentation'|'mileage'|'final'
 export type WeeklyReviewTransaction={id:string;recordId:string;currentDecisionId:string;date:string;merchant:string;
-  amountCents:number;categoryLabel:string|null;treatment:string;bookkeepingNature:string|null;hasReceipt:boolean;receiptLost:boolean}
+  amountCents:number;categoryLabel:string|null;treatment:string;bookkeepingNature:string|null;hasReceipt:boolean;receiptLost:boolean;
+  activeIssueReasons:string[]}
 
 export type CustomerWeeklyReview = {
   id:string; eventId:string; snapshotId:string; periodStart:string; periodEnd:string
@@ -81,6 +82,16 @@ async function loadCustomerWeeklyReview(supabase:SupabaseClient,reviewId?:string
     const canonical=raw.filter(row=>row.sourceModel==='canonical'&&row.sourceKind==='financial_transaction'
       &&row.recordId&&row.currentDecisionId)
       .sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id))
+    const recordIds=canonical.map(row=>row.recordId!)
+    const issueResult=recordIds.length?await supabase.from('bookkeeping_review_events')
+      .select('id,bookkeeping_record_id,supersedes_event_id,event_type,reason').in('bookkeeping_record_id',recordIds):{data:[],error:null}
+    if(issueResult.error)throw new Error('Weekly review issues could not be loaded.')
+    const supersededIssueEvents=new Set((issueResult.data??[]).map(event=>event.supersedes_event_id).filter(Boolean))
+    const activeIssueReasonsByRecord=new Map<string,string[]>()
+    for(const event of issueResult.data??[]){
+      if(supersededIssueEvents.has(event.id)||!['opened','skipped','reopened'].includes(event.event_type))continue
+      activeIssueReasonsByRecord.set(event.bookkeeping_record_id,[...(activeIssueReasonsByRecord.get(event.bookkeeping_record_id)??[]),event.reason])
+    }
     const decisionIds=canonical.map(row=>row.currentDecisionId!)
     const allocationResult=decisionIds.length?await supabase.from('bookkeeping_allocations')
       .select('bookkeeping_decision_id,tax_category_key').in('bookkeeping_decision_id',decisionIds)
@@ -93,7 +104,8 @@ async function loadCustomerWeeklyReview(supabase:SupabaseClient,reviewId?:string
       date:row.date,merchant:row.vendor,amountCents:row.amountCents,
       categoryLabel:categoryByKey.get(keyByDecision.get(row.currentDecisionId!))??null,
       treatment:row.treatment??'unresolved',bookkeepingNature:row.bookkeepingNature,
-      hasReceipt:row.has_receipt,receiptLost:row.receiptLost}))
+      hasReceipt:row.has_receipt,receiptLost:row.receiptLost,
+      activeIssueReasons:activeIssueReasonsByRecord.get(row.recordId!)??[]}))
     const mileageContext=await listMileageContext(supabase,{start:period.period_start,end:period.period_end})
     const mileage={vehicles:mileageContext.vehicles.filter(vehicle=>!vehicle.archived_at).map(vehicle=>({id:vehicle.id,
       displayName:vehicle.display_name})),entries:mileageContext.entries.map(entry=>({id:entry.id,date:entry.occurred_on,
