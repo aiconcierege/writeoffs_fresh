@@ -23,6 +23,16 @@ export type CustomerWeeklyReviewDescriptor={
   id:string;periodStart:string;periodEnd:string;eventType:string;deferredUntil:string|null;actionable:boolean
 }
 
+export function resolveV3WeeklyReviewStage(input:{workflowLeaf:{stage:string;event_type:string}|null;
+ hasCurrentMixedClarification:boolean}):WeeklyReviewStage{
+ if(input.hasCurrentMixedClarification)return'mixed'
+ const leaf=input.workflowLeaf
+ if(!leaf)return'personal'
+ return(leaf.stage==='mixed'&&leaf.event_type==='stage_reopened'?'mixed':
+  ({personal:'mixed',mixed:'documentation',documentation:'questions',questions:'final',final:'final'} as
+    Record<string,WeeklyReviewStage>)[leaf.stage])??'personal'
+}
+
 async function customerContext(supabase:SupabaseClient){
   const {data:{user}}=await supabase.auth.getUser();if(!user)return null
   const business=await supabase.from('businesses').select('id').eq('owner_user_id',user.id).maybeSingle()
@@ -72,12 +82,6 @@ async function loadCustomerWeeklyReview(supabase:SupabaseClient,reviewId?:string
     const supersededWorkflowEvents=new Set((workflow.data??[]).map(event=>event.supersedes_event_id).filter(Boolean))
     const workflowLeaf=(workflow.data??[]).find(event=>!supersededWorkflowEvents.has(event.id))??null
     const flowVersion:1|2|3=workflowLeaf?.details?.flowVersion===3?3:workflowLeaf?.details?.flowVersion===2?2:workflowLeaf?1:3
-    const nextStage:WeeklyReviewStage=!workflowLeaf?'personal':(flowVersion===3
-      ?(workflowLeaf.stage==='mixed'&&workflowLeaf.event_type==='stage_reopened'?'mixed':
-        ({personal:'mixed',mixed:'documentation',documentation:'questions',questions:'final',final:'final'} as Record<string,WeeklyReviewStage>)[workflowLeaf.stage])
-      :flowVersion===2
-      ?({personal:'documentation',documentation:'questions',questions:'final',final:'final'} as Record<string,WeeklyReviewStage>)[workflowLeaf.stage]
-      :({personal:'mixed',mixed:'questions',questions:'documentation',documentation:'mileage',mileage:'final',final:'final'} as Record<string,WeeklyReviewStage>)[workflowLeaf.stage])??'personal'
     const raw=await listTransactionReadModel({supabase,userId,start:period.period_start,end:period.period_end,limit:1000})
     const canonical=raw.filter(row=>row.sourceModel==='canonical'&&row.sourceKind==='financial_transaction'
       &&row.recordId&&row.currentDecisionId)
@@ -92,6 +96,13 @@ async function loadCustomerWeeklyReview(supabase:SupabaseClient,reviewId?:string
       if(supersededIssueEvents.has(event.id)||!['opened','skipped','reopened'].includes(event.event_type))continue
       activeIssueReasonsByRecord.set(event.bookkeeping_record_id,[...(activeIssueReasonsByRecord.get(event.bookkeeping_record_id)??[]),event.reason])
     }
+    const hasCurrentMixedClarification=[...activeIssueReasonsByRecord.values()]
+      .some(reasons=>reasons.includes('MIXED_USE_CLARIFICATION'))
+    const nextStage:WeeklyReviewStage=flowVersion===3
+      ?resolveV3WeeklyReviewStage({workflowLeaf,hasCurrentMixedClarification})
+      :!workflowLeaf?'personal':flowVersion===2
+      ?({personal:'documentation',documentation:'questions',questions:'final',final:'final'} as Record<string,WeeklyReviewStage>)[workflowLeaf.stage]??'personal'
+      :({personal:'mixed',mixed:'questions',questions:'documentation',documentation:'mileage',mileage:'final',final:'final'} as Record<string,WeeklyReviewStage>)[workflowLeaf.stage]??'personal'
     const decisionIds=canonical.map(row=>row.currentDecisionId!)
     const allocationResult=decisionIds.length?await supabase.from('bookkeeping_allocations')
       .select('bookkeeping_decision_id,tax_category_key').in('bookkeeping_decision_id',decisionIds)

@@ -3,6 +3,7 @@ import{describe,expect,it}from'vitest'
 
 const sql=readFileSync('supabase/migrations/20260901000200_add_betti_weekly_review_v3.sql','utf8')
 const eligibilityFix=readFileSync('supabase/migrations/20260902000100_fix_weekly_review_v3_mixed_eligibility.sql','utf8')
+const completionFix=readFileSync('supabase/migrations/20260902000200_enforce_weekly_review_v3_mixed_completion.sql','utf8')
 
 describe('Weekly Review v3 database contract',()=>{
  it('assigns v3 only to untouched workflows and preserves v2 and legacy orders',()=>{
@@ -33,6 +34,23 @@ describe('Weekly Review v3 database contract',()=>{
   expect(sql).toContain('bookkeeping_review_snapshots_v3_readiness')
   expect(sql).toContain("Version 3 review has a material unresolved fact")
   expect(sql).toContain("workflow.stage<>'final'")
+ })
+})
+
+describe('Weekly Review v3 mixed completion invariant',()=>{
+ it('blocks direct mixed completion from authoritative current issue leaves',()=>{
+  expect(completionFix).toContain("p_stage='mixed' and p_event_type='stage_completed'")
+  expect(completionFix).toContain("event.reason='MIXED_USE_CLARIFICATION'")
+  expect(completionFix).toContain('successor.supersedes_event_id=event.id')
+  expect(completionFix).toContain('A selected shared expense still needs its business portion')
+ })
+ it('provides service-only append-only recovery with period and workflow checks',()=>{
+  expect(completionFix).toContain('recover_weekly_review_v3_mixed_stage')
+  expect(completionFix).toContain("'mixed','stage_reopened'")
+  expect(completionFix).toContain("'unresolved_mixed_allocation_after_stage_completion'")
+  expect(completionFix).toContain('event.review_snapshot_id is not null')
+  expect(completionFix).toContain('to service_role')
+  expect(completionFix).toContain('from public,anon,authenticated,service_role')
  })
 })
 

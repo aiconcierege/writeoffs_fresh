@@ -1,6 +1,6 @@
 import{readFileSync}from'node:fs'
 import{describe,expect,it}from'vitest'
-import type{WeeklyReviewTransaction}from'../../app/lib/bookkeeping/weekly-review'
+import{resolveV3WeeklyReviewStage,type WeeklyReviewTransaction}from'../../app/lib/bookkeeping/weekly-review'
 import{isWeeklyMixedUseCandidate}from'../../app/lib/bookkeeping/weekly-review-mixed-eligibility'
 
 const weekly=readFileSync('app/home/WeeklyReview.tsx','utf8')
@@ -9,6 +9,7 @@ const loader=readFileSync('app/lib/bookkeeping/weekly-review.ts','utf8')
 const worker=readFileSync('app/lib/bookkeeping/weekly-review-processing.ts','utf8')
 const summary=readFileSync('app/lib/bookkeeping/financial-summary.ts','utf8')
 const transactions=readFileSync('app/lib/bookkeeping/transaction-read-model.ts','utf8')
+const workflowRoute=readFileSync('app/api/bookkeeping/reviews/[id]/workflow/route.ts','utf8')
 
 describe('Betti-led Weekly Review v3',()=>{
  const candidate=(overrides:Partial<WeeklyReviewTransaction>={}):WeeklyReviewTransaction=>({
@@ -35,6 +36,21 @@ describe('Betti-led Weekly Review v3',()=>{
   expect(weekly).toContain('None of these were mixed')
   expect(weekly).toContain('mixedFollowups')
   expect(loader).toContain("{personal:'mixed',mixed:'documentation',documentation:'questions',questions:'final'")
+ })
+ it('gives a current mixed clarification priority over a prematurely completed mixed stage',()=>{
+  expect(resolveV3WeeklyReviewStage({workflowLeaf:{stage:'mixed',event_type:'stage_completed'},
+    hasCurrentMixedClarification:true})).toBe('mixed')
+  expect(resolveV3WeeklyReviewStage({workflowLeaf:{stage:'documentation',event_type:'stage_completed'},
+    hasCurrentMixedClarification:true})).toBe('mixed')
+  expect(resolveV3WeeklyReviewStage({workflowLeaf:{stage:'mixed',event_type:'stage_completed'},
+    hasCurrentMixedClarification:false})).toBe('documentation')
+ })
+ it('uses authoritative mixed issue leaves rather than display projection to complete Activity',()=>{
+  const mixedCompletion=workflowRoute.slice(workflowRoute.indexOf("if(stage==='mixed'&&flowVersion===3)"),
+    workflowRoute.indexOf('for(let index=0',workflowRoute.indexOf("if(stage==='mixed'&&flowVersion===3)")))
+  expect(mixedCompletion).toContain('listCurrentPeriodMixedClarifications')
+  expect(mixedCompletion).not.toContain('listCustomerQuestions')
+  expect(mixedCompletion).toContain('still needs its business portion')
  })
  it('collects explicit business dollars or business percentage',()=>{
   expect(questions).toContain('Business dollars')

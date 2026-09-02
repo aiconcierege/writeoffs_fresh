@@ -5,6 +5,7 @@ import{listCustomerQuestions}from'../../../../../lib/bookkeeping/customer-questi
 import{listTransactionReadModel}from'../../../../../lib/bookkeeping/transaction-read-model'
 import{createServerAdminSupabase}from'../../../../../../utils/supabase/admin'
 import{createHash}from'node:crypto'
+import{listCurrentPeriodMixedClarifications}from'../../../../../lib/bookkeeping/weekly-review-mixed-issues'
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const stages=['personal','mixed','questions','documentation','mileage','final'] as const
@@ -69,9 +70,8 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
   }
   if(stage==='mixed'&&flowVersion===3){
    if(workflowState.data?.stage==='mixed'&&workflowState.data.event_type==='stage_reopened'){
-    const questions=await listCustomerQuestions({supabase})
-    const remaining=questions.filter(question=>question.kind==='mixed_use'&&question.transaction.date
-      &&question.transaction.date>=period.data.period_start&&question.transaction.date<=period.data.period_end)
+    const remaining=await listCurrentPeriodMixedClarifications({supabase,businessId:period.data.business_id,
+      periodStart:period.data.period_start,periodEnd:period.data.period_end})
     if(remaining.length)throw new Error('A selected shared expense still needs its business portion.')
     const completed=await supabase.rpc('append_weekly_review_workflow_event',{p_review_period_id:id,
       p_expected_event_id:expectedEventId,p_stage:'mixed',p_event_type:'stage_completed',

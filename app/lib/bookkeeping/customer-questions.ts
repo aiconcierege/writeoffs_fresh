@@ -77,7 +77,11 @@ export function projectCustomerQuestion(
     } : null
   }
   if (item.event.reason === 'MIXED_USE_CLARIFICATION') {
-    return isPurchase && context?.businessUse === 'mixed'
+    // Opening this canonical issue already validates the financial source,
+    // current decision leaf, period, tenant, and negative transaction shape.
+    // Nature may intentionally remain unresolved until after the customer gives
+    // the mixed allocation, so it must not suppress the authoritative question.
+    return context?.businessUse === 'mixed'
       ? { ...base, kind: 'mixed_use', prompt: 'Was any of this purchase personal?' }
       : null
   }

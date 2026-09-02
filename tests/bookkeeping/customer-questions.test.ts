@@ -130,13 +130,17 @@ describe('customer question projection', () => {
     }), transaction)).toBeNull()
   })
 
-  it('keeps purchase-specific questions out of the queue unless nature is expense', () => {
+  it('keeps purchase-specific questions out unless nature is expense, except a canonical mixed issue', () => {
     for (const reason of [
-      'BUSINESS_USE_UNCLEAR', 'BUSINESS_PURPOSE_NEEDED', 'MIXED_USE_CLARIFICATION',
+      'BUSINESS_USE_UNCLEAR', 'BUSINESS_PURPOSE_NEEDED',
     ] as const) {
       expect(projectCustomerQuestion(withNature(item(reason), null), transaction)).toBeNull()
       expect(projectCustomerQuestion(withNature(item(reason), 'transfer'), transaction)).toBeNull()
     }
+    expect(projectCustomerQuestion(withNature(item('MIXED_USE_CLARIFICATION',{businessUse:'mixed'}),null),transaction))
+      .toMatchObject({kind:'mixed_use'})
+    expect(projectCustomerQuestion(withNature(item('MIXED_USE_CLARIFICATION',{businessUse:'mixed'}),'expense'),transaction))
+      .toMatchObject({kind:'mixed_use'})
   })
 
   it('fails closed for malformed fixture or stale question contracts', () => {
