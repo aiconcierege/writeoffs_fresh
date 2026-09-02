@@ -45,6 +45,30 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     start:period.data.period_start,end:period.data.period_end})
    const decision=body.documentationDecision,recordIds=body.recordIds
    const completeStage=body.completeStage!==false
+   if(decision==='receipt_unavailable_attestation'){
+    const recordId=String(body.recordId??''),transactionId=String(body.transactionId??'')
+    const decisionId=String(body.decisionId??''),businessUse=String(body.businessUse??'')
+    if(!UUID.test(recordId)||!UUID.test(transactionId)||!UUID.test(decisionId)
+      ||!['business','personal'].includes(businessUse)||completeStage)
+      throw new Error('Confirm whether this purchase was still for the business.')
+    const documentation=await supabase.from('bookkeeping_documentation_events')
+      .select('id,supersedes_event_id,event_type').eq('business_id',period.data.business_id)
+      .eq('bookkeeping_record_id',recordId)
+    if(documentation.error)throw new Error('The receipt request could not be checked safely.')
+    const superseded=new Set((documentation.data??[]).map(event=>event.supersedes_event_id).filter(Boolean))
+    const current=(documentation.data??[]).find(event=>!superseded.has(event.id)
+      &&['request_opened','reopened','evidence_attached'].includes(event.event_type))
+    if(!current)throw new Error('The receipt request changed. Refresh and try again.')
+    const attested=await supabase.rpc('attest_weekly_receipt_unavailable',{
+      p_review_period_id:id,p_expected_workflow_event_id:expectedEventId,p_request_id:requestId,
+      p_financial_transaction_id:transactionId,p_expected_current_decision_id:decisionId,
+      p_expected_documentation_event_id:current.id,p_business_use:businessUse})
+    if(attested.error)throw new Error(attested.error.message)
+    return NextResponse.json({ok:true,eventId:expectedEventId,decisionId:
+      (attested.data as Record<string,unknown>).decision_id})
+   }
+   if(flowVersion===3&&decision==='include_missing')
+    throw new Error('Confirm whether this purchase was still for the business.')
    if(!['include_missing','exclude_missing','no_missing'].includes(String(decision))||!Array.isArray(recordIds)
     ||(decision!=='no_missing'&&recordIds.length===0)||recordIds.length>500||recordIds.some(value=>typeof value!=='string'||!UUID.test(value)))
     throw new Error('Choose how to handle the missing receipts shown in this review.')

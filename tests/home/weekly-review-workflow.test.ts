@@ -37,7 +37,10 @@ describe('transaction-first weekly review',()=>{
   expect(weekly).toContain("item.hasReceipt?'Receipt attached':'No receipt'")
   expect(weekly).toContain('ReceiptUploadAction')
   expect(weekly).toContain('variant="guided"')
-  expect(weekly).toContain('Missing receipt')
+  expect(weekly).toContain('I don’t have the receipt')
+  expect(weekly).toContain('Is this still a business expense?')
+  expect(weekly).toContain('Yes, it was for my business')
+  expect(weekly).toContain('No, leave it out')
   expect(weekly).toContain('Not a business expense')
  })
  it('keeps questions period-scoped and final presentation gated',()=>{
@@ -91,7 +94,8 @@ describe('transaction-first weekly review',()=>{
   expect(weekly).toContain('I’ve reviewed this week')
  })
  it('advances documentation only through a persisted include/exclude decision',()=>{
-  expect(weekly).toContain('decideMissing(item)')
+  expect(weekly).toContain("decideMissing(item,'business')")
+  expect(weekly).toContain("decideMissing(item,'personal')")
   expect(weekly).toContain('setEventId(result.eventId??eventId)')
   expect(weekly).toContain('completeStage:false')
   expect(weekly).toContain("stage==='documentation'&&missing.length>0")

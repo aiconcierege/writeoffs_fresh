@@ -421,4 +421,86 @@ describe.skipIf(!runLocal)('weekly review canonical exception decisions on local
       .eq('id', restored.decision_id).single()
     expect(restoredDecision.data).toEqual({ treatment: 'business' })
   })
+
+  it('atomically records receipt unavailability with explicit business or personal use',async()=>{
+    const admin=client(serviceKey!),owner=await provisionLocalCanonicalOwner({admin,url:url!,anonKey:anonKey!,
+      label:'weekly-receipt-attestation',amounts:[-4_716,-2_275]})
+    const initial=[await establishExpense(owner,0),await establishExpense(owner,1)]
+    const service=new CanonicalBookkeepingService(new SupabaseBookkeepingRepository(owner.customer))
+    const categorized=await service.recordDecision({actor:{businessId:owner.businessId,userId:owner.userId,provenance:'user'},
+      recordId:initial[0].recordId,expectedCurrentDecisionId:initial[0].decision.id,decision:{bookkeepingNature:'expense',
+        treatment:'mixed_use',reviewStatus:'resolved',reason:'Categorized mixed business supplies.',
+        allocations:[{kind:'business',amountCents:-3_000,taxCategoryKey:'supplies'},
+          {kind:'personal',amountCents:-1_716,taxCategoryKey:null}]}})
+    const expenses=[{...initial[0],decision:categorized},initial[1]]
+    const requests=await Promise.all(expenses.map(item=>openMissing(admin,owner.businessId,item.recordId)))
+    const periodId=await createUntouchedV3Period(admin,owner)
+    const personal=await owner.customer.rpc('complete_weekly_personal_sweep',{p_review_period_id:periodId,
+      p_expected_workflow_event_id:null,p_request_id:crypto.randomUUID(),p_items:[]})
+    const documentationLeaf=await owner.customer.rpc('append_weekly_review_workflow_event',{p_review_period_id:periodId,
+      p_expected_event_id:personal.data.workflow_event_id,p_stage:'mixed',p_event_type:'stage_completed',
+      p_details:{resolvedCount:0},p_request_id:crypto.randomUUID()})
+    expect(documentationLeaf.error).toBeNull()
+
+    const requestId=crypto.randomUUID(),yesInput={p_review_period_id:periodId,
+      p_expected_workflow_event_id:documentationLeaf.data,p_request_id:requestId,
+      p_financial_transaction_id:expenses[0].financialTransactionId,
+      p_expected_current_decision_id:expenses[0].decision.id,
+      p_expected_documentation_event_id:requests[0].id,p_business_use:'business'}
+    const yes=await owner.customer.rpc('attest_weekly_receipt_unavailable',yesInput)
+    expect(yes.error).toBeNull()
+    expect(yes.data).toMatchObject({business_use:'business',idempotent:false})
+    expect((await owner.customer.rpc('attest_weekly_receipt_unavailable',yesInput)).data)
+      .toMatchObject({decision_id:yes.data.decision_id,idempotent:true})
+    const yesDecision=await owner.customer.from('bookkeeping_decisions')
+      .select('id,supersedes_decision_id,treatment,provenance,actor_user_id')
+      .eq('id',yes.data.decision_id).single()
+    expect(yesDecision.data).toMatchObject({supersedes_decision_id:expenses[0].decision.id,
+      treatment:'mixed_use',provenance:'user',actor_user_id:owner.userId})
+    const yesAllocation=await owner.customer.from('bookkeeping_allocations')
+      .select('allocation_kind,amount_cents,tax_category_key').eq('bookkeeping_decision_id',yes.data.decision_id)
+    expect(yesAllocation.data).toEqual(expect.arrayContaining([
+      {allocation_kind:'business',amount_cents:-3_000,tax_category_key:'supplies'},
+      {allocation_kind:'personal',amount_cents:-1_716,tax_category_key:null},
+    ]))
+
+    const no=await owner.customer.rpc('attest_weekly_receipt_unavailable',{p_review_period_id:periodId,
+      p_expected_workflow_event_id:documentationLeaf.data,p_request_id:crypto.randomUUID(),
+      p_financial_transaction_id:expenses[1].financialTransactionId,
+      p_expected_current_decision_id:expenses[1].decision.id,
+      p_expected_documentation_event_id:requests[1].id,p_business_use:'personal'})
+    expect(no.error).toBeNull()
+    const noDecision=await owner.customer.from('bookkeeping_decisions')
+      .select('supersedes_decision_id,treatment,provenance,actor_user_id').eq('id',no.data.decision_id).single()
+    expect(noDecision.data).toMatchObject({supersedes_decision_id:expenses[1].decision.id,
+      treatment:'personal',provenance:'user',actor_user_id:owner.userId})
+    expect((await owner.customer.from('bookkeeping_allocations').select('allocation_kind,amount_cents')
+      .eq('bookkeeping_decision_id',no.data.decision_id).single()).data)
+      .toEqual({allocation_kind:'personal',amount_cents:-2_275})
+
+    for(const [index] of expenses.entries()){
+      const history=await owner.customer.from('bookkeeping_documentation_events')
+        .select('event_type,provenance').eq('documentation_issue_id',requests[index].documentationIssueId)
+        .order('sequence_number')
+      expect(history.data).toEqual([
+        expect.objectContaining({event_type:'request_opened'}),
+        {event_type:'receipt_lost',provenance:'user'},
+        {event_type:'resolved',provenance:'system'},
+      ])
+    }
+
+    const staleRequest=crypto.randomUUID(),before=await owner.customer.from('bookkeeping_decisions')
+      .select('id',{count:'exact',head:true}).eq('bookkeeping_record_id',expenses[0].recordId)
+    const stale=await owner.customer.rpc('attest_weekly_receipt_unavailable',{...yesInput,p_request_id:staleRequest})
+    expect(stale.error).not.toBeNull()
+    expect((await owner.customer.from('bookkeeping_decisions').select('id',{count:'exact',head:true})
+      .eq('bookkeeping_record_id',expenses[0].recordId)).count).toBe(before.count)
+    expect((await owner.customer.from('bookkeeping_weekly_documentation_batches').select('id')
+      .eq('request_id',staleRequest)).data).toEqual([])
+
+    const other=await provisionLocalCanonicalOwner({admin,url:url!,anonKey:anonKey!,
+      label:'weekly-receipt-attestation-foreign',amounts:[-100]})
+    const denied=await other.customer.rpc('attest_weekly_receipt_unavailable',{...yesInput,p_request_id:crypto.randomUUID()})
+    expect(denied.error).not.toBeNull()
+  })
 })
