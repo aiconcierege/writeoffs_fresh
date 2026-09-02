@@ -1,3 +1,5 @@
+import { PublicPageShell } from '../../components/PublicPageShell'
+
 export const metadata = {
   title: "Terms of Service | WriteOffs.io",
   description: "The rules for using WriteOffs.io.",
@@ -5,9 +7,8 @@ export const metadata = {
 
 export default function Page() {
   return (
-    <main className="prose prose-zinc max-w-3xl mx-auto px-4 py-12">
-      <h1>Terms of Service</h1>
-      <p><strong>Last updated:</strong> September 30, 2025</p>
+    <PublicPageShell eyebrow="Legal" title="Terms of Service" introduction="Last updated September 30, 2025">
+      <article className="public-legal">
 
       <p>
         These Terms of Service (“Terms”) govern your access to and use of the Services provided by
@@ -43,9 +44,10 @@ export default function Page() {
 
       <h2>4. Subscriptions & Payments</h2>
       <ul>
-        <li>Paid features may require a subscription. Prices, features, and billing terms may change with notice.</li>
+        <li>Paid features may require a month-to-month membership. Prices, features, and billing terms may change with notice.</li>
         <li>Taxes may apply and are your responsibility where required.</li>
-        <li>Refunds are handled per our then-current refund policy (if any).</li>
+        <li>You may cancel your membership. Cancellation stops future renewal, and paid access continues through the end of the current paid billing period.</li>
+        <li>We do not provide prorated or partial-month refunds.</li>
       </ul>
 
       <h2>5. Third-Party Services</h2>
@@ -96,8 +98,9 @@ export default function Page() {
 
       <h2>12. Contact</h2>
       <p>
-        Questions about these Terms: <a href="mailto:rick@aiconciergeinc.com">rick@aiconciergeinc.com</a>.
+        Questions about these Terms: <a href="mailto:rick@writeoffs.io">rick@writeoffs.io</a>.
       </p>
-    </main>
+      </article>
+    </PublicPageShell>
   );
 }

@@ -1,54 +1,72 @@
-// app/api/waitlist/confirm/route.ts
-import { NextRequest, NextResponse } from "next/server"
-import { cookies } from "next/headers"
-import { createServerClient } from "@supabase/ssr"
+import { NextResponse } from 'next/server'
+import { createServerAdminSupabase } from '../../../../utils/supabase/admin'
+import {
+  parseWaitlistSubmission,
+  WAITLIST_BODY_MAX_BYTES,
+  WAITLIST_RATE_LIMIT,
+  WAITLIST_RATE_WINDOW_SECONDS,
+  waitlistClientAddress,
+  waitlistRateLimitKey,
+} from '../../../lib/public/waitlist'
 
-type WaitlistBody = {
-  email: string
-  name?: string
-  source?: string
+export const runtime = 'nodejs'
+
+function json(body: Record<string, unknown>, status = 200, extraHeaders?: Record<string, string>) {
+  return NextResponse.json(body, {
+    status,
+    headers: { 'Cache-Control': 'no-store', ...extraHeaders },
+  })
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(request: Request) {
+  const declaredLength = Number(request.headers.get('content-length') ?? 0)
+  if (Number.isFinite(declaredLength) && declaredLength > WAITLIST_BODY_MAX_BYTES) {
+    return json({ error: 'That request is too large.' }, 413)
+  }
+
+  let rawBody = ''
+  let parsedBody: unknown
   try {
-    const { email, name, source }: WaitlistBody = await req.json()
-
-    if (!email || typeof email !== "string") {
-      return NextResponse.json({ error: "Missing email" }, { status: 400 })
+    rawBody = await request.text()
+    if (Buffer.byteLength(rawBody, 'utf8') > WAITLIST_BODY_MAX_BYTES) {
+      return json({ error: 'That request is too large.' }, 413)
     }
+    parsedBody = JSON.parse(rawBody)
+  } catch {
+    return json({ error: 'Please enter a valid name and email.' }, 400)
+  }
 
-    // Build SSR client that can read/write auth cookies in a route handler
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get: (name: string) => cookieStore.get(name)?.value,
-          set: (name: string, value: string, options: any) => {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove: (name: string, options: any) => {
-            cookieStore.set({ name, value: "", ...options, maxAge: 0 })
-          },
-        },
-      }
-    )
+  const parsed = parseWaitlistSubmission(parsedBody)
+  if (!parsed.ok) return json({ error: parsed.error }, 400)
 
-    const { error } = await supabase.from("waitlist").insert({
-      email,
-      name: name ?? null,
-      source: (source ?? "landing#waitlist").slice(0, 100),
+  try {
+    const admin = createServerAdminSupabase()
+    const rateSecret = process.env.WAITLIST_RATE_LIMIT_SECRET
+      ?? process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!rateSecret) throw new Error('Waitlist rate-limit configuration is unavailable.')
+    const keyHash = waitlistRateLimitKey(waitlistClientAddress(request.headers), rateSecret)
+    const { data: allowed, error: rateError } = await admin.rpc('consume_waitlist_rate_limit', {
+      p_key_hash: keyHash,
+      p_limit: WAITLIST_RATE_LIMIT,
+      p_window_seconds: WAITLIST_RATE_WINDOW_SECONDS,
     })
-
-    if (error) {
-      console.error("Supabase insert error:", error.message)
-      return NextResponse.json({ error: "Unable to save waitlist" }, { status: 500 })
+    if (rateError) throw rateError
+    if (!allowed) {
+      return json(
+        { error: 'Please wait a few minutes before trying again.' },
+        429,
+        { 'Retry-After': String(WAITLIST_RATE_WINDOW_SECONDS) },
+      )
     }
 
-    return NextResponse.json({ success: true })
-  } catch (err) {
-    console.error("Waitlist API error:", err)
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 })
+    const { error } = await admin.from('waitlist').insert(parsed.value)
+    if (error?.code === '23505') {
+      return json({ success: true, duplicate: true })
+    }
+    if (error) throw error
+    return json({ success: true, duplicate: false }, 201)
+  } catch (error) {
+    console.error('Waitlist submission failed.', error instanceof Error ? error.message : 'Unknown error')
+    return json({ error: 'The waitlist is temporarily unavailable. Please try again.' }, 503)
   }
 }

@@ -1,3 +1,5 @@
+import { PublicPageShell } from '../../components/PublicPageShell'
+
 export const metadata = {
   title: "Tax Disclaimer | WriteOffs.io",
   description:
@@ -6,13 +8,12 @@ export const metadata = {
 
 export default function Page() {
   return (
-    <main className="prose prose-zinc max-w-3xl mx-auto px-4 py-12">
-      <h1>Tax Disclaimer</h1>
-      <p><strong>Last updated:</strong> September 30, 2025</p>
+    <PublicPageShell eyebrow="Legal" title="Tax Disclaimer" introduction="Last updated September 30, 2025">
+      <article className="public-legal">
 
       <p>
         The content and tools provided by <strong>AI Concierge Inc. d/b/a WriteOffs.io</strong>
-        (including blog posts, FAQs, automated classifications, and in-app explanations) are for
+        (including automated bookkeeping support and in-app explanations) are for
         informational purposes only. They are not legal, tax, accounting, or investment advice,
         and should not be relied upon as a substitute for professional advice tailored to your
         specific circumstances.
@@ -47,8 +48,9 @@ export default function Page() {
 
       <h2>Contact</h2>
       <p>
-        For questions, contact <a href="mailto:rick@aiconciergeinc.com">rick@aiconciergeinc.com</a>.
+        For questions, contact <a href="mailto:rick@writeoffs.io">rick@writeoffs.io</a>.
       </p>
-    </main>
+      </article>
+    </PublicPageShell>
   );
 }

@@ -5,14 +5,16 @@
  */
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { isCustomerSignupEnabled } from './app/lib/auth/signup-policy'
 
 export async function middleware(req: NextRequest) {
   const url = req.nextUrl
   const pathname = url.pathname
   const res = NextResponse.next()
 
-  // --- Gate signups behind env flag ---
-  const signupEnabled = process.env.NEXT_PUBLIC_ENABLE_SIGNUP === 'true'
+  // Production is explicitly waitlist-only. Staging and local behavior remain
+  // controlled by the shared server-side environment policy.
+  const signupEnabled = isCustomerSignupEnabled()
   if (!signupEnabled && pathname.startsWith('/signup')) {
     url.pathname = '/'
     url.searchParams.set('waitlist', '1')

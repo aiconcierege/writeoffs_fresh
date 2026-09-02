@@ -1,91 +1,49 @@
-// /app/press/page.tsx
-import Link from "next/link";
+import Image from 'next/image'
+import { BettiIllustration } from '../components/BettiIllustration'
+import { PublicPageShell } from '../components/PublicPageShell'
 
 export const metadata = {
-  title: "Press Kit · WriteOffs.io",
-  description: "Logos, colors, boilerplate, and media contact for WriteOffs.io.",
-};
+  title: 'Press Kit · WriteOffs.io',
+  description: 'Official WriteOffs company information, logos, colors, and media contact.',
+}
+
+const colors = [
+  ['WriteOffs navy', '#243186'],
+  ['WriteOffs green', '#178368'],
+  ['Warm cream', '#FFFAF3'],
+  ['Deep green', '#193F35'],
+] as const
 
 export default function PressPage() {
-  return (
-    <main className="mx-auto max-w-5xl px-5 py-16">
-      <h1 className="text-3xl font-bold tracking-tight">Press Kit</h1>
-      <p className="mt-2 text-neutral-700">
-        Media inquiries and brand assets for WriteOffs.io.
-      </p>
+  return <PublicPageShell eyebrow="Media resources" title="Press kit" introduction="Official company information and approved brand assets for WriteOffs.">
+    <section className="press-intro" aria-labelledby="about-writeoffs">
+      <div>
+        <p className="public-section-label">Company boilerplate</p>
+        <h2 id="about-writeoffs">Bookkeeping for independent business owners.</h2>
+      </div>
+      <p>WriteOffs is bookkeeping for self-employed and independent businesses. It organizes financial activity, keeps receipts and other documentation with the activity they support, and handles bookkeeping and supported tax logic behind the scenes. When WriteOffs needs a real-world fact only the customer knows, it asks a clear question. The result is organized bookkeeping records and reports without asking customers to become bookkeepers themselves. WriteOffs does not prepare or file tax returns.</p>
+    </section>
 
-      <section className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
-        {/* Logos */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-card">
-          <h2 className="text-lg font-semibold">Logos</h2>
-          <ul className="mt-3 space-y-2 text-sm">
-            <li>
-              <a className="text-[#1D4ED8] hover:underline" href="/press/writeoffs_logo_clean.png" download>
-                Primary logo (PNG)
-              </a>
-            </li>
-            <li>
-              <a className="text-[#1D4ED8] hover:underline" href="/press/writeoffs_logo_clean.svg" download>
-                Primary logo (SVG)
-              </a>
-            </li>
-            <li>
-              <a className="text-[#1D4ED8] hover:underline" href="/press/icon.png" download>
-                App icon (PNG)
-              </a>
-            </li>
-          </ul>
-        </div>
+    <section className="press-section" aria-labelledby="logos-heading">
+      <div className="press-section-heading"><p className="public-section-label">Brand assets</p><h2 id="logos-heading">Official WriteOffs logo</h2><p>Use the artwork as supplied. Do not redraw, recolor, or combine it with another mark.</p></div>
+      <div className="press-logo-stage">
+        <div><Image src="/logo-header.png" alt="WriteOffs" width={332} height={62}/><div className="press-logo-downloads"><a href="/logo-header.png" download>Download PNG <span aria-hidden="true">↓</span></a><a href="/logo.svg" download>Download SVG <span aria-hidden="true">↓</span></a></div></div>
+      </div>
+      <p className="press-icon-download"><a href="/og/og-default.png" download>Download approved social/app artwork <span aria-hidden="true">↓</span></a></p>
+    </section>
 
-        {/* Colors */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-card">
-          <h2 className="text-lg font-semibold">Colors</h2>
-          <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
-            <div className="rounded-xl border border-neutral-200 p-3">
-              <div className="h-8 w-full rounded-md bg-[#2563EB]" />
-              <div className="mt-2 font-medium">Primary Blue</div>
-              <div className="text-neutral-700">#2563EB</div>
-            </div>
-            <div className="rounded-xl border border-neutral-200 p-3">
-              <div className="h-8 w-full rounded-md bg-[#1D4ED8]" />
-              <div className="mt-2 font-medium">Blue Hover</div>
-              <div className="text-neutral-700">#1D4ED8</div>
-            </div>
-            <div className="rounded-xl border border-neutral-200 p-3">
-              <div className="h-8 w-full rounded-md bg-[#10B981]" />
-              <div className="mt-2 font-medium">Accent Green</div>
-              <div className="text-neutral-700">#10B981</div>
-            </div>
-          </div>
-        </div>
+    <section className="press-section" aria-labelledby="colors-heading">
+      <div className="press-section-heading"><p className="public-section-label">Color</p><h2 id="colors-heading">The WriteOffs palette</h2></div>
+      <dl className="press-colors">{colors.map(([name, value]) => <div key={value}><i style={{backgroundColor:value}}/><dt>{name}</dt><dd>{value}</dd></div>)}</dl>
+    </section>
 
-        {/* Boilerplate */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-card md:col-span-2">
-          <h2 className="text-lg font-semibold">Company boilerplate</h2>
-          <p className="mt-2 text-neutral-800">
-            WriteOffs.io is a deduction-first tool for solopreneurs and gig workers. It helps people spot likely
-            write-offs, attach receipts with OCR, track mileage, and export Schedule C-ready data. When users aren’t
-            sure, they can ask, “Is it a write-off?” and get careful, hedged guidance. The product is currently in
-            private beta in the U.S.
-          </p>
-        </div>
+    <section className="press-betti" aria-labelledby="press-betti-heading">
+      <div className="press-betti-art"><BettiIllustration state="welcome" decorative sizes="(max-width: 639px) 16rem, 20rem"/></div>
+      <div><p className="public-section-label">Supporting character</p><h2 id="press-betti-heading">Betti the Bookkeeper</h2><p>Betti is the careful, calm bookkeeper customers recognize inside WriteOffs. She helps make the invisible work feel personal, but she is not the WriteOffs logo and must never replace or be combined with it.</p>
+        <div className="press-downloads"><a href="/betti/betti-welcome.png" download>Welcome pose <span aria-hidden="true">↓</span></a><a href="/betti/betti-caught-up.png" download>Caught-up pose <span aria-hidden="true">↓</span></a></div>
+      </div>
+    </section>
 
-        {/* Contact */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-card md:col-span-2">
-          <h2 className="text-lg font-semibold">Media contact</h2>
-          <p className="mt-2 text-neutral-800">
-            Email: <a href="mailto:press@writeoffs.io" className="text-[#1D4ED8] hover:underline">press@writeoffs.io</a>
-          </p>
-          <p className="text-neutral-700 text-sm mt-1">
-            For embargoed briefings, please include your outlet and timeline.
-          </p>
-          <div className="mt-4">
-            <Link href="/" className="inline-block rounded-xl border border-[#BFDBFE] px-4 py-2 text-sm font-semibold text-[#1D4ED8] hover:border-[#93C5FD]">
-              Back to homepage
-            </Link>
-          </div>
-        </div>
-      </section>
-    </main>
-  );
+    <section className="press-contact" aria-labelledby="media-contact"><p className="public-section-label">Media contact</p><h2 id="media-contact">Let’s talk.</h2><p>For interviews, background, or approved assets, email <a href="mailto:press@writeoffs.io">press@writeoffs.io</a>. For embargoed briefings, include your outlet and timeline.</p></section>
+  </PublicPageShell>
 }

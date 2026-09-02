@@ -1,3 +1,5 @@
+import { PublicPageShell } from '../../components/PublicPageShell'
+
 export const metadata = {
   title: "Privacy Policy | WriteOffs.io",
   description:
@@ -6,9 +8,8 @@ export const metadata = {
 
 export default function Page() {
   return (
-    <main className="prose prose-zinc max-w-3xl mx-auto px-4 py-12">
-      <h1>Privacy Policy</h1>
-      <p><strong>Last updated:</strong> September 30, 2025</p>
+    <PublicPageShell eyebrow="Legal" title="Privacy Policy" introduction="Last updated September 30, 2025">
+      <article className="public-legal">
 
       <p>
         This Privacy Policy explains how <strong>AI Concierge Inc. d/b/a WriteOffs.io</strong>
@@ -22,13 +23,13 @@ export default function Page() {
         <li><strong>Usage.</strong> Interactions with the Services, device information, IP, pages viewed.</li>
         <li><strong>Transactional.</strong> Subscription status, payments, and related records (processed by our payment provider).</li>
         <li><strong>Content You Upload.</strong> Receipts, notes, and other files you intentionally submit.</li>
-        <li><strong>Integrations.</strong> With your permission, we may access connected accounts (e.g., bank aggregators, email) to deliver features you request.</li>
+        <li><strong>Integrations.</strong> With your permission, we may receive information from supported financial-account and payment providers to deliver features you request.</li>
       </ul>
 
       <h2>2. How We Use Information</h2>
       <ul>
         <li>Provide, maintain, and improve the Services.</li>
-        <li>Classify expenses, attach receipts, generate reports, and export data you request.</li>
+        <li>Organize business financial activity, connect receipts and other documentation, prepare bookkeeping records and reports, and export data you request.</li>
         <li>Communicate about updates, security, and support.</li>
         <li>Analyze anonymized/aggregated usage to improve performance and reliability.</li>
         <li>Comply with legal obligations and enforce terms.</li>
@@ -64,7 +65,7 @@ export default function Page() {
       <h2>7. Your Rights</h2>
       <p>
         Depending on your location, you may have rights to access, correct, delete, or export your data, and to object or restrict certain processing.
-        To exercise rights, contact <a href="mailto:rick@aiconciergeinc.com">rick@aiconciergeinc.com</a>.
+        To exercise rights, contact <a href="mailto:rick@writeoffs.io">rick@writeoffs.io</a>.
       </p>
 
       <h2>8. Cookies & Similar Technologies</h2>
@@ -91,8 +92,9 @@ export default function Page() {
 
       <h2>12. Contact</h2>
       <p>
-        Questions or requests: <a href="mailto:rick@aiconciergeinc.com">rick@aiconciergeinc.com</a>.
+        Questions or requests: <a href="mailto:rick@writeoffs.io">rick@writeoffs.io</a>.
       </p>
-    </main>
+      </article>
+    </PublicPageShell>
   );
 }

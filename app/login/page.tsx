@@ -1,104 +1,21 @@
-/* File: app/login/page.tsx
- * Version: v3
- * Date: 2025-10-15
- * Notes: Wraps the client component using useSearchParams in <Suspense>.
- */
-'use client'
+import BrandLogo from '../components/BrandLogo'
+import { isCustomerSignupEnabled } from '../lib/auth/signup-policy'
+import { LoginForm } from './LoginForm'
 
-import { Suspense, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { supabase } from '../../utils/supabase/client'
-
-function LoginInner() {
-  const params = useSearchParams()
-  const router = useRouter()
-  const vertical = (params.get('vertical') === 'realtor' ? 'realtor' : 'general') as 'realtor' | 'general'
-
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [err, setErr] = useState<string | null>(null)
-  const [ok, setOk] = useState<string | null>(null)
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true); setErr(null); setOk(null)
-
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      setErr(error.message)
-      setLoading(false)
-      return
-    }
-
-    setOk('Signed in — redirecting…')
-    setTimeout(() => router.push('/dashboard'), 150)
-  }
-
-  return (
-    <main className="min-h-screen bg-white">
-      <section className="mx-auto max-w-md px-6 py-12">
-        <div className="mb-2 inline-flex items-center rounded-full border px-3 py-1 text-sm">
-          <span className="mr-2">🔑</span> Log in
-        </div>
-        <h1 className="text-3xl font-bold">Log in</h1>
-        <p className="mt-2 text-sm text-neutral-700">
-          You’re logging into the <strong>{vertical === 'realtor' ? 'Realtor Pack' : 'General Pack'}</strong>.
-        </p>
-
-        <form onSubmit={handleLogin} className="mt-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-xl border px-3 py-2"
-              placeholder="you@example.com"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Password</label>
-            <input
-              type="password"
-              required
-              minLength={8}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-xl border px-3 py-2"
-              placeholder="Your password"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl btn btn-primary px-4 py-2 font-semibold disabled:opacity-60"
-          >
-            {loading ? 'Signing in…' : 'Log in'}
-          </button>
-        </form>
-
-        {err && <p className="mt-3 text-sm text-red-600">{err}</p>}
-        {ok && <p className="mt-3 text-sm text-green-700">{ok}</p>}
-
-        <p className="mt-6 text-sm">
-          New here?{' '}
-          <Link href={`/signup?vertical=${vertical}`} className="underline">
-            Create an account
-          </Link>
-        </p>
-      </section>
-    </main>
-  )
+export const metadata = {
+  title: 'Log in | WriteOffs.io',
+  description: 'Log in to your WriteOffs account.',
 }
 
 export default function LoginPage() {
-  return (
-    <Suspense fallback={<main className="min-h-screen bg-white"><section className="mx-auto max-w-md px-6 py-12">Loading…</section></main>}>
-      <LoginInner />
-    </Suspense>
-  )
+  const signupEnabled = isCustomerSignupEnabled()
+  return <div className="public-site -mx-4 -mb-10 grid min-h-[calc(100vh-5rem)] place-items-center overflow-hidden bg-[radial-gradient(circle_at_80%_12%,rgba(140,230,203,.28),transparent_22rem),linear-gradient(145deg,#fff8ee,#edf6ef)] px-4 py-10 sm:-mx-6 sm:px-6 lg:-mx-8">
+    <section className="w-full max-w-md rounded-[1.75rem] border border-[#d5ddd7] bg-[#fffdf8]/95 p-6 shadow-[0_28px_75px_rgba(23,33,29,.13)] sm:p-9" aria-labelledby="login-heading">
+      <BrandLogo heightPx={38}/>
+      <p className="mt-9 text-xs font-bold uppercase tracking-[.14em] text-[#178368]">Welcome back</p>
+      <h1 id="login-heading" className="mt-3 text-4xl font-semibold tracking-[-.045em] text-[#17211d]">Log in to WriteOffs</h1>
+      <p className="mt-3 text-sm leading-6 text-[#59665f]">Your books are waiting right where you left them.</p>
+      <LoginForm signupEnabled={signupEnabled}/>
+    </section>
+  </div>
 }

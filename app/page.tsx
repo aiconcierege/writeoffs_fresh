@@ -1,12 +1,14 @@
 import Image from "next/image"
 import Link from "next/link"
 import WaitlistForm from "./components/WaitlistForm"
+import { BettiIllustration } from "./components/BettiIllustration"
+import { PublicFooter } from "./components/PublicFooter"
 
 const steps = [
   {
     number: "01",
-    title: "Connect",
-    body: "Bring in activity from the accounts you use for business and send over your receipts.",
+    title: "Send it over",
+    body: "Share activity from the accounts you use for business and send over your receipts.",
   },
   {
     number: "02",
@@ -21,7 +23,7 @@ const steps = [
 ]
 
 const outcomes = [
-  ["Know where you stand", "See how your business is doing without building your own reports."],
+  ["Know where you stand", "See the business records WriteOffs is handling without building your own reports."],
   ["Keep the proof together", "Receipts and supporting documents stay organized with the activity they explain."],
   ["Skip the busywork", "Stop spending your evenings sorting transactions into accounting categories."],
   ["Be ready for tax time", "Your records stay clean and organized for you or your tax professional."],
@@ -29,7 +31,7 @@ const outcomes = [
 
 export default function Page() {
   return (
-    <div className="-mx-4 -mb-10 overflow-hidden bg-[#fffaf3] text-[#17211d] sm:-mx-6 lg:-mx-8">
+    <div className="public-site -mx-4 -mb-10 overflow-hidden bg-[#fffaf3] text-[#17211d] sm:-mx-6 lg:-mx-8">
       <section className="relative overflow-hidden bg-[#fff8ee]">
         <div className="relative mx-auto grid max-w-[90rem] lg:min-h-[36rem] lg:grid-cols-[1.08fr_0.92fr] xl:min-h-[39rem]">
           <div className="relative z-10 flex items-center px-6 py-12 sm:px-10 sm:py-16 lg:px-16 lg:py-14 xl:px-24">
@@ -48,7 +50,7 @@ export default function Page() {
                 <span className="block text-[#243186]">the books.</span>
               </h1>
               <p className="mt-6 max-w-xl text-base leading-7 text-[#4f5d56] sm:text-lg sm:leading-8">
-                Connect your accounts and send us your receipts. WriteOffs organizes the activity, keeps your documentation together, and asks for your help only when it needs a fact from you.
+                Share your business activity and send us your receipts. WriteOffs organizes the records, keeps your documentation together, and asks for your help only when it needs a fact from you.
               </p>
               <div className="mt-7 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
                 <a
@@ -61,7 +63,6 @@ export default function Page() {
                   See how it works
                 </a>
               </div>
-              <p className="mt-4 text-xs text-[#68756e] sm:text-sm">Early access for U.S. independent business owners.</p>
             </div>
           </div>
 
@@ -110,7 +111,7 @@ export default function Page() {
           </div>
           <div className="mt-11 grid gap-9 lg:grid-cols-3 lg:gap-0">
             {steps.map((step, index) => (
-              <article key={step.number} className={`relative ${index ? "lg:border-l lg:border-[#cfd8d2] lg:pl-10" : "lg:pr-10"}`}>
+              <article key={step.number} className={`relative ${index ? "lg:border-l lg:border-[#cfd8d2] lg:pl-10" : "lg:pr-10"} ${index === 1 ? "rounded-[1.5rem] border-0 bg-[#e5f3e7] px-6 py-6 shadow-[0_20px_48px_rgba(23,83,62,.11)] lg:-my-7 lg:mx-6 lg:border-0 lg:px-8 lg:py-8" : ""}`}>
                 <span className="font-mono text-sm font-semibold text-[#178368]">{step.number}</span>
                 <h3 className="mt-5 text-2xl font-semibold tracking-[-0.03em]">{step.title}</h3>
                 <p className="mt-3 max-w-sm text-base leading-7 text-[#59665f]">{step.body}</p>
@@ -120,7 +121,22 @@ export default function Page() {
         </div>
       </section>
 
-      <section id="features" className="relative overflow-hidden bg-[#e9f5ef]">
+      <section className="betti-landing-section relative z-10 overflow-visible bg-[#193f35] text-white" aria-labelledby="meet-betti-heading">
+        <div className="mx-auto grid max-w-7xl overflow-visible px-6 sm:px-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-center lg:px-16">
+          <div className="betti-landing-art relative order-2 h-72 overflow-visible sm:h-80 lg:order-1 lg:h-[25rem]">
+            <div className="absolute -bottom-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-[#8ce6cb]/15 blur-2xl" aria-hidden="true"/>
+            <BettiIllustration state="welcome" decorative sizes="(max-width: 1023px) 18rem, 24rem" className="absolute -bottom-14 left-1/2 w-[18rem] max-w-none -translate-x-1/2 drop-shadow-[0_24px_28px_rgba(0,0,0,.22)] sm:-bottom-16 sm:w-[21rem] lg:-bottom-20 lg:w-[24rem]"/>
+          </div>
+          <div className="order-1 pt-14 sm:pt-16 lg:order-2 lg:py-20 lg:pl-12">
+            <p className="text-sm font-semibold text-[#8ce6cb]">Meet Betti the Bookkeeper</p>
+            <h2 id="meet-betti-heading" className="mt-4 max-w-2xl text-balance text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">She’s already working.</h2>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-[#cde4da]">Betti is the careful bookkeeper inside WriteOffs—organizing the activity, connecting the proof, and bringing you only the facts she genuinely needs.</p>
+            <p className="mt-5 max-w-xl text-sm font-semibold leading-6 text-white">WriteOffs does the books. You keep running the business.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" className="relative z-0 overflow-hidden bg-[#e9f5ef]">
         <div className="absolute -left-28 top-16 h-72 w-72 rounded-full bg-[#9ce0c8]/30 blur-3xl" aria-hidden="true" />
         <div className="relative mx-auto grid max-w-7xl gap-12 px-6 py-16 sm:px-10 sm:py-20 lg:grid-cols-[0.82fr_1.18fr] lg:items-start lg:gap-20 lg:px-16 lg:py-24">
           <div className="lg:sticky lg:top-28">
@@ -183,7 +199,7 @@ export default function Page() {
       <section id="waitlist" className="relative overflow-hidden bg-[#15221d] text-white">
         <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#00b889]/20 blur-3xl" aria-hidden="true" />
         <div className="relative mx-auto max-w-5xl px-6 py-16 text-center sm:px-10 sm:py-20 lg:py-24">
-          <p className="text-sm font-semibold text-[#8ce6cb]">Join early access</p>
+          <p className="text-sm font-semibold text-[#8ce6cb]">Join the waitlist</p>
           <h2 className="mx-auto mt-4 max-w-4xl text-balance text-4xl font-semibold tracking-[-0.05em] sm:text-5xl lg:text-6xl">
             Run your business. Leave the books to WriteOffs.
           </h2>
@@ -193,20 +209,11 @@ export default function Page() {
           <div className="mx-auto mt-8 max-w-2xl rounded-2xl bg-[#fffaf3] p-3 text-[#17211d] shadow-[0_24px_70px_rgba(0,0,0,0.24)] sm:p-4">
             <WaitlistForm source="landing#waitlist" appearance="landing" />
           </div>
-          <p className="mt-5 text-sm text-[#9fb8ad]">We’ll share thoughtful updates as early access opens.</p>
+          <p className="mt-5 text-sm text-[#9fb8ad]">We’ll let you know when it’s your turn.</p>
         </div>
       </section>
 
-      <footer className="bg-[#0d1713] text-[#c8d9d1]">
-        <div className="mx-auto flex max-w-7xl flex-col gap-7 px-6 py-9 sm:px-10 md:flex-row md:items-center md:justify-between lg:px-16">
-          <p className="text-sm">© {new Date().getFullYear()} WriteOffs.io. All rights reserved.</p>
-          <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-3 text-sm">
-            <Link href="/legal/privacy" className="transition hover:text-white">Privacy</Link>
-            <Link href="/legal/terms" className="transition hover:text-white">Terms</Link>
-            <Link href="/press" className="transition hover:text-white">Press</Link>
-          </nav>
-        </div>
-      </footer>
+      <PublicFooter/>
 
     </div>
   )

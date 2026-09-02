@@ -8,12 +8,12 @@ describe('public landing page', () => {
   it('leads with the approved universal customer promise', () => {
     expect(page).toContain('You run your business.')
     expect(page).toContain('WriteOffs handles the books.')
-    expect(page).toContain('Connect your accounts and send us your receipts.')
+    expect(page).toContain('Share your business activity and send us your receipts.')
     expect(page).toContain('Join the waitlist')
   })
 
   it('uses the focused Connect, Work, Answer narrative', () => {
-    for (const copy of ['Connect', 'WriteOffs works', 'Answer only when needed']) {
+    for (const copy of ['Send it over', 'WriteOffs works', 'Answer only when needed']) {
       expect(page).toContain(copy)
     }
     expect(page).toContain('What you get')
@@ -34,10 +34,42 @@ describe('public landing page', () => {
     expect(page).not.toMatch(/Start free|Buy now|Subscribe|per month/i)
   })
 
+  it('keeps the approved hero without the removed early-access qualifier', () => {
+    expect(page).not.toContain('Early access for U.S. independent business owners.')
+  })
+
+  it('describes public availability consistently as a waitlist', () => {
+    expect(page).toContain('Join the waitlist')
+    expect(page).toContain('Run your business. Leave the books to WriteOffs.')
+    expect(page).toContain('Join the waitlist to hear when WriteOffs is ready for your business.')
+    expect(page).toContain('We’ll let you know when it’s your turn.')
+    expect(page).not.toMatch(/join early access|early access opens/i)
+  })
+
   it('keeps public navigation aligned with the page story', () => {
     expect(header).toContain('href="/#how"')
     expect(header).toContain('href="/#features"')
     expect(header).toContain('href="/#for-you"')
     expect(header).not.toContain('href="/#faq"')
+  })
+
+  it('introduces canonical Betti once and keeps How It Works mascot-free', () => {
+    expect(page.match(/<BettiIllustration/g)).toHaveLength(1)
+    expect(page).toContain('state="welcome"')
+    expect(page).toContain('Meet Betti the Bookkeeper')
+    expect(page).not.toContain('grid h-8 w-8 place-items-center')
+  })
+
+  it('lets full-body Welcome Betti bridge the Meet Betti and features sections', () => {
+    const meetBetti = page.slice(
+      page.indexOf('betti-landing-section'),
+      page.indexOf('<section id="features"'),
+    )
+
+    expect(meetBetti).toContain('relative z-10 overflow-visible')
+    expect(meetBetti).toContain('betti-landing-art')
+    expect(meetBetti).not.toContain('overflow-hidden')
+    expect(meetBetti).toContain('-bottom-14')
+    expect(page).toContain('<section id="features" className="relative z-0')
   })
 })
