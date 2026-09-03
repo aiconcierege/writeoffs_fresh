@@ -45,6 +45,35 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     start:period.data.period_start,end:period.data.period_end})
    const decision=body.documentationDecision,recordIds=body.recordIds
    const completeStage=body.completeStage!==false
+   if(decision==='acknowledged_pending'){
+    const recordId=String(body.recordId??''),transactionId=String(body.transactionId??'')
+    const decisionId=String(body.decisionId??'')
+    if(!UUID.test(recordId)||!UUID.test(transactionId)||!UUID.test(decisionId)||completeStage)
+      throw new Error('Choose a current receipt request to add later.')
+    const documentation=await supabase.from('bookkeeping_documentation_events')
+      .select('id,supersedes_event_id,event_type').eq('business_id',period.data.business_id)
+      .eq('bookkeeping_record_id',recordId)
+    if(documentation.error)throw new Error('The receipt request could not be checked safely.')
+    const superseded=new Set((documentation.data??[]).map(event=>event.supersedes_event_id).filter(Boolean))
+    const current=(documentation.data??[]).find(event=>!superseded.has(event.id)
+      &&['request_opened','reopened','evidence_attached','acknowledged_pending'].includes(event.event_type))
+    if(!current)throw new Error('The receipt request changed. Refresh and try again.')
+    const acknowledged=await supabase.rpc('acknowledge_weekly_documentation_pending',{
+      p_review_period_id:id,p_expected_workflow_event_id:expectedEventId,p_request_id:requestId,
+      p_financial_transaction_id:transactionId,p_expected_current_decision_id:decisionId,
+      p_expected_documentation_event_id:current.id})
+    if(acknowledged.error)throw new Error(acknowledged.error.message)
+    return NextResponse.json({ok:true,eventId:expectedEventId,
+      documentationEventId:(acknowledged.data as Record<string,unknown>).documentation_event_id})
+   }
+   if(decision==='continue_with_open'){
+    if(flowVersion!==3||!completeStage||!Array.isArray(recordIds)||recordIds.length!==0)
+      throw new Error('The documentation stage could not be completed safely.')
+    const completed=await supabase.rpc('complete_weekly_documentation_stage_v3',{
+      p_review_period_id:id,p_expected_workflow_event_id:expectedEventId,p_request_id:requestId})
+    if(completed.error)throw new Error(completed.error.message)
+    return NextResponse.json({ok:true,eventId:completed.data})
+   }
    if(decision==='receipt_unavailable_attestation'){
     const recordId=String(body.recordId??''),transactionId=String(body.transactionId??'')
     const decisionId=String(body.decisionId??''),businessUse=String(body.businessUse??'')
@@ -57,7 +86,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     if(documentation.error)throw new Error('The receipt request could not be checked safely.')
     const superseded=new Set((documentation.data??[]).map(event=>event.supersedes_event_id).filter(Boolean))
     const current=(documentation.data??[]).find(event=>!superseded.has(event.id)
-      &&['request_opened','reopened','evidence_attached'].includes(event.event_type))
+      &&['request_opened','reopened','evidence_attached','acknowledged_pending'].includes(event.event_type))
     if(!current)throw new Error('The receipt request changed. Refresh and try again.')
     const attested=await supabase.rpc('attest_weekly_receipt_unavailable',{
       p_review_period_id:id,p_expected_workflow_event_id:expectedEventId,p_request_id:requestId,

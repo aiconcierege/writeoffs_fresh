@@ -22,7 +22,8 @@ describe('Home canonical visual derivations', () => {
     const visuals = readFileSync('app/home/HomeVisuals.tsx', 'utf8')
     const repository = readFileSync('app/lib/home/operating-status.ts', 'utf8')
     const operating = readFileSync('app/home/HomeOperatingStatus.tsx', 'utf8')
-    expect(home).toContain('<HomeOperatingStatus status={operatingStatus}/>')
+    expect(home).toContain('<HomeOperatingStatus status={operatingStatus} outstandingDocumentation={receiptWorkflow.outstandingDocumentation}/>')
+    expect(operating).toContain("receipts are'} still needed")
     expect(home).not.toContain('WriteoffRhythm')
     expect(visuals).not.toContain('Writeoffs found by month')
     expect(repository).toContain("rpc('list_plaid_connections')")
@@ -33,7 +34,7 @@ describe('Home canonical visual derivations', () => {
     expect(operating).not.toContain('Accounts checked')
     expect(operating).not.toContain('Next check-in')
     expect(operating).not.toContain('Every ${checkInDay}')
-    expect(operating).toContain('if(status.hasConnectedAccounts)return null')
+    expect(operating).toContain('if(status.hasConnectedAccounts&&outstandingDocumentation===0)return null')
     expect(operating).toContain('Connect an account')
   })
 

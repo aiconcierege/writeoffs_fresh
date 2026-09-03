@@ -97,11 +97,14 @@ export async function countReceiptsNeedingAttention(supabase: SupabaseClient) {
 
 export async function summarizeReceiptDocumentation(supabase: SupabaseClient) {
   const { user, businessId } = await requireReceiptOwner(supabase)
+  const outstanding = await supabase.rpc('list_current_bookkeeping_documentation_requests', { p_business_id: businessId })
+  if (outstanding.error) throw new Error('Outstanding documentation could not be loaded.')
+  const outstandingDocumentation = (outstanding.data ?? []).length
   const receipts = await supabase.from('receipts').select('id').eq('user_id', user.id)
     .eq('business_id', businessId).limit(5000)
   if (receipts.error) throw new Error('Receipt status could not be loaded.')
   const ids = (receipts.data ?? []).map((row) => row.id)
-  if (!ids.length) return { organized: 0, processing: 0, needsHelp: 0 }
+  if (!ids.length) return { organized: 0, processing: 0, needsHelp: 0, outstandingDocumentation }
   const [events, processing, convergences] = await Promise.all([
     supabase.from('bookkeeping_receipt_events').select('id,receipt_id,supersedes_event_id,event_type')
       .eq('business_id', businessId).in('receipt_id', ids),
@@ -120,6 +123,7 @@ export async function summarizeReceiptDocumentation(supabase: SupabaseClient) {
     organized: ids.filter((id) => converged.has(id) || ['matched','retained','kept'].includes(leafByReceipt.get(id) ?? '')).length,
     processing: ids.filter((id) => ['queued','processing'].includes(status.get(id) ?? '')).length,
     needsHelp: ids.filter((id) => ['needs_attention','unreadable'].includes(status.get(id) ?? '')).length,
+    outstandingDocumentation,
   }
 }
 

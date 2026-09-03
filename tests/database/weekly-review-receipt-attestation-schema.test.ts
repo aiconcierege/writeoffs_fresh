@@ -45,6 +45,6 @@ describe('weekly receipt-unavailable attestation contract',()=>{
   expect(weekly).toContain("documentationDecision:'receipt_unavailable_attestation'")
   expect(weekly).not.toContain('onClick={()=>void decideMissing(item)}>Missing receipt</button>')
   expect(route).toContain("supabase.rpc('attest_weekly_receipt_unavailable'")
-  expect(route).toContain("['request_opened','reopened','evidence_attached'].includes(event.event_type)")
+  expect(route).toContain("['request_opened','reopened','evidence_attached','acknowledged_pending'].includes(event.event_type)")
  })
 })

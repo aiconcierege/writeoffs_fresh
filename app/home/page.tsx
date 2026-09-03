@@ -41,7 +41,7 @@ export default async function HomePage(){
    <div className="home-agent-copy"><p className="home-kicker">Your books with WriteOffs</p>
     <h1 id="home-heading">{waitingCount>0?'Your books need your attention.':bettiState==='working'?'I’m still working on your books.':'Your books are up to date.'}</h1>
     <p>{waitingCount>0?'I’ve done everything I can for now.':bettiState==='working'?`${receiptWorkflow.processing} ${receiptWorkflow.processing===1?'receipt is':'receipts are'} still being organized. You don’t need to wait here.`:'I’ll keep working in the background.'}</p>
-   {waitingCount>0&&actionable.length>0&&<HomeReviewInvitation count={waitingCount}/>}<HomeOperatingStatus status={operatingStatus}/>
+   {waitingCount>0&&actionable.length>0&&<HomeReviewInvitation count={waitingCount}/>}<HomeOperatingStatus status={operatingStatus} outstandingDocumentation={receiptWorkflow.outstandingDocumentation}/>
    </div>
    <BettiIllustration state={bettiState} priority className="home-agent-betti" sizes="(max-width: 639px) 15rem, 28rem" decorative/>
    <HomeQuickActions business={isBusiness}/>

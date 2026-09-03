@@ -37,7 +37,8 @@ describe('transaction-first weekly review',()=>{
   expect(weekly).toContain("item.hasReceipt?'Receipt attached':'No receipt'")
   expect(weekly).toContain('ReceiptUploadAction')
   expect(weekly).toContain('variant="guided"')
-  expect(weekly).toContain('I don’t have the receipt')
+ expect(weekly).toContain('I don’t have the receipt')
+  expect(weekly).toContain('I’ll add it later')
   expect(weekly).toContain('Is this still a business expense?')
   expect(weekly).toContain('Yes, it was for my business')
   expect(weekly).toContain('No, leave it out')
@@ -93,12 +94,15 @@ describe('transaction-first weekly review',()=>{
   expect(weekly).toContain('the items that still need information will stay on your list')
   expect(weekly).toContain('I’ve reviewed this week')
  })
- it('advances documentation only through a persisted include/exclude decision',()=>{
+ it('keeps documentation facts separate and allows the customer to keep going',()=>{
   expect(weekly).toContain("decideMissing(item,'business')")
   expect(weekly).toContain("decideMissing(item,'personal')")
   expect(weekly).toContain('setEventId(result.eventId??eventId)')
   expect(weekly).toContain('completeStage:false')
-  expect(weekly).toContain("stage==='documentation'&&missing.length>0")
+  expect(weekly).toContain("documentationDecision:'continue_with_open'")
+  expect(weekly).toContain("documentationDecision:'acknowledged_pending'")
+  expect(weekly).toContain("stage==='documentation'?'Keep going'")
+  expect(weekly).toContain("stage!=='documentation'&&<button")
   expect(weekly).toContain("['business','mixed_use'].includes(item.treatment)")
  })
  it('opens canonical missing-documentation requests before entering that stage',()=>{
@@ -111,6 +115,7 @@ describe('transaction-first weekly review',()=>{
   expect(weekly).toContain('onClick={()=>setPaused(true)}>Not right now</button>')
   expect(weekly).toContain('Nothing has been confirmed. Continue whenever you’re ready.')
   expect(weekly).toContain('onClick={()=>setPaused(false)}>Continue this review</button>')
+  expect(weekly).toContain("stage!=='documentation'&&")
  })
  it('keeps canonical defer compatibility without exposing it in the normal final review',()=>{
   const final=weekly.slice(weekly.indexOf('function FinalReview'),weekly.indexOf('function LegacyFinalReviewUnused'))

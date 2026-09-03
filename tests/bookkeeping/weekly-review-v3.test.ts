@@ -15,7 +15,7 @@ describe('Betti-led Weekly Review v3',()=>{
  const candidate=(overrides:Partial<WeeklyReviewTransaction>={}):WeeklyReviewTransaction=>({
   id:'transaction',recordId:'record',currentDecisionId:'decision',date:'2026-09-01',merchant:'T-MOBILE AUTOPAY',
   amountCents:-14_235,categoryLabel:null,treatment:'unresolved',bookkeepingNature:null,hasReceipt:false,
-  receiptLost:false,activeIssueReasons:[],...overrides,
+  receiptLost:false,documentationPendingAcknowledged:false,activeIssueReasons:[],...overrides,
  })
  it('offers unresolved and established expense-direction activity without competing issues',()=>{
   expect(isWeeklyMixedUseCandidate(candidate())).toBe(true)
@@ -66,6 +66,11 @@ describe('Betti-led Weekly Review v3',()=>{
   const final=weekly.slice(weekly.indexOf('function FinalReview'),weekly.indexOf('function LegacyFinalReviewUnused'))
   expect(final).toContain('Looks right to me')
   expect(final).not.toContain("action('deferred')")
+ })
+ it('treats open documentation as a disclosed limitation rather than a progression gate',()=>{
+  expect(weekly).toContain("documentationDecision:'continue_with_open'")
+  expect(weekly).toContain("stage==='documentation'?'Keep going'")
+  expect(weekly).not.toContain("stage==='documentation'&&missing.length>0")
  })
  it('derives customer treatment text instead of rendering raw decision provenance',()=>{
   expect(transactions).toContain('customerDecisionExplanation(current)')

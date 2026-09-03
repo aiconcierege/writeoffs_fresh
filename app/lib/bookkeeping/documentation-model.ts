@@ -5,7 +5,7 @@ export const DOCUMENTATION_REASONS = [
 export type DocumentationReason = (typeof DOCUMENTATION_REASONS)[number]
 
 export const DOCUMENTATION_EVENT_TYPES = [
-  'request_opened',
+  'request_opened', 'acknowledged_pending',
   'receipt_lost',
   'evidence_attached',
   'resolved',
@@ -17,6 +17,11 @@ export type DocumentationEventType = (typeof DOCUMENTATION_EVENT_TYPES)[number]
 export type ReceiptLostAnswer = {
   schemaVersion: 1
   assertion: 'receipt_lost'
+}
+
+export type DocumentationPendingAnswer = {
+  schemaVersion: 1
+  assertion: 'receipt_expected_later'
 }
 
 export type ReceiptDocumentationRequirement = {

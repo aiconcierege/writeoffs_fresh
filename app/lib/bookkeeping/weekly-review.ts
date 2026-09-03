@@ -5,6 +5,7 @@ import { listMileageContext } from '../mileage/repository'
 export type WeeklyReviewStage='personal'|'mixed'|'questions'|'documentation'|'mileage'|'final'
 export type WeeklyReviewTransaction={id:string;recordId:string;currentDecisionId:string;date:string;merchant:string;
   amountCents:number;categoryLabel:string|null;treatment:string;bookkeepingNature:string|null;hasReceipt:boolean;receiptLost:boolean;
+  documentationPendingAcknowledged:boolean;
   activeIssueReasons:string[]}
 
 export type CustomerWeeklyReview = {
@@ -116,6 +117,7 @@ async function loadCustomerWeeklyReview(supabase:SupabaseClient,reviewId?:string
       categoryLabel:categoryByKey.get(keyByDecision.get(row.currentDecisionId!))??null,
       treatment:row.treatment??'unresolved',bookkeepingNature:row.bookkeepingNature,
       hasReceipt:row.has_receipt,receiptLost:row.receiptLost,
+      documentationPendingAcknowledged:row.documentationPendingAcknowledged===true,
       activeIssueReasons:activeIssueReasonsByRecord.get(row.recordId!)??[]}))
     const mileageContext=await listMileageContext(supabase,{start:period.period_start,end:period.period_end})
     const mileage={vehicles:mileageContext.vehicles.filter(vehicle=>!vehicle.archived_at).map(vehicle=>({id:vehicle.id,

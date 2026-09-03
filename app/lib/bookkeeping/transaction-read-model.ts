@@ -25,6 +25,7 @@ export type TransactionReadRow = {
   history: TransactionHistoryItem[]
   evidenceLinks: TransactionEvidenceLink[]
   receiptLost: boolean
+  documentationPendingAcknowledged?: boolean
   sourceLabel: string | null
   sourceKind: string | null
   contractorName: string | null
@@ -204,12 +205,18 @@ export async function listTransactionReadModel(input: {
   let receiptExtractions: Row[] = []
   if (evidenceRecordIds.length) {
     const { data } = await input.supabase.from('bookkeeping_documentation_events')
-      .select('bookkeeping_record_id,event_type').eq('business_id', businessId)
+      .select('id,bookkeeping_record_id,supersedes_event_id,event_type').eq('business_id', businessId)
       .in('bookkeeping_record_id', evidenceRecordIds)
     documentationEvents = (data ?? []) as Row[]
   }
   const receiptLostRecords = new Set(documentationEvents
     .filter((row) => text(row, 'event_type') === 'receipt_lost')
+    .map((row) => resolution.resolve(text(row, 'bookkeeping_record_id')!)))
+  const supersededDocumentationEvents = new Set(documentationEvents
+    .map((row) => text(row, 'supersedes_event_id')).filter(Boolean))
+  const pendingAcknowledgedRecords = new Set(documentationEvents
+    .filter((row) => text(row, 'event_type') === 'acknowledged_pending'
+      && !supersededDocumentationEvents.has(text(row, 'id')))
     .map((row) => resolution.resolve(text(row, 'bookkeeping_record_id')!)))
   const linkedReceiptIds = documentLinks.map((link) => text(link, 'receipt_id')!).filter(Boolean)
   if (linkedReceiptIds.length) {
@@ -289,6 +296,7 @@ export async function listTransactionReadModel(input: {
         .map((link) => ({ id: text(link, 'id')!, receiptId: text(link, 'receipt_id')!,
           attachedAt: text(link, 'linked_at')! })),
       receiptLost: receiptLostRecords.has(recordId),
+      documentationPendingAcknowledged: pendingAcknowledgedRecords.has(recordId),
       sourceLabel: invoice
         ? [baseSourceLabel, `Invoice ${text(invoice, 'invoice_number')}`].filter(Boolean).join(' · ')
         : manual && !compoundComponent
@@ -328,6 +336,7 @@ export async function listTransactionReadModel(input: {
       decisionReason: null, decisionProvenance: null, correctionCount: 0,
       recordId: null, currentDecisionId: null, bookkeepingNature: null,
       treatment: null, history: [], evidenceLinks: [], receiptLost: row.receipt_waived === true,
+      documentationPendingAcknowledged: false,
       sourceLabel: null,
       sourceKind: null,
       contractorName: null,
