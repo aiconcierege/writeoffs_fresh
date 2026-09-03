@@ -10,9 +10,9 @@ const paths:Record<IconName,React.ReactNode>={
 }
 const Icon=({name}:{name:IconName})=><span className="home-shortcut-icon" aria-hidden="true"><svg viewBox="0 0 23 23" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg></span>
 
-export function HomeQuickActions({business}:{business:boolean}){return <section className="home-quick" aria-labelledby="home-quick-heading"><h2 id="home-quick-heading">Quick actions</h2><div className="home-quick-list">
- <div className="home-shortcut home-shortcut-receipt"><Icon name="receipt"/><div><ReceiptUploadAction variant="home" mobileLabel="Take a picture" capture="environment"/><small>Add a photo or file</small><Link className="home-shortcut-receipt-options" href="/receipts">Choose an existing photo, file, or PDF</Link></div></div>
- <Link href="/mileage" className="home-shortcut"><Icon name="miles"/><span><strong>Add miles</strong><small>Track a trip</small></span></Link>
- <Link href={business?'/money':'/money?kind=spent'} className="home-shortcut"><Icon name="money"/><span><strong>Record money</strong><small>Income or expense</small></span></Link>
- <Link href="/invoices" className="home-shortcut"><Icon name="invoice"/><span><strong>Create invoice</strong><small>Send an invoice</small></span></Link>
+export function HomeQuickActions({business}:{business:boolean}){return <section className="home-add" aria-labelledby="home-add-heading"><div className="home-add-heading"><p className="home-kicker">Add something</p><h2 id="home-add-heading">Tell Betti about something anytime.</h2></div><div className="home-add-list">
+ <div className="home-add-action home-add-receipt"><Icon name="receipt"/><div><ReceiptUploadAction variant="home" mobileLabel="Receipt" capture="environment"/><Link href="/receipts">Choose a file</Link></div></div>
+ <Link href="/mileage" className="home-add-action"><Icon name="miles"/><strong>Mileage</strong></Link>
+ <Link href={business?'/money':'/money?kind=spent'} className="home-add-action"><Icon name="money"/><strong>Money</strong></Link>
+ <Link href="/invoices" className="home-add-action"><Icon name="invoice"/><strong>Invoice</strong></Link>
  </div></section>}

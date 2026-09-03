@@ -23,7 +23,7 @@ describe('Home canonical visual derivations', () => {
     const repository = readFileSync('app/lib/home/operating-status.ts', 'utf8')
     const operating = readFileSync('app/home/HomeOperatingStatus.tsx', 'utf8')
     expect(home).toContain('<HomeOperatingStatus status={operatingStatus} outstandingDocumentation={receiptWorkflow.outstandingDocumentation}/>')
-    expect(operating).toContain("receipts are'} still needed")
+    expect(operating).toContain("receipts'}</strong>")
     expect(home).not.toContain('WriteoffRhythm')
     expect(visuals).not.toContain('Writeoffs found by month')
     expect(repository).toContain("rpc('list_plaid_connections')")
@@ -38,10 +38,12 @@ describe('Home canonical visual derivations', () => {
     expect(operating).toContain('Connect an account')
   })
 
-  it('keeps the full Home Betti above the integrated Quick Actions rail', () => {
+  it('keeps canonical Betti in a responsive conversational hero', () => {
     const styles = readFileSync('app/globals.css', 'utf8')
-    expect(styles).toContain('.home-agent-betti { width: auto; max-width: min(82%,20rem); max-height: 22rem; align-self: center; margin-bottom: 0; object-fit: contain; object-position: center bottom; }')
-    expect(styles).toContain('.home-agent-hero > .home-quick')
-    expect(styles).not.toContain('.home-agent-betti { width: min(88%,20rem); margin-bottom: -1.6rem; }')
+    const hero = readFileSync('app/home/HomeBettiHero.tsx', 'utf8')
+    expect(hero).toContain('<BettiIllustration state={artworkState[projection.state]}')
+    expect(styles).toContain('.home-betti-art { width: auto; max-width: 22rem; max-height: 25rem;')
+    expect(styles).toContain('@media (max-width:340px)')
+    expect(styles).toContain('.home-betti-message h1 { font-size: 2.05rem; }')
   })
 })

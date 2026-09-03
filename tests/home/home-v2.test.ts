@@ -1,9 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { resolveAskBettiDestination } from '../../app/home/HomeAskBetti'
-
 const home = readFileSync('app/home/page.tsx', 'utf8')
-const invitation = readFileSync('app/home/HomeReviewInvitation.tsx', 'utf8')
+const bettiHero = readFileSync('app/home/HomeBettiHero.tsx', 'utf8')
+const bettiModel = readFileSync('app/lib/home/betti-home.ts', 'utf8')
 const quickActions = readFileSync('app/home/HomeQuickActions.tsx', 'utf8')
 const financial = readFileSync('app/home/HomeVisuals.tsx', 'utf8')
 const weeklyPage = readFileSync('app/weekly-review/[id]/page.tsx', 'utf8')
@@ -21,24 +20,21 @@ describe('Home command center', () => {
     expect(home).not.toContain(".from('transactions')")
   })
 
-  it('moves the weekly workflow off Home and keeps invitation dismissal local', () => {
+  it('moves the weekly workflow off Home and gives Betti one direct invitation', () => {
     expect(home).not.toContain('<WeeklyReview')
-    expect(home).toContain('<HomeReviewInvitation count={waitingCount}/>')
-    expect(invitation).toContain('href="/weekly-review"')
-    expect(invitation).toContain('Are you ready for your weekly review?')
-    expect(invitation).toContain("setDismissed(true)")
-    expect(invitation).not.toContain('/api/bookkeeping/reviews')
+    expect(home).toContain('<HomeBettiHero projection={betti}/>')
+    expect(bettiModel).toContain("label: 'See what Betti needs'")
+    expect(bettiHero).not.toContain('Not right now')
+    expect(bettiHero).not.toContain('/api/bookkeeping/reviews')
   })
 
-  it('supports truthful zero, one, and many review language', () => {
-    expect(home).toContain('waitingCount=actionable.length')
-    expect(home).toContain("waitingCount>0?'Your books need your attention.'")
-    expect(home).toContain("waitingCount>0?'I’ve done everything I can for now.'")
-    expect(home).not.toContain('weekly reviews are`} waiting for you')
-    expect(home).toContain("'Your books are up to date.'")
-    expect(home).toContain("'I’ll keep working in the background.'")
-    expect(invitation).toContain("count===1?'I need a little information from you to finish one weekly review.'")
-    expect(invitation).toContain('finish ${count} weekly reviews')
+  it('projects Home language from canonical review, receipt, and documentation counts', () => {
+    expect(home).toContain('actionableReviewIds:actionable.map(review=>review.id)')
+    expect(home).toContain('receiptsProcessing:receiptWorkflow.processing')
+    expect(home).toContain('receiptsNeedHelp:receiptWorkflow.needsHelp')
+    expect(home).toContain('outstandingDocumentation:receiptWorkflow.outstandingDocumentation')
+    expect(home).not.toContain('Your books need your attention')
+    expect(home).not.toContain('I’ve done everything I can for now')
   })
 
   it('keeps financial presentation within membership scope', () => {
@@ -48,50 +44,36 @@ describe('Home command center', () => {
     expect(home).toContain('Income and profit are outside its reporting scope.')
   })
 
-  it('offers compact actions with mobile receipt capture priority', () => {
-    for (const label of ['Add miles', 'Record money', 'Create invoice']) {
+  it('offers compact Add something actions with mobile receipt capture priority', () => {
+    for (const label of ['Mileage', 'Money', 'Invoice']) {
       expect(quickActions).toContain(label)
     }
     const upload = readFileSync('app/receipts/ReceiptUploadAction.tsx', 'utf8')
     expect(upload).toContain('Upload receipt</span>')
-    expect(quickActions).toContain('mobileLabel="Take a picture"')
+    expect(quickActions).toContain('mobileLabel="Receipt"')
     expect(quickActions).toContain('capture="environment"')
-    for (const copy of ['Quick actions','Add a photo or file','Track a trip','Income or expense','Send an invoice']) expect(quickActions).toContain(copy)
-    expect(quickActions).not.toContain('Get things done')
-    expect(quickActions).toContain('home-shortcut-receipt-options')
-    expect(styles).toContain('.home-quick-list')
+    for (const copy of ['Add something','Tell Betti about something anytime.','Choose a file']) expect(quickActions).toContain(copy)
+    expect(quickActions).not.toContain('Quick actions')
+    expect(styles).toContain('.home-add-list')
     expect(styles).toContain('@media (max-width:639px)')
   })
 
-  it('provides bounded deterministic Ask Betti routing and admits its limit', () => {
-    expect(resolveAskBettiDestination('Show me my July report')).toBe('/reports')
-    expect(resolveAskBettiDestination('I need to add mileage')).toBe('/mileage')
-    expect(resolveAskBettiDestination("Did I upload the Lowe's receipt?")).toBe("/transactions?q=Lowe's")
-    expect(resolveAskBettiDestination('Explain depreciation for my exact situation')).toBeNull()
-    const ask = readFileSync('app/home/HomeAskBetti.tsx', 'utf8')
-    expect(ask).toContain('I can’t safely answer that question from here yet.')
-    expect(ask).toContain('How can I help?')
-    for(const suggestion of ['Show reports','Add mileage','Recent transactions','Upload a receipt','Create an invoice'])expect(ask).toContain(suggestion)
-    expect(ask).toContain('<BettiIllustration state="welcome" className="home-ask-betti"')
+  it('removes the chatbot-like Ask Betti input from primary Home', () => {
+    expect(home).not.toContain('HomeAskBetti')
+    expect(home).not.toContain('How can I help?')
+    expect(home).not.toContain('Ask Betti about your books')
   })
 
-  it('uses exactly the substantial hero Betti plus one small Ask Betti', () => {
-    expect(home.match(/<BettiIllustration/g)).toHaveLength(1)
-    const ask=readFileSync('app/home/HomeAskBetti.tsx','utf8')
-    expect(ask.match(/<BettiIllustration/g)).toHaveLength(1)
-    expect(home).toMatch(/home-agent-hero[\s\S]*?<HomeQuickActions[\s\S]*?<\/section>/)
+  it('uses one canonical Betti hero before her financial work and customer actions', () => {
+    expect(bettiHero.match(/<BettiIllustration/g)).toHaveLength(1)
+    expect(home.indexOf('<HomeBettiHero')).toBeLessThan(home.indexOf('home-financial'))
+    expect(home.indexOf('home-financial')).toBeLessThan(home.indexOf('<HomeQuickActions'))
     expect(home.indexOf('<HomeQuickActions')).toBeLessThan(home.indexOf('home-value'))
-    expect(home.indexOf('home-value')).toBeLessThan(home.indexOf('home-financial'))
-    expect(home.indexOf('home-financial')).toBeLessThan(home.indexOf('<HomeAskBetti'))
-    expect(home.indexOf('<HomeAskBetti')).toBeLessThan(home.indexOf('<HomeRecentActivity'))
-    expect(styles).toContain('.home-agent-betti')
+    expect(styles).toContain('.home-betti-hero')
     expect(styles).toContain('@media (max-width:340px)')
-    expect(styles).toContain('.home-agent-hero { min-height: 24rem; }')
-    expect(styles).toContain('.home-value h2 strong { font-size: clamp(3.6rem,10vw,6.6rem); }')
-    expect(styles).toContain('.home-agent-hero > .home-quick')
-    expect(styles).toContain('grid-template-columns: repeat(4,minmax(0,1fr))')
-    expect(styles).toContain('.home-agent-hero > .home-quick .home-shortcut')
-    expect(styles).toContain('box-shadow: 0 10px 24px')
+    expect(styles).toContain('.home-add-list { grid-template-columns: repeat(2,minmax(0,1fr))')
+    expect(bettiHero).toContain('data-betti-state={projection.state}')
+    expect(bettiHero).toContain('decorative')
     expect(quickActions).toContain('<svg')
   })
 
