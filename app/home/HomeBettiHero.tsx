@@ -18,7 +18,7 @@ export function HomeBettiHero({ projection }: { projection: BettiHomeProjection 
       <p className="home-betti-thought">{projection.supporting}</p>
       {projection.action && <div className="home-betti-action">
         <Link href={projection.action.href} className="btn btn-primary">{projection.action.label} <span aria-hidden="true">→</span></Link>
-        {projection.action.note && <small>{projection.action.note}</small>}
+        {projection.action.note && <small className="home-betti-reassurance">{projection.action.note}</small>}
       </div>}
     </div>
     <div className="home-betti-portrait" aria-hidden="true">

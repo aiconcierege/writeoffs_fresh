@@ -11,12 +11,10 @@ const weeklyReadModel = readFileSync('app/lib/bookkeeping/weekly-review.ts', 'ut
 const styles = readFileSync('app/globals.css', 'utf8')
 
 describe('Home command center', () => {
-  it('derives potential-writeoff dollars canonically without manufacturing savings', () => {
-    expect(home).toContain('getAuthenticatedPotentialWriteoffs')
-    expect(home).toContain('potential.items.reduce((sum,item)=>sum+item.businessAmountCents,0)')
-    expect(home).toContain('Potential writeoffs found in')
-    expect(home).toContain('This is not an estimate of tax savings or a refund.')
-    expect(home).not.toContain('potential.count')
+  it('keeps the large potential-writeoff value treatment off Home', () => {
+    expect(home).not.toContain('getAuthenticatedPotentialWriteoffs')
+    expect(home).not.toContain('Potential writeoffs found in')
+    expect(home).not.toContain('home-value')
     expect(home).not.toContain(".from('transactions')")
   })
 
@@ -67,8 +65,8 @@ describe('Home command center', () => {
   it('uses one canonical Betti hero before her financial work and customer actions', () => {
     expect(bettiHero.match(/<BettiIllustration/g)).toHaveLength(1)
     expect(home.indexOf('<HomeBettiHero')).toBeLessThan(home.indexOf('home-financial'))
-    expect(home.indexOf('home-financial')).toBeLessThan(home.indexOf('<HomeQuickActions'))
-    expect(home.indexOf('<HomeQuickActions')).toBeLessThan(home.indexOf('home-value'))
+    expect(home.indexOf('home-financial')).toBeLessThan(home.indexOf('<HomeRecentActivity'))
+    expect(home.indexOf('<HomeRecentActivity')).toBeLessThan(home.indexOf('<HomeQuickActions'))
     expect(styles).toContain('.home-betti-hero')
     expect(styles).toContain('@media (max-width:340px)')
     expect(styles).toContain('.home-add-list { grid-template-columns: repeat(2,minmax(0,1fr))')
@@ -81,8 +79,9 @@ describe('Home command center', () => {
     const recent=readFileSync('app/home/HomeRecentActivity.tsx','utf8')
     expect(home).toContain('<HomeRecentActivity activity={recentActivity}/>')
     expect(recent).toContain('Recent transactions')
-    expect(recent).toContain('View all transactions')
+    expect(recent).toContain('<Link href="/transactions">View all')
     expect(recent).toContain('Recent receipt matches')
+    expect(recent).toContain('Recently handled by Betti')
     expect(recent).toContain('activity.receiptMatches.length>0&&')
     expect(recent).toContain("if(!activity.transactions.length&&!activity.receiptMatches.length)return null")
     expect(recent).toContain('home-merchant-fallback')

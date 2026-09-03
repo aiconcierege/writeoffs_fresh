@@ -568,7 +568,7 @@ body { background: var(--canvas); color: var(--ink); }
 @media (min-width:1024px){.home-agent-copy { padding: 1.8rem 3rem 1.25rem; }.home-agent-betti { max-width: 20rem; max-height: 22rem; margin-right: 0; margin-bottom: 0; }.home-agent-hero > .home-quick { margin-inline: 2rem; }.home-agent-hero > .home-quick .home-quick-list { grid-template-columns: repeat(4,minmax(0,1fr)); }.home-agent-hero > .home-quick .home-shortcut { min-height: 4.65rem; }.home-value { padding-block: 2.2rem; }}
 @media (max-width:767px){.home-recent-grid.has-matches { grid-template-columns: 1fr; }.home-recent-grid { gap: 1.75rem; }}
 @media (max-width:639px){.home-agent-hero { min-height: 28rem; padding-bottom: 0; }.home-agent-copy { padding-top: 1.4rem; }.home-agent-betti { right: .2rem; bottom: 18.35rem; width: auto; max-width: 11.75rem; max-height: 12rem; margin-bottom: 0; }.home-agent-copy .home-operating { max-width: none; margin-right: 6rem; }.home-agent-hero > .home-quick { align-self: end; margin: 0 .65rem .65rem; padding-top: .85rem; }.home-value { margin-top: 2rem; padding-block: 1.65rem; }.home-value h2 strong { font-size: clamp(3.5rem,18vw,5rem); }.home-quick-list { grid-template-columns: repeat(2,minmax(0,1fr)); }.home-shortcut { grid-template-columns: 1fr; min-height: 7rem; align-content: center; justify-items: start; gap: .55rem; }.home-shortcut:nth-child(1),.home-shortcut:nth-child(2) { border-color: #a8c4b2; background: #f6fff8; }.home-ask-heading { grid-template-columns: minmax(0,1fr) 4.5rem; }.home-ask-betti { width: 4.5rem; }.home-recent-transactions li a,.home-recent-matches li a { grid-template-columns: 2.25rem minmax(0,1fr) auto; }.home-match-state { grid-column: 2; justify-self: start; }}
-@media (max-width:340px){.home-agent-hero { min-height: 29rem; }.home-agent-betti { right: 0; bottom: 19rem; max-width: 10.5rem; max-height: 11rem; }.home-agent-copy .home-operating { margin-right: 4.8rem; }.home-quick-list { grid-template-columns: repeat(2,minmax(0,1fr)); }.home-shortcut { min-height: 7.4rem; padding-inline: .6rem; }.home-recent-transactions .home-section-heading { align-items: start; flex-direction: column; }}
+@media (max-width:340px){.home-agent-hero { min-height: 29rem; }.home-agent-betti { right: 0; bottom: 19rem; max-width: 10.5rem; max-height: 11rem; }.home-agent-copy .home-operating { margin-right: 4.8rem; }.home-quick-list { grid-template-columns: repeat(2,minmax(0,1fr)); }.home-shortcut { min-height: 7.4rem; padding-inline: .6rem; }.home-recent-transactions .home-section-heading { align-items: start; flex-direction: column; }.home-recent .home-recent-matches li a { grid-template-columns: 2.25rem minmax(0,1fr); }.home-recent .home-recent-matches .home-match-state { grid-column: 2; grid-row: 2; justify-self: start; }}
 
 /* Dedicated weekly review: one Betti-led task at a time. */
 .weekly-page-intro { min-height: 0; align-items: end; gap: 1rem; padding: 0 0 .55rem; }
@@ -657,20 +657,26 @@ body { background: var(--canvas); color: var(--ink); }
 }
 
 /* Betti-led Home v1: one calm bookkeeper voice, followed by her work and customer controls. */
-.home-betti-hero { position: relative; isolation: isolate; display: grid; min-height: 27rem; overflow: hidden; border: 1px solid rgba(174,198,182,.78); border-radius: 1.8rem; background: linear-gradient(128deg,#fffaf3 0 58%,#dceee1 100%); box-shadow: 0 26px 70px rgba(23,50,39,.1); }
+.home-betti-hero { position: relative; isolation: isolate; display: grid; min-height: 24rem; overflow: hidden; border: 1px solid rgba(174,198,182,.78); border-radius: 1.55rem; background: linear-gradient(128deg,#fffaf3 0 61%,#dceee1 100%); box-shadow: 0 22px 58px rgba(23,50,39,.085); }
 .home-betti-message { position: relative; z-index: 2; align-self: center; padding: 2.3rem 1.4rem 2rem; }
 .home-betti-identity { color: #176c54; font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .home-betti-identity span { padding-inline: .16rem; color: #e66e52; }
-.home-betti-message h1 { max-width: 43rem; margin-top: .7rem; color: #17211d; font-size: clamp(2.35rem,7vw,4.8rem); font-weight: 720; line-height: .98; letter-spacing: -.058em; text-wrap: balance; }
+.home-betti-message h1 { max-width: 39rem; margin-top: .7rem; color: #17211d; font-size: clamp(2.35rem,5.2vw,4rem); font-weight: 720; line-height: 1; letter-spacing: -.055em; text-wrap: balance; }
 .home-betti-thought { max-width: 37rem; margin-top: 1.1rem; color: #46554d; font-size: 1.0625rem; line-height: 1.6; text-wrap: pretty; }
-.home-betti-action { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; margin-top: 1.35rem; }
+.home-betti-action { display: grid; justify-items: start; gap: .65rem; margin-top: 1.35rem; }
 .home-betti-action .btn { min-height: 3rem; }
 .home-betti-action small { color: #5c6962; font-size: .9375rem; }
 .home-betti-portrait { position: relative; z-index: 1; display: grid; min-height: 16rem; align-items: end; justify-items: center; pointer-events: none; }
-.home-betti-art { width: auto; max-width: 22rem; max-height: 25rem; height: auto; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 20px 22px rgba(23,61,45,.16)); }
+.home-betti-art { width: auto; max-width: 21rem; max-height: 23rem; height: auto; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 18px 20px rgba(23,61,45,.15)); transform-origin: 52% 88%; animation: betti-presence 7.2s cubic-bezier(.45,0,.55,1) infinite; }
 .home-betti-hero[data-betti-state="caught-up"] .home-betti-art { max-width: 25rem; }
+.home-betti-hero[data-betti-state="working"] .home-betti-art { animation-duration: 6.2s; }
+.home-betti-hero[data-betti-state="needs-customer"] .home-betti-art,.home-betti-hero[data-betti-state="attention"] .home-betti-art { animation-duration: 8.4s; }
+@keyframes betti-presence { 0%,100% { transform: translateY(0) rotate(0); } 46% { transform: translateY(-2px) rotate(-.18deg); } 54% { transform: translateY(-2.5px) rotate(.12deg); } }
 
-.home-business-snapshot { margin-top: 2.2rem; background: linear-gradient(135deg,#f2f7ed,#e4f0e5 62%,#f0f0f8); }
+.home-business-snapshot { margin-top: 1.5rem; padding: 1.35rem 1.5rem; background: linear-gradient(135deg,#f2f7ed,#e4f0e5 62%,#f0f0f8); }
+.home-business-snapshot .home-financial-flow { margin-top: 1rem; }
+.home-business-snapshot .home-financial-node { padding-block: .65rem; }
+.home-business-snapshot .home-financial-node strong { font-size: clamp(1.25rem,3vw,1.7rem); }
 .home-business-snapshot .home-section-heading > div > p:last-child { max-width: 34rem; margin-top: .35rem; color: #5b6861; font-size: 1rem; line-height: 1.5; }
 
 .home-follow-up { display: grid; gap: 1.1rem; margin-top: 1.35rem; border: 1px solid #d2ddd5; border-radius: 1.25rem; background: #fffaf3; padding: 1.25rem; }
@@ -695,11 +701,21 @@ body { background: var(--canvas); color: var(--ink); }
 .home-add-receipt .btn span { font-weight: 720; }
 .home-add-receipt a { margin-top: .1rem; color: #657169; font-size: .8125rem; font-weight: 650; text-decoration: underline; text-underline-offset: .14rem; }
 
+.home-recent { margin-top: 2rem; border-top: 1px solid #cad8cf; padding-top: 1.5rem; }
+.home-recent-heading h2 { margin-top: .25rem; color: #17211d; font-size: clamp(1.55rem,3vw,2rem); font-weight: 700; letter-spacing: -.04em; }
+.home-recent .home-recent-grid { margin-top: 1.15rem; }
+.home-recent .home-recent-transactions,.home-recent .home-recent-matches { border: 1px solid #d3ddd6; border-radius: 1.1rem; background: rgba(255,254,250,.72); padding: 1.1rem; }
+.home-recent .home-recent-transactions h3,.home-recent .home-recent-matches h3 { color: #17211d; font-size: 1.15rem; font-weight: 700; letter-spacing: -.025em; }
+.home-recent .home-section-heading > a { min-height: 2.75rem; display: inline-flex; align-items: center; }
+.home-recent .home-merchant-fallback { grid-column: 1; grid-row: 1; }
+.home-recent .home-recent-main { grid-column: 2; grid-row: 1; }
+.home-recent .home-recent-transactions b,.home-recent .home-match-state { grid-column: 3; grid-row: 1; }
+
 @media (min-width:640px){
  .home-betti-hero { grid-template-columns: minmax(0,1.3fr) minmax(17rem,.7fr); }
  .home-betti-message { padding: 3rem 2.5rem; }
- .home-betti-portrait { min-height: 27rem; }
- .home-betti-art { max-width: 23rem; max-height: 27rem; margin-right: -1rem; }
+ .home-betti-portrait { min-height: 24rem; }
+ .home-betti-art { max-width: 21rem; max-height: 23rem; margin-right: -.5rem; }
  .home-follow-up { grid-template-columns: minmax(0,.9fr) minmax(18rem,1.1fr); align-items: center; padding: 1.5rem; }
  .home-add { grid-template-columns: minmax(13rem,.65fr) minmax(0,1.35fr); align-items: center; }
 }
@@ -732,3 +748,4 @@ body { background: var(--canvas); color: var(--ink); }
  .home-add-action { min-height: 4.25rem; gap: .5rem; font-size: .9375rem; }
  .home-add-action .home-shortcut-icon { width: 2.25rem; height: 2.25rem; }
 }
+@media (prefers-reduced-motion:reduce){.home-betti-art { animation: none; transform: none; }}
