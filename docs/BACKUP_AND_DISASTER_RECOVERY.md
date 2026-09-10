@@ -131,6 +131,47 @@ database clone. Keep autonomous workers and external webhooks disabled until ver
 - A provider-hosted isolated restore remains required after those choices. The local
   drill used synthetic financial records and a private object without Production data.
 
+## Source recovery checkpoint — 2026-09-09
+
+The validated staging application and its launch-readiness tooling are preserved in
+`github.com/aiconcierege/writeoffs_fresh` on branch `v2-onboarding-staging`. The coherent
+application checkpoint is commit `7cfd8f7b0c30940f5019e88637df824a70907653`
+(`checkpoint: preserve validated staging architecture`). A later documentation-only
+commit may be the branch/tag head; the application checkpoint remains the immutable
+source reference.
+
+Clean recovery procedure:
+
+1. Clone the repository and check out the recorded recovery branch or tag.
+2. Install the locked dependency graph with `npm ci`.
+3. Recreate environment values from the approved secrets manager using `.env.example`;
+   never recover values from Git or copy an environment file between staging and
+   Production.
+4. Recreate a database from the ordered files in `supabase/migrations/`, then restore
+   the independently encrypted database and private-object bundle using the isolated
+   restore procedure above.
+5. Verify RLS, tenant isolation, object linkage, bookkeeping totals, corrections, and
+   queue health before enabling writes, workers, or webhooks.
+6. Reconstruct staging in its dedicated Vercel project and verify its Supabase, Plaid,
+   Stripe, Auth, and application-environment identities before assigning the staging
+   alias. Production deployment requires separate explicit approval and the same
+   environment-identity checks.
+
+Git intentionally does not contain operational secrets. Full recovery therefore also
+requires controlled copies of Vercel environment values; Supabase project/API/database
+credentials; Plaid credentials; Stripe credentials and webhook secrets; the independent
+backup encryption key and destination credentials; DNS/domain controls; and SMTP/email
+provider settings. These belong in an approved organization secrets manager with an
+offline recovery process and named custodians, not on a developer laptop or in source.
+
+Historical note: Teller was previously used and a Teller private key was committed in
+old Git history. Teller has been removed from the application, the provider/service is
+defunct, and no provider endpoint or account remains against which the credential could
+authenticate or be revoked. Current source contains neither Teller credential material
+nor a Teller runtime integration. The historical blob remains security debt; coordinated
+history sanitation may be considered later as defense in depth, but it is not required
+for operational recovery of the current source.
+
 ## Restore drill record — 2026-09-09
 
 An isolated PostgreSQL 17 source and target were created inside the local Supabase Docker
