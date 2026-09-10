@@ -31,9 +31,10 @@ Durable operational alerts are created for terminal notification failures, deliv
 
 - `APP_ORIGIN`: environment-specific HTTPS application origin.
 - `LIFECYCLE_NOTIFICATION_ENCRYPTION_KEY`: base64-encoded 32-byte server-only key, stored in the environment secret manager.
-- `LIFECYCLE_EMAIL_MODE`: `sink` for controlled staging certification; `resend` for Production after approval.
+- `LIFECYCLE_EMAIL_MODE`: `sink` for local/staging certification; `resend` for controlled staging or Production after approval. Every staging delivery remains subject to the staging recipient allowlist.
 - `LIFECYCLE_EMAIL_STAGING_RECIPIENTS`: staging-only allowlist.
 - `LIFECYCLE_EMAIL_FROM` and `LIFECYCLE_EMAIL_REPLY_TO`: verified transactional identities.
+- `RESEND_WEBHOOK_SECRET`: endpoint-specific Resend signing secret for `/api/resend/webhook`. The endpoint verifies the raw payload and Svix headers, rejects messages older than five minutes, and records a hash of `svix-id` for idempotency.
 - `RESEND_API_KEY`: server-only provider credential.
 
 Staging and Production must use separate credentials/settings. Never use `NEXT_PUBLIC_` for these values.
@@ -45,6 +46,14 @@ Staging and Production must use separate credentials/settings. Never use `NEXT_P
 3. Publish a DMARC policy (begin with monitored policy if advised by the domain administrator).
 4. Confirm the From and Reply-To addresses and operational owner.
 5. Add Production environment values only after explicit Production approval.
-6. Configure signed Resend delivery/bounce/complaint webhooks before claiming full bounce/complaint automation.
+6. In each Resend environment, configure `/api/resend/webhook` for `email.delivered`, `email.delivery_delayed`, `email.bounced`, `email.complained`, `email.failed`, and `email.suppressed`; store its signing secret only in that environment. Provider events are immutable and contain no recipient, subject, or message body.
 7. Route open lifecycle operational alerts to the selected paging destination.
 8. Send controlled deliverability checks to major mailbox providers and monitor rejection/complaint rates.
+
+## Operational alerts
+
+Critical rows in `lifecycle_operational_alerts` are the source of truth. The lifecycle drain creates a separate encrypted delivery intent for `support@writeoffs.io`; customer-notification state is never reused or overwritten. Staging sends as `WriteOffs Operations <notifications@writeoffs.io>`, replies to `support@writeoffs.io`, and remains constrained by the staging recipient allowlist.
+
+The dedupe window is one UTC hour per alert. Repeated occurrences continue incrementing the internal incident record, while at most one external message is created for that alert in the hour. Delivery uses a two-minute lease, exponential backoff, and at most six attempts. Permanent provider rejection ends the delivery attempt without resolving the underlying alert and without creating a recursive alert-about-alert loop. Signed Resend delivery, bounce, complaint, failure, delay, and suppression events update the external delivery row.
+
+Inspect `lifecycle_operational_alerts` for open incidents and `operational_alert_delivery_outbox` grouped by `status` for pending, retryable, terminal, and delivered external mail. If external delivery itself fails, inspect its safe failure code in the database and use the Resend dashboard/provider logs; do not include customer financial content in manual escalation.

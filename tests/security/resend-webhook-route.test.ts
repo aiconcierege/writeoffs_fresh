@@ -1,0 +1,6 @@
+import{readFileSync}from'node:fs';import{describe,expect,it}from'vitest'
+describe('Resend webhook route security',()=>{const route=readFileSync('app/api/resend/webhook/route.ts','utf8'),migration=readFileSync('supabase/migrations/20260910000300_add_resend_lifecycle_webhook.sql','utf8')
+ it('uses the raw body and all signed Svix headers',()=>{expect(route).toContain('request.text()');expect(route).toContain("'svix-id'");expect(route).toContain("'svix-timestamp'");expect(route).toContain("'svix-signature'");expect(route).toContain('RESEND_WEBHOOK_SECRET')})
+ it('stores no recipient or message content in the immutable provider event ledger',()=>{expect(migration).toContain('lifecycle_notification_provider_events');expect(migration).toContain('event_key_hash text not null unique');expect(migration).not.toMatch(/create table public\.lifecycle_notification_provider_events[\s\S]*?\b(recipient|subject|payload|body)\b[\s\S]*?;/);expect(migration).toContain('lifecycle_notification_provider_events_immutable')})
+ it('keeps webhook functions service-role only',()=>{expect(migration).toContain('revoke execute on function public.record_resend_lifecycle_webhook');expect(migration).toContain('grant execute on function public.record_resend_lifecycle_webhook');expect(migration).toContain('to service_role')})
+})

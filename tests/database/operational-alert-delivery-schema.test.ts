@@ -1,0 +1,7 @@
+import{readFileSync}from'node:fs';import{describe,expect,it}from'vitest';const migration=readFileSync('supabase/migrations/20260910000400_add_operational_alert_delivery.sql','utf8'),worker=readFileSync('app/lib/operations/alert-delivery.ts','utf8')
+describe('operational alert delivery schema',()=>{
+ it('uses a private lease-fenced outbox with bounded retries',()=>{expect(migration).toContain('operational_alert_delivery_outbox');expect(migration).toContain("status='processing'");expect(migration).toContain('for update skip locked');expect(migration).toContain('attempt>=6');expect(migration).toContain('revoke all on public.operational_alert_delivery_outbox from public,anon,authenticated')})
+ it('deduplicates each alert within a one-hour incident window',()=>{expect(migration).toContain('unique(alert_id,incident_window)');expect(worker).toContain("toISOString().slice(0,13)");expect(worker).toContain('ignoreDuplicates:true')})
+ it('keeps alert-delivery failure separate and non-recursive',()=>{expect(worker).toContain('fail_operational_alert_delivery');expect(worker).not.toContain('recordLifecycleDrainFailure');expect(worker).not.toContain("from('lifecycle_operational_alerts').upsert")})
+ it('extends signed provider outcomes to operational deliveries',()=>{expect(migration).toContain('operational_delivery_id');expect(migration).toContain("next_status in('bounced','complained','failed','suppressed')");expect(migration).toContain("then'terminal_failed'")})
+})
