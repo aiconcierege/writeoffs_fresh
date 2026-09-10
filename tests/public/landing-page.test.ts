@@ -34,6 +34,20 @@ describe('public landing page', () => {
     expect(page).not.toMatch(/Start free|Buy now|Subscribe|per month/i)
   })
 
+  it('keeps the photo caption readable on a compact solid warm-cream card', () => {
+    const caption = page.slice(
+      page.indexOf('absolute bottom-4 left-4'),
+      page.indexOf('</div>', page.indexOf('absolute bottom-4 left-4')),
+    )
+
+    expect(caption).toContain('bg-[#fffaf3]')
+    expect(caption).toContain('max-w-[17rem]')
+    expect(caption).toContain('sm:right-auto')
+    expect(caption).toContain('uppercase tracking-[0.14em]')
+    expect(caption).toContain('text-lg')
+    expect(caption).not.toMatch(/backdrop-blur|bg-white\//)
+  })
+
   it('keeps the approved hero without the removed early-access qualifier', () => {
     expect(page).not.toContain('Early access for U.S. independent business owners.')
   })

@@ -113,8 +113,8 @@ export function Header() {
   }
 
   return <header className="fixed top-0 z-50 w-full border-b border-[#dce3de]/80 bg-[#fbfaf7]/94 backdrop-blur-xl">
-    <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-7">
-      <BrandLogo href="/home" heightPx={36}/>
+    <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16 sm:px-7">
+      <BrandLogo href="/home" heightPx={34}/>
       <details ref={menu} onKeyDown={handleMenuKeyDown} className="group relative"><summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-xl border border-[#ccd8d0] bg-[#fffefa]/80 px-4 text-base font-semibold text-[#17211d] shadow-[0_5px_16px_rgba(23,33,29,.04)] transition hover:border-[#aebfb4] hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#243186] [&::-webkit-details-marker]:hidden"><span>Menu</span><span aria-hidden="true" className="grid gap-1.5"><i className="block h-0.5 w-5 bg-current"/><i className="block h-0.5 w-5 bg-current"/><i className="block h-0.5 w-5 bg-current"/></span></summary>
         <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-[#dce3de] bg-[#fffefa] p-3 shadow-[0_24px_65px_rgba(23,33,29,.17)]">
           <Link onClick={closeMenu} href="/home" aria-current={pathname==='/home'?'page':undefined} className="block rounded-xl bg-[#eef7f2] px-4 py-3 font-semibold text-[#17211d]">Home</Link>
@@ -123,7 +123,7 @@ export function Header() {
             <div className="mt-1 grid grid-cols-2 gap-1">{bookItems.map(([name,href])=><Link onClick={closeMenu} key={href} href={href} aria-current={authenticatedMenuCurrent(href)?'page':undefined} className="flex min-h-12 items-center rounded-lg px-3 text-base font-medium text-[#435149] hover:bg-white">{name}</Link>)}</div>
             <div className="my-2 border-t border-[#e3e8e4]"/>
             <p className="px-3 text-[10px] font-bold uppercase tracking-[.14em] text-[#748078]">Betti</p>
-            <Link onClick={closeMenu} href="/questions" aria-current={authenticatedMenuCurrent('/questions')?'page':undefined} className="mt-1 flex min-h-12 items-center rounded-lg px-3 text-base font-medium text-[#435149] hover:bg-white">Questions</Link>
+            <Link onClick={closeMenu} href="/check-in" aria-current={authenticatedMenuCurrent('/check-in')?'page':undefined} className="mt-1 flex min-h-12 items-center rounded-lg px-3 text-base font-medium text-[#435149] hover:bg-white">Check in with Betti</Link>
             <div className="my-2 border-t border-[#e3e8e4]"/>
             <p className="px-3 text-[10px] font-bold uppercase tracking-[.14em] text-[#748078]">Your account</p>
             <div className="mt-1 grid">{accountItems.map(([name,href])=><Link onClick={closeMenu} key={href} href={href} aria-current={authenticatedMenuCurrent(href)?'page':undefined} className="flex min-h-12 items-center rounded-lg px-3 text-base font-medium text-[#435149] hover:bg-white">{name}</Link>)}</div>

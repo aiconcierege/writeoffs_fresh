@@ -2,7 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { describe,expect,it } from 'vitest'
 import { loadBookkeepingEvaluationSnapshot } from '../../app/lib/bookkeeping/evaluation-snapshot'
 import { runDeductionIntelligenceForRecord } from '../../app/lib/bookkeeping/deduction-intelligence'
-import { drainBookkeepingProcessingJobs } from '../../app/lib/bookkeeping/processing'
+import { evaluateBookkeepingProcessingJob } from '../../app/lib/bookkeeping/processing'
 import { SupabaseCanonicalFinancialSummaryRepository } from '../../app/lib/bookkeeping/financial-summary-repository'
 import { buildCanonicalReport } from '../../app/lib/bookkeeping/reporting-model'
 import { provisionLocalCanonicalOwner } from '../helpers/local-canonical'
@@ -25,12 +25,60 @@ async function resolveExpense(owner:Awaited<ReturnType<typeof provisionLocalCano
 }
 
 suite('deduction intelligence against local PostgreSQL',()=>{
+ it('routes CSV telecom context to one reusable percentage without a generic review question',async()=>{
+  const admin=createClient(url!,serviceKey!,{auth:{persistSession:false}})
+  const owner=await provisionLocalCanonicalOwner({admin,url:url!,anonKey:anonKey!,label:'t-mobile-autopay',
+    amounts:[-14235,-20000]})
+  const [first,second]=await records(owner)
+  const {data:initial}=await admin.from('bookkeeping_decisions').select('id').eq('bookkeeping_record_id',first.id).single()
+  const opened=await admin.rpc('open_bookkeeping_review_issue_v2',{p_business_id:owner.businessId,
+    p_bookkeeping_record_id:first.id,p_based_on_decision_id:initial!.id,p_reason:'TRANSACTION_TYPE_UNCLEAR',
+    p_issue_key:`pre-routing:${crypto.randomUUID()}`,p_context_fingerprint:`pre-routing:${crypto.randomUUID()}`,
+    p_question_context:{schemaVersion:1,reason:'TRANSACTION_TYPE_UNCLEAR'}})
+  expect(opened.error).toBeNull()
+  await evaluateBookkeepingProcessingJob(admin,{business_id:owner.businessId,bookkeeping_record_id:first.id,
+    processing_reason:'deterministic_evaluation',target_fingerprint:`bookkeeping-evaluator:v1:record:${first.id}`},
+    {allowAiShadow:false,now:new Date('2026-08-20T12:00:00Z')})
+  const {data:firstDecisions}=await admin.from('bookkeeping_decisions').select('*').eq('bookkeeping_record_id',first.id)
+  const superseded=new Set(firstDecisions!.map(row=>row.supersedes_decision_id).filter(Boolean))
+  expect(firstDecisions!.find(row=>!superseded.has(row.id))).toMatchObject({bookkeeping_nature:'expense',treatment:'unresolved'})
+  const {data:typeEvents}=await admin.from('bookkeeping_review_events').select('id,supersedes_event_id,event_type')
+    .eq('bookkeeping_record_id',first.id).eq('reason','TRANSACTION_TYPE_UNCLEAR')
+  const typeSuperseded=new Set(typeEvents!.map(row=>row.supersedes_event_id).filter(Boolean))
+  expect(typeEvents!.filter(row=>!typeSuperseded.has(row.id))).toEqual([
+    expect.objectContaining({event_type:'resolved'}),
+  ])
+  const {data:attention}=await owner.customer.from('current_deduction_attentions').select('*')
+    .eq('business_id',owner.businessId).eq('fact_type','phone_business_use_percentage').single()
+  expect(attention).toMatchObject({question_type:'percentage',scope_kind:'merchant',scope_key:'t-mobile'})
+  const answered=await owner.customer.rpc('answer_deduction_attention',{p_attention_id:attention!.attention_id,
+    p_expected_event_id:attention!.id,p_value:40,p_request_key:crypto.randomUUID()})
+  expect(answered.error).toBeNull()
+  await runDeductionIntelligenceForRecord({admin,writer:owner.customer,customerAnsweredFact:true,
+    snapshot:await loadBookkeepingEvaluationSnapshot({admin,businessId:owner.businessId,recordId:first.id})})
+  await evaluateBookkeepingProcessingJob(admin,{business_id:owner.businessId,bookkeeping_record_id:second.id,
+    processing_reason:'deterministic_evaluation',target_fingerprint:`bookkeeping-evaluator:v1:record:${second.id}`},
+    {allowAiShadow:false,now:new Date('2026-08-20T12:00:00Z')})
+  const {data:decisions}=await admin.from('bookkeeping_decisions').select('id,supersedes_decision_id')
+    .eq('bookkeeping_record_id',second.id)
+  const old=new Set(decisions!.map(row=>row.supersedes_decision_id).filter(Boolean)),leaf=decisions!.find(row=>!old.has(row.id))!
+  const {data:allocations}=await admin.from('bookkeeping_allocations').select('allocation_kind,amount_cents')
+    .eq('bookkeeping_decision_id',leaf.id)
+  expect(allocations?.map(row=>[row.allocation_kind,row.amount_cents])).toEqual(expect.arrayContaining([
+    ['business',-8000],['personal',-12000],
+  ]))
+  const {data:dependencies}=await admin.from('bookkeeping_decision_deduction_fact_dependencies').select('fact_event_id')
+    .eq('bookkeeping_decision_id',leaf.id)
+  expect(dependencies).toEqual([{fact_event_id:answered.data}])
+ },15_000)
+
  it('reuses and corrects one customer phone percentage across recurring records',async()=>{
   const admin=createClient(url!,serviceKey!,{auth:{persistSession:false}})
   const owner=await provisionLocalCanonicalOwner({admin,url:url!,anonKey:anonKey!,label:'verizon-wireless',amounts:[-14000,-14000]})
   const [first,second]=await records(owner);await resolveExpense(owner,first.id);await resolveExpense(owner,second.id,'system',admin)
   const firstSnapshot=await loadBookkeepingEvaluationSnapshot({admin,businessId:owner.businessId,recordId:first.id})
-  expect((await runDeductionIntelligenceForRecord({admin,snapshot:firstSnapshot})).outcome).toBe('missing_fact')
+  expect((await runDeductionIntelligenceForRecord({admin,snapshot:firstSnapshot,
+    now:new Date('2026-08-20T12:00:00Z')})).outcome).toBe('missing_fact')
   const{data:attention}=await owner.customer.from('current_deduction_attentions').select('*').eq('business_id',owner.businessId).single()
   const answered=await owner.customer.rpc('answer_deduction_attention',{p_attention_id:attention!.attention_id,
    p_expected_event_id:attention!.id,p_value:70,p_request_key:crypto.randomUUID()});expect(answered.error).toBeNull()
@@ -44,13 +92,14 @@ suite('deduction intelligence against local PostgreSQL',()=>{
   const corrected=await owner.customer.rpc('record_deduction_business_fact',{p_fact_type:fact!.fact_type,p_scope_kind:fact!.scope_kind,p_scope_key:fact!.scope_key,
    p_value:50,p_effective_on:'2026-08-24',p_expected_current_event_id:fact!.id,p_source:'correction',p_reason:'Customer corrected phone use.',p_request_key:crypto.randomUUID()})
   expect(corrected.error).toBeNull()
-  for(let pass=0;pass<20;pass+=1){const drained=await drainBookkeepingProcessingJobs({admin,batchSize:100});if(drained.claimed===0)break}
+  for(const record of [first,second]) await runDeductionIntelligenceForRecord({admin,
+    snapshot:await loadBookkeepingEvaluationSnapshot({admin,businessId:owner.businessId,recordId:record.id})})
   const{data:current}=await owner.customer.from('current_deduction_business_facts').select('fact_value').eq('business_id',owner.businessId).single();expect(current!.fact_value).toBe(50)
   for(const record of [first,second]){const{data:decisions}=await owner.customer.from('bookkeeping_decisions').select('id,treatment,provenance,supersedes_decision_id').eq('bookkeeping_record_id',record.id)
    const superseded=new Set(decisions!.map(row=>row.supersedes_decision_id));const leaf=decisions!.find(row=>!superseded.has(row.id))!;expect(leaf.treatment).toBe('mixed_use');expect(leaf.treatment).not.toBe('personal')
    const{data:allocations}=await owner.customer.from('bookkeeping_allocations').select('allocation_kind,amount_cents').eq('bookkeeping_decision_id',leaf.id)
    expect(allocations?.map(row=>[row.allocation_kind,row.amount_cents])).toEqual(expect.arrayContaining([['business',-7000],['personal',-7000]]))}
- })
+ },15_000)
  it('preserves an incomplete home-office profile without creating a deduction',async()=>{
   const admin=createClient(url!,serviceKey!,{auth:{persistSession:false}}),owner=await provisionLocalCanonicalOwner({admin,url:url!,anonKey:anonKey!,label:'home-profile',amounts:[]})
   const result=await owner.customer.rpc('record_deduction_business_fact',{p_fact_type:'home_office_regular_use',p_scope_kind:'business',p_scope_key:'business',p_value:true,

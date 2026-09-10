@@ -39,7 +39,7 @@ describe('autonomous Receipt UX v1', () => {
   })
 
   it('projects calm canonical receipt states including convergence', () => {
-    for (const copy of ['Still organizing', 'Matched', 'Receipt only', 'Receipt added', 'Removed']) {
+    for (const copy of ['Organizing', 'Matched', 'Receipt-only expense', 'Needs attention', 'Removed']) {
       expect(page).toContain(copy)
     }
     expect(page).toContain('Safely retained. Some details are unavailable.')
@@ -52,11 +52,32 @@ describe('autonomous Receipt UX v1', () => {
     expect(customerSource).not.toMatch(/canonical|extraction provider|OCR event|bookkeeping record|processing fingerprint/i)
   })
 
-  it('uses accessible, touch-sized responsive cards instead of a table', () => {
+  it('uses accessible, touch-sized disclosure rows instead of cards or a table', () => {
     expect(page).toContain('min-h-11')
-    expect(page).toContain('grid gap-4 sm:grid-cols-2')
+    expect(page).toContain('<summary className="receipt-record-summary min-h-14')
+    expect(page).toContain('View receipt')
+    expect(page).toContain('receipt-record-detail')
     expect(upload).toContain('aria-live="polite"')
     expect(page).not.toContain('<table')
+    const css=source('app/globals.css')
+    expect(css).toContain('receipt-record-summary > span:first-child > strong { font-size:1.0625rem; font-weight:650')
+    expect(css).toContain('padding:.3rem .5rem .3rem .75rem')
+  })
+
+  it('loads a bounded inbox and offers lightweight organization',()=>{
+    expect(page).toContain('const PAGE_SIZE = 50')
+    expect(page).toContain('Load more receipts')
+    expect(page).toContain('Search receipts')
+    expect(page).toContain('Without a match')
+    expect(page).not.toContain('limit=500')
+    expect(source('app/lib/bookkeeping/receipt-workflow.ts')).not.toContain('createSignedUrl')
+    expect(page).toContain('/api/receipts/${receipt.id}/view')
+  })
+
+  it('uses extracted identity instead of exposing source filenames',()=>{
+    expect(page).toContain('if(receipt.merchant?.trim())return receipt.merchant.trim()')
+    expect(page).toContain("return'Receipt'")
+    expect(page).not.toContain('receipt.originalName')
   })
 })
 

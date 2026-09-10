@@ -139,13 +139,28 @@ Sandbox validates Link, token exchange, Item/account ownership, sync cursor/pagi
 
 If approval is delayed, WriteOffs can stage or launch a non-Plaid model using statements, CSV, receipts, manual money, mileage, and Business invoices, subject to explicit product/commercial approval.
 
+## Historical Teller credential
+
+WriteOffs previously used Teller. A Teller client certificate and matching private key
+were committed in early repository history and removed in commit `bd84d9f`. Teller has
+since been completely removed from the application: no runtime client, endpoint, webhook,
+enrollment flow, environment configuration, or staging integration remains. The provider
+and service are defunct, with no remaining endpoint or account against which the historical
+credential can authenticate or be revoked.
+
+The current source tree contains no Teller credential. The historical Git blob remains
+security debt in the public repository. A coordinated history sanitation may be considered
+later as defense in depth or to satisfy an external policy, but it is not an operational
+credential-recovery control and is not required for the current source checkpoint. Never
+copy the historical material into current source or attempt to authenticate with it.
+
 ## Backups, restore, and disaster recovery
 
 Required before production: verify the Supabase plan's database backup schedule and retention, choose PITR based on RPO, document Storage backup/retention separately, preserve source and infrastructure configuration in version control/provider consoles, and export an encrypted configuration inventory without values.
 
 Initial launch recommendation: RPO at most 24 hours with daily verified backups (lower through PITR when affordable); RTO one business day for a regional/provider incident, with authentication and read-only historical access restored before autonomous processing. This is a target, not a current guarantee.
 
-Quarterly restore exercise: restore a recent backup into an isolated nonproduction project; verify schema/migration checksums, two synthetic tenants and RLS, membership current state/history, canonical current records and totals, receipt/statement database-to-private-object linkage, queue/job consistency, and exports. Record duration, gaps, and cleanup. Never overwrite production to test restoration.
+Quarterly restore exercise: restore a recent backup into an isolated nonproduction project; verify schema/migration checksums, two synthetic tenants and RLS, membership current state/history, canonical current records and totals, receipt/statement database-to-private-object linkage, queue/job consistency, and exports. Record duration, gaps, and cleanup. Never overwrite production to test restoration. The authoritative procedure, encrypted bundle contract, and incident matrix are in `BACKUP_AND_DISASTER_RECOVERY.md`.
 
 ## Logging, monitoring, and alerting
 

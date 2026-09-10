@@ -53,6 +53,26 @@ describe('customer question projection', () => {
     meal.event.questionContext={schemaVersion:1,reason:'BUSINESS_PURPOSE_NEEDED'}
     expect(projectCustomerQuestion(meal,transaction)).toMatchObject({kind:'business_purpose'})
   })
+  it('uses receipt-established meal facts instead of a generic purchase-purpose question',()=>{
+    const businessMeal=withDecision(item('BUSINESS_PURPOSE_NEEDED'),{bookkeepingNature:'expense',treatment:'business',
+      allocations:[{kind:'business',amountCents:-18600}]})
+    businessMeal.event.questionContext={schemaVersion:1,reason:'BUSINESS_PURPOSE_NEEDED',
+      factType:'receipt_meal_business_purpose',receiptMealCandidateId:'meal-1'}
+    expect(projectCustomerQuestion(businessMeal,transaction)).toMatchObject({
+      kind:'business_purpose',prompt:'What was the business reason for the meal?',
+    })
+    expect(projectCustomerQuestion(withDecision(item('BUSINESS_USE_UNCLEAR',{factType:'receipt_meal_candidate'}),{
+      bookkeepingNature:'expense'}),transaction)).toMatchObject({kind:'business_use',prompt:'Was this meal for business?'})
+  })
+
+  it('narrows medium-confidence economic context instead of asking the generic activity question',()=>{
+    const question=projectCustomerQuestion(item('TRANSACTION_TYPE_UNCLEAR'),transaction,{
+      version:'bookkeeping-evidence-routing:v1',context:'restaurant_meal',confidence:'narrowed_confirmation',
+      merchantScope:'capital grille',evidence:['merchant'],
+    })
+    expect(question).toMatchObject({prompt:'Was this a restaurant or meal purchase?',
+      options:expect.arrayContaining([{id:'purchase',label:'Yes, a meal'}])})
+  })
   it('uses a simple actionable count on Home', () => {
     expect(customerQuestionHeadline(1)).toBe('1 quick question for you')
     expect(customerQuestionHeadline(5)).toBe('5 quick questions for you')

@@ -18,15 +18,19 @@ describe('canonical mileage product',()=>{
     const page=source('app/mileage/MileageClient.tsx');const policy=source('app/lib/route-policy.ts')
     expect(policy).toContain("'/mileage'");expect(page).toContain('inputMode="decimal"')
     expect(page).toContain('Business purpose');expect(page).toContain('Job or project')
-    expect(page).not.toMatch(/standard mileage|actual expense method|choose.*method/i)
+    expect(page).not.toMatch(/standard mileage|actual expense method|tax method|deduction method/i)
+    expect(page).toContain('Track my business miles')
+    expect(page).toContain('Track my vehicle costs')
+    expect(page).toContain('How should I handle this vehicle')
+    expect(page).toContain('Tell me the business miles you drive. I’ll handle the deduction.')
     expect(page).toContain('finally {setBusy(false)}')
     expect(page).toContain('AbortSignal.timeout')
   })
-  it('keeps legacy APIs on canonical services and reports facts fail closed',()=>{
+  it('keeps legacy APIs on canonical services and reports method-aware facts conservatively',()=>{
     expect(source('app/api/mileage/create/route.ts')).toContain("rpc('record_canonical_mileage'")
     expect(source('app/api/mileage/list/route.ts')).toContain('listMileageContext')
-    expect(source('app/lib/bookkeeping/reporting-service.ts')).toContain('mileageDeductionCents: null')
-    expect(source('app/lib/bookkeeping/reporting-service.ts')).toContain("'facts_only'")
+    expect(source('app/lib/bookkeeping/reporting-service.ts')).toContain('loadVehicleTaxYearReports')
+    expect(source('app/lib/bookkeeping/reporting-service.ts')).toContain("'needs_attention'")
   })
   it('does not couple mileage to transactions or receipts',()=>{
     const migration=source('supabase/migrations/20260824000200_add_canonical_business_mileage.sql')

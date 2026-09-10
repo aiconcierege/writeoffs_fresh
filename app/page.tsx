@@ -76,11 +76,11 @@ export default function Page() {
               className="object-cover object-[72%_center] lg:object-[58%_center]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#17211d]/25 via-transparent to-transparent" aria-hidden="true" />
-            <div className="absolute bottom-5 left-5 right-5 max-w-sm rounded-2xl bg-white/92 p-4 shadow-[0_18px_45px_rgba(23,33,29,0.18)] backdrop-blur sm:bottom-7 sm:left-7 sm:p-5 lg:bottom-8 lg:left-8">
-              <p className="text-sm font-semibold text-[#17211d]">
+            <div className="absolute bottom-4 left-4 right-4 max-w-[17rem] rounded-xl bg-[#fffaf3] px-4 py-3 shadow-[0_8px_22px_rgba(23,33,29,0.10)] sm:bottom-7 sm:left-7 sm:right-auto sm:max-w-xs sm:rounded-2xl sm:px-5 sm:py-4 lg:bottom-8 lg:left-8">
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#176c54]">
                 The best bookkeeping task<span className="text-[#178368]">?</span>
               </p>
-              <p className="mt-1 text-xl font-semibold tracking-[-0.025em] text-[#17211d]">The one already handled.</p>
+              <p className="mt-1.5 text-lg font-semibold leading-tight tracking-[-0.025em] text-[#17211d] sm:text-xl">The one already handled.</p>
             </div>
           </div>
         </div>

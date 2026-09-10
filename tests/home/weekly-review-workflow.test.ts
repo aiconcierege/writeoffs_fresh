@@ -22,6 +22,8 @@ describe('transaction-first weekly review',()=>{
  expect(weekly).toContain('{selectedCount} selected')
   expect(weekly).toContain('Everything shown was for the business')
   expect(weekly).toContain('Leave these out')
+  expect(weekly).toContain('businessExpenseSweep.map')
+  expect(weekly).not.toContain('{visible.map(item=><TransactionRow')
  expect(styles).toContain('body { overflow-x: clip; overflow-y: visible; }')
   expect(styles).toContain('.weekly-sweep-actions { position: sticky;')
   expect(styles).toContain('bottom: 1rem;')
@@ -44,8 +46,8 @@ describe('transaction-first weekly review',()=>{
   expect(weekly).toContain('No, leave it out')
   expect(weekly).toContain('Not a business expense')
  })
- it('keeps questions period-scoped and final presentation gated',()=>{
-  expect(questions).toContain('question.transaction.date>=query.start!')
+ it('keeps legacy question URLs on the continuous check-in and final presentation gated',()=>{
+  expect(questions).toContain("redirect('/check-in')")
   expect(processing).toContain("stage==='final'")
   expect(processing).toContain('if(!workflowReady)')
   expect(processing).toContain('unresolvedQuestionCount:questions')
@@ -67,8 +69,8 @@ describe('transaction-first weekly review',()=>{
   expect(weekly).toContain("stage==='questions'&&")
   const page=readFileSync('app/weekly-review/[id]/page.tsx','utf8')
   expect(page).not.toContain('<BettiIllustration')
-  expect(page).toContain('Weekly review ·')
-  expect(page).toContain('className="weekly-page-context"')
+  expect(page).toContain("redirect('/check-in')")
+  expect(page).not.toContain('Weekly review ·')
  })
  it('uses canonical business-dollar mixed-use answers and blocks percentage input',()=>{
   const flow=readFileSync('app/questions/QuestionFlow.tsx','utf8')

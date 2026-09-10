@@ -55,7 +55,11 @@ Historical cleanup finishes with a durable review state and immutable presented 
 
 The authenticated prerequisite order remains email/session, mandatory MFA, membership, business onboarding, Get Started, then Home. The primary starting path is connected accounts; statements, CSV, and receipts remain valid alternatives.
 
-For each connected checking or credit account ask **How do you use this account?** with **Business only** or **Business and personal**. This is reusable context, not an irreversible transaction classification. Every account uses the same review model because even business-only accounts may contain personal or mixed activity.
+For each connected checking, savings, or credit account ask **How do you use this account?** with **Business only** or **Business and personal**. The answer is an append-only customer-authored account fact; absence means Unknown. Onboarding expectations, account type, institution, and transaction history never substitute for it.
+
+**Business only** establishes business context after economic nature is determined. For a supported ordinary expense, it may support a 100% business allocation without asking transaction-by-transaction whether the purchase was for business. It never turns transfers, card payments, loan principal, owner money, refunds, assets, vehicle activity, or other special treatment into an ordinary deduction. Inherently mixed-use costs still require the smallest applicable use fact, and meals still require substantiation.
+
+**Business and personal** does not presume either use for every transaction. WriteOffs applies structural rules, transaction and merchant evidence, linked documents, prior scoped customer facts, and approved tax intelligence first; it asks only for a material real-world fact that remains unknown.
 
 During onboarding ask for the customer's weekly check-in day:
 
@@ -150,18 +154,26 @@ For business meals, restaurant recognition may establish meal context but not bu
 
 When older cleanup expenses cannot be identified, offer a group resolution: **Keep them as business expenses**, **Treat them as personal/exclude**, or **Review individually**. A Keep decision establishes customer-asserted business use but never fabricates category or tax treatment; those may remain unresolved and the documentation limitation remains.
 
-Distinguish **Yes, I can get the information later** from **No, it's missing/not available**. The latter proceeds to an informed include/exclude resolution. The former defers to the next weekly review and is grouped as **You had 4 things you were going to look for**, with **I have it**, **Still looking**, or **Not available**. After roughly two or three repeated weekly deferrals, explicitly ask whether the information is realistically expected instead of repeating forever.
+Distinguish **Yes, I can get the information later** from **No, it's missing/not available**. The latter proceeds to an informed include/exclude resolution. The former defers the question without resolving or approving it. When the deferral expires, Betti may ask again calmly. Repeated deferrals should not create an endless nagging loop.
 
-Weekly review counts contain current/recent-period work. Questions that age beyond that context move to an older/historical context; they are not copied, duplicated, or indefinitely added to every weekly count. Older questions remain accessible. At most monthly, use a calm reminder such as **You have 14 older questions waiting. We'd like to help you get caught up.** No response waits until the next monthly opportunity.
+The authoritative customer queue contains every current askable factual question, regardless of transaction date or an earlier completed review period. It excludes resolved, superseded, stale-fingerprint, inaccessible, and validly deferred leaves. A customer answer is followed by a fresh queue read so dependent questions appear only when facts are still missing.
 
-## 9. Weekly review sequence and sign-off
+## 9. Check in with Betti
+
+The active customer experience is **Check in with Betti** at `/check-in`. It has no weekly date container and asks one current factual question at a time. The customer can leave at any time; no response and **Finish later** are never approval. Old `/weekly-review` links redirect to `/check-in` for compatibility.
+
+Immutable weekly periods, snapshots, and events may remain internal for audit and historical compatibility. They do not select or limit current customer questions and are not an active customer sign-off ritual.
+
+After every saved answer, the experience reloads the authoritative continuous queue. If new evidence arrives during a check-in, stale fingerprint protection rejects the old answer safely and the current question is reloaded. A check-in ends only when the live queue contains no currently askable facts.
+
+### Historical weekly review behavior
 
 For a period with relevant activity:
 
 1. Import the period's activity; Betti starts processing immediately.
 2. The customer reviews the period transaction list.
-3. Personal sweep removes personal activity from business workflow.
-4. Mixed-use sweep collects business dollar amounts.
+3. A business-expense exception sweep shows only ordinary expenses currently treated as Business and asks whether any should be left out as Personal. **Everything shown was for the business** advances the review but is not transaction-by-transaction approval; silence is never approval.
+4. A separate mixed-use exception sweep lets the customer select expenses that were partly personal, then collects the business dollar amount or percentage through the canonical mixed-use question path.
 5. Betti asks only remaining factual questions.
 6. Missing-documentation decisions occur during finalization.
 7. Betti finishes supported bookkeeping and creates the exact immutable review snapshot.
@@ -169,6 +181,8 @@ For a period with relevant activity:
 9. Ask **Anything you'd like to change?** with **Everything looks right**, **Make a change**, and a respectful deferral option.
 
 The review feels like a focused version of Transactions, not a raw bank feed or accounting table. Personal items do not remain. Categories are informational and subordinate; unresolved categories are omitted rather than guessed. Internal keys and Schedule C language are never exposed. Simple business/personal/mixed corrections happen inside the review conversation where practical without forcing the customer to leave and find the review again. They use the same append-only canonical history and provenance as every other correction; Weekly Review never owns a parallel correction system.
+
+Evidence authority is deterministic: a current explicit customer transaction correction outranks all automation; current scoped customer facts and explicit account-use declarations are customer-authored evidence; a currently linked authenticated customer-provided receipt may establish business context; financial and structural evidence determines economic nature; approved merchant, document, deterministic, and AI intelligence may establish remaining facts within their confidence boundaries. A receipt is not blanket proof of deductibility. Reprocessing is idempotent, evidence fingerprints include account-use and document-link state, and changed evidence supersedes current projections without rewriting history or silently reversing a customer correction.
 
 Items are ordered by activity date with deterministic same-date ordering. The snapshot preserves the exact current canonical record/decision identities, customer-facing established category label, business treatment/portion, receipt status where available, and amount presented. Period identity follows the effective Business cadence, uses date-based timezone-safe boundaries, is unique, and never changes retroactively.
 
@@ -181,6 +195,10 @@ If the period has no mileage entries, ask **Did you drive for your business this
 ## 10. Home, navigation, and connected-account status
 
 Home answers: Is WriteOffs doing its job? Does WriteOffs need me? How is my business doing? It uses canonical potential-writeoff, documentation, review, question, membership-scoped financial, and provider-health read models. Its established composition is substantially aligned and protected from another wholesale dashboard redesign. Future work may refine truthful states, wording, responsiveness, and behavior while preserving a calm, result-oriented page focused on what WriteOffs accomplished, whether the customer needs to act, and a useful financial picture. Home remains the hub with a hamburger/global menu and must not become an accounting dashboard or wall of widgets; mobile is a primary composition.
+
+Authenticated UX keeps complexity behind Betti. Each screen has one obvious focal point and primary action, uses plain-language real-world facts, and avoids accounting or tax terminology where possible. Mobile hierarchy and density are designed first: readable type, safe tap targets, compact records, no overlapping artwork, and no large card or headline that crowds out the customer’s next action. Betti appears only when she explains what she handled, what she still needs, or what the customer should do next.
+
+Questions are exception-driven and conversational. Transaction context and supporting evidence stay compact; progress appears only when it helps orient a multi-question check-in; one customer intent is never represented by duplicate controls. Customer-facing transaction history is a meaningful projection—customer corrections, receipt matches, and material rechecks—not the immutable technical event ledger or worker state. The complete canonical history remains available to support and audit systems.
 
 When caught up, use canonical Caught Up Betti and language such as **Everything's handled. Your books are up to date.** Do not manufacture engagement. Keep the next scheduled check-in, last successful connected-account check, and a secondary **Check for new transactions** action visible.
 

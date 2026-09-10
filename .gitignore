@@ -21,6 +21,11 @@ dist
 
 # Local backups
 backups/
+*.wobak
+*.dump
+*.backup
+writeoffs-backup-*/
+writeoffs-restore-*/
 
 # Generated tool state
 *.tsbuildinfo

@@ -15,12 +15,15 @@ describe('Plaid Link request contract', () => {
         credit: { account_subtypes: ['credit card'] },
       },
     })
+    expect(request.redirect_uri).toBe('https://example.test/settings/banking')
     expect(JSON.stringify(request)).not.toMatch(/auth|identity|balance|transfer|income|liabilit|investment/i)
   })
 
   it('uses the existing credential in update mode without adding products', () => {
-    const request = updateModeLinkRequest({ clientUserId: 'stable-hash', accessToken: 'server-secret' })
+    const request = updateModeLinkRequest({ clientUserId: 'stable-hash', accessToken: 'server-secret',
+      redirectUri: 'https://example.test/settings/banking' })
     expect(request.access_token).toBe('server-secret')
     expect(request).not.toHaveProperty('products')
+    expect(request.redirect_uri).toBe('https://example.test/settings/banking')
   })
 })

@@ -109,7 +109,12 @@ export async function appendTrustedTaxTreatment(input: {
   }
   const converge = (existing: Awaited<ReturnType<typeof findExisting>>) => {
     if (!existing) return null
-    const matches = existing.supersedes_tax_treatment_id === input.expectedCurrentTaxTreatmentId
+    // A later reevaluation observes this exact conclusion as the current leaf.
+    // Treat that as the same idempotent result, not as an attempt to make the
+    // conclusion supersede itself.
+    const predecessorMatches = existing.supersedes_tax_treatment_id === input.expectedCurrentTaxTreatmentId
+      || existing.id === input.expectedCurrentTaxTreatmentId
+    const matches = predecessorMatches
       && existing.treatment_status === input.status
       && (existing.deductible_amount_cents == null ? null : Number(existing.deductible_amount_cents)) === input.deductibleAmountCents
       && existing.tax_category_key === input.taxCategoryKey && existing.rule_key === input.ruleKey

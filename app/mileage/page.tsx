@@ -9,5 +9,7 @@ export default async function MileagePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
   const context = await listMileageContext(supabase)
-  return <MileageClient initialVehicles={context.vehicles} initialEntries={context.entries} />
+  return <MileageClient initialVehicles={context.vehicles} initialEntries={context.entries}
+    initialVehicleIdentities={context.vehicleIdentities} initialVehicleMethods={context.vehicleMethods}
+    initialVehicleUseFacts={context.vehicleUseFacts} />
 }

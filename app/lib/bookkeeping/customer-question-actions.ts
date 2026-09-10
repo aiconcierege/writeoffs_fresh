@@ -10,6 +10,7 @@ import type{TransactionTypeAnswer}from'./review-answer-model'
 import { listCanonicalReviewQueue } from './review-queue'
 import { projectCustomerQuestion } from './customer-questions'
 import { SupabaseBookkeepingRepository } from './supabase-repository'
+import { understandMealAnswer } from './meal-answer-understanding'
 
 export type CustomerQuestionAction =
   | { action: 'defer' }
@@ -81,6 +82,16 @@ export async function actOnCustomerQuestion(input: {
   }
   if (input.command.action === 'meal_relationship' && item.event.reason === 'BUSINESS_PURPOSE_NEEDED'
     && item.event.questionContext?.factType === 'meal_attendee_relationship') {
+    const understanding = understandMealAnswer(input.command.attendeeRelationship)
+    if (typeof item.event.questionContext?.businessContextAssessmentId === 'string') {
+      return repository.answerBusinessContextMealSubstantiation({
+        reviewIssueId: input.issueId, expectedCurrentEventId: input.expectedEventId,
+        expectedCurrentDecisionId: item.decision.id,
+        expectedContextFingerprint: item.event.contextFingerprint,
+        expectedEvidenceFingerprint: item.event.evidenceFingerprint ?? '',
+        attendeeRelationship: input.command.attendeeRelationship, understanding,
+      })
+    }
     return repository.answerMealSubstantiation({
       reviewIssueId: input.issueId,
       expectedCurrentEventId: input.expectedEventId,
@@ -88,6 +99,7 @@ export async function actOnCustomerQuestion(input: {
       expectedContextFingerprint: item.event.contextFingerprint,
       expectedEvidenceFingerprint: item.event.evidenceFingerprint ?? '',
       attendeeRelationship: input.command.attendeeRelationship,
+      understanding,
     })
   }
   if (input.command.action === 'mixed_all_business' && item.event.reason === 'MIXED_USE_CLARIFICATION') {

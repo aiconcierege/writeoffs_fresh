@@ -6,6 +6,7 @@ export const AUTHENTICATED_ROUTE_PREFIXES = [
   '/settings',
   '/onboarding',
   '/questions',
+  '/check-in',
   '/receipts',
   '/mileage',
   '/money',

@@ -8,7 +8,8 @@ const HASH = /^[a-f0-9]{64}$/
 
 export async function GET(request: Request) {
   try {
-    const limit = Number(new URL(request.url).searchParams.get('limit') ?? 50)
+    const requested = Number(new URL(request.url).searchParams.get('limit') ?? 50)
+    const limit = Number.isSafeInteger(requested) ? Math.min(Math.max(requested, 1), 500) : 50
     const receipts = await listCanonicalReceipts({ supabase: await createServerSupabase(), limit })
     return NextResponse.json({ ok: true, receipts })
   } catch (cause) {

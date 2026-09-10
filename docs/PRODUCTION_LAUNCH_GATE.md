@@ -17,8 +17,8 @@ Review date: 2026-08-25. Status values are `READY`, `NEEDS CONFIGURATION`, `BLOC
 | Queue/worker | READY | Durable claims/leases/retries/dead letter, bounded authenticated drain, cost pause, and health metrics exist. |
 | Vercel cron | NEEDS CONFIGURATION | One-minute declaration exists; configure strong `CRON_SECRET`, 60-second duration support, success/backlog alerts, and prove staging invocations. |
 | Monitoring/alerting | NEEDS CONFIGURATION | Thresholds/runbooks defined; provider-native dashboards and operator destinations must be configured. |
-| Database/Storage backups | NEEDS CONFIGURATION | Completed daily staging physical backups and WAL backup were verified; PITR is off. Isolated database restore and private Storage recovery/linkage remain unproven. |
-| Restore procedure/DR | NEEDS CONFIGURATION | Procedure and RPO/RTO targets documented; first restore exercise must pass. |
+| Database/Storage backups | NEEDS CONFIGURATION | An encrypted DB/private-object bundle and integrity verification exist. Production Pro/PITR, an independent destination, scheduling, key custody, and dashboard verification remain. |
+| Restore procedure/DR | PARTIALLY VERIFIED | The isolated local synthetic drill passed for DB, RLS, canonical state, correction/mileage, private object, and linkage. A provider-hosted Production-shaped drill and operational RPO/RTO proof remain. |
 | Stripe test lifecycle | READY | Real TEST Checkout/webhook/lifecycle validation is documented. |
 | Stripe live | NEEDS CONFIGURATION | Live Products/Prices/secrets/webhook/restricted Portal/email/dunning/Tax decision and controlled smoke test remain. |
 | Plaid Sandbox | READY | Link/sync/current-record/convergence behavior tested; Sandbox only. |

@@ -14,9 +14,11 @@ Balance, Identity, Investments, Liabilities, Income, Assets, Transfer, or money
 movement. `/accounts/get` is used only for account identity metadata; returned
 balances are neither persisted nor presented.
 
-The implementation is deliberately gated by `PLAID_ENV=sandbox` and
-`PLAID_SANDBOX_LINK_ENABLED=true`. Production Link must remain disabled until
-the production checklist below is completed.
+Link is environment-gated. Local/staging Sandbox requires `PLAID_ENV=sandbox`
+and `PLAID_SANDBOX_LINK_ENABLED=true`. Production requires all of
+`WRITEOFFS_ENVIRONMENT=production`, `PLAID_ENV=production`, and
+`PLAID_PRODUCTION_ENABLED=true`; environment validation rejects crossed modes.
+Production must remain disabled until the production checklist below is completed.
 
 ## Link and Item lifecycle
 
@@ -36,6 +38,14 @@ the production checklist below is completed.
    public token.
 7. Disconnect calls `/item/remove`, disables future sync, and preserves all
    historical canonical financial and bookkeeping evidence.
+
+For OAuth institutions, every new-Item and update-mode Link token receives the
+configured `PLAID_REDIRECT_URI`. Before opening Link, the browser stores only the
+short-lived Link token, update-mode Item-row UUID when applicable, and local return
+path in session storage. On an `oauth_state_id` return, Link is reinitialized with
+that same token and `receivedRedirectUri`; state is removed on completion or exit.
+The Plaid access token is never present in this browser flow. Configure the HTTPS
+redirect URI in Plaid's allowlist separately for each deployed environment.
 
 ## Account mapping
 
@@ -105,6 +115,28 @@ after the response. An empty first sync initializes webhooks and remains
 pending consent expiration, new-account availability, and permission revocation
 become provider-neutral health states. Raw codes stay server-side.
 
+## Customer refresh cadence and reconnection direction
+
+The approved product direction is approximately one normal automatic connected-
+account refresh per week in preparation for the Business's scheduled review, not
+nightly polling merely for real-time monitoring. Betti processes received activity
+immediately. Home shows the last successful account check, the next scheduled
+check-in, and a secondary customer-initiated **Check for new transactions** action.
+
+No permanent manual-refresh limit is approved until Plaid Production behavior,
+cost, rate limits, institution latency, and Transactions Sync semantics are
+validated. A manual refresh that finds activity adds it to the current period and
+starts processing without waiting for customer review.
+
+When reauthentication is required, Home identifies the institution and offers
+Update Mode through **Reconnect account**. Successful reconnection triggers an
+immediate refresh and processing. It does not wait for the weekly cycle.
+
+This product cadence does not replace provider-required webhook or cursor safety.
+Plaid `SYNC_UPDATES_AVAILABLE` delivery, initial/history readiness, update-mode
+behavior, and Production refresh economics must be validated before changing the
+current implementation.
+
 ## Security and operations
 
 - Customer routes authenticate first and derive the one Business from `auth.uid()`.
@@ -167,8 +199,7 @@ update mode. Ordinary CI must not depend on Plaid network availability.
 - Configure production client ID, secret, HTTPS webhook, OAuth redirect URI,
   allowed redirect URIs, Link customization, and Data Transparency Messaging.
 - Provision and verify the production token-encryption key and backup/rotation plan.
-- Remove the Sandbox-only product gate through a separately reviewed change;
-  never reuse Sandbox secrets or Items.
+- Explicitly set the reviewed Production gate and never reuse Sandbox secrets or Items.
 - Validate signed webhooks from the public production URL.
 - Link an explicitly authorized low-risk real test account; verify multiple
   accounts, initial/historical readiness, exact signs, pending-to-posted,

@@ -2,6 +2,7 @@ import 'server-only'
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { BookkeepingEvaluationSnapshot } from './deterministic-evaluator'
+import { snapshotEconomicContext } from './evidence-aware-routing'
 
 export const DEDUCTION_INTELLIGENCE_VERSION = 'deduction-intelligence:v1'
 
@@ -10,6 +11,10 @@ function normalizedScope(value: string) {
 }
 
 export function deductionSignal(snapshot: BookkeepingEvaluationSnapshot) {
+  const routed = snapshotEconomicContext(snapshot)
+  if (routed?.context === 'telecom_service' && routed.confidence === 'strong') {
+    return { kind: 'phone' as const, factType: 'phone_business_use_percentage', scope: routed.merchantScope }
+  }
   const source = `${snapshot.merchantName ?? ''} ${snapshot.description ?? ''}`.toLowerCase()
   const merchantScope = normalizedScope(snapshot.merchantName ?? snapshot.description ?? '')
   if (merchantScope && /\b(?:wireless|mobile|phone|verizon|at&t|t-mobile)\b/.test(source)) {
@@ -27,9 +32,9 @@ export function deductionSignal(snapshot: BookkeepingEvaluationSnapshot) {
   return null
 }
 
-function questionEligible(date: string | null) {
+function questionEligible(date: string | null, now = new Date()) {
   if (!date) return false
-  const age = Math.floor((Date.now() - Date.parse(`${date}T00:00:00Z`)) / 86_400_000)
+  const age = Math.floor((now.getTime() - Date.parse(`${date}T00:00:00Z`)) / 86_400_000)
   return age >= 0 && age <= 30
 }
 
@@ -38,22 +43,25 @@ export async function runDeductionIntelligenceForRecord(input: {
   snapshot: BookkeepingEvaluationSnapshot
   writer?: SupabaseClient
   customerAnsweredFact?: boolean
+  now?: Date
 }) {
   const { admin, snapshot } = input
   await refreshHomeOfficeDiscovery({ admin, businessId: snapshot.businessId })
   const signal = deductionSignal(snapshot)
-  if (!signal || snapshot.currentDecision.bookkeepingNature !== 'expense'
-    || !['business', 'mixed_use'].includes(snapshot.currentDecision.treatment)) {
+  if (!signal || snapshot.currentDecision.bookkeepingNature !== 'expense') {
     return { outcome: 'not_applicable' as const }
   }
 
   if (signal.kind === 'equipment') {
+    if (!['business', 'mixed_use'].includes(snapshot.currentDecision.treatment)) {
+      return { outcome: 'not_applicable' as const }
+    }
     await admin.from('bookkeeping_special_treatment_signals').upsert({
       business_id: snapshot.businessId, bookkeeping_record_id: snapshot.recordId,
       signal_type: 'equipment_review', signal_version: DEDUCTION_INTELLIGENCE_VERSION,
       reason_code: 'POSSIBLE_DURABLE_EQUIPMENT', provenance: 'automation',
     }, { onConflict: 'business_id,bookkeeping_record_id,signal_type,signal_version', ignoreDuplicates: true })
-    if (questionEligible(snapshot.occurredOn)) {
+    if (questionEligible(snapshot.occurredOn, input.now)) {
       await openAttention(admin, snapshot, signal.factType, 'bookkeeping_record', signal.scope,
         'percentage', 'About how much is this equipment used for your business?',
         'Enter an approximate percentage. WriteOffs will keep special tax treatment unresolved until the needed facts and rules are available.')
@@ -66,7 +74,7 @@ export async function runDeductionIntelligenceForRecord(input: {
     .eq('scope_kind', 'merchant').eq('scope_key', signal.scope).maybeSingle()
   if (factError) throw new Error('DEDUCTION_FACT_LOAD_FAILED')
   if (!fact) {
-    if (questionEligible(snapshot.occurredOn)) {
+    if (questionEligible(snapshot.occurredOn, input.now)) {
       await openAttention(admin, snapshot, signal.factType, 'merchant', signal.scope, 'percentage',
         `About how much do you use this ${signal.kind} service for your business?`,
         'Enter an approximate percentage. WriteOffs will remember it for this recurring service.')

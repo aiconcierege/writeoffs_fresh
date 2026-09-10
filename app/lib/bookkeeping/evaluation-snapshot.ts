@@ -35,6 +35,14 @@ function structuralHint(transaction: Row): StructuralMovementHint {
   return null
 }
 
+function personalFinanceCategory(transaction: Row) {
+  if (transaction.import_method !== 'provider') return null
+  const raw = object(transaction.raw_payload)
+  if (raw.provider !== 'plaid') return null
+  const category = object(object(raw.provider_evidence).personal_finance_category)
+  return { primary: text(category.primary), detailed: text(category.detailed) }
+}
+
 function shiftDate(value: string, days: number) {
   const date = new Date(`${value}T00:00:00Z`)
   date.setUTCDate(date.getUTCDate() + days)
@@ -63,7 +71,7 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
     .eq('id', recordId).eq('business_id', businessId).maybeSingle()
   if (recordError || !record) throw new Error('BOOKKEEPING_RECORD_UNAVAILABLE')
 
-  const [businessResult, sourceResult, decisionsResult, reviewResult, documentsResult] = await Promise.all([
+  const [businessResult, sourceResult, decisionsResult, reviewResult, documentsResult, mealResult] = await Promise.all([
     admin.from('businesses').select('business_description').eq('id', businessId).maybeSingle(),
     admin.from('bookkeeping_financial_sources')
       .select('financial_transaction_id').eq('business_id', businessId)
@@ -73,11 +81,31 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
     admin.from('bookkeeping_review_events')
       .select('id,supersedes_event_id,event_type,reason').eq('business_id', businessId)
       .eq('bookkeeping_record_id', recordId),
-    admin.from('bookkeeping_document_links').select('id').eq('business_id', businessId)
+    admin.from('bookkeeping_document_links').select('id,receipt_id').eq('business_id', businessId)
       .in('bookkeeping_record_id', evidenceRecordIds).is('revoked_at', null),
+    admin.from('bookkeeping_receipt_meal_candidates').select('id,receipt_id')
+      .eq('business_id', businessId),
   ])
   if (businessResult.error || sourceResult.error || decisionsResult.error
-    || reviewResult.error || documentsResult.error) throw new Error('BOOKKEEPING_EVIDENCE_UNAVAILABLE')
+    || reviewResult.error || documentsResult.error || (mealResult.error && mealResult.error.code !== '42P01')) {
+    throw new Error('BOOKKEEPING_EVIDENCE_UNAVAILABLE')
+  }
+  const receiptIds = new Set((mealResult.data ?? []).map((row) => String(row.receipt_id)))
+  const activeDocuments = (documentsResult.data ?? []) as Row[]
+  const activeReceiptIds = activeDocuments.map((row) => String(row.receipt_id))
+  const { data: customerUploads, error: customerUploadsError } = activeReceiptIds.length
+    ? await admin.from('bookkeeping_receipt_events').select('id,receipt_id')
+      .eq('business_id', businessId).in('receipt_id', activeReceiptIds)
+      .eq('event_type', 'uploaded').eq('provenance', 'user').not('actor_user_id', 'is', null)
+    : { data: [], error: null }
+  if (customerUploadsError) throw new Error('BOOKKEEPING_EVIDENCE_UNAVAILABLE')
+  const uploadByReceipt = new Map((customerUploads ?? []).map((row) => [String(row.receipt_id), String(row.id)]))
+  const { data: mealLinks, error: mealLinksError } = receiptIds.size
+    ? await admin.from('bookkeeping_document_links').select('receipt_id')
+      .eq('business_id', businessId).in('bookkeeping_record_id', evidenceRecordIds)
+      .in('receipt_id', [...receiptIds]).is('revoked_at', null)
+    : { data: [], error: null }
+  if (mealLinksError) throw new Error('BOOKKEEPING_EVIDENCE_UNAVAILABLE')
 
   const reviewEvents = (reviewResult.data ?? []) as Row[]
   const supersededReviewEvents = new Set(reviewEvents.map((event) => event.supersedes_event_id).filter(Boolean))
@@ -94,7 +122,13 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
     merchantName: null,
     description: null,
     businessDescription: text(businessResult.data?.business_description),
-    activeDocumentCount: documentsResult.data?.length ?? 0,
+    activeDocumentCount: activeDocuments.length,
+    customerProvidedReceipts: activeDocuments.flatMap((link) => {
+      const receiptId = String(link.receipt_id)
+      const uploadEventId = uploadByReceipt.get(receiptId)
+      return uploadEventId ? [{ receiptId, documentLinkId: String(link.id), uploadEventId }] : []
+    }),
+    accountUse: null,
     customerAnswerCount: reviewEvents.filter((event) => event.event_type === 'answered').length,
     hasOpenConflictingEvidence: currentReviewEvents.some((event) =>
       event.reason === 'CONFLICTING_EVIDENCE' && event.event_type !== 'resolved'),
@@ -102,6 +136,8 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
     currentDecision,
     movement: null,
     movementCandidates: [],
+    personalFinanceCategory: null,
+    receiptMealSupported: Boolean(mealLinks?.length),
   } satisfies BookkeepingEvaluationSnapshot
   const financialTransactionId = sourceResult.data?.financial_transaction_id
     ?? compoundComponent?.financialTransactionId
@@ -123,6 +159,11 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
     .select('id,business_id,account_type,connection_status,archived_at')
     .eq('business_id', businessId).in('id', accountIds)
   if (accountsError) throw new Error('BOOKKEEPING_SOURCE_UNAVAILABLE')
+  const { data: accountUses, error: accountUsesError } = await admin.from('current_financial_account_use')
+    .select('id,financial_account_id,designation,effective_at').eq('business_id', businessId)
+    .in('financial_account_id', accountIds)
+  if (accountUsesError && accountUsesError.code !== '42P01') throw new Error('BOOKKEEPING_SOURCE_UNAVAILABLE')
+  const accountUseById = new Map((accountUses ?? []).map((use) => [String(use.financial_account_id), use]))
   const accountById = new Map((accounts ?? []).map((account) => [account.id, account]))
   const sourceState = await currentPlaidFinancialState({
     supabase: admin,
@@ -183,8 +224,15 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
     occurredOn: compoundComponent ? base.occurredOn : String(transaction.transaction_date),
     merchantName: text(transaction.merchant_name),
     description: text(transaction.original_description),
+    personalFinanceCategory: personalFinanceCategory(transaction),
     movement: compoundComponent ? null : movement,
     movementCandidates: compoundComponent ? [] : movements.filter((candidate) =>
       candidate.financialTransactionId !== transaction.id),
+    accountUse: (() => {
+      const use = accountUseById.get(String(transaction.financial_account_id))
+      return use && (use.designation === 'business_only' || use.designation === 'business_and_personal') ? {
+        eventId: String(use.id), designation: use.designation, effectiveAt: String(use.effective_at),
+      } : null
+    })(),
   }
 }

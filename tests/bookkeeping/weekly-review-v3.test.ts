@@ -2,6 +2,7 @@ import{readFileSync}from'node:fs'
 import{describe,expect,it}from'vitest'
 import{resolveV3WeeklyReviewStage,type WeeklyReviewTransaction}from'../../app/lib/bookkeeping/weekly-review'
 import{isWeeklyMixedUseCandidate}from'../../app/lib/bookkeeping/weekly-review-mixed-eligibility'
+import{isWeeklyBusinessExpenseSweepCandidate}from'../../app/lib/bookkeeping/weekly-review-business-sweep'
 
 const weekly=readFileSync('app/home/WeeklyReview.tsx','utf8')
 const questions=readFileSync('app/questions/QuestionFlow.tsx','utf8')
@@ -29,6 +30,12 @@ describe('Betti-led Weekly Review v3',()=>{
   expect(isWeeklyMixedUseCandidate(candidate({treatment:'excluded',bookkeepingNature:'transfer'}))).toBe(false)
   expect(isWeeklyMixedUseCandidate(candidate({activeIssueReasons:['TRANSACTION_TYPE_UNCLEAR']}))).toBe(false)
   expect(isWeeklyMixedUseCandidate(candidate({bookkeepingNature:'expense',activeIssueReasons:['BUSINESS_USE_UNCLEAR']}))).toBe(false)
+ })
+ it('limits the personal-exception sweep to expenses already treated as business',()=>{
+  expect(isWeeklyBusinessExpenseSweepCandidate(candidate({treatment:'business',bookkeepingNature:'expense'}))).toBe(true)
+  expect(isWeeklyBusinessExpenseSweepCandidate(candidate({treatment:'unresolved',bookkeepingNature:'expense'}))).toBe(false)
+  expect(isWeeklyBusinessExpenseSweepCandidate(candidate({treatment:'business',bookkeepingNature:'business_income',amountCents:10_000}))).toBe(false)
+  expect(isWeeklyBusinessExpenseSweepCandidate(candidate({treatment:'excluded',bookkeepingNature:'transfer'}))).toBe(false)
  })
  it('keeps one visible Activity stage while sequencing personal and mixed substeps',()=>{
   expect(weekly).toContain('Are any of these a mix of business and personal?')
@@ -74,7 +81,7 @@ describe('Betti-led Weekly Review v3',()=>{
  })
  it('derives customer treatment text instead of rendering raw decision provenance',()=>{
   expect(transactions).toContain('customerDecisionExplanation(current)')
-  expect(transactions).toContain("return'Business + personal'")
+  expect(transactions).toContain("return'You set the part used for your business.'")
   expect(transactions).not.toContain("decisionReason: current ? text(current, 'reason')")
  })
 })

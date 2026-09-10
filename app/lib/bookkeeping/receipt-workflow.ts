@@ -9,7 +9,6 @@ export type ReceiptReadItem = {
   mimeType: string
   bytes: number
   createdAt: string
-  signedUrl: string | null
   state: ReceiptLifecycleState | 'legacy'
   merchant: string | null
   occurredOn: string | null
@@ -57,18 +56,16 @@ export async function listCanonicalReceipts(input: { supabase: SupabaseClient; l
   for (const extraction of extractionResult.data ?? []) if (!extractionByReceipt.has(extraction.receipt_id)) extractionByReceipt.set(extraction.receipt_id, extraction)
   const convergedReceipts = new Set((convergenceResult.data ?? []).map((row) => row.receipt_id))
   const processingByReceipt = new Map((processingResult.data ?? []).map((row) => [row.receipt_id, row]))
-  return Promise.all(canonical.map(async (receipt): Promise<ReceiptReadItem> => {
+  return canonical.map((receipt): ReceiptReadItem => {
     const event = currentByReceipt.get(receipt.id)
     const extraction = extractionByReceipt.get(receipt.id)
     const processing = processingByReceipt.get(receipt.id)
-    const { data: signed } = await input.supabase.storage.from('receipts').createSignedUrl(receipt.storage_path, 120)
     return {
       id: receipt.id,
       originalName: receipt.original_name ?? 'Receipt',
       mimeType: receipt.mime_type,
       bytes: receipt.bytes,
       createdAt: receipt.created_at,
-      signedUrl: signed?.signedUrl ?? null,
       state: (event?.event_type as ReceiptLifecycleState | undefined) ?? 'legacy',
       merchant: (extraction?.merchant as string | null | undefined) ?? null,
       occurredOn: (extraction?.occurred_on as string | null | undefined) ?? null,
@@ -83,7 +80,7 @@ export async function listCanonicalReceipts(input: { supabase: SupabaseClient; l
       processingStatus: (processing?.processing_status ?? 'queued') as ReceiptReadItem['processingStatus'],
       processingAttempts: Number(processing?.attempt_count ?? 0),
     }
-  }))
+  })
 }
 
 export async function countReceiptsNeedingAttention(supabase: SupabaseClient) {

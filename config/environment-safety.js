@@ -36,6 +36,19 @@ function assertRemoteOrigin(env, label) {
   }
 }
 
+function assertPlaidEndpoints(env) {
+  const appOrigin = parsedUrl(env.NEXT_PUBLIC_BASE_URL)
+  const webhook = parsedUrl(env.PLAID_WEBHOOK_URL)
+  const redirect = parsedUrl(env.PLAID_REDIRECT_URI)
+  if (!appOrigin || !webhook || !redirect || webhook.protocol !== 'https:' || redirect.protocol !== 'https:') {
+    throw new Error('Enabled remote Plaid requires valid HTTPS webhook and OAuth redirect URLs.')
+  }
+  if (webhook.origin !== appOrigin.origin || redirect.origin !== appOrigin.origin) {
+    throw new Error('Plaid webhook and OAuth redirect must use the configured application origin.')
+  }
+  if (redirect.search || redirect.hash) throw new Error('Plaid OAuth redirect cannot contain a query or fragment.')
+}
+
 function assertProcessingConfiguration(env) {
   if ((env.CRON_SECRET || '').length < 32) throw new Error(`${env.WRITEOFFS_ENVIRONMENT} CRON_SECRET must contain at least 32 characters.`)
   if (!['true', 'false'].includes(env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED)) throw new Error('DOCUMENT_EXPENSIVE_PROCESSING_ENABLED must be explicit in remote environments.')
@@ -79,7 +92,10 @@ function validateEnvironment(env = process.env) {
     if (env.MFA_ENFORCEMENT_MODE !== 'required') throw new Error('Staging requires mandatory MFA enrollment and challenge.')
     assertProcessingConfiguration(env)
     if (env.PLAID_PRODUCTION_ENABLED !== 'false' || plaidMode !== 'sandbox') throw new Error('Staging requires Plaid Sandbox with Production disabled.')
-    if (env.PLAID_SANDBOX_LINK_ENABLED === 'true') required(env, ['PLAID_CLIENT_ID', 'PLAID_SECRET', 'PLAID_TOKEN_ENCRYPTION_KEY', 'PLAID_WEBHOOK_URL'])
+    if (env.PLAID_SANDBOX_LINK_ENABLED === 'true') {
+      required(env, ['PLAID_CLIENT_ID', 'PLAID_SECRET', 'PLAID_TOKEN_ENCRYPTION_KEY', 'PLAID_WEBHOOK_URL', 'PLAID_REDIRECT_URI'])
+      assertPlaidEndpoints(env)
+    }
     if (env.STRIPE_MEMBERSHIP_ENABLED === 'true') {
       required(env, ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_EXPENSES_PRICE_ID', 'STRIPE_BUSINESS_PRICE_ID', 'STRIPE_PORTAL_CONFIGURATION_ID'])
       if (stripeMode !== 'test' || !env.STRIPE_SECRET_KEY.startsWith('sk_test_')) throw new Error('Enabled staging memberships require Stripe test mode and a test secret.')
@@ -108,8 +124,9 @@ function validateEnvironment(env = process.env) {
     }
 
     if (env.PLAID_PRODUCTION_ENABLED === 'true') {
-      required(env, ['PLAID_CLIENT_ID', 'PLAID_SECRET', 'PLAID_TOKEN_ENCRYPTION_KEY', 'PLAID_WEBHOOK_URL'])
+      required(env, ['PLAID_CLIENT_ID', 'PLAID_SECRET', 'PLAID_TOKEN_ENCRYPTION_KEY', 'PLAID_WEBHOOK_URL', 'PLAID_REDIRECT_URI'])
       if (plaidMode !== 'production') throw new Error('Enabled production Plaid requires PLAID_ENV=production.')
+      assertPlaidEndpoints(env)
     } else if (env.PLAID_PRODUCTION_ENABLED === 'false') {
       if (env.PLAID_SANDBOX_LINK_ENABLED === 'true') throw new Error('Plaid Sandbox Link cannot be enabled in production.')
     } else {

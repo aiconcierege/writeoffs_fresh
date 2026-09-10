@@ -85,6 +85,8 @@ suite('bookkeeping processing queue against local PostgreSQL', () => {
     const firstIds = new Set((first.data ?? []).map((row: { id: string }) => row.id))
     const secondIds = new Set((second.data ?? []).map((row: { id: string }) => row.id))
     expect([...firstIds].filter((id) => secondIds.has(id))).toEqual([])
+    expect([...(first.data ?? []), ...(second.data ?? [])]
+      .filter((row: { business_id: string }) => row.business_id === owner.businessId)).toHaveLength(1)
     const owned = [...(first.data ?? []), ...(second.data ?? [])]
       .find((row: { business_id: string }) => row.business_id === owner.businessId)
     expect(owned).toBeTruthy()
@@ -98,6 +100,12 @@ suite('bookkeeping processing queue against local PostgreSQL', () => {
       p_job_id: owned.id, p_lease_id: ownerLease, p_error_code: 'TRANSIENT_TEST_FAILURE',
     })
     expect(retried).toMatchObject({ data: 'retryable', error: null })
+    for (const row of [...(first.data ?? []), ...(second.data ?? [])]) {
+      if (row.business_id !== owner.businessId || row.id === owned.id) continue
+      await admin.rpc('complete_bookkeeping_processing_job', {
+        p_job_id: row.id, p_lease_id: firstIds.has(row.id) ? leaseOne : leaseTwo,
+      })
+    }
 
     await admin.from('bookkeeping_processing_jobs').update({ available_at: new Date(0).toISOString() })
       .eq('id', owned.id)
@@ -110,6 +118,70 @@ suite('bookkeeping processing queue against local PostgreSQL', () => {
       p_job_id: owned.id, p_lease_id: reclaimLease,
     })
     expect(completed).toMatchObject({ data: true, error: null })
+
+    const lateJob = await admin.rpc('request_bookkeeping_processing', {
+      p_business_id: owner.businessId, p_bookkeeping_record_id: owned.bookkeeping_record_id,
+      p_processing_reason: 'late_owned_transition_test', p_target_fingerprint: crypto.randomUUID(),
+    })
+    const lateLease = crypto.randomUUID()
+    await admin.from('bookkeeping_processing_jobs').update({ state: 'processing', attempt_count: 1,
+      lease_id: lateLease, lease_expires_at: new Date(0).toISOString(),
+      claimed_at: new Date(0).toISOString() }).eq('id', lateJob.data)
+    const lateRetry = await admin.rpc('retry_bookkeeping_processing_job', {
+      p_job_id: lateJob.data, p_lease_id: lateLease, p_error_code: 'LATE_OWNED_FAILURE',
+    })
+    expect(lateRetry).toMatchObject({ data: 'retryable', error: null })
+
+    const fencedJob = await admin.rpc('request_bookkeeping_processing', {
+      p_business_id: owner.businessId, p_bookkeeping_record_id: owned.bookkeeping_record_id,
+      p_processing_reason: 'reclaimed_transition_test', p_target_fingerprint: crypto.randomUUID(),
+    })
+    const staleLease = crypto.randomUUID(); const currentLease = crypto.randomUUID()
+    await admin.from('bookkeeping_processing_jobs').update({ state: 'processing', attempt_count: 2,
+      lease_id: currentLease, lease_expires_at: new Date(Date.now() + 60_000).toISOString(),
+      claimed_at: new Date().toISOString() }).eq('id', fencedJob.data)
+    const staleRetry = await admin.rpc('retry_bookkeeping_processing_job', {
+      p_job_id: fencedJob.data, p_lease_id: staleLease, p_error_code: 'STALE_WORKER',
+    })
+    expect(staleRetry.error).not.toBeNull()
+    expect((await admin.rpc('complete_bookkeeping_processing_job', {
+      p_job_id: fencedJob.data, p_lease_id: currentLease,
+    })).data).toBe(true)
+
+    const serialOwner = await provisionLocalCanonicalOwner({
+      admin, url: url!, anonKey: anonKey!, label: 'processing-serial', amounts: [-1400, -1500],
+    })
+    let serialLease = crypto.randomUUID()
+    let serialJob: {id:string;business_id:string}|undefined
+    for(let claimIndex=0;claimIndex<20&&!serialJob;claimIndex+=1){
+      serialLease=crypto.randomUUID()
+      const claimed=await admin.rpc('claim_bookkeeping_processing_jobs',{
+        p_lease_id:serialLease,p_limit:1,p_lease_seconds:60})
+      const row=(claimed.data??[])[0] as {id:string;business_id:string}|undefined
+      if(row?.business_id===serialOwner.businessId)serialJob=row
+      else if(row)await admin.rpc('complete_bookkeeping_processing_job',{p_job_id:row.id,p_lease_id:serialLease})
+    }
+    expect(serialJob).toBeTruthy()
+    if (serialJob) {
+      const serialSecond = await admin.rpc('claim_bookkeeping_processing_jobs', {
+        p_lease_id: crypto.randomUUID(), p_limit: 1, p_lease_seconds: 60,
+      })
+      expect(serialSecond.data ?? []).not.toContainEqual(expect.objectContaining({
+        business_id: serialOwner.businessId,
+      }))
+      const failed = await admin.rpc('retry_bookkeeping_processing_job_diagnostic', {
+        p_job_id: serialJob.id, p_lease_id: serialLease,
+        p_error_code: 'CONTROLLED_TEST_FAILURE', p_error_stage: 'bookkeeping_evaluation',
+        p_diagnostic_code: 'CONTROLLED_TEST_FAILURE', p_error_fingerprint: 'a'.repeat(64),
+        p_duration_ms: 123,
+      })
+      expect(failed).toMatchObject({data:'retryable',error:null})
+      const {data:diagnostic}=await admin.from('bookkeeping_processing_attempt_events')
+        .select('event_type,error_stage,diagnostic_code,error_fingerprint,duration_ms')
+        .eq('job_id',serialJob.id).eq('event_type','failed').single()
+      expect(diagnostic).toEqual({event_type:'failed',error_stage:'bookkeeping_evaluation',
+        diagnostic_code:'CONTROLLED_TEST_FAILURE',error_fingerprint:'a'.repeat(64),duration_ms:123})
+    }
 
     const idempotencyArgs = {
       p_business_id: owner.businessId,

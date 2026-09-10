@@ -18,6 +18,8 @@
     "staging:fixture:realtor": "node scripts/populate-staging-realtor.mjs",
     "staging:fixture:realtor:report": "vite-node --script scripts/report-staging-realtor.ts",
     "staging:review:open": "NODE_OPTIONS=--conditions=react-server tsx scripts/open-staging-test-weekly-review.ts",
+    "backup:create": "node scripts/backup/create-encrypted-backup.mjs",
+    "backup:restore": "node scripts/backup/restore-encrypted-backup.mjs",
     "prepare": "husky"
   },
   "dependencies": {

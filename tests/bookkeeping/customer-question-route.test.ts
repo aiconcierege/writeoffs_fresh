@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const getUser = vi.fn()
-const listCustomerQuestions = vi.fn()
+const getCurrentAskableQuestionQueue = vi.fn()
 const actOnCustomerQuestion = vi.fn()
 
 vi.mock('../../utils/supabase/server', () => ({
@@ -12,7 +12,7 @@ vi.mock('../../utils/supabase/server', () => ({
     })),
   })),
 }))
-vi.mock('../../app/lib/bookkeeping/customer-questions', () => ({ listCustomerQuestions }))
+vi.mock('../../app/lib/bookkeeping/customer-questions', () => ({ getCurrentAskableQuestionQueue }))
 vi.mock('../../app/lib/bookkeeping/customer-question-actions', () => ({ actOnCustomerQuestion }))
 vi.mock('../../app/lib/membership/entitlements',()=>({loadCustomerEntitlements:vi.fn(async()=>({plan:'business'}))}))
 
@@ -23,7 +23,10 @@ describe('customer question API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     getUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
-    listCustomerQuestions.mockResolvedValue([{ id: issueId }])
+    getCurrentAskableQuestionQueue.mockResolvedValue({
+      asOf:'2026-09-08T12:00:00.000Z',count:1,oldestOutstandingAt:'2026-09-07T12:00:00.000Z',
+      questions:[{ id: issueId }],
+    })
     actOnCustomerQuestion.mockResolvedValue({})
   })
 
@@ -43,7 +46,8 @@ describe('customer question API', () => {
   it('returns the tenant-scoped actionable count', async () => {
     const route = await import('../../app/api/bookkeeping/questions/route')
     const response = await route.GET()
-    expect(await response.json()).toEqual({ questions: [{ id: issueId }], count: 1 })
+    expect(await response.json()).toEqual({asOf:'2026-09-08T12:00:00.000Z',questions:[{id:issueId}],count:1,
+      oldestOutstandingAt:'2026-09-07T12:00:00.000Z'})
   })
 
   it.each([

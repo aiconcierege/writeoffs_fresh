@@ -9,12 +9,17 @@ const input = (category: string, extra: Record<string, unknown> = {}) => ({
   facts: { businessPurpose: 'Synthetic test fact' }, ...extra })
 
 describe('versioned tax-rule engine', () => {
-  it('exposes the same seven approved rules independently for 2025 and 2026', () => {
+  it('exposes the expanded approved operating rules independently for 2025 and 2026', () => {
     const rules = validateTaxRuleCatalog(PRODUCTION_TAX_RULE_CATALOG).rules
-    expect(rules).toHaveLength(14)
+    expect(rules).toHaveLength(44)
     expect(rules.filter(rule => rule.taxYears.from === 2025).map((rule) => rule.key)).toEqual([
       'tax.advertising', 'tax.office-expense', 'tax.supplies', 'tax.postage-shipping',
       'tax.software-cloud', 'tax.payment-bank-fees', 'tax.business-license',
+      'tax.commissions-fees', 'tax.contract-labor', 'tax.business-insurance',
+      'tax.other-business-interest', 'tax.legal-professional', 'tax.rent-other-property',
+      'tax.repairs-maintenance', 'tax.taxes-licenses', 'tax.travel', 'tax.meals',
+      'tax.utilities', 'tax.software-subscriptions', 'tax.postage-shipping-operating',
+      'tax.payment-bank-fees-operating', 'tax.other-operating',
     ])
     expect(rules.filter(rule => rule.taxYears.from === 2026).map(rule => rule.key))
       .toEqual(rules.filter(rule => rule.taxYears.from === 2025).map(rule => rule.key))
@@ -74,6 +79,39 @@ describe('versioned tax-rule engine', () => {
         .toMatchObject({ status: 'unresolved', reason: 'unsupported_tax_year' })
     })
 
+  it.each([
+    ['commissions', 'commissions_fees', 'tax.commissions-fees'],
+    ['contract-labor', 'contract_labor', 'tax.contract-labor'],
+    ['insurance', 'business_insurance', 'tax.business-insurance'],
+    ['interest', 'business_interest', 'tax.other-business-interest'],
+    ['legal-professional', 'legal_professional', 'tax.legal-professional'],
+    ['rent-other', 'rent_other_business_property', 'tax.rent-other-property'],
+    ['utilities', 'utilities', 'tax.utilities'],
+  ] as const)('resolves expanded ordinary category %s', (category, expenseNature, ruleKey) => {
+    expect(evaluateProductionTaxRules({ taxYear: 2026, taxCategoryKey: category,
+      businessAllocationAmountCents: -10_000, facts: { transactionNature: 'expense',
+        businessPurpose: 'Established business purpose', businessUseTreatment: 'business',
+        conflictingEvidence: false, expenseNature } }))
+      .toMatchObject({ status: 'resolved', ruleKey, deductibleAmountCents: -10_000 })
+  })
+
+  it('keeps meal economics whole and records the general fifty-percent adjustment separately', () => {
+    expect(evaluateProductionTaxRules({ taxYear: 2026, taxCategoryKey: 'meals',
+      businessAllocationAmountCents: -18_642, facts: { transactionNature: 'expense',
+        businessPurpose: 'Met Jim Jones to discuss a customer project', businessUseTreatment: 'business',
+        conflictingEvidence: false, expenseNature: 'business_meal', mealBusinessContext: true } }))
+      .toMatchObject({ status: 'resolved', ruleKey: 'tax.meals', deductibleAmountCents: -9_321,
+        outcomeType: 'fixed_fraction', adjustmentMethod: 'fixed_fraction' })
+  })
+
+  it('fails closed for travel without away-from-home substantiation', () => {
+    const facts = { transactionNature: 'expense', businessPurpose: 'Client trip',
+      businessUseTreatment: 'business', conflictingEvidence: false, expenseNature: 'business_travel' }
+    expect(evaluateProductionTaxRules({ taxYear: 2026, taxCategoryKey: 'travel',
+      businessAllocationAmountCents: -50_000, facts }))
+      .toMatchObject({ status: 'unresolved', reason: 'missing_evidence', missingFacts: ['travelAwayFromHome'] })
+  })
+
   it('enforces rule-specific exclusions and keeps Realtor context inside universal rules', () => {
     const common = { taxYear: 2025, businessAllocationAmountCents: -10_000,
       facts: { transactionNature: 'expense', businessPurpose: 'Business purpose',
@@ -124,9 +162,9 @@ describe('versioned tax-rule engine', () => {
     expect(evaluateProductionTaxRules({ ...base, facts: { ...base.facts,
       supplyUseContext: 'held_for_future_sale', inventoryOrResale: true } }))
       .toMatchObject({ status: 'unresolved' })
-    expect(PRODUCTION_TAX_RULE_CATALOG.rules.filter((rule) => rule.lifecycle === 'active')).toHaveLength(14)
+    expect(PRODUCTION_TAX_RULE_CATALOG.rules.filter((rule) => rule.lifecycle === 'active')).toHaveLength(44)
     const otherRules = PRODUCTION_TAX_RULE_CATALOG.rules.filter((rule) => rule.key !== 'tax.supplies')
-    expect(otherRules).toHaveLength(12)
+    expect(otherRules).toHaveLength(42)
     expect(otherRules.every((rule) => !rule.requiredFacts.includes('supplyUseContext'))).toBe(true)
   })
 

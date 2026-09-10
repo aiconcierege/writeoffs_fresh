@@ -232,8 +232,13 @@ describe('AI bookkeeping shadow contracts', () => {
       evidenceReferences: ['transaction.description'], support: 'missing_material_fact',
       supportCodes: ['DESCRIPTION_SUPPORT'], conflictCodes: ['BUSINESS_USE_UNCLEAR'],
     }
-    expect(validate(question, snapshot({ occurredOn: '2026-08-01' })).questionEligible).toBe(true)
-    const old = validate(question, snapshot({ occurredOn: '2026-01-01' }))
+    const recentDate = new Date()
+    recentDate.setUTCDate(recentDate.getUTCDate() - 29)
+    const oldDate = new Date()
+    oldDate.setUTCDate(oldDate.getUTCDate() - 31)
+
+    expect(validate(question, snapshot({ occurredOn: recentDate.toISOString().slice(0, 10) })).questionEligible).toBe(true)
+    const old = validate(question, snapshot({ occurredOn: oldDate.toISOString().slice(0, 10) }))
     expect(old).toMatchObject({ accepted: false, questionEligible: false })
     expect(old.codes).toContain('HISTORICAL_QUESTION_INELIGIBLE')
   })

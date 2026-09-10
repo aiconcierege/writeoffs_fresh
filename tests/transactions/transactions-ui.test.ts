@@ -13,14 +13,14 @@ describe('customer Transactions experience', () => {
   })
   it('shows source facts, treatment, explanation, evidence, and history in detail', () => {
     const detail = source('app/transactions/[id]/page.tsx')
-    for (const text of ['What WriteOffs knows', 'Receipt and documentation', 'CorrectionForm', 'History']) {
+    for (const text of ['How Betti handled this', 'Receipt and documentation', 'CorrectionForm', 'History']) {
       expect(detail).toContain(text)
     }
     expect(detail).not.toMatch(/category selector|journal entry|reconciliation/i)
   })
   it('routes unresolved activity to factual questions and never exposes canonical deletion', () => {
     const detail = source('app/transactions/[id]/page.tsx')
-    expect(detail).toContain('href="/questions"')
+    expect(detail).toContain('href="/check-in"')
     expect(detail).not.toMatch(/Delete transaction|Remove transaction/)
   })
   it('uses canonical receipt endpoints only for canonical rows', () => {

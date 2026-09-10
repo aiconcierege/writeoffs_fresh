@@ -1,41 +1,8 @@
-import Link from 'next/link'
-import { notFound,redirect } from 'next/navigation'
-import { createServerSupabase } from '../../../utils/supabase/server'
-import { listCustomerQuestions } from '../../lib/bookkeeping/customer-questions'
-import { getCustomerWeeklyReviewById,listCustomerWeeklyReviews } from '../../lib/bookkeeping/weekly-review'
-import { formatReviewPeriod } from '../../lib/bookkeeping/weekly-review-presentation'
-import { loadCustomerEntitlements } from '../../lib/membership/entitlements'
-import { WeeklyReview } from '../../home/WeeklyReview'
+import { redirect } from 'next/navigation'
 
 export const dynamic='force-dynamic'
-const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 export default async function WeeklyReviewPage({params}:{params:Promise<{id:string}>}){
-  const{id}=await params;if(!UUID.test(id))notFound()
-  const supabase=await createServerSupabase()
-  const{data:{user}}=await supabase.auth.getUser();if(!user)redirect('/login')
-  const membership=await loadCustomerEntitlements(supabase)
-  if(membership.lifecycle==='none')redirect('/membership')
-  if(membership.lifecycle==='expired_read_only')redirect('/membership/read-only')
-  const[reviews,review,questions]=await Promise.all([
-    listCustomerWeeklyReviews(supabase),getCustomerWeeklyReviewById(supabase,id),
-    listCustomerQuestions({supabase,scope:membership.plan!}),
-  ])
-  const selected=reviews.find(item=>item.id===id)
-  if(!review||!selected||!selected.actionable)notFound()
-  const actionable=reviews.filter(item=>item.actionable)
-  const position=actionable.findIndex(item=>item.id===id)+1
-  const currentQuestions=questions.filter(question=>question.transaction.date
-    &&question.transaction.date>=review.periodStart&&question.transaction.date<=review.periodEnd)
-    .filter(question=>review.flowVersion===3&&review.workflowStage==='mixed'?question.kind==='mixed_use':true)
-  return <main className="weekly-page"><div className="weekly-page-shell">
-    <nav className="weekly-page-back" aria-label="Weekly review navigation"><Link href="/home">← Back to Home</Link></nav>
-    <header className="weekly-page-intro">
-      <div><h1>Weekly review · <span>{formatReviewPeriod(review.periodStart,review.periodEnd)}</span></h1></div>
-      <div className="weekly-page-context"><p>{position} of {actionable.length} waiting</p>
-        {actionable.length>1&&<details className="weekly-chooser"><summary>Choose another week</summary><nav aria-label="Available weekly reviews">{actionable.map(item=><Link key={item.id} href={`/weekly-review/${item.id}`} aria-current={item.id===id?'page':undefined}>{formatReviewPeriod(item.periodStart,item.periodEnd)}</Link>)}</nav></details>}
-      </div>
-    </header>
-    <WeeklyReview review={review} currentQuestions={currentQuestions} waitingCount={actionable.length}/>
-  </div></main>
+  await params
+  redirect('/check-in')
 }

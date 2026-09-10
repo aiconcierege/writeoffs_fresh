@@ -9,8 +9,9 @@ import {
 } from '../lib/bookkeeping/customer-questions'
 
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+const customerDate = new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})
 
-export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete }: { initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void }) {
+export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete,experience='questions' }: { initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void;experience?:'questions'|'check-in' }) {
   const [questions, setQuestions] = useState(initialQuestions)
   const [answered, setAnswered] = useState(0)
   const [purpose, setPurpose] = useState('')
@@ -25,9 +26,23 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   const [unresolvedKept, setUnresolvedKept] = useState(0)
   const heading = useRef<HTMLHeadingElement>(null)
   const deferredInThisSession = useRef(new Set<string>())
-  const mixedOnly=useRef(initialQuestions.length>0&&initialQuestions.every(item=>item.kind==='mixed_use'))
+  const mixedOnly=useRef(experience!=='check-in'&&initialQuestions.length>0
+    &&initialQuestions.every(item=>item.kind==='mixed_use'))
+  const [entryCount]=useState(initialQuestions.length)
   const total = answered + questions.length
   const question = questions[0]
+
+  function currentQuestions(queue:CustomerQuestion[]){return queue.filter((candidate) =>
+    (!mixedOnly.current||candidate.kind==='mixed_use')&&!deferredInThisSession.current.has(candidate.id)
+    &&(!recordId||candidate.recordId===recordId)
+    &&(!range||(candidate.transaction.date!=null&&candidate.transaction.date>=range.start&&candidate.transaction.date<=range.end))) }
+
+  async function reloadAuthoritativeQueue(){
+    const queueResponse=await fetch('/api/bookkeeping/questions',{cache:'no-store',signal:AbortSignal.timeout(15_000)})
+    const queueResult=await queueResponse.json() as {questions?:CustomerQuestion[];error?:string}
+    if(!queueResponse.ok||!queueResult.questions)throw new Error(queueResult.error||'Unable to load the next question.')
+    setQuestions(currentQuestions(queueResult.questions))
+  }
 
   async function submit(command: Record<string, unknown>) {
     if (!question || busy) return
@@ -38,20 +53,16 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
         method: 'POST',
         headers: { 'content-type': 'application/json', 'if-match': question.version },
         body: JSON.stringify(command),
+        signal:AbortSignal.timeout(15_000),
       })
       const result = await response.json() as { error?: string }
-      if (!response.ok) throw new Error(result.error || 'Unable to save that answer.')
-      if (command.action === 'defer') deferredInThisSession.current.add(question.id)
-      const queueResponse = await fetch('/api/bookkeeping/questions', { cache: 'no-store' })
-      const queueResult = await queueResponse.json() as { questions?: CustomerQuestion[]; error?: string }
-      if (!queueResponse.ok || !queueResult.questions) {
-        throw new Error(queueResult.error || 'Unable to load the next question.')
+      if (!response.ok) {
+        if(response.status===409)await reloadAuthoritativeQueue()
+        throw new Error(result.error || 'Unable to save that answer.')
       }
+      if (command.action === 'defer') deferredInThisSession.current.add(question.id)
+      await reloadAuthoritativeQueue()
       setAnswered((value) => value + 1)
-      setQuestions(queueResult.questions.filter((candidate) => (!mixedOnly.current||candidate.kind==='mixed_use')
-        &&!deferredInThisSession.current.has(candidate.id)
-        &&(!recordId||candidate.recordId===recordId)
-        &&(!range||(candidate.transaction.date!=null&&candidate.transaction.date>=range.start&&candidate.transaction.date<=range.end))))
       setPurpose('')
       setMealRelationship('')
       setMixedAmount('')
@@ -61,10 +72,18 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
       setFactValue('')
       requestAnimationFrame(() => heading.current?.focus())
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Unable to save that answer.')
+      setError(cause instanceof Error&&cause.name!=='TimeoutError' ? cause.message : 'That took too long. Your answer may have saved, so reload the current question before trying again.')
     } finally {
       setBusy(false)
     }
+  }
+
+  async function retryQueue(){
+    if(busy)return
+    setBusy(true);setError('')
+    try{await reloadAuthoritativeQueue()}
+    catch{setError('I still can’t load the current question. Please try again in a moment.')}
+    finally{setBusy(false)}
   }
 
   function keepUnresolvedAndContinue() {
@@ -81,10 +100,11 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   if (!question) {
     if(embedded)return <div className="weekly-question-complete" role="status"><strong>{unresolvedKept>0?'We can keep going.':'That’s everything I needed.'}</strong><p>{unresolvedKept>0?`I kept ${unresolvedKept} ${unresolvedKept===1?'item':'items'} on your list for more information.`:'I’ve saved your answers with this week’s records.'}</p></div>
     return (
-      <main className="app-page -mx-4 -mb-10 sm:-mx-6 lg:-mx-8"><section className="question-caught-up mx-auto flex min-h-[72vh] max-w-2xl flex-col items-center justify-center px-6 py-16 text-center">
+      <main className="app-page -mx-4 -mb-10 sm:-mx-6 lg:-mx-8"><section className="question-caught-up mx-auto flex min-h-[64vh] max-w-2xl flex-col items-center justify-center px-6 py-10 text-center sm:py-16">
           <BettiIllustration state="caught-up" className="question-betti-caught" priority sizes="(max-width: 639px) 13rem, 18rem" />
-          <h1 ref={heading} tabIndex={-1} className="text-4xl font-semibold tracking-[-.045em] text-[#17211d]">You’re all caught up.</h1>
-          <p className="mt-4 text-[#59665f]">WriteOffs will keep working in the background.</p>
+          {experience==='check-in'&&<p className="home-kicker">Check in with Betti</p>}
+          <h1 ref={heading} tabIndex={-1} className="mt-2 text-3xl font-semibold tracking-[-.045em] text-[#17211d] sm:text-4xl">{experience==='check-in'?'Your books are current.':'You’re all caught up.'}</h1>
+          <p className="mt-4 text-[#59665f]">{experience==='check-in'?`I don’t need anything from you right now. I’ll keep working in the background.`:'WriteOffs will keep working in the background.'}</p>
           <Link href="/home" className="btn btn-primary mt-8">Back to Home</Link>
         </section>
       </main>
@@ -97,24 +117,28 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   const enteredCents = parsePositiveDollarCents(mixedAmount)
   const transactionTotalCents = Math.abs(question.transaction.amountCents??0)
 
-  const conversation=<><div className="flex items-center justify-between text-base font-medium text-[#65736b]"><p>Question {answered + 1} of {total}</p>{!embedded&&<Link href="/home" className="text-[#243186]">Finish later</Link>}</div>
-      <section className={`question-conversation surface relative mt-4 overflow-visible p-5 sm:p-8${embedded?' weekly-question-embedded':''}`}>
-        {!embedded&&<BettiIllustration state="question" className="question-betti" priority sizes="(max-width: 639px) 7rem, 10rem" />}
-        <div className="surface-subtle p-4 text-sm">
+  const shownPrompt=question.prompt==='What was this purchase for?'?'What did you buy?':question.prompt
+  const shownGuidance=question.kind==='business_purpose'&&question.evidence
+    ?'I have the receipt, but I can’t tell what this was for.'
+    :question.guidance
+  const conversation=<>{experience==='check-in'&&answered===0&&entryCount>1&&<header className="mb-4"><p className="home-kicker">Check in with Betti</p><h1 className="mt-1 text-2xl font-semibold tracking-[-.035em] text-[#17211d] sm:text-3xl">I need {entryCount} quick details.</h1></header>}{total>1&&<div className="text-sm font-medium text-[#65736b]"><p>Question {answered + 1} of {total}</p></div>}
+      <section className={`question-conversation surface relative mt-3 overflow-visible p-4 sm:p-8${embedded?' weekly-question-embedded':''}`}>
+        <div className="question-context-line">
+        <div className="question-transaction-context surface-subtle p-3 text-sm">
           <div className="font-semibold">{question.transaction.merchant}</div>
-          <div className="mt-1 flex flex-wrap gap-x-4 text-muted">
+          <div className="mt-1 flex flex-wrap gap-x-3 text-muted">
             {amount && <span>{amount}</span>}
-            {question.transaction.date && <span>{question.transaction.date}</span>}
+            {question.transaction.date && <time dateTime={question.transaction.date}>{customerDate.format(new Date(`${question.transaction.date}T00:00:00Z`))}</time>}
           </div>
-        </div>
-        {question.evidence&&<a href={question.evidence.receiptUrl} target="_blank" rel="noreferrer" className="mt-4 flex min-h-12 items-center justify-between rounded-xl border border-[#dce3de] bg-white px-4 text-sm font-semibold text-[#243186]"><span>View supporting receipt</span><span aria-hidden="true">↗</span></a>}
-        <h1 ref={heading} tabIndex={-1} className="mt-8 text-[1.75rem] font-semibold leading-tight tracking-[-.035em] text-[#17211d] outline-none sm:text-3xl">
-          {showAmount ? `How much of the ${amount??'total'} was for your business?` : question.prompt}
+          {question.evidence&&<a href={question.evidence.receiptUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">View receipt <span className="ml-1" aria-hidden="true">↗</span></a>}
+        </div>{!embedded&&<BettiIllustration state="question" className="question-betti" priority sizes="5rem" />}</div>
+        <h1 ref={heading} tabIndex={-1} className="mt-4 text-[1.65rem] font-semibold leading-tight tracking-[-.035em] text-[#17211d] outline-none sm:mt-6 sm:text-3xl">
+          {showAmount ? `How much of the ${amount??'total'} was for your business?` : shownPrompt}
         </h1>
-        {question.guidance && !showAmount && <p className="mt-2 text-muted">{question.guidance}</p>}
-        {showAmount && <p className="mt-2 text-muted">Enter the business dollars. I’ll handle the allocation.</p>}
+        {shownGuidance && !showAmount && <p className="mt-2 text-muted">{shownGuidance}</p>}
+        {showAmount && <p className="mt-2 text-muted">Enter the business dollars. I’ll handle the split.</p>}
 
-        <div className="mt-7 grid gap-3">
+        <div className="mt-5 grid gap-3 sm:mt-7">
           {question.kind === 'business_use' && <>
             <Action onClick={() => submit({ action: 'business_use', use: 'business' })} busy={busy}>Yes, business</Action>
             <Action onClick={() => submit({ action: 'business_use', use: 'personal' })} busy={busy}>No, personal</Action>
@@ -124,7 +148,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
           {question.kind === 'business_purpose' && <>
             <label htmlFor="purpose" className="sr-only">What was this purchase for?</label>
             <textarea id="purpose" value={purpose} onChange={(event) => setPurpose(event.target.value)}
-              maxLength={1000} rows={4} className="w-full rounded-lg border border-slate-300 p-3"
+              maxLength={1000} rows={3} className="w-full rounded-lg border border-slate-300 p-3"
               placeholder="For example, lunch with a client" />
             <Action onClick={() => submit({ action: 'business_purpose', businessPurpose: purpose })} busy={busy || !purpose.trim()}>Continue</Action>
             <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>Not sure</Action>
@@ -214,10 +238,10 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
               busy={busy || !/^\d{4}-\d{2}-\d{2}$/.test(factValue)}>Continue</Action>
           </>}
         </div>
-        {error && <p role="alert" className="mt-4 text-sm text-red-700">{error}</p>}
-        {!(embedded && question.kind === 'percentage') && <button type="button" disabled={busy} onClick={() => submit({ action: 'defer' })}
-          className="mt-6 w-full text-sm font-medium text-muted underline disabled:opacity-50">
-          Do this later
+        {error && <div role="alert" className="mt-4 text-sm text-red-700"><p>{error}</p><button type="button" disabled={busy} onClick={()=>void retryQueue()} className="mt-2 min-h-11 font-semibold text-[#243186]">Reload current question</button></div>}
+        {!(embedded && question.kind === 'percentage') && question.kind!=='meal_relationship' && <button type="button" disabled={busy} onClick={() => submit({ action: 'defer' })}
+          className="mt-4 min-h-11 w-full text-sm font-medium text-muted underline disabled:opacity-50">
+          Come back to this later
         </button>}
       </section></>
   if(embedded)return <div className="weekly-question-flow">{conversation}</div>
@@ -226,5 +250,5 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
 
 function Action(props: { children: React.ReactNode; onClick: () => void; busy: boolean }) {
   return <button type="button" disabled={props.busy} onClick={props.onClick}
-    className="btn btn-secondary min-h-14 w-full justify-center text-base disabled:opacity-50">{props.children}</button>
+    className="btn btn-secondary min-h-12 w-full justify-center text-base disabled:opacity-50">{props.children}</button>
 }

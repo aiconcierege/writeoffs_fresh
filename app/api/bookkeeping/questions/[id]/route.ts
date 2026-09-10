@@ -103,7 +103,16 @@ export async function POST(
         supabase.from('current_contractor_payments').select('id').eq('id', id).maybeSingle(),
         supabase.from('current_contractor_w9_status').select('id').eq('id', id).maybeSingle(),
       ])
-      if (contractorPayment || contractorW9) return NextResponse.json({ ok: true })
+      if (contractorPayment || contractorW9) {
+        const deferredUntil=new Date(Date.now()+7*86_400_000).toISOString()
+        const {error:deferralError}=await supabase.rpc('defer_contractor_question',{
+          p_question_source:contractorPayment?'payment_method':'w9_status',
+          p_question_id:id,p_expected_source_version_id:expectedEventId,
+          p_deferred_until:deferredUntil,p_request_key:`contractor-defer:${id}:${expectedEventId}`,
+        })
+        if(deferralError)throw deferralError
+        return NextResponse.json({ ok: true })
+      }
     }
     if (command.action === 'factual_choice') {
       const [{ data: contractorPayment }, { data: contractorW9 }] = await Promise.all([
@@ -144,7 +153,24 @@ export async function POST(
           p_attention_id: id, p_expected_event_id: expectedEventId, p_request_key: key,
         })
         if (deferError) throw deferError
+      } else if(command.action==='factual_choice'&&deduction.fact_type==='vehicle_association'){
+        if(!UUID.test(command.optionId))throw new Error('Choose a vehicle.')
+        const {error:associationError}=await supabase.rpc('associate_customer_vehicle_expense',{p_bookkeeping_record_id:deduction.bookkeeping_record_id,
+          p_vehicle_id:command.optionId,p_expense_kind:deduction.scope_key,p_request_key:`vehicle-question:${id}:${expectedEventId}`})
+        if(associationError)throw associationError
+        const{error:answerError}=await supabase.rpc('answer_deduction_attention',{p_attention_id:id,p_expected_event_id:expectedEventId,p_value:command.optionId,p_request_key:key})
+        if(answerError)throw answerError
       } else if (command.action === 'deduction_fact') {
+        if(deduction.fact_type==='vehicle_total_miles'){
+          const [vehicleId,yearText]=String(deduction.scope_key??'').split(':');const taxYear=Number(yearText)
+          if(!UUID.test(vehicleId)||!Number.isInteger(taxYear)||typeof command.value!=='number'||!Number.isInteger(command.value)||command.value<=0)
+            throw new Error('Enter total miles as a whole number.')
+          const {data:currentUse}=await supabase.from('current_vehicle_tax_year_use').select('id').eq('business_id',deduction.business_id)
+            .eq('vehicle_id',vehicleId).eq('tax_year',taxYear).maybeSingle()
+          const {error:vehicleError}=await supabase.rpc('record_vehicle_tax_year_total_miles',{p_vehicle_id:vehicleId,p_tax_year:taxYear,
+            p_expected_event_id:currentUse?.id??null,p_total_miles_milli:command.value*1000,p_request_key:`vehicle-question:${id}:${expectedEventId}`})
+          if(vehicleError)throw vehicleError
+        }
         const { error: answerError } = await supabase.rpc('answer_deduction_attention', {
           p_attention_id: id, p_expected_event_id: expectedEventId,
           p_value: command.value, p_request_key: key,
@@ -175,7 +201,9 @@ export async function POST(
     await actOnCustomerQuestion({ supabase, issueId: id, expectedEventId, command })
     return NextResponse.json({ ok: true })
   } catch (cause) {
-    const message = cause instanceof Error ? cause.message : 'Unable to save that answer.'
+    const message = cause instanceof Error ? cause.message
+      :cause&&typeof cause==='object'&&'message'in cause&&typeof cause.message==='string'
+        ?cause.message:'Unable to save that answer.'
     const stale = /changed|latest question|stale/i.test(message)
     return NextResponse.json({
       error: stale

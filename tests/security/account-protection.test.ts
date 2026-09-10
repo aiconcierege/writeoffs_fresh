@@ -112,6 +112,24 @@ describe('account protection', () => {
     expect(() => validateEnvironment({ WRITEOFFS_ENVIRONMENT:'staging', WRITEOFFS_STRIPE_MODE:'live' })).toThrow(/Stripe live/)
   })
 
+  it('requires enabled remote Plaid OAuth and webhooks to stay on the application HTTPS origin', () => {
+    const staging = {
+      NODE_ENV: 'production', WRITEOFFS_ENVIRONMENT: 'staging',
+      NEXT_PUBLIC_SUPABASE_URL: 'https://stage-ref.supabase.co', SUPABASE_URL: 'https://stage-ref.supabase.co',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-placeholder', SUPABASE_SERVICE_ROLE_KEY: 'service-placeholder',
+      WRITEOFFS_EXPECTED_SUPABASE_HOST: 'stage-ref.supabase.co', NEXT_PUBLIC_BASE_URL: 'https://stage.writeoffs.example',
+      MFA_ENFORCEMENT_MODE: 'required', CRON_SECRET: 's'.repeat(32), DOCUMENT_EXPENSIVE_PROCESSING_ENABLED: 'false',
+      STRIPE_MEMBERSHIP_ENABLED: 'false', WRITEOFFS_STRIPE_MODE: 'test', PLAID_PRODUCTION_ENABLED: 'false',
+      PLAID_ENV: 'sandbox', PLAID_SANDBOX_LINK_ENABLED: 'true', PLAID_CLIENT_ID: 'client', PLAID_SECRET: 'secret',
+      PLAID_TOKEN_ENCRYPTION_KEY: 'key', PLAID_WEBHOOK_URL: 'https://stage.writeoffs.example/api/plaid/webhook',
+      PLAID_REDIRECT_URI: 'https://stage.writeoffs.example/settings/banking',
+    }
+    expect(() => validateEnvironment(staging)).not.toThrow()
+    expect(() => validateEnvironment({ ...staging, PLAID_REDIRECT_URI: '' })).toThrow(/PLAID_REDIRECT_URI/)
+    expect(() => validateEnvironment({ ...staging, PLAID_REDIRECT_URI: 'https://evil.example/settings/banking' })).toThrow(/application origin/)
+    expect(() => validateEnvironment({ ...staging, PLAID_REDIRECT_URI: `${staging.PLAID_REDIRECT_URI}?next=1` })).toThrow(/query or fragment/)
+  })
+
   it('requires a production-shaped staging identity and test provider modes', () => {
     const staging = {
       NODE_ENV: 'production', WRITEOFFS_ENVIRONMENT: 'staging',
@@ -147,7 +165,7 @@ describe('account protection', () => {
 
   it('configures bounded launch-safe response headers', () => {
     const config = read('next.config.js')
-    for (const header of ['X-Content-Type-Options','X-Frame-Options','Referrer-Policy','Permissions-Policy','Content-Security-Policy']) expect(config).toContain(header)
+    for (const header of ['X-Content-Type-Options','X-Frame-Options','Referrer-Policy','Strict-Transport-Security','Permissions-Policy','Content-Security-Policy']) expect(config).toContain(header)
     expect(config).toContain("frame-ancestors 'none'")
   })
 })

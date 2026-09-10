@@ -10,6 +10,7 @@ import type {
   StoredBookkeepingDecision,
   StoredWeeklyReviewEvent,
 } from './model'
+import type { MealAnswerUnderstanding } from './meal-answer-understanding'
 import type {
   BusinessPurposeAnswer,
   BusinessUseAnswer,
@@ -649,16 +650,41 @@ export class SupabaseBookkeepingRepository
     expectedContextFingerprint: string
     expectedEvidenceFingerprint: string
     attendeeRelationship: string
+    understanding: MealAnswerUnderstanding
   }) {
-    const { data, error } = await this.supabase.rpc('answer_bookkeeping_meal_substantiation_issue', {
+    const { data, error } = await this.supabase.rpc('answer_bookkeeping_meal_substantiation_issue_v2', {
       p_review_issue_id: input.reviewIssueId,
       p_expected_current_event_id: input.expectedCurrentEventId,
       p_expected_current_decision_id: input.expectedCurrentDecisionId,
       p_expected_context_fingerprint: input.expectedContextFingerprint,
       p_expected_evidence_fingerprint: input.expectedEvidenceFingerprint,
       p_attendee_relationship: input.attendeeRelationship,
+      p_understanding_version: input.understanding.version,
+      p_extracted_attendee_relationship: input.understanding.attendeeRelationship,
+      p_extracted_business_purpose: input.understanding.businessPurpose,
     })
     if (error) fail('answer meal substantiation issue', error)
+    return data
+  }
+
+  async answerBusinessContextMealSubstantiation(input: {
+    reviewIssueId: string; expectedCurrentEventId: string; expectedCurrentDecisionId: string
+    expectedContextFingerprint: string; expectedEvidenceFingerprint: string
+    attendeeRelationship: string
+    understanding: { attendeeRelationship: string | null; businessPurpose: string | null; version: string }
+  }) {
+    const { data, error } = await this.supabase.rpc('answer_bookkeeping_business_context_meal_issue', {
+      p_review_issue_id: input.reviewIssueId,
+      p_expected_current_event_id: input.expectedCurrentEventId,
+      p_expected_current_decision_id: input.expectedCurrentDecisionId,
+      p_expected_context_fingerprint: input.expectedContextFingerprint,
+      p_expected_evidence_fingerprint: input.expectedEvidenceFingerprint,
+      p_answer: input.attendeeRelationship,
+      p_understanding_version: input.understanding.version,
+      p_extracted_attendee_relationship: input.understanding.attendeeRelationship,
+      p_extracted_business_purpose: input.understanding.businessPurpose,
+    })
+    if (error) fail('answer business-context meal substantiation', error)
     return data
   }
 

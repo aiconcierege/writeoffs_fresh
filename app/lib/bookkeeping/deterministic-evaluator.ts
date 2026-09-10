@@ -2,6 +2,9 @@ import type {
   AutomatedDecisionProposal,
   StoredBookkeepingDecision,
 } from './model'
+import { hasStrongOrdinaryExpenseEvidence, snapshotEconomicContext } from './evidence-aware-routing'
+import { assessBusinessContext, businessContextAllocationDomain } from './business-context'
+import { classifyOperatingExpense } from './operating-expense-classification'
 
 export const BOOKKEEPING_EVALUATOR_VERSION = 'v1' as const
 
@@ -41,11 +44,29 @@ export type BookkeepingEvaluationSnapshot = {
   currentDecision: StoredBookkeepingDecision
   movement: MovementEvidence | null
   movementCandidates: MovementEvidence[]
+  personalFinanceCategory?: { primary: string | null; detailed: string | null } | null
+  receiptMealSupported?: boolean
+  accountUse?: {
+    eventId: string
+    designation: 'business_only' | 'business_and_personal'
+    effectiveAt: string
+  } | null
+  customerProvidedReceipts?: Array<{
+    receiptId: string
+    documentLinkId: string
+    uploadEventId: string
+  }>
 }
 
 export type DeterministicBookkeepingRuleKey =
   | 'bookkeeping.connected_account_transfer.v1'
   | 'bookkeeping.credit_card_payment.v1'
+  | 'bookkeeping.economic_context.telecom_service.v1'
+  | 'bookkeeping.economic_context.restaurant_meal.v1'
+  | 'bookkeeping.economic_context.ordinary_expense.v1'
+  | 'bookkeeping.business_context.default_business.v1'
+  | 'bookkeeping.business_context.withdrawn.v1'
+  | 'bookkeeping.schedule_c.operating_expense.v1'
 
 export type DeterministicEvaluation = {
   ruleKey: DeterministicBookkeepingRuleKey
@@ -106,11 +127,144 @@ export function evaluateDeterministicBookkeeping(
 ): DeterministicEvaluation {
   if (snapshot.evaluatorVersion !== BOOKKEEPING_EVALUATOR_VERSION
     || snapshot.amountCents == null
-    || snapshot.currentDecision.provenance === 'user'
-    || snapshot.currentDecision.treatment !== 'unresolved'
-    || snapshot.hasOpenConflictingEvidence
-    || !snapshot.movement?.sourceCurrent
-    || snapshot.movement.pending) return null
+    || (snapshot.movement && (!snapshot.movement.sourceCurrent || snapshot.movement.pending))) return null
+
+  const context = snapshotEconomicContext(snapshot)
+  const operatingClassification = classifyOperatingExpense(snapshot)
+  const ordinaryExpenseEstablished = snapshot.currentDecision.bookkeepingNature === 'expense'
+    || hasStrongOrdinaryExpenseEvidence({
+      amountCents: snapshot.amountCents,
+      plaidPrimary: snapshot.personalFinanceCategory?.primary,
+    })
+    || operatingClassification.status === 'ordinary'
+  const businessContext = assessBusinessContext(snapshot)
+
+  // Classification is an automated reporting conclusion, not a customer
+  // correction. Never alter the customer's nature, business-use choice, or
+  // allocation amounts; only enrich an uncategorized current business portion.
+  const currentBusinessAllocations = snapshot.currentDecision.allocations.filter(allocation => allocation.kind === 'business')
+  if (snapshot.currentDecision.bookkeepingNature === 'expense'
+    && snapshot.currentDecision.provenance !== 'user'
+    && ['business', 'mixed_use'].includes(snapshot.currentDecision.treatment)
+    && currentBusinessAllocations.length > 0
+    && !snapshot.hasOpenConflictingEvidence) {
+    const classification = classifyOperatingExpense(snapshot)
+    if (classification.status === 'ordinary' && classification.categoryKey
+      && currentBusinessAllocations.some(allocation => allocation.taxCategoryKey !== classification.categoryKey)) {
+      const ruleKey = 'bookkeeping.schedule_c.operating_expense.v1' as const
+      return { ruleKey, proposal: {
+        bookkeepingNature: snapshot.currentDecision.bookkeepingNature,
+        treatment: snapshot.currentDecision.treatment,
+        reviewStatus: snapshot.currentDecision.reviewStatus,
+        confidence: classification.confidence,
+        reason: `Schedule C operating-expense classification: ${classification.reasonCode}.`,
+        businessPurpose: snapshot.currentDecision.businessPurpose,
+        allocations: snapshot.currentDecision.allocations.map(allocation => ({
+          kind: allocation.kind, amountCents: allocation.amountCents,
+          taxCategoryKey: allocation.kind === 'business' ? classification.categoryKey : null,
+          memo: allocation.memo ?? null,
+        })),
+        basis: { evidenceSufficient: true, ruleKey, ruleAllowed: true,
+          businessPurposeSupported: Boolean(snapshot.currentDecision.businessPurpose),
+          mixedUseAllocationSupported: snapshot.currentDecision.treatment === 'mixed_use' },
+      } }
+    }
+  }
+
+  if (snapshot.currentDecision.provenance === 'user') return null
+  const inferredBusinessContextDecision = snapshot.currentDecision.bookkeepingNature === 'expense'
+    && snapshot.currentDecision.treatment === 'business'
+    && /Customer (?:designated the payment account|deliberately provided the receipt)/.test(
+      snapshot.currentDecision.reason ?? '',
+    )
+  if (inferredBusinessContextDecision && businessContext.state !== 'established') {
+    const ruleKey = 'bookkeeping.business_context.withdrawn.v1' as const
+    return { ruleKey, proposal: {
+      bookkeepingNature: 'expense', treatment: 'unresolved', reviewStatus: 'needs_review',
+      confidence: 1, reason: 'The customer-authored business context used by the prior automation changed.',
+      businessPurpose: snapshot.currentDecision.businessPurpose, allocations: [],
+      basis: { evidenceSufficient: false, ruleKey, ruleAllowed: true,
+        businessPurposeSupported: false, mixedUseAllocationSupported: false },
+    } }
+  }
+  if (snapshot.currentDecision.treatment !== 'unresolved' || snapshot.hasOpenConflictingEvidence) return null
+
+  // Structural money movement always outranks account or receipt business
+  // context. A business bank account never turns a transfer into an expense.
+  if (snapshot.movement) {
+    const pairs = compatiblePairs(snapshot)
+    if (pairs.length === 1) {
+      const pair = pairs[0]
+      const movement = snapshot.movement
+      const accountTypes = new Set([movement.accountType, pair.accountType])
+      const isCardAccountPair = accountTypes.has('credit_card')
+        && (accountTypes.has('checking') || accountTypes.has('savings'))
+      const hasCardPaymentEvidence = movement.structuralHint === 'credit_card_payment'
+        || pair.structuralHint === 'credit_card_payment'
+      const counterpartSupportsMovement = ['credit_card_payment', 'account_transfer'].includes(movement.structuralHint ?? '')
+        && ['credit_card_payment', 'account_transfer'].includes(pair.structuralHint ?? '')
+      const compatibleCustomerState = pair.currentDecisionProvenance !== 'user'
+        && (pair.currentDecisionTreatment === null || pair.currentDecisionTreatment === 'unresolved'
+          || pair.currentDecisionNature === 'credit_card_payment' || pair.currentDecisionNature === 'transfer')
+      if (compatibleCustomerState && isCardAccountPair && hasCardPaymentEvidence && counterpartSupportsMovement) {
+        const ruleKey = 'bookkeeping.credit_card_payment.v1' as const
+        return { ruleKey, proposal: excludedProposal({ snapshot, nature: 'credit_card_payment', ruleKey,
+          reason: 'Matched an exact payment between a connected bank account and connected credit card.' }) }
+      }
+      if (compatibleCustomerState && movement.structuralHint === 'account_transfer'
+        && pair.structuralHint === 'account_transfer') {
+        const ruleKey = 'bookkeeping.connected_account_transfer.v1' as const
+        return { ruleKey, proposal: excludedProposal({ snapshot, nature: 'transfer', ruleKey,
+          reason: 'Matched an exact movement between connected accounts.' }) }
+      }
+    }
+  }
+
+  if (businessContext.state === 'established'
+    && ordinaryExpenseEstablished
+    && businessContextAllocationDomain(snapshot) === null) {
+    const ruleKey = 'bookkeeping.business_context.default_business.v1' as const
+    return { ruleKey, proposal: {
+      bookkeepingNature: 'expense', treatment: 'business',
+      reviewStatus: context?.context === 'restaurant_meal' ? 'needs_review' : 'resolved',
+      confidence: businessContext.basis === 'account_business_only' ? 0.99 : 0.97,
+      reason: businessContext.basis === 'account_business_only'
+        ? 'Customer designated the payment account as Business only.'
+        : 'Customer deliberately provided the receipt linked to this expense.',
+      businessPurpose: snapshot.currentDecision.businessPurpose,
+      allocations: [{ kind: 'business', amountCents: snapshot.amountCents!,
+        taxCategoryKey: context?.context === 'restaurant_meal' ? 'meals' : null }],
+      basis: { evidenceSufficient: true, ruleKey, ruleAllowed: true,
+        businessPurposeSupported: false, mixedUseAllocationSupported: false },
+    } }
+  }
+  if (context?.confidence === 'strong') {
+    const ruleKey = `bookkeeping.economic_context.${context.context}.v1` as DeterministicBookkeepingRuleKey
+    return { ruleKey, proposal: {
+      bookkeepingNature: 'expense', treatment: 'unresolved', reviewStatus: 'needs_review',
+      confidence: context.evidence.includes('receipt_meal') ? 0.95 : 0.9,
+      reason: context.context === 'telecom_service'
+        ? 'Transaction evidence establishes a phone or telecommunications service purchase; business use remains unknown.'
+        : 'Receipt evidence establishes a restaurant meal purchase; business use remains unknown.',
+      businessPurpose: null, allocations: [], basis: {
+        evidenceSufficient: true, ruleKey, ruleAllowed: true,
+        businessPurposeSupported: false, mixedUseAllocationSupported: false,
+      },
+    } }
+  }
+  if (ordinaryExpenseEstablished && snapshot.currentDecision.bookkeepingNature !== 'expense') {
+    const ruleKey = 'bookkeeping.economic_context.ordinary_expense.v1' as const
+    return { ruleKey, proposal: {
+      bookkeepingNature: 'expense', treatment: 'unresolved', reviewStatus: 'needs_review',
+      confidence: 0.95, reason: 'Transaction enrichment establishes an ordinary purchase; business use remains unknown.',
+      businessPurpose: null, allocations: [], basis: {
+        evidenceSufficient: true, ruleKey, ruleAllowed: true,
+        businessPurposeSupported: false, mixedUseAllocationSupported: false,
+      },
+    } }
+  }
+
+  if (!snapshot.movement) return null
 
   const pairs = compatiblePairs(snapshot)
   if (pairs.length !== 1) return null

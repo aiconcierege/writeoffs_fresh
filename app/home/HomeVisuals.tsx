@@ -36,11 +36,9 @@ export function DocumentationStrip({ documented, undocumented, processing }: { d
 export function FinancialRelationship({ income, expenses, profit, business }: { income: number; expenses: number; profit: number; business: boolean }) {
   const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
   if (!business) return <div className="home-financial-expenses"><span>Business expenses</span><strong>{money.format(expenses / 100)}</strong><div className="home-financial-line"/></div>
-  return <div className="home-financial-flow" role="img" aria-label={`${money.format(income / 100)} in business income, minus ${money.format(expenses / 100)} in business expenses, leaves approximately ${money.format(profit / 100)} in estimated business profit.`}>
-    <div className="home-financial-node home-financial-income"><span>Business income</span><small>Money in</small><strong>{money.format(income / 100)}</strong></div>
-    <span className="home-financial-operator" aria-hidden="true">−</span>
-    <div className="home-financial-node home-financial-spent"><span>Business expenses</span><small>Money spent on the business</small><strong>{money.format(expenses / 100)}</strong></div>
-    <span className="home-financial-operator" aria-hidden="true">=</span>
-    <div className="home-financial-node home-financial-profit"><span>Estimated business profit</span><small>What’s left</small><strong>{money.format(profit / 100)}</strong></div>
-  </div>
+  return <dl className="home-financial-flow" aria-label="Year-to-date business summary">
+    <div className="home-financial-node home-financial-income"><dt>Business income</dt><dd>{money.format(income / 100)}</dd></div>
+    <div className="home-financial-node home-financial-spent"><dt>Business expenses</dt><dd>{money.format(expenses / 100)}</dd></div>
+    <div className="home-financial-node home-financial-profit"><dt>Estimated profit</dt><dd>{money.format(profit / 100)}</dd></div>
+  </dl>
 }

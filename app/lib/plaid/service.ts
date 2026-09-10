@@ -4,7 +4,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServerAdminSupabase } from '../../../utils/supabase/admin'
 import { createPlaidGateway, newItemLinkRequest, updateModeLinkRequest } from './client'
-import { requirePlaidConfig, requirePlaidSandboxLink } from './config'
+import { requirePlaidConfig, requirePlaidLink } from './config'
 import { decryptPlaidAccessToken, encryptPlaidAccessToken } from './token-crypto'
 import { normalizePlaidAccount, normalizePlaidRemoval, normalizePlaidTransaction } from './normalize'
 import type { PlaidGateway, PlaidTransactionEvent } from './types'
@@ -41,7 +41,7 @@ export async function createPlaidLinkToken(input: {
   gateway?: PlaidGateway
 }) {
   const owner = await requireBusiness(input.supabase)
-  requirePlaidSandboxLink()
+  requirePlaidLink()
   const config = requirePlaidConfig()
   const gateway = input.gateway ?? createPlaidGateway()
   const clientUserId = stablePlaidUserId(owner.userId, owner.businessId)
@@ -75,7 +75,7 @@ export async function exchangePlaidPublicToken(input: {
     throw new Error('INVALID_EXCHANGE_REQUEST')
   }
   const owner = await requireBusiness(input.supabase)
-  requirePlaidSandboxLink()
+  requirePlaidLink()
   const admin = createServerAdminSupabase()
   const tokenHash = createHash('sha256').update(input.publicToken).digest('hex')
   const { error: claimError } = await admin.from('plaid_exchange_requests').insert({

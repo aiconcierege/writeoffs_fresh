@@ -25,7 +25,9 @@ export default async function TaxCategorySummary({ searchParams }: { searchParam
     {report.uncategorizedBusinessExpensesCents !== 0 && <p className="mt-4 text-sm text-slate-600">Some business expenses are not included in the category breakdown while WriteOffs finishes their treatment.</p>}
     <section className="mt-7 border-y border-slate-200 py-5"><h2 className="font-semibold">Business mileage</h2>
       <p className="mt-2 text-xl font-semibold tabular-nums">{(report.businessMilesMilli / 1000).toLocaleString('en-US', { maximumFractionDigits: 3 })} miles</p>
-      {report.businessMilesMilli > 0 && <p className="mt-2 text-sm text-slate-600">Recorded mileage is included as a tax-preparation fact. No vehicle method or deduction amount is assumed.</p>}
+      {report.mileageDeductionCents!=null&&report.businessMilesMilli>0&&<p className="mt-2 text-sm text-slate-600">Mileage amount: {usd.format(report.mileageDeductionCents/100)} based on the date of each recorded trip.</p>}
+      {report.mileageTaxTreatmentStatus==='needs_attention'&&<p className="mt-2 text-sm text-slate-600">Vehicle facts are preserved, but a deduction is not estimated until the remaining vehicle details are complete.</p>}
+      {report.vehicleReports.map(vehicle=><div key={vehicle.vehicleId} className="mt-4 border-t border-slate-200 pt-3 text-sm"><p className="font-medium">{vehicle.displayName}</p><p className="mt-1 text-slate-600">{vehicle.method==='standard_mileage'?'Business miles':vehicle.method==='actual_expenses'?'Business share of vehicle costs':'Tracking choice needed'}{vehicle.actualExpenseCents>0?` · ${usd.format(vehicle.actualExpenseCents/100)} costs recorded`:''}{vehicle.requiresCpaReview?' · Tax-preparer review noted':''}</p></div>)}
     </section>
     <div className="mt-7 flex flex-wrap gap-3"><Link href={`/api/export/csv?year=${year}`} className="rounded-md border border-slate-300 px-3 py-2 text-sm">Export CSV</Link><Link href={`/reports/tax-time?year=${year}`} className="rounded-md border border-slate-300 px-3 py-2 text-sm">Back to annual records</Link></div>
   </main>

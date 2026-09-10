@@ -24,8 +24,17 @@ export function plaidSandboxLinkEnabled() {
   return plaidEnvironment() === 'sandbox' && process.env.PLAID_SANDBOX_LINK_ENABLED === 'true'
 }
 
-export function requirePlaidSandboxLink() {
-  if (!plaidSandboxLinkEnabled()) throw new Error('Plaid Sandbox Link is not enabled.')
+export function plaidLinkEnabled() {
+  if (!plaidIsConfigured()) return false
+  const environment = plaidEnvironment()
+  const applicationEnvironment = process.env.WRITEOFFS_ENVIRONMENT ?? 'local'
+  if (environment === 'sandbox') return process.env.PLAID_SANDBOX_LINK_ENABLED === 'true'
+  if (environment === 'development') return applicationEnvironment !== 'production'
+  return applicationEnvironment === 'production' && process.env.PLAID_PRODUCTION_ENABLED === 'true'
+}
+
+export function requirePlaidLink() {
+  if (!plaidLinkEnabled()) throw new Error('Plaid Link is not enabled in this environment.')
 }
 
 export function requirePlaidConfig() {

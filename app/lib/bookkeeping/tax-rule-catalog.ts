@@ -171,6 +171,13 @@ const publication334Authority2026: TaxRuleAuthorityReference = Object.freeze({
   supportStatement: 'Current final IRS guidance corroborates advertising, bank fees, licenses, supplies, and current operating-expense treatment; no 2026 numeric amount is taken from it.',
   lastVerifiedOn: '2026-08-25',
 })
+const publication463MealsAuthority: TaxRuleAuthorityReference = Object.freeze({
+  authority: 'irs_publication', identifier: 'IRS Publication 463', revision: '2025',
+  topic: 'Business-meal substantiation and the general fifty-percent limitation',
+  officialUrl: 'https://www.irs.gov/publications/p463',
+  supportStatement: 'Supports required business-meal records and the general fifty-percent limit, subject to listed exceptions.',
+  lastVerifiedOn: '2026-09-08',
+})
 const approval2025 = Object.freeze({ reviewReference: 'PRODUCT-TAX-RULES-V1-TIER-A-2025', approvedAt: '2026-08-19' })
 const approval2026 = Object.freeze({ reviewReference: TAX_RULE_CATALOG_RELEASES[2026], approvedAt: '2026-08-25' })
 const commonFacts: TaxRuleFactKey[] = [
@@ -185,6 +192,7 @@ function activeRule(input: Pick<TaxRuleDefinition, 'key' | 'taxCategoryKey'> & {
   version: number; taxYear: number; authorities: TaxRuleAuthorityReference[];
   approval: NonNullable<TaxRuleDefinition['approval']>
   nature: string; extraFacts?: TaxRuleFactKey[]; extraConditions?: TaxRuleCondition[]; explanation: string
+  outcome?: TaxRuleOutcome
 }): TaxRuleDefinition {
   return Object.freeze({ key: input.key, version: input.version, lifecycle: 'active',
     taxYears: { from: input.taxYear, through: input.taxYear }, taxCategoryKey: input.taxCategoryKey,
@@ -193,7 +201,7 @@ function activeRule(input: Pick<TaxRuleDefinition, 'key' | 'taxCategoryKey'> & {
     conditions: [...baseConditions,
       { fact: 'expenseNature', operator: 'equals', value: input.nature } satisfies TaxRuleCondition,
       ...(input.extraConditions ?? [])],
-    outcome: { type: 'full_deduction' } satisfies TaxRuleOutcome, explanationTemplate: input.explanation,
+    outcome: input.outcome ?? ({ type: 'full_deduction' } satisfies TaxRuleOutcome), explanationTemplate: input.explanation,
     authorityReferences: input.authorities, approval: input.approval,
   })
 }
@@ -228,19 +236,65 @@ const definitions = [
       { fact: 'governmentPaymentType', operator: 'equals', value: 'ordinary_current_business_license' },
       { fact: 'currentBusiness', operator: 'equals', value: true }],
     explanation: 'WriteOffs identified this as an ordinary license, permit, or registration for your existing business.' },
+  { key: 'tax.commissions-fees', taxCategoryKey: 'commissions', nature: 'commissions_fees',
+    extraFacts: [], extraConditions: [], explanation: 'WriteOffs identified an ordinary commission or fee paid for the business.' },
+  { key: 'tax.contract-labor', taxCategoryKey: 'contract-labor', nature: 'contract_labor',
+    extraFacts: [], extraConditions: [], explanation: 'WriteOffs identified payment for independent contract work used by the business.' },
+  { key: 'tax.business-insurance', taxCategoryKey: 'insurance', nature: 'business_insurance',
+    extraFacts: [], extraConditions: [], explanation: 'WriteOffs identified ordinary business insurance other than owner health insurance.' },
+  { key: 'tax.other-business-interest', taxCategoryKey: 'interest', nature: 'business_interest',
+    extraFacts: [], extraConditions: [], explanation: 'WriteOffs identified interest whose use is established as an ordinary business expense.' },
+  { key: 'tax.legal-professional', taxCategoryKey: 'legal-professional', nature: 'legal_professional',
+    extraFacts: [], extraConditions: [], explanation: 'WriteOffs identified ordinary legal or professional services for the business.' },
+  { key: 'tax.rent-other-property', taxCategoryKey: 'rent-other', nature: 'rent_other_business_property',
+    extraFacts: [], extraConditions: [], explanation: 'WriteOffs identified ordinary rent or lease of business property other than a vehicle.' },
+  { key: 'tax.repairs-maintenance', taxCategoryKey: 'repairs', nature: 'repairs_maintenance',
+    extraFacts: ['capitalizableAsset'], extraConditions: [{ fact: 'capitalizableAsset', operator: 'equals', value: false }],
+    explanation: 'WriteOffs identified an ordinary repair or maintenance expense rather than an improvement.' },
+  { key: 'tax.taxes-licenses', taxCategoryKey: 'taxes-licenses', nature: 'taxes_licenses',
+    extraFacts: ['governmentPaymentType', 'currentBusiness'], extraConditions: [
+      { fact: 'governmentPaymentType', operator: 'equals', value: 'ordinary_current_business_license' },
+      { fact: 'currentBusiness', operator: 'equals', value: true }],
+    explanation: 'WriteOffs identified an ordinary current business tax, license, permit, or registration.' },
+  { key: 'tax.travel', taxCategoryKey: 'travel', nature: 'business_travel',
+    extraFacts: ['travelAwayFromHome'], extraConditions: [{ fact: 'travelAwayFromHome', operator: 'equals', value: true }],
+    explanation: 'WriteOffs identified substantiated ordinary travel away from the business tax home.' },
+  { key: 'tax.meals', taxCategoryKey: 'meals', nature: 'business_meal',
+    extraFacts: ['mealBusinessContext'], extraConditions: [{ fact: 'mealBusinessContext', operator: 'equals', value: true }],
+    outcome: { type: 'fixed_fraction', numerator: 1, denominator: 2, rounding: 'nearest_cent' },
+    explanation: 'WriteOffs identified a substantiated business meal subject to the general fifty-percent adjustment.' },
+  { key: 'tax.utilities', taxCategoryKey: 'utilities', nature: 'utilities',
+    extraFacts: [], extraConditions: [], explanation: 'WriteOffs identified ordinary utilities used by the business.' },
+  { key: 'tax.software-subscriptions', taxCategoryKey: 'software', nature: 'software_subscription',
+    extraFacts: ['capitalizableAsset', 'prepaidMultiYear'], extraConditions: [
+      { fact: 'capitalizableAsset', operator: 'equals', value: false }, { fact: 'prepaidMultiYear', operator: 'equals', value: false }],
+    explanation: 'WriteOffs identified an ordinary current software or subscription expense.' },
+  { key: 'tax.postage-shipping-operating', taxCategoryKey: 'postage', nature: 'postage_shipping',
+    extraFacts: ['shippingCostContext'], extraConditions: [{ fact: 'shippingCostContext', operator: 'equals', value: 'standalone_business_delivery' }],
+    explanation: 'WriteOffs identified ordinary postage, shipping, or delivery for the business.' },
+  { key: 'tax.payment-bank-fees-operating', taxCategoryKey: 'fees', nature: 'financial_service_fee',
+    extraFacts: ['financialActivityType'], extraConditions: [{ fact: 'financialActivityType', operator: 'one_of', value: ['payment_processing_fee', 'bank_service_fee'] }],
+    explanation: 'WriteOffs identified an ordinary payment-processing or bank service fee.' },
+  { key: 'tax.other-operating', taxCategoryKey: 'other', nature: 'other_ordinary_operating',
+    extraFacts: ['capitalizableAsset', 'inventoryOrResale', 'prepaidMultiYear'], extraConditions: [
+      { fact: 'capitalizableAsset', operator: 'equals', value: false }, { fact: 'inventoryOrResale', operator: 'equals', value: false },
+      { fact: 'prepaidMultiYear', operator: 'equals', value: false }],
+    explanation: 'WriteOffs identified another ordinary current operating expense for the business.' },
 ] as const satisfies ReadonlyArray<Pick<TaxRuleDefinition, 'key' | 'taxCategoryKey'> & {
   nature: string; extraFacts: readonly TaxRuleFactKey[]; extraConditions: readonly TaxRuleCondition[]; explanation: string
+  outcome?: TaxRuleOutcome
 }>
 
 const rulesForYear = (taxYear: number, version: number, authorities: TaxRuleAuthorityReference[],
   approval: NonNullable<TaxRuleDefinition['approval']>) => definitions.map(definition => activeRule({
     ...definition, extraFacts: [...definition.extraFacts], extraConditions: [...definition.extraConditions],
-    taxYear, version, authorities, approval,
+    taxYear, version, authorities: definition.key === 'tax.meals'
+      ? [...authorities, publication463MealsAuthority] : authorities, approval,
   }))
 
 /** The product-reviewed federal tax-year 2025 Tier A catalog. */
 export const PRODUCTION_TAX_RULE_CATALOG: TaxRuleCatalog = Object.freeze({
-  kind: 'production', catalogVersion: 3, rules: Object.freeze([
+  kind: 'production', catalogVersion: 4, rules: Object.freeze([
     ...rulesForYear(2025, 1, [scheduleCAuthority2025, publication334Authority2025], approval2025),
     ...rulesForYear(2026, 2, [section162Authority2026, publication334Authority2026], approval2026),
   ]) as unknown as TaxRuleDefinition[],

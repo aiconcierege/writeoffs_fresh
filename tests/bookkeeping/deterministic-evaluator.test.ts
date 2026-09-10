@@ -59,6 +59,77 @@ function snapshot(input: Partial<BookkeepingEvaluationSnapshot> = {}): Bookkeepi
 }
 
 describe('deterministic bookkeeping evaluator v1', () => {
+  it('adds a reporting category without changing established business economics', () => {
+    const currentDecision = { ...snapshot().currentDecision, bookkeepingNature: 'expense' as const,
+      treatment: 'business' as const, reviewStatus: 'resolved' as const, provenance: 'system' as const,
+      allocations: [{ kind: 'business' as const, amountCents: -10_000 }] }
+    expect(evaluateDeterministicBookkeeping(snapshot({ merchantName: 'Adobe software subscription',
+      description: 'Adobe monthly software', movement: null, movementCandidates: [], currentDecision })))
+      .toMatchObject({ ruleKey: 'bookkeeping.schedule_c.operating_expense.v1', proposal: {
+        bookkeepingNature: 'expense', treatment: 'business', reviewStatus: 'resolved',
+        allocations: [{ kind: 'business', amountCents: -10_000, taxCategoryKey: 'software' }],
+      } })
+  })
+
+  it('never supersedes a customer-authored allocation to add a category', () => {
+    const currentDecision = { ...snapshot().currentDecision, bookkeepingNature: 'expense' as const,
+      treatment: 'mixed_use' as const, reviewStatus: 'resolved' as const, provenance: 'user' as const,
+      actorUserId: crypto.randomUUID(), allocations: [
+        { kind: 'business' as const, amountCents: -6_000 }, { kind: 'personal' as const, amountCents: -4_000 }] }
+    expect(evaluateDeterministicBookkeeping(snapshot({ merchantName: 'Adobe software subscription',
+      movement: null, movementCandidates: [], currentDecision }))).toBeNull()
+  })
+
+  it('append-only reclassifies a system category when better evidence arrives', () => {
+    const currentDecision = { ...snapshot().currentDecision, bookkeepingNature: 'expense' as const,
+      treatment: 'business' as const, reviewStatus: 'resolved' as const, provenance: 'system' as const,
+      allocations: [{ kind: 'business' as const, amountCents: -10_000, taxCategoryKey: 'advertising' }] }
+    expect(evaluateDeterministicBookkeeping(snapshot({ merchantName: 'Canva Pro software subscription',
+      movement: null, movementCandidates: [], currentDecision })))
+      .toMatchObject({ ruleKey: 'bookkeeping.schedule_c.operating_expense.v1', proposal: {
+        allocations: [{ taxCategoryKey: 'software' }],
+      } })
+  })
+
+  it('does not force contained special domains into an ordinary category', () => {
+    const currentDecision = { ...snapshot().currentDecision, bookkeepingNature: 'expense' as const,
+      treatment: 'business' as const, reviewStatus: 'resolved' as const, provenance: 'system' as const,
+      allocations: [{ kind: 'business' as const, amountCents: -10_000 }] }
+    for (const merchantName of ['Dell laptop computer', 'Gusto payroll', 'IRS estimated tax']) {
+      expect(evaluateDeterministicBookkeeping(snapshot({ merchantName, movement: null,
+        movementCandidates: [], currentDecision }))).toBeNull()
+    }
+    expect(evaluateDeterministicBookkeeping(snapshot({merchantName:'Shell gasoline',movement:null,movementCandidates:[],currentDecision})))
+      .toMatchObject({ruleKey:'bookkeeping.schedule_c.operating_expense.v1',proposal:{allocations:[{taxCategoryKey:'car-truck'}]}})
+  })
+
+  it('establishes telecom purchase context without inventing business use', () => {
+    for (const input of [
+      { merchantName: 'T-MOBILE AUTOPAY', description: 'T-MOBILE AUTOPAY' },
+      { merchantName: 'T-Mobile', description: 'AUTOPAY', personalFinanceCategory: {
+        primary: 'GENERAL_SERVICES', detailed: 'GENERAL_SERVICES_TELECOMMUNICATION_SERVICES',
+      } },
+    ]) {
+      const result = evaluateDeterministicBookkeeping(snapshot({
+        ...input, movement: null, movementCandidates: [],
+      }))
+      expect(result).toMatchObject({
+        ruleKey: 'bookkeeping.economic_context.telecom_service.v1',
+        proposal: { bookkeepingNature: 'expense', treatment: 'unresolved', allocations: [] },
+      })
+    }
+  })
+
+  it('establishes Plaid restaurant context but not business use', () => {
+    expect(evaluateDeterministicBookkeeping(snapshot({
+      merchantName: 'Neighborhood Bistro', movement: null, movementCandidates: [],
+      personalFinanceCategory: { primary: 'FOOD_AND_DRINK', detailed: 'FOOD_AND_DRINK_RESTAURANT' },
+    }))).toMatchObject({
+      ruleKey: 'bookkeeping.economic_context.restaurant_meal.v1',
+      proposal: { bookkeepingNature: 'expense', treatment: 'unresolved' },
+    })
+  })
+
   it('resolves one exact structurally supported connected-account transfer', () => {
     const result = evaluateDeterministicBookkeeping(snapshot())
     expect(result?.ruleKey).toBe('bookkeeping.connected_account_transfer.v1')
@@ -90,7 +161,7 @@ describe('deterministic bookkeeping evaluator v1', () => {
   it.each([
     ['merchant only', { movement: movement({ structuralHint: null }), movementCandidates: [] }],
     ['airline', { merchantName: 'United Airlines', movementCandidates: [] }],
-    ['restaurant', { merchantName: 'Restaurant', movementCandidates: [] }],
+    ['weak restaurant name', { merchantName: 'Food purchase', movementCandidates: [] }],
     ['general retailer', { merchantName: 'Amazon', movementCandidates: [] }],
     ['uncorrelated refund description', { merchantName: 'Merchant refund', movementCandidates: [] }],
     ['deposit sign', { amountCents: 50_000, movement: movement({ amountCents: 50_000, structuralHint: null }), movementCandidates: [] }],

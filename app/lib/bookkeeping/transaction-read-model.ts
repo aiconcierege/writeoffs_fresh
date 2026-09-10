@@ -61,12 +61,46 @@ export function customerTreatmentLabel(decision: Row | undefined) {
   }
 }
 
-function customerDecisionExplanation(decision:Row|undefined){
+export function customerDecisionExplanation(decision:Row|undefined){
   const treatment=text(decision??{},'treatment')
-  if(treatment==='business')return'Business'
-  if(treatment==='mixed_use')return'Business + personal'
-  if(treatment==='personal'||treatment==='excluded')return'Not for the business'
-  return decision?'Still working on it':null
+  const reason=(text(decision??{},'reason')??'').toLowerCase()
+  const provenance=text(decision??{},'provenance')
+  if(provenance==='user'){
+    if(treatment==='business')return'You marked this as business.'
+    if(treatment==='mixed_use')return'You set the part used for your business.'
+    if(treatment==='personal'||treatment==='excluded')return'You marked this as personal.'
+  }
+  if(reason.includes('business-only')||reason.includes('business only')||reason.includes('designated payment account'))
+    return'You marked this account as Business only, so WriteOffs treated this purchase as business.'
+  if(reason.includes('receipt'))return'WriteOffs used the receipt attached to this transaction.'
+  if(text(decision??{},'bookkeeping_nature')==='transfer')return'WriteOffs recognized money moving between accounts.'
+  if(text(decision??{},'bookkeeping_nature')==='credit_card_payment')return'WriteOffs recognized a credit card payment.'
+  if(treatment==='business')return'WriteOffs found enough information to treat this as business.'
+  if(treatment==='mixed_use')return'WriteOffs is using the business portion of this purchase.'
+  if(treatment==='personal'||treatment==='excluded')return'This is not included in your business totals.'
+  return decision?'Betti needs one more detail before she can finish this.':null
+}
+
+export function projectCustomerTransactionHistory(history:Row[]):TransactionHistoryItem[]{
+  const chronological=[...history].sort((a,b)=>(text(a,'created_at')??'').localeCompare(text(b,'created_at')??''))
+  const projected:TransactionHistoryItem[]=[]
+  let lastVisibleState:string|null=null
+  for(const decision of chronological){
+    const provenance=text(decision,'provenance')
+    const treatment=text(decision,'treatment')
+    const nature=text(decision,'bookkeeping_nature')
+    const state=`${nature}:${treatment}`
+    const customerAuthored=provenance==='user'
+    if(!customerAuthored&&state===lastVisibleState)continue
+    if(!customerAuthored&&treatment==='unresolved'&&projected.length===0){lastVisibleState=state;continue}
+    const explanation=customerDecisionExplanation(decision)
+    projected.push({id:text(decision,'id')!,summary:customerAuthored
+      ? explanation??'You updated this transaction.'
+      : treatment==='unresolved'?'WriteOffs is checking this again.':explanation??customerTreatmentLabel(decision),
+      explanation:null,createdAt:text(decision,'created_at')!})
+    lastVisibleState=state
+  }
+  return projected
 }
 
 export async function listTransactionReadModel(input: {
@@ -287,10 +321,11 @@ export async function listTransactionReadModel(input: {
       recordId, currentDecisionId: current ? text(current, 'id') : null,
       bookkeepingNature: current ? text(current, 'bookkeeping_nature') : null,
       treatment: current ? text(current, 'treatment') : null,
-      history: history.map((decision) => ({
-        id: text(decision, 'id')!, summary: customerTreatmentLabel(decision),
-        explanation: customerDecisionExplanation(decision), createdAt: text(decision, 'created_at')!,
-      })),
+      history: [...projectCustomerTransactionHistory(history),...documentLinks.filter((link) =>
+        resolution.resolve(text(link, 'bookkeeping_record_id')!) === recordId).map(link=>({
+          id:`receipt:${text(link,'id')!}`,summary:'Receipt matched.',explanation:null,
+          createdAt:text(link,'linked_at')!,
+        }))].sort((a,b)=>a.createdAt.localeCompare(b.createdAt)),
       evidenceLinks: documentLinks.filter((link) =>
         resolution.resolve(text(link, 'bookkeeping_record_id')!) === recordId)
         .map((link) => ({ id: text(link, 'id')!, receiptId: text(link, 'receipt_id')!,

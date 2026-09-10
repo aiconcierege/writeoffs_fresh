@@ -3,6 +3,7 @@ import type { CanonicalWeeklyReviewItem } from './model'
 import { listCanonicalReviewQueue } from './review-queue'
 import { currentPlaidFinancialState, plaidFinancialTransactionIsCurrent } from '../plaid/current-sources'
 import { loadCurrentRecordConvergences } from './current-record-resolution'
+import { economicContextSignal, type EconomicContextSignal } from './evidence-aware-routing'
 
 export type CustomerQuestion = {
   id: string
@@ -22,6 +23,40 @@ export type CustomerQuestion = {
     date: string | null
   }
   evidence?: { receiptUrl: string; label: string }
+  openedAt?: string
+  availableAt?: string | null
+  contextFingerprint?: string
+}
+
+export type CurrentAskableQuestionQueue = {
+  asOf: string
+  count: number
+  oldestOutstandingAt: string | null
+  questions: CustomerQuestion[]
+}
+
+const QUESTION_PRECEDENCE:Record<CustomerQuestion['kind'],number>={percentage:1,meal_relationship:2,
+  business_use:3,mixed_use:4,business_purpose:5,factual_choice:6,transaction_type:7,yes_no:8,integer:8,date:8}
+
+export function selectCurrentAskableQuestions(input:{
+  bookkeeping:CustomerQuestion[]
+  deduction:CustomerQuestion[]
+  contractor:CustomerQuestion[]
+  scope:'expenses'|'business'
+  asOf:string
+}){
+  const available=(question:CustomerQuestion)=>!question.availableAt||question.availableAt<=input.asOf
+  const bookkeeping=input.bookkeeping.filter(available)
+    .sort((a,b)=>(QUESTION_PRECEDENCE[a.kind]??99)-(QUESTION_PRECEDENCE[b.kind]??99))
+  const chosenRecords=new Set<string>()
+  const deduplicated=bookkeeping.filter(question=>{if(!question.recordId)return true
+    if(chosenRecords.has(question.recordId))return false;chosenRecords.add(question.recordId);return true})
+  const scoped=input.scope==='expenses'
+    ?deduplicated.filter(question=>(question.transaction.amountCents??0)<=0):deduplicated
+  const specializedRecordIds=new Set(input.deduction.filter(question=>available(question)
+    &&question.recordId&&question.kind==='percentage').map(question=>question.recordId))
+  return [...scoped.filter(question=>!question.recordId||!specializedRecordIds.has(question.recordId)),
+    ...input.deduction.filter(available),...input.contractor.filter(available)]
 }
 
 type TransactionContext = CustomerQuestion['transaction']
@@ -42,7 +77,8 @@ export function parsePositiveDollarCents(value: string) {
 
 export function projectCustomerQuestion(
   item: CanonicalWeeklyReviewItem,
-  transaction: TransactionContext
+  transaction: TransactionContext,
+  economicContext?: EconomicContextSignal | null,
 ): CustomerQuestion | null {
   const base = {
     id: item.event.reviewIssueId,
@@ -54,6 +90,9 @@ export function projectCustomerQuestion(
   const trustedContext = context?.schemaVersion === 1 && context.reason === item.event.reason
   if (!trustedContext) return null
   if (item.event.reason === 'BUSINESS_USE_UNCLEAR') {
+    if (context?.factType === 'receipt_meal_candidate') return isPurchase
+      ? { ...base, kind: 'business_use', prompt: 'Was this meal for business?' }
+      : null
     return isPurchase
       ? { ...base, kind: 'business_use', prompt: 'Was this purchase for your business?' }
       : null
@@ -67,6 +106,20 @@ export function projectCustomerQuestion(
         kind: 'meal_relationship',
         prompt: 'Who was the meal with?',
         guidance: 'List the person or people and their business relationship. For example: Sarah Jones, client.',
+      } : null
+    if (context?.factType === 'receipt_meal_business_purpose'
+      || context?.factType === 'receipt_meal_candidate') return isPurchase
+      && ['business', 'mixed_use'].includes(item.decision.treatment) && hasBusinessPortion ? {
+        ...base,
+        kind: 'business_purpose',
+        prompt: 'What was the business reason for the meal?',
+        guidance: 'For example: Discussed a customer project or met with a prospective client.',
+      } : null
+    if (context?.factType === 'business_travel_details') return isPurchase
+      && ['business', 'mixed_use'].includes(item.decision.treatment) ? {
+        ...base, kind: 'business_purpose',
+        prompt: 'Where did you travel, when, and what was the business reason?',
+        guidance: 'Tell me the destination, trip dates, and what the trip was for.',
       } : null
     return isPurchase && ['business', 'mixed_use'].includes(item.decision.treatment)
       && hasBusinessPortion ? {
@@ -91,7 +144,21 @@ export function projectCustomerQuestion(
       ['purchase','A purchase'],['earned_money','Money I earned'],['moved_money','Money moved between accounts'],
       ['paid_card','A credit card payment'],['received_refund','A refund'],['added_own_money','Money I added'],
       ['borrowed_money','Money I borrowed'],
-    ].map(([id,label])=>({id,label}))}
+    ].map(([id,label])=>({id,label})),
+    ...(economicContext?.confidence === 'narrowed_confirmation' ? {
+      prompt: economicContext.context === 'telecom_service'
+        ? 'Was this a phone or telecommunications service charge?'
+        : 'Was this a restaurant or meal purchase?',
+      guidance: 'Confirm what happened. I’ll handle the bookkeeping rules.',
+      options: [
+        { id: 'purchase', label: economicContext.context === 'telecom_service'
+          ? 'Yes, phone service' : 'Yes, a meal' },
+        { id: 'moved_money', label: 'No, money moved between accounts' },
+        { id: 'paid_card', label: 'No, a credit card payment' },
+        { id: 'received_refund', label: 'No, a refund' },
+      ],
+    } : {}),
+  }
   if (item.event.reason === 'CONFLICTING_EVIDENCE') {
     const raw = item.event.questionContext?.options
     if (!Array.isArray(raw)) return null
@@ -118,17 +185,27 @@ export function projectCustomerQuestion(
   return null
 }
 
-export async function listCustomerQuestions(input: { supabase: SupabaseClient; scope?:'expenses'|'business' }) {
+async function buildCustomerQuestions(input: {
+  supabase: SupabaseClient
+  scope?:'expenses'|'business'
+  asOf: string
+}) {
   const ensured = await input.supabase.rpc('ensure_current_meal_substantiation_questions')
   if (ensured.error && ensured.error.code !== 'PGRST202') throw new Error('Meal substantiation questions could not be prepared.')
   const receiptMeals = await input.supabase.rpc('ensure_current_receipt_meal_candidate_questions')
   if (receiptMeals.error && receiptMeals.error.code !== 'PGRST202') throw new Error('Receipt meal questions could not be prepared.')
   const deductionQuestions = await listDeductionQuestions(input.supabase)
-  const contractorQuestions = await listContractorQuestions(input.supabase)
-  const queue = await listCanonicalReviewQueue(input)
-  const recordIds = [...new Set(queue.map(({ record }) => record.id))]
+  const contractorQuestions = await listContractorQuestions(input.supabase,input.asOf)
+  const [queue,validBookkeepingResult] = await Promise.all([
+    listCanonicalReviewQueue(input),
+    input.supabase.rpc('list_current_askable_bookkeeping_question_event_ids',{p_as_of:input.asOf}),
+  ])
+  if(validBookkeepingResult.error)throw new Error('Current bookkeeping questions could not be validated.')
+  const validBookkeepingEventIds=new Set((validBookkeepingResult.data??[]).map((row:{event_id:string})=>row.event_id))
+  const currentQueue=queue.filter(item=>validBookkeepingEventIds.has(item.event.id))
+  const recordIds = [...new Set(currentQueue.map(({ record }) => record.id))]
   if (!recordIds.length) return [...deductionQuestions, ...contractorQuestions]
-  const businessId = queue[0].record.businessId
+  const businessId = currentQueue[0].record.businessId
   const resolution = await loadCurrentRecordConvergences({
     supabase: input.supabase, businessId,
   })
@@ -168,7 +245,7 @@ export async function listCustomerQuestions(input: { supabase: SupabaseClient; s
   const transactionIds = currentSources.map((source) => source.financial_transaction_id)
   const { data: transactions, error: transactionError } = transactionIds.length
     ? await input.supabase.from('financial_transactions')
-      .select('id,merchant_name,original_description,amount_cents,currency,transaction_date')
+      .select('id,merchant_name,original_description,amount_cents,currency,transaction_date,import_method,raw_payload')
       .in('id', transactionIds)
     : { data: [], error: null }
   if (transactionError) {
@@ -187,7 +264,7 @@ export async function listCustomerQuestions(input: { supabase: SupabaseClient; s
     supabase: input.supabase, businessId, candidateFinancialTransactionIds: transactionIds,
   })
 
-  const bookkeepingQuestions = queue.flatMap((item) => {
+  const bookkeepingQuestions = currentQueue.flatMap((item) => {
     const record = recordById.get(item.record.id)
     const transactionId = sourceByRecord.get(item.record.id)
     const transaction = transactionId ? transactionById.get(transactionId) : null
@@ -200,35 +277,74 @@ export async function listCustomerQuestions(input: { supabase: SupabaseClient; s
         item.record.authoritativeCurrency,
       date: transaction?.transaction_date ?? record?.occurred_on ?? null,
     }
-    const question = projectCustomerQuestion(item, context)
+    const raw = transaction?.raw_payload && typeof transaction.raw_payload === 'object'
+      ? transaction.raw_payload as Record<string, unknown> : {}
+    const providerEvidence = raw.provider_evidence && typeof raw.provider_evidence === 'object'
+      ? raw.provider_evidence as Record<string, unknown> : {}
+    const category = providerEvidence.personal_finance_category
+      && typeof providerEvidence.personal_finance_category === 'object'
+      ? providerEvidence.personal_finance_category as Record<string, unknown> : {}
+    const question = projectCustomerQuestion(item, context, economicContextSignal({
+      amountCents: context.amountCents,
+      merchantName: transaction?.merchant_name,
+      description: transaction?.original_description,
+      plaidPrimary: typeof category.primary === 'string' ? category.primary : null,
+      plaidDetailed: typeof category.detailed === 'string' ? category.detailed : null,
+      receiptMealSupported: item.event.questionContext?.receiptMealCandidateId != null,
+    }))
     return question ? [{ ...question, source: 'bookkeeping' as const,recordId:item.record.id,
+      openedAt:item.event.createdAt,availableAt:item.event.deferredUntil,
+      contextFingerprint:item.event.contextFingerprint,
       materiality:(['BUSINESS_USE_UNCLEAR','MIXED_USE_CLARIFICATION','TRANSACTION_TYPE_UNCLEAR','CONFLICTING_EVIDENCE'].includes(item.event.reason)?'totals':'disclosable') as CustomerQuestion['materiality'],
       evidence:evidenceByRecord.get(item.record.id) }] : []
   })
-  const precedence:Record<CustomerQuestion['kind'],number>={mixed_use:1,transaction_type:2,business_use:3,business_purpose:4,meal_relationship:5,factual_choice:6,percentage:7,yes_no:7,integer:7,date:7}
-  bookkeepingQuestions.sort((a,b)=>(precedence[a.kind]??99)-(precedence[b.kind]??99))
-  const chosenRecords=new Set<string>()
-  const deduplicated=bookkeepingQuestions.filter(question=>{if(!question.recordId)return true
-    if(chosenRecords.has(question.recordId))return false;chosenRecords.add(question.recordId);return true})
-  const scopedBookkeeping=input.scope==='expenses'?deduplicated.filter(question=>(question.transaction.amountCents??0)<=0):deduplicated
-  return [...scopedBookkeeping, ...deductionQuestions, ...contractorQuestions]
+  return selectCurrentAskableQuestions({bookkeeping:bookkeepingQuestions,deduction:deductionQuestions,
+    contractor:contractorQuestions,scope:input.scope??'expenses',asOf:input.asOf})
 }
 
-async function listContractorQuestions(supabase: SupabaseClient): Promise<CustomerQuestion[]> {
+/**
+ * Authoritative server-side projection of questions the customer can answer now.
+ * It is continuous across dates and deliberately has no Weekly Review period input.
+ */
+export async function getCurrentAskableQuestionQueue(input: {
+  supabase: SupabaseClient
+  scope?: 'expenses' | 'business'
+  asOf?: string
+}): Promise<CurrentAskableQuestionQueue> {
+  const asOf=input.asOf??new Date().toISOString()
+  const questions=await buildCustomerQuestions({...input,asOf})
+  const opened=questions.map(question=>question.openedAt).filter((value):value is string=>Boolean(value)).sort()
+  return {asOf,count:questions.length,oldestOutstandingAt:opened[0]??null,questions}
+}
+
+/** Compatibility contract for existing Weekly Review and /questions consumers. */
+export async function listCustomerQuestions(input: {
+  supabase: SupabaseClient
+  scope?: 'expenses' | 'business'
+}) {
+  return (await getCurrentAskableQuestionQueue(input)).questions
+}
+
+async function listContractorQuestions(supabase: SupabaseClient,asOf=new Date().toISOString()): Promise<CustomerQuestion[]> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('An authenticated user is required.')
   const { data: business } = await supabase.from('businesses').select('id').eq('owner_user_id', user.id).single()
   if (!business) return []
   const [{ data: payments, error: paymentError }, { data: contractors, error: contractorError },
-    { data: w9, error: w9Error }] = await Promise.all([
+    { data: w9, error: w9Error },{data:deferrals,error:deferralError}] = await Promise.all([
     supabase.from('current_contractor_payments').select('*').eq('business_id', business.id),
     supabase.from('current_canonical_contractors').select('id,display_name').eq('business_id', business.id),
     supabase.from('current_contractor_w9_status').select('*').eq('business_id', business.id),
+    supabase.from('contractor_question_deferral_events')
+      .select('question_source,question_id,source_version_id,deferred_until')
+      .eq('business_id',business.id).gt('deferred_until',asOf),
   ])
-  if (paymentError || contractorError || w9Error) throw new Error('Unable to load contractor questions.')
+  if (paymentError || contractorError || w9Error || deferralError) throw new Error('Unable to load contractor questions.')
+  const deferred=new Set((deferrals??[]).map(row=>`${row.question_source}:${row.question_id}:${row.source_version_id}`))
   const contractorById = new Map((contractors ?? []).map(row => [row.id, row]))
   const questions: CustomerQuestion[] = []
-  for (const payment of payments ?? []) if (payment.payment_method === 'unknown') {
+  for (const payment of payments ?? []) if (payment.payment_method === 'unknown'
+    &&!deferred.has(`payment_method:${payment.id}:${payment.id}`)) {
     const contractor = contractorById.get(payment.contractor_id)
     questions.push({ id: payment.id, version: payment.id, source: 'contractor', kind: 'factual_choice',
       prompt: `How did you pay ${contractor?.display_name ?? 'this contractor'}?`,
@@ -236,17 +352,20 @@ async function listContractorQuestions(supabase: SupabaseClient): Promise<Custom
       options: [['cash','Cash'],['check','Check'],['ach_zelle','ACH / Zelle'],['payment_card','Payment card'],
         ['third_party_service','Third-party payment service'],['other','Other']].map(([id,label]) => ({ id, label })),
       transaction: { merchant: contractor?.display_name ?? 'Contractor payment', amountCents: Number(payment.amount_cents),
-        currency: 'USD', date: payment.paid_on } })
+        currency: 'USD', date: payment.paid_on },openedAt:payment.created_at,availableAt:null,
+      contextFingerprint:payment.id })
   }
   const contractorsWithPayments = new Set((payments ?? []).map(row => row.contractor_id))
-  for (const status of w9 ?? []) if (contractorsWithPayments.has(status.contractor_id) && status.status !== 'on_file') {
+  for (const status of w9 ?? []) if (contractorsWithPayments.has(status.contractor_id) && status.status !== 'on_file'
+    &&!deferred.has(`w9_status:${status.id}:${status.id}`)) {
     const contractor = contractorById.get(status.contractor_id)
     questions.push({ id: status.id, version: status.id, source: 'contractor', kind: 'factual_choice',
       prompt: `Do you have a W-9 from ${contractor?.display_name ?? 'this contractor'}?`,
       guidance: 'Do not enter a Social Security number or EIN.',
       options: [{ id: 'on_file', label: 'Yes, it is on file' }, { id: 'needed', label: 'No, I need it' },
         { id: 'needs_attention', label: 'I need to check' }],
-      transaction: { merchant: contractor?.display_name ?? 'Contractor', amountCents: null, currency: 'USD', date: null } })
+      transaction: { merchant: contractor?.display_name ?? 'Contractor', amountCents: null, currency: 'USD', date: null },
+      openedAt:status.created_at,availableAt:null,contextFingerprint:status.id })
   }
   return questions
 }
@@ -258,10 +377,11 @@ async function listDeductionQuestions(supabase: SupabaseClient): Promise<Custome
     .eq('owner_user_id', user.id).maybeSingle()
   if (businessError || !business) throw new Error('Business was not found for the authenticated user.')
   const { data: attentions, error } = await supabase.from('current_deduction_attentions')
-    .select('id,attention_id,event_type,fact_type,bookkeeping_record_id,question_type,prompt,guidance,scope_key')
+    .select('id,attention_id,event_type,fact_type,bookkeeping_record_id,question_type,prompt,guidance,scope_key,signal_version,created_at')
     .eq('business_id', business.id).eq('event_type', 'opened').order('created_at')
   if (error) throw new Error(`Unable to load deduction questions: ${error.message}`)
   const recordIds = (attentions ?? []).map((row) => row.bookkeeping_record_id).filter(Boolean)
+  const {data:vehicles}=await supabase.from('business_vehicles').select('id,display_name').eq('business_id',business.id).is('archived_at',null).order('created_at')
   const { data: records, error: recordsError } = recordIds.length
     ? await supabase.from('bookkeeping_records').select('id,amount_cents,currency,occurred_on')
       .eq('business_id', business.id).in('id', recordIds)
@@ -272,8 +392,12 @@ async function listDeductionQuestions(supabase: SupabaseClient): Promise<Custome
     const record = attention.bookkeeping_record_id ? recordById.get(attention.bookkeeping_record_id) : null
     return {
       id: attention.attention_id, version: attention.id, source: 'deduction' as const,
+      recordId: attention.bookkeeping_record_id ?? undefined,
       kind: attention.question_type as CustomerQuestion['kind'], prompt: attention.prompt,
+      ...(attention.fact_type==='vehicle_association'?{options:(vehicles??[]).map(vehicle=>({id:vehicle.id,label:vehicle.display_name}))}:{}),
       guidance: attention.guidance ?? undefined,
+      openedAt:attention.created_at,availableAt:null,
+      contextFingerprint:`${attention.signal_version}:${attention.id}`,
       transaction: { merchant: attention.bookkeeping_record_id ? attention.scope_key : 'Your business',
         amountCents: record?.amount_cents == null ? null : Number(record.amount_cents),
         currency: record?.currency ?? 'USD', date: record?.occurred_on ?? null },

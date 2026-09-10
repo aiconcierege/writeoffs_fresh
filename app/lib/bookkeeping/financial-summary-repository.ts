@@ -257,6 +257,18 @@ implements CanonicalFinancialSummaryRepository {
       return (data ?? []) as Row[]
     })
     const specialByRecord = new Map(specialRows.map((row) => [text(row, 'bookkeeping_record_id'), text(row, 'reason_code')]))
+    const operatingAssessmentRows = await inBatches(recordIds, async (ids) => {
+      const { data, error } = await this.supabase.from('current_schedule_c_expense_assessments')
+        .select('bookkeeping_record_id,assessment_status,special_treatment_reason')
+        .eq('business_id', input.businessId).in('bookkeeping_record_id', ids)
+        .in('assessment_status', ['special_treatment', 'unsupported'])
+      if (error && error.code !== '42P01') throw new Error(`Unable to load Schedule C containment state: ${error.message}`)
+      return (data ?? []) as Row[]
+    })
+    for (const row of operatingAssessmentRows) {
+      const reason = nullableText(row, 'special_treatment_reason')
+      if (reason) specialByRecord.set(text(row, 'bookkeeping_record_id'), reason)
+    }
     const invoiceLinkRows = await inBatches(recordIds, async (ids) => {
       const { data, error } = await this.supabase.from('invoice_income_links')
         .select('invoice_id,bookkeeping_record_id').eq('business_id', input.businessId)

@@ -35,11 +35,11 @@ export default async function TransactionsPage({ searchParams }: {
         action={query ? null : <div className="flex flex-col justify-center gap-3 sm:flex-row"><Link href="/settings/banking" className="btn btn-primary">Connect an account</Link><Link href="/import" className="btn btn-secondary">Import a CSV</Link></div>} />
       : <div className="record-list transaction-records mt-8">
         {rows.map((row) => <Link key={`${row.sourceModel}:${row.id}`} href={`/transactions/${row.id}`}
-          className="record-row transaction-record-row grid min-h-[5.75rem] grid-cols-[1fr_auto] gap-4 px-2 py-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#243186] sm:grid-cols-[8rem_1fr_13rem_9rem] sm:items-center sm:px-4">
+          className="record-row transaction-record-row grid min-h-[4.5rem] grid-cols-[1fr_auto] gap-3 px-1 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#243186] sm:min-h-[5rem] sm:grid-cols-[8rem_1fr_13rem_9rem] sm:items-center sm:px-4 sm:py-4">
           <time className="hidden text-base text-slate-600 sm:block">{formatDate(row.date)}</time>
-          <div className="min-w-0"><p className="truncate text-lg font-semibold text-slate-950">{row.vendor}</p>
+          <div className="min-w-0"><p className="truncate text-base font-semibold text-slate-950 sm:text-lg">{row.vendor}</p>
             <p className="mt-1 text-xs text-slate-500 sm:hidden">{formatDate(row.date)}</p>
-            <div className="mt-2 flex flex-wrap items-center gap-2"><StatusBadge tone={row.treatmentLabel === 'Business' ? 'positive' : row.treatmentLabel.includes('working') ? 'attention' : 'muted'}>{row.treatmentLabel}</StatusBadge>{row.sourceLabel&&<span className="text-xs text-slate-500">{row.sourceLabel}</span>}</div></div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2"><StatusBadge tone={row.treatmentLabel === 'Business' ? 'positive' : row.treatmentLabel.includes('working') ? 'attention' : 'muted'}>{row.treatmentLabel}</StatusBadge>{row.sourceLabel&&<span className="text-xs text-slate-500">{row.sourceLabel}</span>}</div></div>
           <div className="hidden text-base font-medium text-slate-600 sm:block">{row.has_receipt ? 'Receipt attached' : row.receiptLost ? 'Receipt unavailable' : 'No receipt'}</div>
           <p className={`money-display text-right text-base font-semibold ${row.amountCents > 0 ? 'money-positive' : ''}`}>{money.format(row.amount)}</p>
         </Link>)}

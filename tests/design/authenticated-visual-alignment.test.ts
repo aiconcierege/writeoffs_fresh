@@ -6,7 +6,7 @@ const source = (path: string) => readFileSync(path, 'utf8')
 describe('authenticated visual alignment', () => {
   it('gives the authenticated shell stronger brand and navigation presence', () => {
     const header = source('app/components/Header.tsx')
-    expect(header).toContain('href="/home" heightPx={36}')
+    expect(header).toContain('href="/home" heightPx={34}')
     expect(header).toContain('min-h-12')
     expect(header).toContain('text-base font-semibold')
     expect(header).toContain("event.key !== 'Escape'")
@@ -37,6 +37,6 @@ describe('authenticated visual alignment', () => {
     const transactions = source('app/transactions/page.tsx')
     expect(transactions).toContain('transaction-record-row')
     expect(transactions).toContain("row.has_receipt ? 'Receipt attached'")
-    expect(transactions).toContain('text-lg font-semibold')
+    expect(transactions).toContain('text-base font-semibold text-slate-950 sm:text-lg')
   })
 })

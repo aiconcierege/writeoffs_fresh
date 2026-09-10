@@ -186,6 +186,32 @@ async function preparePriorUse(input: {
 }
 
 describe.skipIf(!runLocal)('canonical transaction-type answers on local Supabase', () => {
+  it('accepts a directly opened v3 mixed-use answer and preserves exact allocations',async()=>{
+    const admin=client(serviceKey!),owner=await createUser(admin,'direct-v3-mixed')
+    const base=await createRecord({admin,...owner,suffix:'direct-v3-mixed',amountCents:-14235})
+    const mixed=await new CanonicalWeeklyReviewService(new SupabaseBookkeepingRepository(admin)).openIssue({
+      businessId:owner.businessId,recordId:base.record.id,decisionId:base.decision.id,
+      reason:'MIXED_USE_CLARIFICATION',issueKey:`weekly-v3:mixed:${crypto.randomUUID()}`,
+      contextFingerprint:`weekly-v3:${crypto.randomUUID()}`,
+      questionContext:{schemaVersion:1,reason:'MIXED_USE_CLARIFICATION',businessUse:'mixed',flowVersion:3,
+        reviewPeriodId:crypto.randomUUID()},
+    })
+    const mixedResult=await answerMixedUseReviewIssue({supabase:owner.customer,
+      reviewIssueId:mixed.reviewIssueId,expectedCurrentEventId:mixed.id,expectedCurrentDecisionId:base.decision.id,
+      expectedContextFingerprint:mixed.contextFingerprint,expectedEvidenceFingerprint:mixed.evidenceFingerprint!,
+      answer:{schemaVersion:1,businessAmountCents:5694}})
+    expect(mixedResult.followUpEvent).toMatchObject({reason:'TRANSACTION_TYPE_UNCLEAR'})
+    const result=await answerTransactionTypeReviewIssue(transactionInput({customer:owner.customer,
+      event:mixedResult.followUpEvent!,decisionId:mixedResult.decision.id,
+      answer:{schemaVersion:1,activity:'purchase'}}))
+    expect(result.decision).toMatchObject({bookkeepingNature:'expense',treatment:'mixed_use',provenance:'user'})
+    expect(result.decision.allocations).toEqual(expect.arrayContaining([
+      expect.objectContaining({kind:'business',amountCents:-5694}),
+      expect.objectContaining({kind:'personal',amountCents:-8541}),
+    ]))
+    expect(result.followUpEvent).toBeNull()
+  })
+
   it('maps all seven semantic activities and keeps other factual-only', async () => {
     const admin = client(serviceKey!)
     const owner = await createUser(admin, 'mapping')

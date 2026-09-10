@@ -34,9 +34,9 @@ export function CorrectionForm({ transactionId, currentDecisionId, totalCents, r
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to save correction.') }
     finally { setBusy(false) }
   }
-  if (!open) return <button onClick={() => setOpen(true)} className="text-sm font-semibold text-[#243186] underline-offset-4 hover:underline">{restoreMode==='personal'?'Undo personal choice':restoreMode==='exclusion'?'Include this expense again':'Correct this'}</button>
+  if (!open) return <button onClick={() => setOpen(true)} className="mt-3 min-h-11 text-sm font-semibold text-[#243186] underline-offset-4 hover:underline">{restoreMode==='personal'?'Undo personal choice':restoreMode==='exclusion'?'Include this expense again':'Change business use'}</button>
   return <div className="mt-4 border-l-2 border-[#243186] pl-4">
-    <p className="font-medium text-slate-950">{restoreMode==='personal'?'Put this back for WriteOffs to review?':restoreMode==='exclusion'?'Include this expense again?':'What should I change?'}</p>
+    <p className="font-medium text-slate-950">{restoreMode==='personal'?'Put this back for WriteOffs to review?':restoreMode==='exclusion'?'Include this expense again?':'How was this purchase used?'}</p>
     {!restoreMode&&<div className="mt-3 flex flex-wrap gap-2">{([['business','This was for my business'],['personal',"This isn't a business expense"],['mixed','Only part was for business']] as const).map(([value,label]) =>
       <button key={value} onClick={() => setUse(value)} className={`rounded-md border px-3 py-2 text-sm ${use === value ? 'border-[#243186] bg-[#243186] text-white' : 'border-slate-300 bg-white text-slate-700'}`}>{label}</button>)}</div>}
     {restoreMode&&<p className="mt-2 text-sm leading-6 text-slate-600">WriteOffs will restore the prior decision and continue from there. The correction history stays with the transaction.</p>}

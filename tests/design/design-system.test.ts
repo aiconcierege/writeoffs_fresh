@@ -44,7 +44,7 @@ describe('WriteOffs product design system', () => {
 
   it('keeps mobile rows and actions usable without desktop-only tables', () => {
     expect(read('app/transactions/page.tsx')).toContain("grid-cols-[1fr_auto]")
-    expect(read('app/questions/QuestionFlow.tsx')).toContain('min-h-14')
+    expect(read('app/questions/QuestionFlow.tsx')).toContain('min-h-12')
     expect(read('app/money/ManualMoneyClient.tsx')).toContain('w-full sm:w-auto')
     expect(read('app/mileage/MileageClient.tsx')).toContain('w-full sm:w-auto')
   })

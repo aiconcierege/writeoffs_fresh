@@ -55,7 +55,7 @@ export async function getAuthenticatedTaxYearReadiness(input: { supabase: Supaba
   const scopedQuestions=input.scope==='expenses'?questions.filter(question=>(question.transaction.amountCents??0)<=0):questions
   const readiness=deriveTaxYearReadiness(taxYear, {
     report, customerQuestions: scopedQuestions, contractorSummaries: report.contractorSummaries,
-    businessMilesMilli: report.businessMilesMilli, undatedRecordCount: report.completeness.undatedRecordCount,
+    businessMilesMilli: report.businessMilesMilli,vehicleReports:report.vehicleReports, undatedRecordCount: report.completeness.undatedRecordCount,
     processingCount: currentJobs.filter(row => ['pending','processing','retryable'].includes(row.state)).length,
     failedProcessingCount: currentJobs.filter(row => row.state === 'dead_letter').length,
     // Receipt-understanding shadow jobs are intentionally excluded: shadow state

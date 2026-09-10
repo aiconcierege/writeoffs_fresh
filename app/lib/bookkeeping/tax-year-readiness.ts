@@ -27,6 +27,7 @@ export type TaxYearReadinessContext = {
   customerQuestions: Array<{ id: string; source?: string; prompt: string; transaction: { date: string | null; amountCents: number | null } }>
   contractorSummaries: ContractorSummary[]
   businessMilesMilli: number
+  vehicleReports?:Array<{displayName:string;method:string;businessMilesMilli:number;totalMilesMilli:number|null;allocationBasisPoints:number|null;mileageDeductionCents:number|null;actualExpenseCents:number;deductibleActualExpenseCents:number|null;requiresCpaReview:boolean;cpaReviewReasons:string[]}>
   undatedRecordCount: number
   processingCount: number
   failedProcessingCount: number
@@ -85,8 +86,12 @@ export function deriveTaxYearReadiness(taxYear: number, input: TaxYearReadinessC
     detail: row.awareness === 'potential_1099_attention' ? 'Potential information-reporting attention; this is not a filing determination.'
       : row.awareness === 'w9_needed' ? 'W-9 information is not currently on file.' : 'Payment or contractor information is incomplete.',
     kind: 'customer_action', actionHref: '/contractors' })
-  if (input.businessMilesMilli > 0) issues.push({ code: 'MILEAGE_TAX_TREATMENT_UNRESOLVED', title: 'Mileage tax treatment needs attention',
-    detail: 'Mileage facts are preserved, but WriteOffs has not guessed a vehicle deduction method.', kind: 'customer_action', actionHref: '/mileage' })
+  const unresolvedVehicles=(input.vehicleReports??[]).filter(vehicle=>vehicle.method==='unresolved'||vehicle.allocationBasisPoints==null)
+  const cpaVehicles=(input.vehicleReports??[]).filter(vehicle=>vehicle.requiresCpaReview)
+  if (input.businessMilesMilli > 0&&(!input.vehicleReports||unresolvedVehicles.length)) issues.push({ code: 'MILEAGE_TAX_TREATMENT_UNRESOLVED', title: 'Vehicle details need attention',
+    detail: 'Choose how to track the vehicle and provide total miles when asked.', kind: 'customer_action', actionHref: '/mileage' })
+  for(const vehicle of cpaVehicles)issues.push({code:'VEHICLE_CPA_REVIEW',title:`${vehicle.displayName} needs tax-preparer review`,
+    detail:'WriteOffs preserved the vehicle facts and excluded unsupported special adjustments.',kind:'documentation',actionHref:'/mileage'})
   if (input.paidInvoiceWithoutIncomeCount > 0) issues.push({ code: 'PAID_INVOICE_LINK_MISSING', title: 'A paid invoice is missing valid income support',
     detail: `${plural(input.paidInvoiceWithoutIncomeCount, 'invoice')} need an established income link.`, kind: 'integrity', actionHref: '/invoices' })
   if (input.processingCount + input.receiptProcessingCount > 0) issues.push({ code: 'RECORDS_PROCESSING', title: 'WriteOffs is still working',
@@ -109,8 +114,9 @@ export function deriveTaxYearReadiness(taxYear: number, input: TaxYearReadinessC
         : missingDocumentation.length || lostDocumentation.length
           ? `${plural(missingDocumentation.length, 'expense')} have no attached document; ${lostDocumentation.length} reported unavailable.`
           : 'Available documentation is organized.', issueCount: missingDocumentation.length + lostDocumentation.length + input.receiptProcessingCount },
-    { key: 'mileage', label: 'Mileage', status: input.businessMilesMilli ? 'needs_attention' : 'not_applicable',
-      summary: input.businessMilesMilli ? `${(input.businessMilesMilli / 1000).toLocaleString('en-US')} business miles recorded; tax treatment remains separate.` : 'No business mileage is recorded for this year.', issueCount: input.businessMilesMilli ? 1 : 0 },
+    { key: 'mileage', label: 'Mileage', status: !input.businessMilesMilli&&!(input.vehicleReports??[]).some(v=>v.actualExpenseCents)?'not_applicable'
+      :unresolvedVehicles.length||cpaVehicles.length?'needs_attention':'complete',
+      summary: input.businessMilesMilli ? `${(input.businessMilesMilli / 1000).toLocaleString('en-US')} business miles recorded${unresolvedVehicles.length?'; vehicle details remain.':'.'}` : 'Vehicle costs are tracked.', issueCount: unresolvedVehicles.length+cpaVehicles.length },
     { key: 'contractors', label: 'Contractor records', status: contractorAttention.length ? 'needs_attention'
       : input.contractorSummaries.some(row => row.totalPaidCents > 0) ? 'complete' : 'not_applicable',
       summary: contractorAttention.length ? `${plural(contractorAttention.length, 'contractor')} need information.`

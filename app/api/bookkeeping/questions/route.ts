@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../utils/supabase/server'
-import { listCustomerQuestions } from '../../../lib/bookkeeping/customer-questions'
+import { getCurrentAskableQuestionQueue } from '../../../lib/bookkeeping/customer-questions'
 import{loadCustomerEntitlements}from'../../../lib/membership/entitlements'
 
 export async function GET() {
@@ -12,8 +12,8 @@ export async function GET() {
 
   try {
     const membership=await loadCustomerEntitlements(supabase)
-    const questions = await listCustomerQuestions({ supabase,scope:membership.plan??'expenses' })
-    return NextResponse.json({ questions, count: questions.length })
+    const queue = await getCurrentAskableQuestionQueue({ supabase,scope:membership.plan??'expenses' })
+    return NextResponse.json(queue)
   } catch {
     return NextResponse.json({ error: 'Unable to load questions.' }, { status: 500 })
   }
