@@ -54,8 +54,8 @@ Evidence: `app/lib/plaid/client.ts`, `service.ts`, `normalize.ts`,
 | Monitoring | Provider and queue health states plus safe diagnostic history exist. Production dashboards/alerts and operator destinations are not repository-verifiable. | **Verified in code/config** for diagnostics; **Gap/Needs Rick** for configured monitoring. |
 | Backups | Supabase documents daily backups with seven-day retention on Pro and optional PITR. Database backups include database/Auth/schema state but not private Storage objects. WriteOffs now has an authenticated-encryption bundle for a standard database dump, private-object mirror, and hash manifest. | Provider capability and local tooling are **Verified managed-provider capability / Verified in code/config**. Production plan/PITR, off-provider destination, scheduling, and key custody **Need Rick / remain a Gap**. |
 | Disaster recovery | The canonical runbook defines incident paths and restore verification. A 2026-09-09 isolated local drill restored synthetic canonical state, correction history, mileage, RLS, receipt metadata, and a private object without touching staging or Production. | Local mechanism is **Verified in code/config**; provider-hosted drill and operational RPO/RTO remain a **Gap**. |
-| Retention | Disconnect invokes Plaid `/item/remove`, stops future synchronization, and retains minimized bookkeeping/source history. Cancellation is not deletion. | **Verified in code/config**. Final retention schedule and lawful basis are **Needs Rick/legal**. |
-| Deletion | No complete self-service account/data deletion workflow exists. Support can receive requests, but the deletion/hold/anonymization policy and operational path are not approved. | **Gap**; public launch blocker in `PRODUCTION_LAUNCH_GATE.md`. |
+| Retention | Cancellation preserves paid service through Stripe's paid-through timestamp, then provides 12 months of read-only records. Plaid authorization is revoked when active bookkeeping ends. | **Verified in code/config**; notice delivery and Production scheduler configuration remain **Gap/Needs Rick**. |
+| Deletion | AAL2 self-service deletion has a seven-day reversible grace period, freezes mutations, stops renewal and Plaid, then uses a lease-fenced idempotent deletion worker. A minimized encrypted off-provider tombstone export protects restores from resurrection. | **Verified in code/config**; provider-hosted restore exercise, external ledger destination, and legal review remain **Gap/Needs Rick**. |
 | Privacy/consent | Bank connection UI identifies Plaid, the bookkeeping purpose, and links both privacy policies before Link. The published Privacy Policy is generic and must be legally reviewed and amended before launch. | **Verified in code/config** for connection disclosure; policy publication is **Gap/Needs Rick/legal**. |
 | Environment separation | Staging is bound to its expected Supabase host, requires Plaid Sandbox and mandatory MFA, and rejects Stripe live. Production requires its expected host and explicit Plaid Production enablement; Sandbox Link is rejected there. Local remote database use requires an explicit override. | **Verified in code/config** (`environment-safety.js`, tests). Provider-project variable scopes must be verified by Rick. |
 | Source/administrator access | Secrets are not committed and private key material is rejected in CI. The repository cannot establish employee screening, device controls, access-review cadence, or Plaid/Vercel/Supabase administrator membership. | **Verified in code/config** for repository controls; remainder **Needs Rick**. |
@@ -81,7 +81,16 @@ agreement before publication:
 > provide the service, honor your rights, and meet legal obligations. Contact
 > rick@writeoffs.io to request access, export, correction, or deletion where applicable.
 
-Do not promise a deletion period until the retention policy and workflow are approved.
+Proposed addition for legal review (not yet published):
+
+> Canceling stops renewal but does not immediately delete your records. Paid service
+> continues through the paid-through date. Records then remain available to view and
+> download for 12 months before scheduled deletion. You may separately request account
+> deletion at any time; after a seven-day grace period, WriteOffs permanently removes
+> eligible account, bookkeeping, and document data. Limited billing, security, legal-hold,
+> and deletion-audit records may be retained where necessary. Data may remain temporarily
+> in encrypted disaster-recovery backups until those backups expire, and deletion controls
+> prevent restored backups from returning deleted accounts to service.
 
 ## Plaid Dashboard checklist for Rick
 
@@ -99,7 +108,7 @@ Do not promise a deletion period until the retention policy and workflow are app
 ## Production-enablement checklist and open dependencies
 
 1. Legal approval and publication of the Plaid/privacy amendment.
-2. Approved retention/deletion schedule and a reauthenticated operational deletion path.
+2. Legal review of the implemented retention/deletion language, plus configured notification delivery and external encrypted deletion-ledger custody.
 3. Production Supabase plan review: daily backup retention, PITR decision, SSL enforcement, Storage recovery, log retention, project access, and an isolated restore test.
 4. Backup/DR exercise covering Postgres plus private receipt objects and database-to-object linkage; record actual RPO/RTO.
 5. Configure Production-only Plaid/Vercel variables, redirects, webhook, Link display, consent messaging, and access roles without reusing staging values.

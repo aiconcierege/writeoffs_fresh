@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 const createScript = join(process.cwd(), 'scripts/backup/create-encrypted-backup.mjs')
 const restoreScript = join(process.cwd(), 'scripts/backup/restore-encrypted-backup.mjs')
+const ledgerExport=join(process.cwd(),'scripts/backup/export-deletion-ledger.mjs'),ledgerReconcile=join(process.cwd(),'scripts/backup/reconcile-deletion-ledger.mjs')
 
 describe('independent encrypted backup tooling', () => {
   it('preserves grants required for RLS access in database dump and restore commands', () => {
@@ -49,4 +50,5 @@ describe('independent encrypted backup tooling', () => {
       WRITEOFFS_RESTORE_CONFIRM_ISOLATED: 'yes', WRITEOFFS_BACKUP_KEY_BASE64: key,
     } })).toThrow()
   })
+  it('keeps the deletion ledger encrypted and requires isolated reconciliation',()=>{const exported=readFileSync(ledgerExport,'utf8'),reconciled=readFileSync(ledgerReconcile,'utf8');expect(exported).toContain('encryptFile');expect(exported).not.toContain('transaction descriptions');expect(reconciled).toContain('decryptFile');expect(reconciled).toContain("WRITEOFFS_RESTORE_CONFIRM_ISOLATED!=='yes'");expect(reconciled).toContain('reconcile_restored_deletion_tombstones')})
 })

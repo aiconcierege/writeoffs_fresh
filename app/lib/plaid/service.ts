@@ -168,6 +168,10 @@ export async function syncPlaidItem(itemRecordId: string, suppliedGateway?: Plai
   if (claimError) throw new Error(`PLAID_SYNC_CLAIM_FAILED:${claimError.message}`)
   const claim = Array.isArray(claims) ? claims[0] as Row | undefined : claims as Row | null
   if (!claim) return { busy: true }
+  const membership=await admin.from('business_memberships').select('lifecycle,access_through,grace_through').eq('business_id',String(claim.business_id)).maybeSingle()
+  const now=Date.now(),access=membership.data?.access_through?new Date(membership.data.access_through).getTime():Infinity,grace=membership.data?.grace_through?new Date(membership.data.grace_through).getTime():0
+  const active=membership.data&&((['active','canceling'].includes(membership.data.lifecycle)&&access>now)||(membership.data.lifecycle==='payment_issue'&&grace>now))
+  if(!active){await admin.rpc('fail_plaid_item_sync',{p_item_record_id:itemRecordId,p_lease_id:leaseId,p_error_code:'MEMBERSHIP_INACTIVE',p_error_type:'ACCESS',p_reconnect_required:false});return{busy:false,skipped:true}}
   const gateway = suppliedGateway ?? createPlaidGateway()
   try {
     const accessToken = decryptPlaidAccessToken(String(claim.access_token_ciphertext))

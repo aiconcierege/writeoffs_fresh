@@ -52,12 +52,13 @@ export async function provisionLocalCanonicalOwner(input: {
 
 export async function createLocalReceipt(input: {
   userId: string
+  storagePath?: string
 }) {
   const id = crypto.randomUUID()
   execFileSync('docker', ['exec', 'supabase_db_writeoffs_fresh', 'psql',
     '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c',
     `insert into public.receipts (id,user_id,storage_path,mime_type,bytes,original_name)
-     values ('${id}','${input.userId}','local-tests/${id}.pdf','application/pdf',100,'${id}.pdf')`],
+     values ('${id}','${input.userId}','${input.storagePath??`local-tests/${id}.pdf`}','application/pdf',100,'${id}.pdf')`],
   { stdio: 'pipe' })
   return id
 }

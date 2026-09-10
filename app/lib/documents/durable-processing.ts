@@ -231,7 +231,9 @@ export async function drainCanonicalDocumentJobs(input: { admin?: SupabaseClient
       else attention += 1
     } catch (processingError) {
       const code = safeErrorCode(processingError)
-      const terminal = ['MIME_CONTENT_MISMATCH','PDF_UNREADABLE','NO_READABLE_TEXT'].includes(code)
+      // A fingerprint mismatch is an integrity failure, not a transient
+      // provider failure. Retrying the same immutable object cannot repair it.
+      const terminal = ['MIME_CONTENT_MISMATCH','PDF_UNREADABLE','NO_READABLE_TEXT','DOCUMENT_HASH_MISMATCH'].includes(code)
       if (terminal) {
         await admin.rpc('finish_receipt_processing_job', { p_job_id: job.id,p_lease_id: leaseId,
           p_state: 'unreadable',p_terminal_reason: code }); unreadable += 1

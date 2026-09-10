@@ -31,6 +31,9 @@ export function isAuthenticatedRoute(pathname: string) {
   return AUTHENTICATED_ROUTE_PREFIXES.some((prefix) => pathMatchesPrefix(pathname, prefix))
 }
 
+const CUSTOMER_BOOKKEEPING_MUTATION_PREFIXES=['/api/bookkeeping/','/api/receipts','/api/plaid/link-token','/api/plaid/exchange','/api/plaid/sync','/api/mileage','/api/manual-money','/api/invoices','/api/import','/api/documents','/api/deductions','/api/contractors','/api/tx/'] as const
+export function isCustomerBookkeepingMutationRoute(pathname:string,method:string){return !['GET','HEAD','OPTIONS'].includes(method.toUpperCase())&&CUSTOMER_BOOKKEEPING_MUTATION_PREFIXES.some(prefix=>pathname===prefix||pathname.startsWith(prefix))}
+
 export type ApplicationNavigationSection = 'home' | 'transactions' | 'reports' | 'account' | null
 
 export function applicationNavigationSection(pathname: string): ApplicationNavigationSection {

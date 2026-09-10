@@ -10,6 +10,11 @@ const nextConfig = {
   // cross-origin development assets unless the host is explicitly trusted.
   allowedDevOrigins: ['127.0.0.1'],
   serverExternalPackages: ['@napi-rs/canvas', 'pdfjs-dist'],
+  // Runtime configuration comes from the deployment environment. Never copy
+  // developer or staging environment files into server-function bundles.
+  outputFileTracingExcludes: {
+    '/*': ['./.env', './.env.*', './.env*'],
+  },
   async headers() {
     return [{
       source: '/(.*)',

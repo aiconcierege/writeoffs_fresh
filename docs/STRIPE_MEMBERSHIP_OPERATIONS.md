@@ -68,6 +68,10 @@ Place the temporary signing secret only in the effective ignored local environme
 - Upgrade: Stripe changes Expenses to Business immediately with invoice proration. Business access begins only after provider-confirmed webhook state.
 - Downgrade: a Stripe Subscription Schedule keeps Business until current period end, then changes to Expenses. WriteOffs stores the customer-confirmed scheduled intent.
 - Cancellation: `cancel_at_period_end`; paid capabilities remain until period end. It may be reversed before then. Cancellation supersedes and releases a pending downgrade; a downgrade cannot be scheduled while cancellation is pending.
+- At period end, the lifecycle worker begins 12 months of read-only access, revokes Plaid
+  authorization, and schedules durable 30-day and 7-day deletion warnings. Explicit account
+  deletion also sets `cancel_at_period_end` but freezes bookkeeping immediately; canceling
+  the deletion request never reverses Stripe cancellation or restarts billing.
 - Failed renewal: Stripe retries payment; WriteOffs projects `payment_issue` and preserves capabilities through the configured grace deadline. Recovery restores `active`. Elapsed grace or paid access becomes `expired_read_only` through the service-only expiry RPC/scheduled maintenance invocation.
 - Restart: an expired customer chooses a plan through Checkout. Historical records remain; new activity resumes after provider confirmation. No bulk historical reimport occurs.
 

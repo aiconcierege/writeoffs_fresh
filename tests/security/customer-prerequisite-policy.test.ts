@@ -34,6 +34,9 @@ describe('authenticated customer prerequisite policy', () => {
 
   it('keeps expired customers in historical mode and never trusts unsafe continuations', () => {
     expect(nextRequiredCustomerDestination({ ...complete, membershipLifecycle: 'expired_read_only' }, '/home')).toBe('/membership/read-only')
+    expect(nextRequiredCustomerDestination({ ...complete, membershipLifecycle: 'expired_read_only' }, '/reports')).toBeNull()
+    expect(nextRequiredCustomerDestination({ ...complete, membershipLifecycle: 'pending_deletion' }, '/settings')).toBeNull()
+    expect(nextRequiredCustomerDestination({ ...complete, membershipLifecycle: 'pending_deletion' }, '/check-in')).toBe('/membership/read-only')
     expect(nextRequiredCustomerDestination({ ...complete, mfaSatisfied: false }, '//evil.example'))
       .toBe('/mfa/challenge?next=%2Fhome')
   })

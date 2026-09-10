@@ -28,8 +28,12 @@ describe('durable document processing', () => {
   })
   it('has one protected bounded runner for repeated scheduled invocation', () => {
     const route = source('app/api/internal/processing/drain/route.ts')
-    expect(route).toContain('BOOKKEEPING_WORKER_SECRET'); expect(route).toContain('drainCanonicalDocumentJobs')
+    expect(route).toContain('BOOKKEEPING_WORKER_SECRET'); expect(route).toContain('INTERNAL_PROCESSING_SECRET'); expect(route).toContain('drainCanonicalDocumentJobs')
     expect(route).toContain('drainBookkeepingProcessingJobs'); expect(route).toContain('documentQueueHealth')
     expect(source('vercel.json')).toContain('/api/internal/processing/drain')
+  })
+  it('treats immutable document fingerprint mismatches as terminal integrity outcomes', () => {
+    const worker = source('app/lib/documents/durable-processing.ts')
+    expect(worker).toContain("'DOCUMENT_HASH_MISMATCH'].includes(code)")
   })
 })

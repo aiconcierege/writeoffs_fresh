@@ -203,6 +203,8 @@ Canonical policy:
 - Paid features continue through the current paid period.
 - Lifecycle becomes `canceling` until `access_through`.
 - After the paid period, lifecycle becomes `expired_read_only`.
+- Read-only access lasts 12 months from the paid-through boundary. WriteOffs then
+  schedules the same permanent-deletion workflow used for verified customer requests.
 
 Cancellation is not destructive and does not alter canonical bookkeeping history.
 
@@ -242,6 +244,11 @@ Disabled ongoing work:
 - New invoices or contractor activity
 - New autonomous bookkeeping, OCR, AI, rematching, and newly generated ongoing questions
 
+The read-only period ends at `read_only_through`. Customers receive durable notices when
+read-only begins and approximately 30 and 7 days before deletion. Cancellation never
+creates a prorated refund and Plaid authorization is revoked after active service ends;
+historical financial observations remain available until deletion.
+
 Read-only mode must have a clear historical-records landing page and a path to reactivate. Downloads must remain direct and understandable.
 
 ## O. Data portability
@@ -249,6 +256,22 @@ Read-only mode must have a clear historical-records landing page and a path to r
 Former customers may export historical data, download their documents and invoice artifacts, and request account/data deletion subject to the separately approved retention and deletion policy. Do not require reactivation to retrieve customer records.
 
 Security settings and authentication remain available. Read-only mode does not weaken tenant isolation or expose service credentials.
+
+## O.1 Account and data deletion
+
+A verified AAL2 customer may schedule account deletion without Support. Scheduling
+immediately freezes bookkeeping and Plaid synchronization, stops future Stripe renewal,
+and starts a seven-day grace period. The customer may cancel during that period; doing so
+does not restart billing or silently reconnect Plaid. After the deadline, a lease-fenced,
+retryable worker revokes providers, removes private objects, deletes tenant financial and
+bookkeeping data, and finally removes Auth/MFA/session identity.
+
+Permanent deletion retains only a minimized pseudonymous tombstone and safe lifecycle
+events. It retains no transaction descriptions, receipts, mileage, answers, or books.
+Stripe may retain its independent payment records, while WriteOffs removes the local
+customer linkage. Encrypted disaster-recovery backups expire naturally rather than being
+surgically edited. The separately exported encrypted deletion ledger must be reconciled
+after every database/PITR restore and before service activation.
 
 ## P. Billing cadence
 

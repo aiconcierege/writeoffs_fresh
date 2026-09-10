@@ -9,6 +9,7 @@ export type CustomerPrerequisiteState = {
 }
 
 const accountRoutes = ['/settings/security', '/settings/billing']
+const historicalRoutes = ['/membership/read-only','/transactions','/reports','/receipts','/mileage','/invoices','/money','/export','/settings']
 const getStartedSupportRoutes = ['/get-started', '/settings/banking', '/receipts', '/import']
 
 function matches(pathname: string, prefix: string) {
@@ -42,8 +43,8 @@ export function nextRequiredCustomerDestination(
     return `/settings/security?enroll=required&next=${encodeURIComponent(next)}`
   }
 
-  if (state.membershipLifecycle === 'expired_read_only') {
-    if (pathname === '/membership/read-only' || allowed(pathname, accountRoutes)) return null
+  if (state.membershipLifecycle === 'expired_read_only' || state.membershipLifecycle === 'pending_deletion') {
+    if (allowed(pathname, historicalRoutes)) return null
     return '/membership/read-only'
   }
 

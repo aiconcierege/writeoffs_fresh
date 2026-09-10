@@ -20,6 +20,9 @@
     "staging:review:open": "NODE_OPTIONS=--conditions=react-server tsx scripts/open-staging-test-weekly-review.ts",
     "backup:create": "node scripts/backup/create-encrypted-backup.mjs",
     "backup:restore": "node scripts/backup/restore-encrypted-backup.mjs",
+    "deletion-ledger:export": "node scripts/backup/export-deletion-ledger.mjs",
+    "deletion-ledger:reconcile": "node scripts/backup/reconcile-deletion-ledger.mjs",
+    "vercel:sanitize-output": "node scripts/deploy/sanitize-vercel-output.mjs",
     "prepare": "husky"
   },
   "dependencies": {

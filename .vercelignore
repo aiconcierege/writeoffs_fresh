@@ -1,0 +1,12 @@
+app/api/waitlist/confirm/route 2.ts
+app/components/PublicFooter 2.tsx
+app/home/WeeklyReview 2.tsx
+app/login/page 2.tsx
+public/betti/ betti-working.webp
+.next/
+coverage/
+*.wobak
+*.dump
+*.backup
+writeoffs-backup-*/
+writeoffs-restore-*/

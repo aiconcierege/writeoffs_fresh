@@ -1,0 +1,10 @@
+import{readFileSync}from'node:fs';import{describe,expect,it}from'vitest'
+const service=readFileSync('app/lib/account-lifecycle/deletion.ts','utf8'),route=readFileSync('app/api/account/deletion/route.ts','utf8'),worker=readFileSync('app/api/internal/account-lifecycle/drain/route.ts','utf8'),cron=readFileSync('app/api/internal/processing/drain/route.ts','utf8')
+describe('account deletion security contracts',()=>{
+ it('derives owner from auth and requires aal2',()=>{expect(service).toContain('supabase.auth.getUser()');expect(service).toContain("currentLevel!=='aal2'");expect(service).toContain("eq('owner_user_id',user.id)");expect(route).not.toContain('businessId')})
+ it('pseudonymizes identities with a server-only keyed hmac',()=>{expect(service).toContain("createHmac('sha256',deletionKey())");expect(service).toContain('ACCOUNT_DELETION_HMAC_KEY');expect(service).not.toContain('NEXT_PUBLIC_ACCOUNT')})
+ it('orders provider, storage, tenant, auth, then completion cleanup',()=>{const start=service.indexOf('export async function drainAccountDeletionQueue');expect(service.indexOf('revokePlaidItems',start)).toBeLessThan(service.indexOf('deletePrivateObjects',start));expect(service.indexOf("rpc('delete_customer_application_data'",start)).toBeLessThan(service.indexOf('auth.admin.deleteUser',start));expect(service.indexOf('auth.admin.deleteUser',start)).toBeLessThan(service.indexOf("rpc('complete_account_deletion'",start))})
+ it('keeps the worker secret and integrates durable scheduling',()=>{expect(worker).toContain('timingSafeEqual');expect(worker).not.toContain('SUPABASE_SERVICE_ROLE_KEY');expect(cron).toContain('drainAccountDeletionQueue')})
+ it('records bounded errors rather than financial payloads',()=>{expect(service).toContain("'ACCOUNT_DELETION_FAILED'");expect(service).not.toContain('console.log');expect(worker).toContain('ACCOUNT_LIFECYCLE_DRAIN_FAILED')})
+ it('keeps local environment files out of prebuilt deployment functions',()=>{const sanitizer=readFileSync('scripts/deploy/sanitize-vercel-output.mjs','utf8');expect(sanitizer).toContain("startsWith('.env')");expect(sanitizer).not.toContain('process.env.')})
+})

@@ -5,7 +5,7 @@
  */
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { isAuthenticatedRoute } from './app/lib/route-policy'
+import { isAuthenticatedRoute,isCustomerBookkeepingMutationRoute } from './app/lib/route-policy'
 import { mfaEnforcementMode } from './app/lib/auth/mfa-policy'
 import { isCustomerSignupEnabled } from './app/lib/auth/signup-policy'
 import { nextRequiredCustomerDestination } from './app/lib/auth/prerequisite-policy'
@@ -40,6 +40,13 @@ export async function proxy(req: NextRequest) {
     }
   )
   const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }))
+
+  if(user&&isCustomerBookkeepingMutationRoute(pathname,req.method)){
+    const{data:membership}=await supabase.from('current_customer_membership').select('lifecycle,deletion_status,access_through,grace_through').maybeSingle()
+    const now=Date.now(),access=membership?.access_through?new Date(membership.access_through).getTime():Infinity,grace=membership?.grace_through?new Date(membership.grace_through).getTime():0
+    const active=membership&&!membership.deletion_status&&((['active','canceling'].includes(membership.lifecycle)&&access>now)||(membership.lifecycle==='payment_issue'&&grace>now))
+    if(!active)return NextResponse.json({error:'Your records are view-only. You can still view and download them.'},{status:403})
+  }
 
   if (user && (pathname === '/login' || pathname === '/signup')) {
     url.pathname = '/home'

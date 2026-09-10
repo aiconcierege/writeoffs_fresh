@@ -108,7 +108,11 @@ database clone. Keep autonomous workers and external webhooks disabled until ver
    mileage, invoice/manual-money records, reports, and no duplicate current projection.
 6. Recreate secrets/provider settings from the controlled configuration inventory.
 7. Run queue health checks before enabling workers; then process one synthetic job.
-8. Record recovery point, database/object restore time, validation time, gaps, and approver.
+8. Import the separately encrypted deletion ledger, run `npm run deletion-ledger:reconcile`,
+   drain every scheduled reconciliation deletion, and verify restored private objects for
+   those identities are absent. This applies equally to PITR.
+9. Record recovery point, database/object restore time, deletion reconciliation result,
+   validation time, gaps, and approver.
 
 ## Incident paths
 
@@ -121,6 +125,7 @@ database clone. Keep autonomous workers and external webhooks disabled until ver
 | Credential compromise | Revoke sessions/tokens and isolate integrations | Rotate affected keys; restore only if integrity changed; audit access and customer impact |
 | Plaid outage | Keep canonical state; pause sync retries if necessary | Resume idempotent sync; no database restore unless local integrity was affected |
 | Local/source loss | Revoke any local credentials | Clone the protected Git remote; restore provider configuration from controlled inventory |
+| Restore predates customer deletion | Keep restored service isolated | Import the off-provider encrypted deletion ledger, schedule and complete reconciliation deletions, verify objects absent, then activate service |
 
 ## Current gaps
 
@@ -128,6 +133,9 @@ database clone. Keep autonomous workers and external webhooks disabled until ver
   not verified because Production was not accessed.
 - The independent destination, retention/object lock, automated Storage exporter,
   secrets-manager ownership, monitoring, and scheduled execution require Rick decisions.
+- The deletion ledger must be exported after every completed deletion and at least daily
+  to a separately controlled encrypted destination. A backup is not eligible for service
+  activation until ledger reconciliation completes.
 - A provider-hosted isolated restore remains required after those choices. The local
   drill used synthetic financial records and a private object without Production data.
 
@@ -156,6 +164,11 @@ Clean recovery procedure:
    Stripe, Auth, and application-environment identities before assigning the staging
    alias. Production deployment requires separate explicit approval and the same
    environment-identity checks.
+
+When using Vercel's local prebuilt path, run `vercel build --prod`, then
+`npm run vercel:sanitize-output` before `vercel deploy --prebuilt --prod`. The
+sanitizer removes local `.env*` mappings that the prebuild trace may add to server
+functions; deployment credentials must come from Vercel and never from the artifact.
 
 Git intentionally does not contain operational secrets. Full recovery therefore also
 requires controlled copies of Vercel environment values; Supabase project/API/database

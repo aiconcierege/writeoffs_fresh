@@ -5,17 +5,19 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createServerSupabase } from '../../utils/supabase/server'
 import SettingsForm, { type SettingsInitial } from './profile/SettingsForm'
+import {loadCustomerEntitlements}from'../lib/membership/entitlements'
+import {AccountDataActions}from'./AccountDataActions'
 
 export default async function SettingsPage() {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: profile }, { data: business }] = await Promise.all([
+  const [{ data: profile }, { data: business },membership] = await Promise.all([
     supabase.from('profiles').select('theme').eq('id', user.id).maybeSingle(),
     supabase.from('businesses')
       .select('name,owner_name,contact_email,phone,address_line1,address_line2,city,state,postal_code,country')
-      .eq('owner_user_id', user.id).maybeSingle(),
+      .eq('owner_user_id', user.id).maybeSingle(),loadCustomerEntitlements(supabase),
   ])
 
   const initial: SettingsInitial = {
@@ -58,6 +60,7 @@ export default async function SettingsPage() {
           <p className="mt-2 text-sm text-neutral-700">Connect and update financial accounts securely. Connected activity appears in the same Transactions, receipt matching, and reporting experience as CSV imports.</p>
           <Link href="/settings/banking" className="btn btn-secondary mt-3 inline-flex min-h-11 items-center">Manage bank connections</Link>
         </section>
+        <AccountDataActions pending={membership.deletionRequestId&&membership.deletionScheduledFor?{id:membership.deletionRequestId,scheduledFor:membership.deletionScheduledFor}:null}/>
       </div>
     </section>
   </main>
