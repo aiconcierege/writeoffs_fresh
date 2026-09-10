@@ -207,3 +207,7 @@ without scheduled off-provider execution, the defensible current independent-bac
 undefined, and provider recovery RTO remains unmeasured. The launch targets remain RPO ≤24
 hours for nightly independent backup (about two minutes for DB after PITR is enabled) and
 RTO ≤1 business day, pending a Production-shaped provider-hosted drill.
+Lifecycle delivery state is part of the database backup. After a restore, operators must
+reconcile deletion tombstones before delivery workers resume so restored obsolete customer
+warnings cannot be sent. A reconciliation failure must create a minimized
+`tombstone_reconciliation_failed` operational alert before recovery activation.

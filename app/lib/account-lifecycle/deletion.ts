@@ -6,11 +6,13 @@ import {createServerAdminSupabase} from '../../../utils/supabase/admin'
 import {createStripeClient} from '../membership/stripe'
 import {createPlaidGateway} from '../plaid/client'
 import {decryptPlaidAccessToken} from '../plaid/token-crypto'
+import {enqueueLifecycleNotice,recordLifecycleNotificationPreparationFailure} from './notifications'
 
 type Row=Record<string,unknown>
 const safeCode=(error:unknown)=>error instanceof Error&&/^[A-Z0-9_]{1,100}$/.test(error.message)?error.message:'ACCOUNT_DELETION_FAILED'
 function deletionKey(){const value=process.env.ACCOUNT_DELETION_HMAC_KEY;if(!value||value.length<32)throw new Error('ACCOUNT_DELETION_KEY_UNAVAILABLE');return value}
 function identityHash(kind:'business'|'user',id:string){return createHmac('sha256',deletionKey()).update(`writeoffs-deletion:v1:${kind}:${id}`).digest('hex')}
+async function notificationIdentity(admin:SupabaseClient,userId:string,businessId:string){const [user,cadence]=await Promise.all([admin.auth.admin.getUserById(userId),admin.from('current_business_review_cadence').select('timezone_name').eq('business_id',businessId).maybeSingle()]);const email=user.data.user?.email;if(!email)throw new Error('NOTIFICATION_RECIPIENT_UNAVAILABLE');return{email,timeZone:cadence.data?.timezone_name??'UTC'}}
 
 export async function requireAal2Owner(supabase:SupabaseClient){
   const [{data:{user}},assurance]=await Promise.all([supabase.auth.getUser(),supabase.auth.mfa.getAuthenticatorAssuranceLevel()])
@@ -49,13 +51,16 @@ export async function scheduleAccountDeletion(input:{supabase:SupabaseClient;req
   await Promise.all([stopRenewal(admin,owner.businessId,input.requestKey),revokePlaidItems(admin,owner.businessId)])
   const row=await admin.from('account_deletion_requests').select('id,scheduled_for,status').eq('id',result.data).single()
   if(row.error)throw new Error('DELETION_STATE_UNAVAILABLE')
+  const event=await admin.from('retention_notification_events').select('id').eq('deletion_request_id',row.data.id).eq('notice_type','explicit_deletion_scheduled').single(),semanticKey=`retention:${event.data?.id??row.data.id}`
+  try{const recipient=await notificationIdentity(admin,owner.userId,owner.businessId);await enqueueLifecycleNotice(admin,{semanticKey,type:'explicit_deletion_scheduled',email:recipient.email,timeZone:recipient.timeZone,actionPath:'/settings',effectiveAt:row.data.scheduled_for});if(event.data?.id)await admin.from('retention_notification_events').update({delivery_status:'queued'}).eq('id',event.data.id)}catch{await recordLifecycleNotificationPreparationFailure(identityHash('user',owner.userId),semanticKey).catch(()=>undefined)}
   return row.data
 }
 
 export async function cancelAccountDeletion(input:{supabase:SupabaseClient;requestId:string;requestKey:string}){
-  const owner=await requireAal2Owner(input.supabase)
+  const owner=await requireAal2Owner(input.supabase),admin=createServerAdminSupabase()
   const result=await input.supabase.rpc('cancel_customer_account_deletion',{p_request_id:input.requestId,p_user_id:owner.userId,p_request_key:input.requestKey})
   if(result.error||result.data!==true)throw new Error('DELETION_CANCEL_FAILED')
+  const semanticKey=`deletion-canceled:${input.requestId}`;try{const recipient=await notificationIdentity(admin,owner.userId,owner.businessId),membership=await admin.from('business_memberships').select('lifecycle,access_through').eq('business_id',owner.businessId).maybeSingle(),stillActive=membership.data&&membership.data.lifecycle!=='expired_read_only'&&(!membership.data.access_through||new Date(membership.data.access_through)>new Date());await enqueueLifecycleNotice(admin,{semanticKey,type:'explicit_deletion_canceled',email:recipient.email,timeZone:recipient.timeZone,contextCode:stillActive?'active':'read_only',actionPath:'/settings'})}catch{await recordLifecycleNotificationPreparationFailure(identityHash('user',owner.userId),semanticKey).catch(()=>undefined)}
   return{canceled:true,reconnectPlaid:true}
 }
 
@@ -81,12 +86,14 @@ export async function drainAccountDeletionQueue(limit=5){
   const results:Array<{id:string;status:string;code?:string}>=[]
   for(const request of(claimed.data??[])as Row[]){const id=String(request.id),businessId=request.business_id?String(request.business_id):null,userId=request.owner_user_id?String(request.owner_user_id):null
     try{
+      const semanticKey=`deletion-completed:${id}`;if(businessId&&userId)try{const recipient=await notificationIdentity(admin,userId,businessId);await enqueueLifecycleNotice(admin,{semanticKey,type:'deletion_completed',email:recipient.email,timeZone:recipient.timeZone,scheduledFor:'2099-01-01T00:00:00.000Z'})}catch{await recordLifecycleNotificationPreparationFailure(String(request.user_identity_hash),semanticKey).catch(()=>undefined)}
       if(businessId)await revokePlaidItems(admin,businessId)
       if(userId)await deletePrivateObjects(admin,userId)
       if(businessId){const deleted=await admin.rpc('delete_customer_application_data',{p_request_id:id,p_lease_token:leaseToken,p_now:new Date().toISOString()});if(deleted.error)throw new Error('APPLICATION_DATA_DELETE_FAILED')}
       if(userId){const auth=await admin.auth.admin.deleteUser(userId);if(auth.error)throw new Error('AUTH_DELETE_FAILED')}
       const completed=await admin.rpc('complete_account_deletion',{p_request_id:id,p_lease_token:leaseToken,p_now:new Date().toISOString()})
       if(completed.error||completed.data!==true)throw new Error('DELETION_COMPLETION_FAILED')
+      await admin.from('lifecycle_notification_outbox').update({scheduled_for:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('semantic_key',semanticKey).eq('status','pending')
       results.push({id,status:'completed'})
     }catch(error){const code=safeCode(error);await admin.rpc('record_account_deletion_failure',{p_request_id:id,p_lease_token:leaseToken,p_safe_code:code,p_now:new Date().toISOString()});results.push({id,status:'retryable',code})}
   }

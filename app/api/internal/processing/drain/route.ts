@@ -6,6 +6,7 @@ import { drainReceiptUnderstandingJobs } from '../../../../lib/receipts/receipt-
 import { prepareWeeklyReviews } from '../../../../lib/bookkeeping/weekly-review-processing'
 import {createServerAdminSupabase} from '../../../../../utils/supabase/admin'
 import {drainAccountDeletionQueue}from '../../../../lib/account-lifecycle/deletion'
+import {drainLifecycleNotifications}from '../../../../lib/account-lifecycle/notifications'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -23,6 +24,7 @@ async function run(request: Request) {
   const expiration=await createServerAdminSupabase().rpc('expire_elapsed_business_memberships',{p_now:new Date().toISOString()})
   if(expiration.error)throw new Error('MEMBERSHIP_EXPIRATION_UNAVAILABLE')
   const accountLifecycle=await drainAccountDeletionQueue(3)
+  const lifecycleNotifications=await drainLifecycleNotifications(10)
   // Emergency cost control: intake remains durable while new OCR/AI work pauses.
   const expensiveProcessingEnabled = process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED !== 'false'
   const documents = expensiveProcessingEnabled
@@ -33,7 +35,7 @@ async function run(request: Request) {
   const shadow = expensiveProcessingEnabled
     ? await drainReceiptUnderstandingJobs({ batchSize: 3 })
     : { paused: true, claimed: 0, completed: 0, failed: 0 }
-  return NextResponse.json({ documents,bookkeeping,weeklyReviews,shadow,accountLifecycle,expensiveProcessingEnabled,membershipsExpired:expiration.data,health: await documentQueueHealth() })
+  return NextResponse.json({ documents,bookkeeping,weeklyReviews,shadow,accountLifecycle,lifecycleNotifications,expensiveProcessingEnabled,membershipsExpired:expiration.data,health: await documentQueueHealth() })
 }
 
 export async function GET(request: Request) { try { return await run(request) } catch {

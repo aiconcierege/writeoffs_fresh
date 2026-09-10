@@ -1,0 +1,12 @@
+import{readFileSync}from'node:fs';import{describe,expect,it}from'vitest';import{lifecycleNoticeTemplate}from'../../app/lib/account-lifecycle/notification-templates'
+const migration=readFileSync('supabase/migrations/20260910000200_add_lifecycle_notification_delivery.sql','utf8')
+describe('lifecycle notification delivery',()=>{
+ it('uses an independent, private, lease-fenced outbox',()=>{expect(migration).toContain('create table public.lifecycle_notification_outbox');expect(migration).not.toMatch(/lifecycle_notification_outbox[\s\S]{0,250}references public\.businesses/);expect(migration).toContain('for update skip locked');expect(migration).toContain("status='processing'");expect(migration).toContain('recipient_ciphertext')})
+ it('bounds retries and removes the recipient after acceptance',()=>{expect(migration).toContain('attempt>=6');expect(migration).toContain("recipient_ciphertext=''");expect(migration).toContain("'terminal_failed'")})
+ it('keeps delivery audit and operational alerts free of financial content',()=>{expect(migration).toContain('lifecycle_notification_attempt_events');expect(migration).toContain('lifecycle_operational_alerts');expect(migration).toContain('subject_hash');expect(migration).not.toMatch(/transaction_description|account_number|receipt_text/)})
+ it.each([
+  ['read_only_started','read-only'],['retention_30_days','30 days'],['retention_7_days','7 days'],
+  ['explicit_deletion_scheduled','deletion request'],['explicit_deletion_canceled','canceled'],['deletion_completed','complete'],
+ ]as const)('renders concise HTML and text for %s', (type,phrase)=>{const message=lifecycleNoticeTemplate({type,effectiveAt:'2027-09-10T17:00:00Z',timeZone:'America/Phoenix',actionUrl:'https://staging.example.test/settings'});expect(message.subject.toLowerCase()).toContain(phrase);expect(message.text).toContain('https://staging.example.test/settings');expect(message.html).toContain('<!doctype html>');expect(message.html).not.toContain('business_id')})
+ it('queues cancellation and completion around Auth deletion',()=>{const source=readFileSync('app/lib/account-lifecycle/deletion.ts','utf8');expect(source).toContain("type:'explicit_deletion_canceled'");expect(source).toContain("type:'deletion_completed'");expect(source.indexOf("semanticKey:`deletion-completed:${id}`")).toBeLessThan(source.indexOf('deleteUser(userId)'));expect(source.indexOf('deleteUser(userId)')).toBeLessThan(source.indexOf("scheduled_for:new Date().toISOString()"))})
+})

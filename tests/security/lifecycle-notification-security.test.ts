@@ -1,0 +1,7 @@
+import{readFileSync}from'node:fs';import{describe,expect,it}from'vitest'
+describe('lifecycle notification security',()=>{const provider=readFileSync('app/lib/account-lifecycle/notification-provider.ts','utf8'),worker=readFileSync('app/lib/account-lifecycle/notifications.ts','utf8'),crypto=readFileSync('app/lib/account-lifecycle/notification-crypto.ts','utf8')
+ it('keeps provider credentials server-only and does not accept arbitrary recipients from routes',()=>{expect(provider).toContain("import 'server-only'");expect(provider).toContain('process.env.RESEND_API_KEY');expect(provider).not.toContain('NEXT_PUBLIC_RESEND');expect(worker).not.toMatch(/request\.json|searchParams\.get\(['"]to/)})
+ it('uses authenticated encryption for temporary recipient retention',()=>{expect(crypto).toContain("createCipheriv('aes-256-gcm'");expect(crypto).toContain('getAuthTag');expect(crypto).not.toContain('PLAID_TOKEN_ENCRYPTION_KEY')})
+ it('fences staging delivery to explicitly allowed sink recipients',()=>{expect(provider).toContain("mode==='sink'");expect(provider).toContain("environment!=='staging'");expect(provider).toContain('LIFECYCLE_EMAIL_STAGING_RECIPIENTS')})
+ it('derives HTTPS links from configured application origin',()=>{expect(worker).toContain('process.env.APP_ORIGIN');expect(worker).toContain("parsed.protocol!=='https:'");expect(worker).not.toContain('writeoffs-fresh-staging.vercel.app')})
+})

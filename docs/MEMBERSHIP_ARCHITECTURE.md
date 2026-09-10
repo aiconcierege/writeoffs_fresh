@@ -453,3 +453,6 @@ Historical conflicts/gaps identified before the completed billing milestone:
   separate unresolved operational decision.
 
 These are inputs to the future Stripe milestone. They do not justify changing canonical bookkeeping or tax logic.
+Lifecycle notice delivery uses the independent encrypted outbox and delivery contract in
+`LIFECYCLE_NOTIFICATION_DELIVERY.md`. Email reinforces the canonical in-product state; it
+is never the sole record of a deadline or a one-click destructive action.

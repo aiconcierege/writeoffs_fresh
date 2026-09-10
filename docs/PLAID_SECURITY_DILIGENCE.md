@@ -148,3 +148,9 @@ completes the provider-hosted isolated drill.
 - Supabase Storage access control: https://supabase.com/docs/guides/storage/security/access-control
 - Vercel environment variables: https://vercel.com/docs/environment-variables
 - Vercel security/compliance: https://vercel.com/docs/security/compliance
+### Retention and deletion communications
+
+- **Verified in code/config:** Lifecycle notice intents, delivery attempts, retries, and provider acceptance are durable and auditable. Explicit deletion scheduling/cancellation and final completion are idempotent semantic notices. Temporary recipient data is encrypted and erased after acceptance.
+- **Documented policy:** Read-only start and approximately 30-day and 7-day deletion warnings reinforce the in-product deletion dates. Operational alert records cover stale deletion and notification work without financial content.
+- **Gap:** External paging and provider bounce/complaint webhook delivery are not yet configured.
+- **Needs Rick:** Verify the Production Resend sender/domain, DNS records, webhook signing secret, and Production environment values before claiming Production deliverability.
