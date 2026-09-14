@@ -1,0 +1,48 @@
+name: Staging backup certification
+
+on:
+  workflow_dispatch:
+    inputs:
+      backup_class:
+        description: Backup retention class
+        required: true
+        default: daily
+        type: choice
+        options: [daily, weekly, monthly]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: writeoffs-staging-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    environment: staging-backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Create and certify encrypted staging backup
+        run: npm run backup:staging-s3
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ACCOUNT_DELETION_HMAC_KEY: ${{ secrets.ACCOUNT_DELETION_HMAC_KEY }}
+          WRITEOFFS_BACKUP_DATABASE_URL: ${{ secrets.WRITEOFFS_BACKUP_DATABASE_URL }}
+          WRITEOFFS_BACKUP_KEY_BASE64: ${{ secrets.WRITEOFFS_BACKUP_KEY_BASE64 }}
+          WRITEOFFS_BACKUP_SOURCE_ENVIRONMENT: staging
+          WRITEOFFS_BACKUP_EXPECTED_SUPABASE_PROJECT_REF: ${{ vars.WRITEOFFS_BACKUP_EXPECTED_SUPABASE_PROJECT_REF }}
+          WRITEOFFS_BACKUP_CLASS: ${{ inputs.backup_class }}
+          WRITEOFFS_BACKUP_S3_REGION: us-east-2
+          WRITEOFFS_BACKUP_S3_BUCKET: writeoffs-backups-264524064115-us-east-2-an
+          WRITEOFFS_BACKUP_EXPECTED_S3_BUCKET: writeoffs-backups-264524064115-us-east-2-an
+          WRITEOFFS_BACKUP_S3_PREFIX: ${{ vars.WRITEOFFS_BACKUP_S3_PREFIX }}
+          WRITEOFFS_BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.WRITEOFFS_BACKUP_S3_ACCESS_KEY_ID }}
+          WRITEOFFS_BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.WRITEOFFS_BACKUP_S3_SECRET_ACCESS_KEY }}

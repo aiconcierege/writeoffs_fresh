@@ -109,12 +109,14 @@ npm run backup:staging-s3
 ```
 
 The runtime requires PostgreSQL client tools, encrypted temporary storage, outbound HTTPS
-to Supabase and S3, and enough time to collect every private object. A scheduled GitHub
-Actions runner is the smallest launch option because the source and workflow are already
-recoverable there and hosted runners provide secret injection and job visibility. Pin the
-workflow to a protected environment with approval and concurrency one; never place the
-key or cloud credentials in repository variables or logs. A dedicated AWS runner is not
-required at initial scale.
+to Supabase and S3, and enough time to collect every private object. The manual-only
+`.github/workflows/staging-backup-certification.yml` workflow establishes the runner
+contract without enabling a schedule. GitHub Actions is the smallest launch runner because
+the source and workflow are recoverable there and hosted runners provide secret injection
+and job visibility. Configure its protected `staging-backup` environment with approval
+and concurrency one; never place the key or cloud credentials in repository variables or
+logs. After external certification, a later explicitly approved change can add the nightly
+schedule. A dedicated AWS runner is not required at initial scale.
 
 Restore only into a newly created, isolated target:
 
