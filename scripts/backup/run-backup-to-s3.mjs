@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
 import { createClient } from '@supabase/supabase-js'
 import { assertExpectedDatabaseProject, assertExpectedSupabaseProject } from './backup-common.mjs'
-import { collectSupabaseStorage } from './collect-supabase-storage.mjs'
+import { assertStorageAccess, collectSupabaseStorage } from './collect-supabase-storage.mjs'
 import { downloadBackup, loadS3Config, makeS3Client, uploadBackup } from './s3-transfer.mjs'
 
 const need = name => { const value = process.env[name]; if (!value) throw new Error(`${name} is required.`); return value }
@@ -30,6 +30,7 @@ try {
   const restoredDump = join(work, 'restored.dump'); const restoredStorage = join(work, 'restored-storage'); const restoredLedger = join(work, 'restored-ledger.wobak')
   await mkdir(storageRoot, { mode: 0o700 })
   const admin = createClient(supabaseUrl, need('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false, autoRefreshToken: false } })
+  await assertStorageAccess(admin.storage, 'receipts')
   const inventory = await collectSupabaseStorage({ bucket: admin.storage.from('receipts'), output: storageRoot })
   await run(resolve('scripts/backup/export-deletion-ledger.mjs'), { ...process.env, WRITEOFFS_DELETION_LEDGER_OUTPUT: ledger })
   await run(resolve('scripts/backup/create-encrypted-backup.mjs'), { ...process.env, WRITEOFFS_BACKUP_STORAGE_ROOT: storageRoot, WRITEOFFS_BACKUP_OUTPUT: bundle, WRITEOFFS_BACKUP_DELETION_LEDGER: ledger })

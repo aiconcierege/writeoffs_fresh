@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error Operator scripts are native ESM JavaScript.
-import { collectSupabaseStorage } from '../../scripts/backup/collect-supabase-storage.mjs'
+import { assertStorageAccess, collectSupabaseStorage } from '../../scripts/backup/collect-supabase-storage.mjs'
 // @ts-expect-error Operator scripts are native ESM JavaScript.
 import { assertExpectedDatabaseProject, assertExpectedSupabaseProject, makeBackupObjectKey, safeRelativePath } from '../../scripts/backup/backup-common.mjs'
 // @ts-expect-error Operator scripts are native ESM JavaScript.
@@ -14,6 +14,12 @@ import { downloadBackup, loadS3Config, uploadBackup } from '../../scripts/backup
 const baseEnv={WRITEOFFS_BACKUP_S3_BUCKET:'vault',WRITEOFFS_BACKUP_EXPECTED_S3_BUCKET:'vault',WRITEOFFS_BACKUP_S3_REGION:'us-east-2',WRITEOFFS_BACKUP_S3_ACCESS_KEY_ID:'fixture-access',WRITEOFFS_BACKUP_S3_SECRET_ACCESS_KEY:'fixture-secret'}
 
 describe('Supabase Storage backup collection',()=>{
+  it('preflights credential access and requires the expected bucket to remain private',async()=>{
+    await expect(assertStorageAccess({listBuckets:async()=>({data:[{name:'receipts',public:false}],error:null})})).resolves.toBeUndefined()
+    await expect(assertStorageAccess({listBuckets:async()=>({data:null,error:{name:'StorageApiError',statusCode:401,message:'sensitive provider detail'}})})).rejects.toThrow('status=401')
+    await expect(assertStorageAccess({listBuckets:async()=>({data:[{name:'other',public:false}],error:null})})).rejects.toThrow('missing')
+    await expect(assertStorageAccess({listBuckets:async()=>({data:[{name:'receipts',public:true}],error:null})})).rejects.toThrow('public')
+  })
   it('collects receipt and statement bytes and verifies a stable inventory',async()=>{
     const objects=new Map([['receipts/user-a/one.pdf',Buffer.from('receipt')],['statements/user-a/two.pdf',Buffer.from('statement')]])
     const bucket={
@@ -35,6 +41,10 @@ describe('Supabase Storage backup collection',()=>{
   it('fails closed when a listed object cannot be downloaded',async()=>{
     const bucket={list:async()=>({data:[{name:'user-a/missing.pdf',id:'missing',updated_at:'now',metadata:{size:1}}],error:null}),download:async()=>({data:null,error:new Error('missing')})}
     await expect(collectSupabaseStorage({bucket,output:join(mkdtempSync(join(tmpdir(),'wo-missing-')),'mirror'),prefixes:['receipts']})).rejects.toThrow('download failed')
+  })
+  it('treats an empty prefix as a valid inventory',async()=>{
+    const bucket={list:async()=>({data:[],error:null}),download:async()=>({data:null,error:null})}
+    await expect(collectSupabaseStorage({bucket,output:join(mkdtempSync(join(tmpdir(),'wo-empty-')),'mirror')})).resolves.toEqual([])
   })
 })
 

@@ -7,12 +7,28 @@ import { assertExpectedSupabaseProject, safeRelativePath, sha256File } from './b
 
 const need = name => { const value = process.env[name]; if (!value) throw new Error(`${name} is required.`); return value }
 
+function safeStorageError(error) {
+  const name = typeof error?.name === 'string' ? error.name.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 48) : 'StorageError'
+  const rawStatus = error?.statusCode ?? error?.status
+  const status = Number.isInteger(Number(rawStatus)) ? Number(rawStatus) : null
+  const code = typeof error?.code === 'string' ? error.code.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 48) : null
+  return [name, status ? `status=${status}` : null, code ? `code=${code}` : null].filter(Boolean).join(' ')
+}
+
+export async function assertStorageAccess(storage, expectedBucket = 'receipts') {
+  const { data, error } = await storage.listBuckets()
+  if (error) throw new Error(`Supabase Storage credential preflight failed (${safeStorageError(error)}).`)
+  const bucket = (data ?? []).find(entry => entry.name === expectedBucket)
+  if (!bucket) throw new Error(`Expected private Supabase Storage bucket is missing: ${expectedBucket}.`)
+  if (bucket.public) throw new Error(`Expected Supabase Storage bucket is public; refusing backup: ${expectedBucket}.`)
+}
+
 export async function listStorageInventory(bucket, prefix = '') {
   const inventory = []
   async function walk(current) {
     for (let offset = 0;; offset += 100) {
       const { data, error } = await bucket.list(current, { limit: 100, offset, sortBy: { column: 'name', order: 'asc' } })
-      if (error) throw new Error('Supabase Storage inventory failed.')
+      if (error) throw new Error(`Supabase Storage inventory failed (${safeStorageError(error)}; prefix=${current || '<root>'}).`)
       const entries = data ?? []
       for (const entry of entries) {
         const path = safeRelativePath(current ? `${current}/${entry.name}` : entry.name)
@@ -63,6 +79,7 @@ async function main() {
   const admin = createClient(url, need('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false, autoRefreshToken: false } })
   const bucketName = process.env.WRITEOFFS_BACKUP_SUPABASE_BUCKET || 'receipts'
   if (bucketName !== 'receipts') throw new Error('Unexpected Supabase Storage bucket; refusing backup.')
+  await assertStorageAccess(admin.storage, bucketName)
   const inventory = await collectSupabaseStorage({ bucket: admin.storage.from(bucketName), output: need('WRITEOFFS_BACKUP_STORAGE_ROOT') })
   console.log(JSON.stringify({ collected: true, bucket: bucketName, objects: inventory.length }))
 }
