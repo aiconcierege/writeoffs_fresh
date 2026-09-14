@@ -17,6 +17,18 @@ describe('independent encrypted backup tooling', () => {
     expect(restore).not.toContain("'--no-privileges'")
   })
 
+  it('supports a version-checked dump runner without putting the database URL in its arguments', () => {
+    const root = mkdtempSync(join(tmpdir(), 'writeoffs-runner-test-'))
+    const storage = join(root, 'storage'); mkdirSync(storage)
+    const runner = join(root, 'runner.mjs')
+    writeFileSync(runner, `#!/usr/bin/env node\nimport{writeFileSync}from'node:fs';if(process.argv[2]==='--version'){console.log('pg_dump (PostgreSQL) 17.6')}else{if(process.argv.some(v=>v.includes('password-fixture')))process.exit(9);writeFileSync(process.argv[3],'custom-dump-fixture')}\n`, { mode: 0o700 })
+    execFileSync(process.execPath, [createScript], { env: { ...process.env,
+      WRITEOFFS_BACKUP_OUTPUT: join(root, 'backup.wobak'), WRITEOFFS_BACKUP_DATABASE_URL: 'postgres://user:password-fixture@host/database',
+      WRITEOFFS_BACKUP_STORAGE_ROOT: storage, WRITEOFFS_BACKUP_KEY_BASE64: randomBytes(32).toString('base64'),
+      WRITEOFFS_BACKUP_PG_DUMP_RUNNER: runner, WRITEOFFS_BACKUP_EXPECTED_PG_DUMP_MAJOR: '17', ...sourceEnv,
+    } })
+  })
+
   it('encrypts, authenticates, verifies, and restores database and private-object artifacts', () => {
     const root = mkdtempSync(join(tmpdir(), 'writeoffs-backup-test-'))
     const storage = join(root, 'storage'); const restored = join(root, 'restored')

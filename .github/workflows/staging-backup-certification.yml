@@ -34,11 +34,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Install pinned PostgreSQL 17 client
-        run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends --yes postgresql-client-17
-          /usr/lib/postgresql/17/bin/pg_dump --version
+      - name: Verify pinned PostgreSQL 17 Docker client
+        run: node scripts/backup/pg-dump-docker.mjs --version
       - name: Create and certify encrypted staging backup
         run: npm run backup:staging-s3
         env:
@@ -46,7 +43,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ACCOUNT_DELETION_HMAC_KEY: ${{ secrets.ACCOUNT_DELETION_HMAC_KEY }}
           WRITEOFFS_BACKUP_DATABASE_URL: ${{ secrets.WRITEOFFS_BACKUP_DATABASE_URL }}
-          PG_DUMP_BIN: /usr/lib/postgresql/17/bin/pg_dump
+          WRITEOFFS_BACKUP_PG_DUMP_RUNNER: scripts/backup/pg-dump-docker.mjs
           WRITEOFFS_BACKUP_EXPECTED_PG_DUMP_MAJOR: "17"
           WRITEOFFS_BACKUP_KEY_BASE64: ${{ secrets.WRITEOFFS_BACKUP_KEY_BASE64 }}
           WRITEOFFS_BACKUP_SOURCE_ENVIRONMENT: staging

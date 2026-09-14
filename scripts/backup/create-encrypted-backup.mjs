@@ -54,9 +54,11 @@ try {
   const dump = join(payload, 'database.dump')
   if (suppliedDump) await cp(resolve(suppliedDump), dump)
   else {
-    const pgDump = process.env.PG_DUMP_BIN || 'pg_dump'
+    const pgDumpRunner = process.env.WRITEOFFS_BACKUP_PG_DUMP_RUNNER
+    const pgDump = pgDumpRunner || process.env.PG_DUMP_BIN || 'pg_dump'
     assertPgDumpMajor(await capture(pgDump, ['--version']), need('WRITEOFFS_BACKUP_EXPECTED_PG_DUMP_MAJOR'))
-    await run(pgDump, ['--format=custom', '--no-owner', '--file', dump, databaseUrl])
+    if (pgDumpRunner) await run(pgDumpRunner, ['--output', dump])
+    else await run(pgDump, ['--format=custom', '--no-owner', '--file', dump, databaseUrl])
   }
   await cp(resolve(suppliedStorage), storage, { recursive: true })
   const ledgerTarget = deletionLedger ? join(payload, 'deletion-ledger.wobak') : null
