@@ -39,6 +39,14 @@ export function assertExpectedDatabaseProject(url, expectedRef) {
   if (!direct && !pooler) throw new Error('Database project identity mismatch; refusing backup.')
 }
 
+export function assertPgDumpMajor(versionOutput, expectedMajor) {
+  if (!/^\d+$/.test(expectedMajor || '')) throw new Error('WRITEOFFS_BACKUP_EXPECTED_PG_DUMP_MAJOR is required and must be numeric.')
+  const match = String(versionOutput).match(/pg_dump \(PostgreSQL\) (\d+)(?:\.|\s|$)/)
+  if (!match) throw new Error('Unable to determine pg_dump major version; refusing backup.')
+  if (match[1] !== expectedMajor) throw new Error(`pg_dump major version mismatch; expected ${expectedMajor}.`)
+  return Number(match[1])
+}
+
 export function sourceFingerprint(environment, projectRef) {
   return createHash('sha256').update(`writeoffs-backup-source:v1:${environment}:${projectRef}`).digest('hex')
 }

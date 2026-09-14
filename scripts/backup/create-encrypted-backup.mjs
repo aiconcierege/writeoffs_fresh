@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { basename, join, relative, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
 import { decodeBackupKey, encryptFile } from './backup-crypto.mjs'
-import { safeRelativePath, sha256File, sourceFingerprint } from './backup-common.mjs'
+import { assertPgDumpMajor, safeRelativePath, sha256File, sourceFingerprint } from './backup-common.mjs'
 
 const need = name => {
   const value = process.env[name]
@@ -15,6 +15,13 @@ const run = (command, args, options = {}) => new Promise((resolveRun, reject) =>
   const child = spawn(command, args, { stdio: 'inherit', ...options })
   child.once('error', reject)
   child.once('exit', code => code === 0 ? resolveRun() : reject(new Error(`${command} exited with ${code}.`)))
+})
+const capture = (command, args) => new Promise((resolveCapture, reject) => {
+  const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'inherit'] })
+  let output = ''
+  child.stdout.setEncoding('utf8'); child.stdout.on('data', chunk => { output += chunk })
+  child.once('error', reject)
+  child.once('exit', code => code === 0 ? resolveCapture(output.trim()) : reject(new Error(`${command} exited with ${code}.`)))
 })
 async function filesUnder(root) {
   const entries = []
@@ -46,7 +53,11 @@ try {
   await mkdir(storage, { recursive: true })
   const dump = join(payload, 'database.dump')
   if (suppliedDump) await cp(resolve(suppliedDump), dump)
-  else await run(process.env.PG_DUMP_BIN || 'pg_dump', ['--format=custom', '--no-owner', '--file', dump, databaseUrl])
+  else {
+    const pgDump = process.env.PG_DUMP_BIN || 'pg_dump'
+    assertPgDumpMajor(await capture(pgDump, ['--version']), need('WRITEOFFS_BACKUP_EXPECTED_PG_DUMP_MAJOR'))
+    await run(pgDump, ['--format=custom', '--no-owner', '--file', dump, databaseUrl])
+  }
   await cp(resolve(suppliedStorage), storage, { recursive: true })
   const ledgerTarget = deletionLedger ? join(payload, 'deletion-ledger.wobak') : null
   if (deletionLedger) await cp(resolve(deletionLedger), ledgerTarget)

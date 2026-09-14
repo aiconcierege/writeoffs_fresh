@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 // @ts-expect-error Operator scripts are native ESM JavaScript.
 import { assertStorageAccess, collectSupabaseStorage } from '../../scripts/backup/collect-supabase-storage.mjs'
 // @ts-expect-error Operator scripts are native ESM JavaScript.
-import { assertExpectedDatabaseProject, assertExpectedSupabaseProject, makeBackupObjectKey, safeRelativePath } from '../../scripts/backup/backup-common.mjs'
+import { assertExpectedDatabaseProject, assertExpectedSupabaseProject, assertPgDumpMajor, makeBackupObjectKey, safeRelativePath } from '../../scripts/backup/backup-common.mjs'
 // @ts-expect-error Operator scripts are native ESM JavaScript.
 import { downloadBackup, loadS3Config, uploadBackup } from '../../scripts/backup/s3-transfer.mjs'
 
@@ -49,6 +49,11 @@ describe('Supabase Storage backup collection',()=>{
 })
 
 describe('S3 backup transfer contract',()=>{
+  it('fails closed unless the selected pg_dump major matches the pinned server major',()=>{
+    expect(assertPgDumpMajor('pg_dump (PostgreSQL) 17.6','17')).toBe(17)
+    expect(()=>assertPgDumpMajor('pg_dump (PostgreSQL) 16.15','17')).toThrow('major version mismatch')
+    expect(()=>assertPgDumpMajor('unexpected output','17')).toThrow('Unable to determine')
+  })
   it('rejects wrong destination and source identities and unsafe paths',()=>{
     expect(()=>loadS3Config({...baseEnv,WRITEOFFS_BACKUP_S3_BUCKET:'wrong'})).toThrow('identity mismatch')
     expect(()=>assertExpectedSupabaseProject('https://other.supabase.co','expected')).toThrow('identity mismatch')

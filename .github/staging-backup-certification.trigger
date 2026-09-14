@@ -1,1 +1,1 @@
-One-time staging backup certification trigger: 2026-09-14 corrected-session-uri-6
+One-time staging backup certification trigger: 2026-09-14 postgresql-17-client-7
