@@ -19,6 +19,8 @@
     "staging:fixture:realtor:report": "vite-node --script scripts/report-staging-realtor.ts",
     "staging:review:open": "NODE_OPTIONS=--conditions=react-server tsx scripts/open-staging-test-weekly-review.ts",
     "backup:create": "node scripts/backup/create-encrypted-backup.mjs",
+    "backup:collect-storage": "node scripts/backup/collect-supabase-storage.mjs",
+    "backup:staging-s3": "node scripts/backup/run-backup-to-s3.mjs",
     "backup:restore": "node scripts/backup/restore-encrypted-backup.mjs",
     "deletion-ledger:export": "node scripts/backup/export-deletion-ledger.mjs",
     "deletion-ledger:reconcile": "node scripts/backup/reconcile-deletion-ledger.mjs",
@@ -26,6 +28,8 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1131.0",
+    "@aws-sdk/lib-storage": "^3.1131.0",
     "@napi-rs/canvas": "^0.1.80",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.79.0",

@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 const createScript = join(process.cwd(), 'scripts/backup/create-encrypted-backup.mjs')
 const restoreScript = join(process.cwd(), 'scripts/backup/restore-encrypted-backup.mjs')
 const ledgerExport=join(process.cwd(),'scripts/backup/export-deletion-ledger.mjs'),ledgerReconcile=join(process.cwd(),'scripts/backup/reconcile-deletion-ledger.mjs')
+const sourceEnv={WRITEOFFS_BACKUP_SOURCE_ENVIRONMENT:'staging',WRITEOFFS_BACKUP_EXPECTED_SUPABASE_PROJECT_REF:'synthetic-project'}
 
 describe('independent encrypted backup tooling', () => {
   it('preserves grants required for RLS access in database dump and restore commands', () => {
@@ -26,7 +27,7 @@ describe('independent encrypted backup tooling', () => {
     const key = randomBytes(32).toString('base64')
     execFileSync(process.execPath, [createScript], { env: { ...process.env,
       WRITEOFFS_BACKUP_OUTPUT: output, WRITEOFFS_BACKUP_DATABASE_DUMP: join(root, 'database.dump'),
-      WRITEOFFS_BACKUP_STORAGE_ROOT: storage, WRITEOFFS_BACKUP_KEY_BASE64: key,
+      WRITEOFFS_BACKUP_STORAGE_ROOT: storage, WRITEOFFS_BACKUP_KEY_BASE64: key,...sourceEnv,
     } })
     execFileSync(process.execPath, [restoreScript], { env: { ...process.env,
       WRITEOFFS_RESTORE_INPUT: output, WRITEOFFS_RESTORE_STORAGE_ROOT: restored,
@@ -42,13 +43,19 @@ describe('independent encrypted backup tooling', () => {
     writeFileSync(join(root, 'database.dump'), 'sensitive data')
     execFileSync(process.execPath, [createScript], { env: { ...process.env,
       WRITEOFFS_BACKUP_OUTPUT: encrypted, WRITEOFFS_BACKUP_DATABASE_DUMP: join(root, 'database.dump'),
-      WRITEOFFS_BACKUP_STORAGE_ROOT: storage, WRITEOFFS_BACKUP_KEY_BASE64: key,
+      WRITEOFFS_BACKUP_STORAGE_ROOT: storage, WRITEOFFS_BACKUP_KEY_BASE64: key,...sourceEnv,
     } })
     const payload = readFileSync(encrypted); payload[Math.floor(payload.length / 2)] ^= 1; writeFileSync(encrypted, payload)
     expect(() => execFileSync(process.execPath, [restoreScript], { stdio: 'pipe', env: { ...process.env,
       WRITEOFFS_RESTORE_INPUT: encrypted, WRITEOFFS_RESTORE_STORAGE_ROOT: join(root, 'restored'),
       WRITEOFFS_RESTORE_CONFIRM_ISOLATED: 'yes', WRITEOFFS_BACKUP_KEY_BASE64: key,
     } })).toThrow()
+  })
+  it('fails closed with the wrong encryption key or a traversal path',()=>{
+    const crypto=readFileSync(join(process.cwd(),'scripts/backup/backup-crypto.mjs'),'utf8')
+    const restore=readFileSync(restoreScript,'utf8')
+    expect(crypto).toContain('decipher.final()')
+    expect(restore).toContain('safeRelativePath(object.path)')
   })
   it('keeps the deletion ledger encrypted and requires isolated reconciliation',()=>{const exported=readFileSync(ledgerExport,'utf8'),reconciled=readFileSync(ledgerReconcile,'utf8');expect(exported).toContain('encryptFile');expect(exported).not.toContain('transaction descriptions');expect(reconciled).toContain('decryptFile');expect(reconciled).toContain("WRITEOFFS_RESTORE_CONFIRM_ISOLATED!=='yes'");expect(reconciled).toContain('reconcile_restored_deletion_tombstones')})
 })

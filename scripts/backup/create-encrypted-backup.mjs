@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-import { createHash } from 'node:crypto'
-import { cp, mkdtemp, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { cp, mkdtemp, mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join, relative, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
 import { decodeBackupKey, encryptFile } from './backup-crypto.mjs'
+import { safeRelativePath, sha256File, sourceFingerprint } from './backup-common.mjs'
 
 const need = name => {
   const value = process.env[name]
@@ -16,7 +16,6 @@ const run = (command, args, options = {}) => new Promise((resolveRun, reject) =>
   child.once('error', reject)
   child.once('exit', code => code === 0 ? resolveRun() : reject(new Error(`${command} exited with ${code}.`)))
 })
-const sha256 = async path => createHash('sha256').update(await readFile(path)).digest('hex')
 async function filesUnder(root) {
   const entries = []
   async function walk(path) {
@@ -33,6 +32,10 @@ const output = resolve(need('WRITEOFFS_BACKUP_OUTPUT'))
 const suppliedDump = process.env.WRITEOFFS_BACKUP_DATABASE_DUMP
 const suppliedStorage = process.env.WRITEOFFS_BACKUP_STORAGE_ROOT
 const databaseUrl = process.env.WRITEOFFS_BACKUP_DATABASE_URL
+const deletionLedger = process.env.WRITEOFFS_BACKUP_DELETION_LEDGER
+const sourceEnvironment = need('WRITEOFFS_BACKUP_SOURCE_ENVIRONMENT')
+const sourceProjectRef = need('WRITEOFFS_BACKUP_EXPECTED_SUPABASE_PROJECT_REF')
+if (!['staging', 'production'].includes(sourceEnvironment)) throw new Error('Unsupported backup source environment.')
 if (!suppliedDump && !databaseUrl) throw new Error('Provide WRITEOFFS_BACKUP_DATABASE_URL or WRITEOFFS_BACKUP_DATABASE_DUMP.')
 if (!suppliedStorage) throw new Error('WRITEOFFS_BACKUP_STORAGE_ROOT is required; export the private bucket into this protected directory first.')
 
@@ -45,14 +48,18 @@ try {
   if (suppliedDump) await cp(resolve(suppliedDump), dump)
   else await run(process.env.PG_DUMP_BIN || 'pg_dump', ['--format=custom', '--no-owner', '--file', dump, databaseUrl])
   await cp(resolve(suppliedStorage), storage, { recursive: true })
+  const ledgerTarget = deletionLedger ? join(payload, 'deletion-ledger.wobak') : null
+  if (deletionLedger) await cp(resolve(deletionLedger), ledgerTarget)
   const storageFiles = await filesUnder(storage)
   const manifest = {
-    format: 'writeoffs-backup-v1',
+    format: 'writeoffs-backup-v2',
     createdAt: new Date().toISOString(),
-    database: { file: 'database.dump', sha256: await sha256(dump), bytes: (await stat(dump)).size },
+    source: { environment: sourceEnvironment, projectFingerprint: sourceFingerprint(sourceEnvironment, sourceProjectRef) },
+    database: { file: 'database.dump', sha256: await sha256File(dump), bytes: (await stat(dump)).size },
     storage: await Promise.all(storageFiles.map(async file => ({
-      path: relative(storage, file), sha256: await sha256(file), bytes: (await stat(file)).size,
+      path: safeRelativePath(relative(storage, file)), sha256: await sha256File(file), bytes: (await stat(file)).size,
     }))),
+    deletionLedger: ledgerTarget ? { file: 'deletion-ledger.wobak', sha256: await sha256File(ledgerTarget), bytes: (await stat(ledgerTarget)).size } : null,
   }
   await writeFile(join(payload, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o600 })
   const archive = join(work, 'bundle.tar.gz')

@@ -1,6 +1,6 @@
 # Backup and Disaster Recovery
 
-Status: launch control and operator runbook. Last verified: 2026-09-09.
+Status: launch control and operator runbook. Last verified: 2026-09-14.
 
 This runbook does not authorize a Production restore, plan change, or destructive
 operation. Production recovery requires the incident lead and database/security
@@ -16,9 +16,10 @@ operator to approve the exact target and recovery point.
 - Git plus an immutable Vercel deployment recover application source/builds; neither
   replaces database or private-object recovery.
 
-These are targets until the Production plan, backup schedule, destination, key custody,
-and a Production-shaped isolated drill are verified. The 2026-09-09 local drill proves
-the mechanism, not provider-region recovery time.
+Supabase Pro and consecutive daily physical database backups are verified in the
+Supabase dashboard. These remain recovery targets until the independent backup schedule,
+destination, key custody, and a provider-hosted isolated drill are configured and tested.
+The 2026-09-09 local drill proves the mechanism, not provider-region recovery time.
 
 ## Launch configuration
 
@@ -29,19 +30,20 @@ database, connection, bandwidth, and Storage use. Team is not required for initi
 capacity; choose it only if 28-day logs, platform audit logs, project-scoped roles, or
 its support/compliance features are an approved requirement.
 
-Enable the paid PITR add-on at launch. Canonical financial history and receipt linkage
-make a day of possible data loss materially undesirable; Supabase documents recovery
-points down to seconds and a worst-case PITR RPO of about two minutes. This is a recurring
-cost decision and Rick must enable it in the dashboard.
+PITR is disabled and intentionally deferred for launch. The approved launch design uses
+Supabase scheduled backups plus a nightly independent encrypted database-and-Storage
+backup. This makes a 24-hour RPO the honest launch target; it is not equivalent to PITR.
+Reconsider PITR after launch if observed write volume or recovery requirements make a
+day of possible data loss unacceptable. Enabling it remains a separate recurring-cost
+decision requiring Rick's approval.
 
 Recommended cadence:
 
 - Supabase managed database backup: daily, verified every day.
-- PITR: continuously retained for at least seven days.
 - Independent encrypted database plus Storage bundle: nightly; additionally before
   migrations or risky releases.
-- Storage object copy: incremental at least every six hours once an approved independent
-  destination exists; nightly bundle remains the recovery checkpoint.
+- Storage object copy: nightly as part of the same recovery point. A shorter incremental
+  interval is an optional later improvement, not a launch claim.
 - Integrity verification: every backup; isolated restore: quarterly and before launch.
 
 ## Independent encrypted bundle
@@ -61,11 +63,27 @@ backup. The scripts create mode-0600 artifacts and mode-0700 temporary workspace
 remove working plaintext on exit, but operators must also use encrypted, access-limited
 runner disks.
 
-The tooling deliberately separates collection from storage-provider choice. Before
-Production, select a versioned/object-locked destination in a different administrative
-and failure domain from the primary Supabase project. Upload only the `.wobak` output;
-do not retain the database dump or Storage mirror after successful encrypted upload and
-verification.
+`scripts/backup/collect-supabase-storage.mjs` now inventories and downloads the private
+`receipts` and `statements` path families with a before/after inventory comparison.
+`scripts/backup/run-backup-to-s3.mjs` performs the staging-only collection, deletion-ledger
+export, encrypted bundle creation, S3 upload verification, download, authenticated
+round-trip validation, and protected-workspace cleanup. It refuses a source environment
+other than `staging`, validates the expected Supabase project and database identity, and
+validates the exact S3 bucket and region.
+
+The approved destination is the private, versioned, Object-Locked AWS S3 bucket
+`writeoffs-backups-264524064115-us-east-2-an` in `us-east-2`. Default SSE-S3 remains a
+provider-side second layer; the `.wobak` is already encrypted before upload. The runner
+uses unique keys shaped as
+`<prefix>/staging/<daily|weekly|monthly>/YYYY/MM/DD/<UTC timestamp>-<UUID>.wobak`, never
+overwrites, and requires no delete permission. The bucket's 35-day Governance retention
+is the anti-deletion floor. Public-access posture is a dashboard/IAM control: the narrowly
+scoped runner intentionally lacks permission to change or inspect bucket policy.
+
+Production scheduling, destination credentials, an actual S3 round trip, and a
+provider-hosted isolated restore remain unconfigured until the operator runner receives
+secrets out of band. Do not retain the plaintext database dump or Storage mirror after a
+successful encrypted upload and verification.
 
 Example contract (values intentionally omitted):
 
@@ -77,10 +95,26 @@ WRITEOFFS_BACKUP_KEY_BASE64=... \
 node scripts/backup/create-encrypted-backup.mjs
 ```
 
-Use `supabase storage cp --recursive` or the S3-compatible API to populate the protected
-private-object mirror. The operator must verify the exact expected project host before
-collection. Production automation must add an explicit host allowlist and upload the
-encrypted result to the approved destination; that external choice is not yet made.
+The collector uses the privileged server-side Storage API; it does not make the bucket
+public or create signed URLs. The entire private `receipts` bucket is covered through its
+two current customer path families: `receipts/{userId}/...` and
+`statements/{userId}/...`. It records path, source identity/update metadata, byte size and
+SHA-256, and discards the mirror if an object is missing, changes size, or the source
+inventory changes during collection.
+
+Final runner command (secrets supplied only by its secret store):
+
+```sh
+npm run backup:staging-s3
+```
+
+The runtime requires PostgreSQL client tools, encrypted temporary storage, outbound HTTPS
+to Supabase and S3, and enough time to collect every private object. A scheduled GitHub
+Actions runner is the smallest launch option because the source and workflow are already
+recoverable there and hosted runners provide secret injection and job visibility. Pin the
+workflow to a protected environment with approval and concurrency one; never place the
+key or cloud credentials in repository variables or logs. A dedicated AWS runner is not
+required at initial scale.
 
 Restore only into a newly created, isolated target:
 
@@ -110,7 +144,7 @@ database clone. Keep autonomous workers and external webhooks disabled until ver
 7. Run queue health checks before enabling workers; then process one synthetic job.
 8. Import the separately encrypted deletion ledger, run `npm run deletion-ledger:reconcile`,
    drain every scheduled reconciliation deletion, and verify restored private objects for
-   those identities are absent. This applies equally to PITR.
+   those identities are absent. This also applies if PITR is enabled later.
 9. Record recovery point, database/object restore time, deletion reconciliation result,
    validation time, gaps, and approver.
 
@@ -119,7 +153,7 @@ database clone. Keep autonomous workers and external webhooks disabled until ver
 | Incident | Contain | Recover and verify |
 | --- | --- | --- |
 | Bad deployment | Stop promotion; retain database | Reassign the known-good Vercel deployment; smoke-test environment identity and queues |
-| Corrupt/deleted database data | Disable writes/workers and preserve evidence | Choose PITR point or isolated backup; restore; run full verification before cutover |
+| Corrupt/deleted database data | Disable writes/workers and preserve evidence | Choose a managed or independent backup point; restore in isolation; run full verification before cutover |
 | Lost receipt object | Preserve metadata and stop destructive cleanup | Restore exact object/path from independent bundle; verify hash and tenant-only access |
 | Supabase project/region outage | Disable provider-dependent writes | Restore DB plus objects into approved replacement project; rotate keys and reconfigure providers |
 | Credential compromise | Revoke sessions/tokens and isolate integrations | Rotate affected keys; restore only if integrity changed; audit access and customer impact |
@@ -129,24 +163,68 @@ database clone. Keep autonomous workers and external webhooks disabled until ver
 
 ## Current gaps
 
-- Production plan, PITR, SSL enforcement, region, backup status, and provider access are
-  not verified because Production was not accessed.
-- The independent destination, retention/object lock, automated Storage exporter,
-  secrets-manager ownership, monitoring, and scheduled execution require Rick decisions.
+- Supabase Pro and scheduled daily physical database backups are verified. PITR is
+  deliberately disabled. Production SSL enforcement, region, retention detail, and a
+  real restore remain manual dashboard/provider verification items.
+- The independent AWS destination and its controls are created. Storage collection and
+  S3 multipart-capable upload/download are implemented and locally contract-tested.
+- AWS runner credentials and a staging backup key are not available in the current
+  operator environment, so no real S3 object was created in this phase. Scheduling,
+  secrets-manager custody, backup staleness monitoring, and provider lifecycle rules are
+  not configured.
 - The deletion ledger must be exported after every completed deletion and at least daily
   to a separately controlled encrypted destination. A backup is not eligible for service
   activation until ledger reconciliation completes.
 - A provider-hosted isolated restore remains required after those choices. The local
   drill used synthetic financial records and a private object without Production data.
 
-## Source recovery checkpoint — 2026-09-09
+## External runner configuration
+
+| Variable | Kind | Purpose |
+| --- | --- | --- |
+| `SUPABASE_URL` | config/operator-only | Hosted source API identity |
+| `SUPABASE_SERVICE_ROLE_KEY` | secret/operator-only | Private Storage and ledger access |
+| `WRITEOFFS_BACKUP_DATABASE_URL` | secret/operator-only | Direct/pooler PostgreSQL dump source |
+| `WRITEOFFS_BACKUP_KEY_BASE64` | secret/operator-only | 32-byte application encryption key |
+| `ACCOUNT_DELETION_HMAC_KEY` | secret/operator-only | Tombstone identity reconciliation |
+| `WRITEOFFS_BACKUP_SOURCE_ENVIRONMENT` | config | Must be `staging` in the current runner |
+| `WRITEOFFS_BACKUP_EXPECTED_SUPABASE_PROJECT_REF` | config | Fail-closed source identity guard |
+| `WRITEOFFS_BACKUP_S3_REGION` | config | `us-east-2` for the approved vault |
+| `WRITEOFFS_BACKUP_S3_BUCKET` | config | Destination bucket |
+| `WRITEOFFS_BACKUP_EXPECTED_S3_BUCKET` | config | Fail-closed destination identity guard |
+| `WRITEOFFS_BACKUP_S3_PREFIX` | config | Optional vault namespace |
+| `WRITEOFFS_BACKUP_S3_ENDPOINT` | config | Empty for AWS; enables S3-compatible portability |
+| `WRITEOFFS_BACKUP_S3_ACCESS_KEY_ID` | secret/operator-only | Restricted runner identity |
+| `WRITEOFFS_BACKUP_S3_SECRET_ACCESS_KEY` | secret/operator-only | Restricted runner credential |
+| `WRITEOFFS_BACKUP_CLASS` | config | `daily`, `weekly`, or `monthly` |
+| output/restore path variables | generated/operator-only | Protected ephemeral workspace paths |
+
+Store runtime secrets in the protected runner environment. Keep the backup encryption key
+also in the organization password manager and a sealed offline recovery copy, separate
+from both S3 and the AWS credential. Rotation is manual today; because bundles carry no
+key ID, record the applicable key version in the secrets inventory without putting it in
+the archive.
+
+Recommended launch cadence is one coherent nightly database, Storage, ledger, encryption,
+upload and verification job. Retain daily points for 35 days, weekly points for 8–12 weeks,
+and monthly points for three months initially. Unique keys and the 35-day Object Lock
+prevent cleanup from altering protected versions; lifecycle expiration for longer classes
+is a later AWS dashboard configuration. Export the deletion ledger after every completed
+deletion where practical and always in the nightly bundle.
+
+Backup failure reporting should create a minimized WriteOffs operational alert when the
+database is reachable and send through the existing Resend operations channel. The runner
+must additionally use GitHub's independent failed/missed-workflow visibility (or an
+equivalent dead-man check), because a failed database cannot be the sole alert store.
+
+## Source recovery checkpoint — 2026-09-10
 
 The validated staging application and its launch-readiness tooling are preserved in
 `github.com/aiconcierege/writeoffs_fresh` on branch `v2-onboarding-staging`. The coherent
-application checkpoint is commit `7cfd8f7b0c30940f5019e88637df824a70907653`
-(`checkpoint: preserve validated staging architecture`). A later documentation-only
-commit may be the branch/tag head; the application checkpoint remains the immutable
-source reference.
+current remote checkpoint is commit `49acb24238ccfa086dbdfe7b5a9620d27016e288`
+on `v2-onboarding-staging`. The latest named recovery marker is
+`staging-recovery-2026-09-10-notifications`; because later validated operational-alert
+work follows that tag, the full commit SHA is the authoritative current source marker.
 
 Clean recovery procedure:
 
@@ -204,9 +282,9 @@ six RLS flags, `auth.uid()`, the $217.89 total, object hash, and receipt path ma
 This supports a mechanism RTO of seconds for the tiny fixture and proves no intrinsic
 24-hour data-loss window in the archive itself. It does **not** prove operational RTO or RPO:
 without scheduled off-provider execution, the defensible current independent-backup RPO is
-undefined, and provider recovery RTO remains unmeasured. The launch targets remain RPO ≤24
-hours for nightly independent backup (about two minutes for DB after PITR is enabled) and
-RTO ≤1 business day, pending a Production-shaped provider-hosted drill.
+undefined, and provider recovery RTO remains unmeasured. With a verified nightly independent
+backup, the launch target is RPO ≤24 hours and RTO ≤1 business day, pending a
+Production-shaped provider-hosted drill.
 Lifecycle delivery state is part of the database backup. After a restore, operators must
 reconcile deletion tombstones before delivery workers resume so restored obsolete customer
 warnings cannot be sent. A reconciliation failure must create a minimized
