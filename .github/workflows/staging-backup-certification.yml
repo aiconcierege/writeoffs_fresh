@@ -9,6 +9,11 @@ on:
         default: daily
         type: choice
         options: [daily, weekly, monthly]
+  # One-time bootstrap because GitHub only registers workflow_dispatch files from
+  # the default branch. This path-scoped staging push is removed after certification.
+  push:
+    branches: [v2-onboarding-staging]
+    paths: [.github/staging-backup-certification.trigger]
 
 permissions:
   contents: read
@@ -39,7 +44,7 @@ jobs:
           WRITEOFFS_BACKUP_KEY_BASE64: ${{ secrets.WRITEOFFS_BACKUP_KEY_BASE64 }}
           WRITEOFFS_BACKUP_SOURCE_ENVIRONMENT: staging
           WRITEOFFS_BACKUP_EXPECTED_SUPABASE_PROJECT_REF: ${{ vars.WRITEOFFS_BACKUP_EXPECTED_SUPABASE_PROJECT_REF }}
-          WRITEOFFS_BACKUP_CLASS: ${{ inputs.backup_class }}
+          WRITEOFFS_BACKUP_CLASS: ${{ inputs.backup_class || 'daily' }}
           WRITEOFFS_BACKUP_S3_REGION: us-east-2
           WRITEOFFS_BACKUP_S3_BUCKET: writeoffs-backups-264524064115-us-east-2-an
           WRITEOFFS_BACKUP_EXPECTED_S3_BUCKET: writeoffs-backups-264524064115-us-east-2-an
