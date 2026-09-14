@@ -52,7 +52,9 @@ describe('S3 backup transfer contract',()=>{
   it('rejects wrong destination and source identities and unsafe paths',()=>{
     expect(()=>loadS3Config({...baseEnv,WRITEOFFS_BACKUP_S3_BUCKET:'wrong'})).toThrow('identity mismatch')
     expect(()=>assertExpectedSupabaseProject('https://other.supabase.co','expected')).toThrow('identity mismatch')
-    expect(()=>assertExpectedDatabaseProject('postgres://postgres.expected@aws-0-us-east-1.pooler.supabase.com/db','expected')).not.toThrow()
+    expect(()=>assertExpectedDatabaseProject('postgres://postgres.expected@aws-0-us-east-1.pooler.supabase.com:5432/db','expected')).not.toThrow()
+    expect(()=>assertExpectedDatabaseProject('postgres://postgres.expected@aws-0-us-east-1.pooler.supabase.com:6543/db','expected')).toThrow()
+    expect(()=>assertExpectedDatabaseProject('postgres://postgres.expected-other@aws-0-us-east-1.pooler.supabase.com:5432/db','expected')).toThrow()
     expect(()=>safeRelativePath('../secret')).toThrow('Unsafe')
   })
   it('uses unique immutable keys without delete operations',()=>{

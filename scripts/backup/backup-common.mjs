@@ -31,9 +31,11 @@ export function assertExpectedSupabaseProject(url, expectedRef) {
 
 export function assertExpectedDatabaseProject(url, expectedRef) {
   if (!url || !expectedRef) throw new Error('Database URL and expected Supabase project are required.')
-  const host = new URL(url).hostname
-  const direct = host === `db.${expectedRef}.supabase.co`
-  const pooler = host.endsWith('.pooler.supabase.com') && new URL(url).username.startsWith(`postgres.${expectedRef}`)
+  const parsed = new URL(url)
+  const host = parsed.hostname
+  const port = parsed.port || '5432'
+  const direct = host === `db.${expectedRef}.supabase.co` && parsed.username === 'postgres' && port === '5432'
+  const pooler = host.endsWith('.pooler.supabase.com') && parsed.username === `postgres.${expectedRef}` && port === '5432'
   if (!direct && !pooler) throw new Error('Database project identity mismatch; refusing backup.')
 }
 
