@@ -1,1 +1,1 @@
-One-time staging backup certification trigger: 2026-09-14 postgresql-17-docker-8
+One-time staging backup certification trigger: 2026-09-14 corrected-aws-credentials-9
