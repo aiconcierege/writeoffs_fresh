@@ -17,9 +17,11 @@ operator to approve the exact target and recovery point.
   replaces database or private-object recovery.
 
 Supabase Pro and consecutive daily physical database backups are verified in the
-Supabase dashboard. These remain recovery targets until the independent backup schedule,
-destination, key custody, and a provider-hosted isolated drill are configured and tested.
-The 2026-09-09 local drill proves the mechanism, not provider-region recovery time.
+Supabase dashboard. PITR remains deliberately deferred. The independent encrypted S3
+pipeline was externally certified against staging in GitHub Actions run `34895992706`:
+private Storage collection, PostgreSQL 17 custom dump, encrypted deletion-ledger export,
+WOBAK creation, S3 upload/HEAD/version/checksum verification, round-trip download, and
+authenticated artifact recovery all passed. Production scheduling remains disabled.
 
 ## Launch configuration
 
@@ -80,10 +82,10 @@ overwrites, and requires no delete permission. The bucket's 35-day Governance re
 is the anti-deletion floor. Public-access posture is a dashboard/IAM control: the narrowly
 scoped runner intentionally lacks permission to change or inspect bucket policy.
 
-Production scheduling, destination credentials, an actual S3 round trip, and a
-provider-hosted isolated restore remain unconfigured until the operator runner receives
-secrets out of band. Do not retain the plaintext database dump or Storage mirror after a
-successful encrypted upload and verification.
+Production scheduling remains unconfigured. The staging runner credentials are held in
+the protected `staging-backup` GitHub environment, and a real immutable S3 round trip has
+passed. Do not retain the plaintext database dump or Storage mirror after a successful
+encrypted upload and verification.
 
 Example contract (values intentionally omitted):
 
@@ -169,16 +171,46 @@ database clone. Keep autonomous workers and external webhooks disabled until ver
   deliberately disabled. Production SSL enforcement, region, retention detail, and a
   real restore remain manual dashboard/provider verification items.
 - The independent AWS destination and its controls are created. Storage collection and
-  S3 multipart-capable upload/download are implemented and locally contract-tested.
-- AWS runner credentials and a staging backup key are not available in the current
-  operator environment, so no real S3 object was created in this phase. Scheduling,
-  secrets-manager custody, backup staleness monitoring, and provider lifecycle rules are
-  not configured.
+  S3 multipart-capable upload/download are implemented, locally contract-tested, and
+  externally staging-certified in run `34895992706`.
+- Production scheduling, Production backup credentials/key custody, backup staleness
+  monitoring, and longer-class provider lifecycle rules are not configured.
 - The deletion ledger must be exported after every completed deletion and at least daily
   to a separately controlled encrypted destination. A backup is not eligible for service
   activation until ledger reconciliation completes.
-- A provider-hosted isolated restore remains required after those choices. The local
-  drill used synthetic financial records and a private object without Production data.
+- A paid provider-hosted isolated restore remains a later resilience exercise, not a
+  launch blocker. The disposable PostgreSQL 17 restore and canonical local Supabase
+  reconciliation drills used only synthetic tenants and private objects.
+
+## Tombstone restore certification — 2026-09-14
+
+The final staging-only DR certification combines the real custom-format PostgreSQL 17
+restore drill recorded below with the database-backed canonical lifecycle test in
+`tests/security/account-deletion.local.test.ts`. The restored pre-deletion tenant state
+was present before reconciliation. An independently held minimized tombstone entry then
+scheduled canonical deletion, the lease-fenced deletion functions removed that tenant,
+its restored private-object path was removed, and Auth cleanup completed last. An
+unrelated tenant, its transaction, correction/history state, and private object remained.
+Reapplying the ledger after completion scheduled zero work.
+
+The encrypted-ledger tests also fail closed for a missing ledger, wrong AES key, tampered
+ciphertext, malformed envelope/path, and a restore lacking the explicit isolation guard.
+An already-deleted tenant and an already-absent object remain harmless. Tombstones contain
+only pseudonymous hashes and deletion control metadata—never books or financial content.
+Plaid connections are not resumed by reconciliation; Stripe remains external authority;
+workers, webhooks, and lifecycle/notification delivery must remain disabled until the
+reconciliation and verification checklist completes.
+
+This supports the launch targets, not stronger guarantees: RPO up to 24 hours and RTO
+within one business day. The remaining DR launch blocker is enabling and monitoring the
+approved Production nightly job with Production-specific secrets after explicit approval.
+
+The workflow is now manual-only and unscheduled. Because GitHub exposes branch-local
+`workflow_dispatch` workflows in the UI only after the workflow exists on the default
+branch, a future staging certification must use a reviewed, temporary path-scoped staging
+push trigger (added and removed in the same bounded operation), or an authenticated API
+dispatch if GitHub later supports the branch-local workflow. Never leave that bootstrap
+trigger enabled and never add it to `main` merely for staging convenience.
 
 ## External runner configuration
 
