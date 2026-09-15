@@ -62,7 +62,9 @@ migrations. Rollback-only integration checks passed afterward.
   policy while mutations were rejected; the synthetic deletion was canceled immediately.
   Arbitrary Business ID requests were rejected.
 - Layouts were inspected at 390, 430, 768 and 1280 pixels with overflow assertions.
-  Representative PNGs are in `/private/tmp/writeoffs-phase1-proof/` and the final
+  The final smoke test found a connected-account timestamp hydration mismatch;
+  the display now hydrates deterministically before using the browser timezone,
+  and certification rejects browser errors. Representative PNGs are in `/private/tmp/writeoffs-phase1-proof/` and the final
   signup/MFA/membership PNGs in `/private/tmp/writeoffs-phase1-proof-secondary/`.
   Share only PNG/PDF artifacts, never the private fixture or browser-session files.
 

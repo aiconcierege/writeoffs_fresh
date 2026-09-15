@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { usePlaidLink, type PlaidLinkOnExit, type PlaidLinkOnSuccessMetadata } from 'react-plaid-link'
 
@@ -42,6 +42,10 @@ function connectionLabel(status: string) {
   return 'Needs attention'
 }
 
+const subscribeToTimeZone = () => () => {}
+const browserTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone
+const serverTimeZone = () => 'UTC'
+
 export default function BankConnect(input: {
   enabled: boolean
   sandbox: boolean
@@ -49,6 +53,8 @@ export default function BankConnect(input: {
   accounts: Array<{ item_record_id: string; id: string; display_name: string; mask_last_four: string | null; connection_status: string }>
   accountUses: AccountUse[]
 }) {
+  // Match the server during hydration, then display the customer's local time.
+  const displayTimeZone = useSyncExternalStore(subscribeToTimeZone, browserTimeZone, serverTimeZone)
   const router = useRouter()
   const pathname = usePathname()
   const [token, setToken] = useState<string | null>(null)
@@ -211,7 +217,7 @@ export default function BankConnect(input: {
       {input.connections.map((connection) => {
         const accounts = input.accounts.filter((account) => account.item_record_id === connection.id)
         return <li key={connection.id} className="border-t border-[#dce3de] py-5">
-          <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-950">{connection.institution_name || 'Connected institution'}</h2><p className="mt-1 text-sm text-slate-600">{connectionLabel(connection.connection_status)}</p>{connection.last_successful_sync_at && <p className="mt-1 text-xs text-slate-500">Last updated {new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(connection.last_successful_sync_at))}</p>}</div>{input.enabled && <div className="flex gap-2">{['reconnect_required', 'needs_attention'].includes(connection.connection_status) && <button type="button" disabled={busy} onClick={() => void start(connection.id)} className="btn btn-secondary min-h-11">Reconnect account</button>}{connection.connection_status !== 'disconnected' && <button type="button" disabled={busy} onClick={() => void disconnect(connection.id)} className="min-h-11 rounded-md px-3 text-sm font-semibold text-red-700 hover:bg-red-50">Disconnect</button>}</div>}</div>
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-950">{connection.institution_name || 'Connected institution'}</h2><p className="mt-1 text-sm text-slate-600">{connectionLabel(connection.connection_status)}</p>{connection.last_successful_sync_at && <p className="mt-1 text-xs text-slate-500">Last updated {new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: displayTimeZone }).format(new Date(connection.last_successful_sync_at))}</p>}</div>{input.enabled && <div className="flex gap-2">{['reconnect_required', 'needs_attention'].includes(connection.connection_status) && <button type="button" disabled={busy} onClick={() => void start(connection.id)} className="btn btn-secondary min-h-11">Reconnect account</button>}{connection.connection_status !== 'disconnected' && <button type="button" disabled={busy} onClick={() => void disconnect(connection.id)} className="min-h-11 rounded-md px-3 text-sm font-semibold text-red-700 hover:bg-red-50">Disconnect</button>}</div>}</div>
           {accounts.length > 0 && <ul className="mt-4 space-y-3">{accounts.map((account) => {
             const selected = accountUseById[account.id]
             const state = accountUseState[account.id]

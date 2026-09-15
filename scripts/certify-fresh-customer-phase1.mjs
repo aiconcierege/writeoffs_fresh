@@ -8,8 +8,9 @@ assert(process.env.WRITEOFFS_ENVIRONMENT==='staging'&&new URL(url).hostname==='s
 const origin='https://writeoffs-fresh-staging.vercel.app',dir='/private/tmp/writeoffs-phase1-proof'+(process.argv.includes('--new-visual')?'-secondary':'')
 await mkdir(dir,{recursive:true})
 const admin=createClient(url,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false}})
-const browser=await chromium.launch({headless:true}),context=await browser.newContext({viewport:{width:390,height:844},acceptDownloads:true}),page=await context.newPage()
+const browser=await chromium.launch({headless:true}),context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'America/Phoenix',acceptDownloads:true}),page=await context.newPage()
 let stage='public',fixture
+const pageErrors=[];page.on('pageerror',error=>pageErrors.push(error.name))
 function pass(check){console.log(JSON.stringify({check,result:'passed'}))}
 function totp(secret){const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',bits=[...secret.replace(/=+$/,'').toUpperCase()].map(c=>alphabet.indexOf(c).toString(2).padStart(5,'0')).join('');const key=Buffer.from(Array.from({length:Math.floor(bits.length/8)},(_,i)=>parseInt(bits.slice(i*8,i*8+8),2)));const counter=Buffer.alloc(8);counter.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const hash=createHmac('sha1',key).update(counter).digest(),offset=hash.at(-1)&15;return String((hash.readUInt32BE(offset)&0x7fffffff)%1000000).padStart(6,'0')}
 async function screenshot(name){await page.evaluate(()=>window.scrollTo(0,0));await page.waitForTimeout(250);assert(!(await page.locator('img[alt="QR code for authenticator app setup"]').count()),'Never capture an MFA setup secret');await page.screenshot({path:`${dir}/${name}.png`,fullPage:true});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),'No horizontal overflow')}
@@ -179,6 +180,6 @@ try {
   await writeFile(`${dir}/checkout-url.txt`,page.url(),{mode:0o600})
  }
  await writeFile(`${dir}/cookies.json`,JSON.stringify(await context.cookies()),{mode:0o600})
- pass('checkpoint');
+ assert.equal(pageErrors.length,0,'No browser errors');pass('checkpoint');
 } catch(error){if(!(await page.locator('img[alt="QR code for authenticator app setup"]').count()))await page.screenshot({path:`${dir}/failure-${stage}.png`,fullPage:true}).catch(()=>{});console.error(JSON.stringify({stage,result:'failed',errorType:error.name,...(stage.startsWith('historical-mileage')?{detail:error.message.replace(/https?:\/\/[^\s]+/g,'[url]').slice(0,700)}:{})}));process.exitCode=1}
 finally{await browser.close()}
