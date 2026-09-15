@@ -34,7 +34,7 @@ describe('WriteOffs product design system', () => {
   })
 
   it('uses intentional empty, loading, error, and success states', () => {
-    expect(read('app/transactions/page.tsx')).toContain('No activity yet')
+    expect(read('app/transactions/TransactionReview.tsx')).toContain('No purchases in this view right now.')
     expect(read('app/receipts/page_inner.tsx')).toContain('Upload one and WriteOffs will take it from there.')
     expect(read('app/invoices/InvoicesClient.tsx')).toContain('Create one when you need to bill a customer.')
     expect(read('app/questions/QuestionFlow.tsx')).toContain('You’re all caught up.')
@@ -43,7 +43,7 @@ describe('WriteOffs product design system', () => {
   })
 
   it('keeps mobile rows and actions usable without desktop-only tables', () => {
-    expect(read('app/transactions/page.tsx')).toContain("grid-cols-[1fr_auto]")
+    expect(read('app/globals.css')).toContain('grid-template-columns:minmax(0,1fr) auto 12px')
     expect(read('app/questions/QuestionFlow.tsx')).toContain('min-h-12')
     expect(read('app/money/ManualMoneyClient.tsx')).toContain('w-full sm:w-auto')
     expect(read('app/mileage/MileageClient.tsx')).toContain('w-full sm:w-auto')
@@ -79,7 +79,7 @@ describe('WriteOffs product design system', () => {
   it('keeps R2 empty states and first-use setup actionable', () => {
     const transactions = read('app/transactions/page.tsx')
     expect(transactions).toContain('Connect an account')
-    expect(transactions).toContain('Import a CSV')
+    expect(transactions).toContain('Upload a statement')
     expect(read('app/receipts/ReceiptUploadAction.tsx')).toContain("'btn btn-primary min-h-12'")
     expect(read('app/receipts/ReceiptUploadAction.tsx')).toContain("variant==='guided'?'btn btn-secondary min-h-12'")
     const mileage = read('app/mileage/MileageClient.tsx')

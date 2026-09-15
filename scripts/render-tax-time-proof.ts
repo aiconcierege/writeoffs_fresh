@@ -12,6 +12,7 @@ async function main() {
       totals: { businessIncomeCents: 12435000, businessExpensesCents: 3178425, businessProfitCents: 9256575, estimatedDeductionsCents: 2785000 },
       scheduleCCategories: ['Advertising', 'Contract labor', 'Insurance (other than health)', 'Legal and professional services', 'Office expense', 'Supplies', 'Travel', 'Meals', 'Utilities'].map((categoryLabel, index) => ({ categoryLabel, amountCents: 12000 + index * 17000 })),
       vehicleReports: count ? [{ displayName: '2023 Toyota RAV4', method: 'standard_mileage', businessMilesMilli: 4250125, actualExpenseCents: 12000, mileageDeductionCents: 310000, allocationBasisPoints: 6500 }] : [],
+      ...(process.argv.includes('--phase2a')?{issues:[{code:'HISTORICAL_DOCUMENTATION_LIMITATION',detail:'21 older purchases still lack meal details. No missing facts were assumed. Keep any supporting records you find.'}]}:{}),
       reviewItems: Array.from({ length: count }, (_, index) => ({ title: `Purchase ${index + 1}: North Valley Equipment and Professional Office Furnishings`,
         description: 'Computer and display used for client design projects', occurredOn: '2026-02-14', amountCents: 185099, businessAmountCents: 148079,
         currentHandling: 'Business purchase; no current-year deduction assigned',

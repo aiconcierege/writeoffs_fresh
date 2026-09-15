@@ -33,10 +33,12 @@ export function deductionSignal(snapshot: BookkeepingEvaluationSnapshot) {
   return null
 }
 
-function questionEligible(date: string | null, now = new Date()) {
-  if (!date) return false
-  const age = Math.floor((now.getTime() - Date.parse(`${date}T00:00:00Z`)) / 86_400_000)
-  return age >= 0 && age <= 30
+async function questionEligible(admin:SupabaseClient,businessId:string,date:string|null,now=new Date()) {
+  if(!date)return false
+  const {data,error}=await admin.rpc('bookkeeping_activity_day',{p_business_id:businessId,p_as_of:now.toISOString()})
+  if(error)throw new Error('QUESTION_ACTIVITY_DATE_UNAVAILABLE')
+  // Business-use allocation remains a useful fact even for older purchases.
+  return typeof data==='string' && date<=data
 }
 
 export async function runDeductionIntelligenceForRecord(input: {
@@ -62,7 +64,7 @@ export async function runDeductionIntelligenceForRecord(input: {
       signal_type: 'equipment_review', signal_version: DEDUCTION_INTELLIGENCE_VERSION,
       reason_code: 'POSSIBLE_DURABLE_EQUIPMENT', provenance: 'automation',
     }, { onConflict: 'business_id,bookkeeping_record_id,signal_type,signal_version', ignoreDuplicates: true })
-    if (snapshot.currentDecision.provenance !== 'user' && questionEligible(snapshot.occurredOn, input.now)) {
+    if (snapshot.currentDecision.provenance !== 'user' && await questionEligible(admin,snapshot.businessId,snapshot.occurredOn,input.now)) {
       await openAttention(admin, snapshot, signal.factType, 'bookkeeping_record', signal.scope,
         'percentage', 'About how much is this equipment used for your business?',
         'Enter an approximate percentage. WriteOffs will record the business use. You or your tax preparer can review the purchase at tax time.')
@@ -75,7 +77,7 @@ export async function runDeductionIntelligenceForRecord(input: {
     .eq('scope_kind', 'merchant').eq('scope_key', signal.scope).maybeSingle()
   if (factError) throw new Error('DEDUCTION_FACT_LOAD_FAILED')
   if (!fact) {
-    if (questionEligible(snapshot.occurredOn, input.now)) {
+    if (await questionEligible(admin,snapshot.businessId,snapshot.occurredOn,input.now)) {
       await openAttention(admin, snapshot, signal.factType, 'merchant', signal.scope, 'percentage',
         `About how much do you use this ${signal.kind} service for your business?`,
         'Enter an approximate percentage. WriteOffs will remember it for this recurring service.')

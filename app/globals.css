@@ -792,3 +792,31 @@ body { background: var(--canvas); color: var(--ink); }
   .onboarding-conversation h1, .question-conversation h1 { animation: conversation-appear .18s ease-out; }
   @keyframes conversation-appear { from { opacity: .3; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
 }
+
+/* Compact conversation: the question and response share one ordinary viewport. */
+.question-identity { display:flex;align-items:center;gap:.65rem;color:#59665f;font-size:.875rem;font-weight:600;margin-bottom:.7rem; }
+.question-identity .question-betti { width:3rem;height:3rem;object-fit:contain; }
+.question-conversation h1 { margin-top:0; }
+.question-conversation textarea { min-height:4.5rem;max-height:11.25rem;padding:.7rem;line-height:1.5; }
+.question-conversation { padding-top:.5rem;padding-bottom:.5rem; }
+.transaction-work-views { display:flex;flex-wrap:wrap;gap:.35rem;margin:1.25rem 0;border-bottom:1px solid #dce3de; }
+.transaction-work-views a { display:flex;align-items:center;min-height:44px;padding:.65rem .85rem;font-weight:600;color:#59665f;border-bottom:3px solid transparent; }
+.transaction-work-views a[aria-current] { color:#243186;border-bottom-color:#243186; }
+.transaction-filters { display:flex;align-items:flex-start;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem; }
+.transaction-filters > input.field { flex:1 1 12rem;width:auto; }
+.guided-review-intro { margin:1.5rem 0;max-width:44rem; }
+.guided-review-intro h2,.guided-review-result h2 { font-size:1.3rem;font-weight:600;letter-spacing:-.02em; }
+.guided-review-intro p,.guided-review-result p { color:#59665f;line-height:1.6;margin-top:.5rem; }
+.guided-review-result { border-left:3px solid #178368;padding:1rem;margin:1rem 0;background:#edf7ef; }
+.review-select-heading { display:flex;align-items:center;justify-content:space-between;gap:.5rem;font-size:.875rem; }
+.review-checkbox-label { display:flex;align-items:center;gap:.65rem;min-height:48px; }
+.review-transaction-row { display:flex;border-bottom:1px solid #dce3de; }
+.review-transaction-row.is-selected { background:#eef2fa; }
+.review-row-select { width:48px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer; }
+.review-row-select input,.review-checkbox-label input { width:22px;height:22px;accent-color:#243186; }
+.review-row-open { min-width:0;flex:1;display:grid;grid-template-columns:minmax(0,1fr) auto 12px;align-items:center;gap:.7rem;min-height:88px;padding:.7rem .4rem; }
+.review-row-open:hover { background:#f4f7f3; }
+.review-row-open:focus-visible,.review-row-select input:focus-visible,.transaction-work-views a:focus-visible { outline:2px solid #243186;outline-offset:2px; }
+.review-bulk-actions { position:sticky;top:4.25rem;z-index:10;padding:.75rem;background:#f4f7f3;border-block:1px solid #dce3de;margin:.5rem 0;box-shadow:0 4px 10px #17211d08; }
+.review-bulk-actions p { margin-bottom:.6rem;font-size:.875rem;line-height:1.5; }
+@media(max-width:639px) { .review-bulk-actions { position:sticky;top:3.75rem; }.review-row-select { scroll-margin-top:17rem; }.transaction-work-views a { padding:.5rem .6rem;font-size:.875rem; }.review-row-open { gap:.45rem; } }

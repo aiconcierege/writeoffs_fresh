@@ -235,3 +235,120 @@ Live checks passed for ready/no-review, asset and vehicle review without blockin
 Desktop/mobile browser proof uses Chromium at desktop and phone viewport sizes; it is not a physical iPhone/Android device certification. The full default unit suite passes; database suites gated on local integration credentials are skipped, with the dedicated staging proof providing the live checks above. Lint retains existing source warnings. The default local Turbopack build encounters the environment's process/port restriction; the local webpack build and remote staging Turbopack build pass.
 
 Final validation: 1,174 automated tests passed; 143 environment-gated integration tests skipped. Typecheck passed. Lint: zero errors and 30 existing warnings. The live Check-in answer-to-ready transition passed after fixing answer-time completion of an empty supported category. The final application build was deployed successfully to the dedicated staging alias above. No production deployment, remote Git push, or merge was performed.
+
+## Phase 2A guided review certification — 2026-09-15
+
+This section supersedes the earlier point-in-time staging observations above for this
+release. Target: `writeoffs-fresh-staging`, project `prj_o56739F1pzd0TjFirEYoLMaa6oIJ`,
+Supabase `sgrqrrxrlglhjuetdtps`. The pinned staging project was verified before deploy.
+The Vercel primary-slot name does not refer to the real WriteOffs Production project.
+
+### Audit and implementation
+
+The audit found three distinct jobs sharing conversational presentation: material
+customer facts, historical meal documentation, and high-volume evidence review.
+Phase 1's joining-month split did not implement an activity-age policy. The transaction
+adapter also assembled more history than the displayed page needed, and receipt-lost
+projection could retain a superseded assertion. These are now separate canonical read
+projections with bounded work queries and current evidence history.
+
+The complete question-type matrix, view inclusion rules, scope, customer language and
+Phase 2B boundaries are in [WORKFLOW_SPECIFICATION.md](WORKFLOW_SPECIFICATION.md#phase-2a-guided-review-and-the-30-day-policy).
+Exactly 30 days is contemporaneous. Older attendee/purpose questions stop being askable
+without being answered or resolved. Useful purchase/allocation facts remain. Existing
+queues adopt the policy at read time; no destructive question backfill is necessary.
+Reports retain the evidence projection and disclose historical documentation limits.
+
+Seven additive migrations (`20260916000100`–`20260916000700`) add immutable guided batch
+history, owner-scoped work projections, bounded RPCs, Business-local dates, and current
+receipt evidence through canonical convergence. The final migration preserves an
+explicit completed personal sweep after ordinary factual answers create new decisions.
+Submission still validates every current decision. SQL was compiled in rollback checks
+and applied only to staging, with migration versions recorded.
+
+Transactions retains its list design, with four work views, search/date/category/account
+filters, 50-row pages, independent checkbox and detail targets, selected counts, and a
+sticky contextual action area. Select all selects exactly the displayed page. Bank-only
+bulk actions reject the entire selection if it includes an unsupported record; no
+selected item is silently skipped. Mixed-use allocation stays individual. Receipt-only
+items retain the existing receipt experience rather than introducing new accounting.
+
+Home prioritizes receipt review, older-purchase review, then individual exceptions.
+Completed receipt assertions stop upload reminders. Check-in gives the question priority,
+with restrained replaceable Betti artwork, compact context and an auto-growing response.
+Stable progress, chronology, same-record continuation and immutable answer retries remain.
+
+### Reproducible synthetic proof
+
+- `scripts/seed-phase2a-staging.ts`: isolated 65-purchase customer, Business-only and mixed
+  accounts, 28 evidence questions, and 29/30/31-day boundaries. Account-use facts precede
+  question creation so evidence versions remain valid. `--validation` creates a separate
+  pristine transactional-test fixture; `--empty` creates a no-work fixture; `--receipt-only`
+  adds a private synthetic unmatched PDF to the primary synthetic fixture without invoking
+  ingestion or AI. Private credentials stay in mode-0600 files under `/private/tmp`.
+- `scripts/validate-phase2a-staging.mjs --validation`: transactionally tests age/timezone,
+  MFA, owner isolation, bounded queries, receipt-only access, receipt unavailable without
+  a treatment change, exact retry, later receipt attachment, removal/restoration and
+  history. All test mutations roll back. Run on the pristine validation fixture.
+- `scripts/certify-phase2a-staging.mjs`: four viewports and work views, filters, keyboard
+  selection, page-scoped select-all, pagination and detail opening. `--actions-only` exercises
+  the guided receipt flow and personal sweep through real browser/API actions, including
+  duplicate clicks, exact retry, durable assertions, Home priority, answer and defer.
+  `--final-smoke` uses the completed-flow fixture with an unmatched receipt. `--empty`
+  certifies the current-books Home state.
+- `scripts/certify-staging-check-in.mjs --phase1`: a separate newly created synthetic
+  fixture proves three consecutive multiline answers, background queue growth, duplicate
+  clicks, one answer event per question, interrupted queue-read recovery, refresh,
+  leave/return, stale-version rejection and deferral remaining unresolved.
+- `scripts/certify-tax-time-browser.mjs --phase1-regression`: ready/corrected/read-only/
+  vehicle-review reports, desktop/mobile PDFs, transaction and mileage exports, repeated
+  generation, arbitrary Business ID rejection, and pending-deletion read/write boundaries.
+  Its synthetic deletion request is immediately canceled.
+- `scripts/render-tax-time-proof.ts --phase2a`: selectable Letter PDFs and page previews.
+  The representative summary with the documentation note remains one page; the long
+  purchase-review example spans four pages without clipping.
+
+### Backlog and safety evidence
+
+| Synthetic question type | Evidence questions before | Conversational after | Why |
+| --- | ---: | ---: | --- |
+| Meal attendee | 15 | 2 | Thirteen are older than 30 days; 29/30-day items remain |
+| Meal business purpose | 8 | 0 | All eight are historical documentation questions |
+| Ambiguous purchase | 5 | 5 | Purchase identity remains a useful material fact |
+| Total | 28 | 7 | Twenty-one missing facts remain recorded, not answered |
+
+The browser personal sweep then removed one ambiguous purchase and reduced 7 questions
+to 6. That purchase's question stayed absent. Receipt assertions did not change business
+use. Completing receipt review advanced Home to the older-purchase sweep; completing the
+sweep advanced Home to remaining questions. Later attachment superseded unavailable
+state while retaining history. Read models use attached evidence through current
+convergence, manual history and compound record identity.
+
+Cross-tenant reads and both bulk mutations were rejected. MFA remains required. Server
+ownership is resolved internally; the API rejects client Business IDs. Existing membership
+and pending-deletion mutation guards remain in the canonical owner guard. No public
+receipt/report URL was introduced. No real customer answers, receipt assertions or
+personal corrections were fabricated. Rick's manual customer was not used by automation.
+
+### Artifacts, validation and limits
+
+Local screenshots and browser results: `/private/tmp/writeoffs-phase2a-proof/`.
+PDFs/previews: `/private/tmp/writeoffs-tax-time-proof/`. These contain synthetic data.
+Credentials, sessions, private environment files and logs with sensitive content must not
+be committed or published. Representative widths: 390, 430, 768 and 1280px. Ordinary
+questions fit the laptop viewport with context, response, Continue and secondary actions;
+phone screenshots were also inspected. Browser proof uses Chromium emulation, not physical
+phone hardware or a comprehensive screen-reader audit.
+
+The unit suite passes 1,267 tests; 143 environment-gated tests remain skipped. Dedicated
+staging SQL/browser proofs supply live coverage. TypeScript passes. ESLint has zero errors
+and 30 pre-existing warnings. Application build, secret scan and diff check pass. Dependency
+audit reports zero runtime vulnerabilities and two moderate development-only Vitest/
+`@vitest/mocker` findings; dependencies were not changed in this phase.
+
+Outstanding product work remains the full Reports visual refinement in Phase 2B, the next
+manual receipt/statement ingestion tests, and the recorded Plaid launch checklist. Existing
+processing-drain timeout logs were observed separately; no backup/DR/worker scheduling or
+provider administration changes were made to hide them. This phase does not certify
+real-device browsers, every external provider flow afresh, or unlimited-history performance.
+The bounded work RPC returned 51 index rows in approximately 200–500 ms in these fixtures.

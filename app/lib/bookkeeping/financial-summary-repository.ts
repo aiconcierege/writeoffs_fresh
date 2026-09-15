@@ -1,3 +1,4 @@
+import {receiptUnavailableRecordIds} from './receipt-availability'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { currentPlaidFinancialState, plaidFinancialTransactionIsCurrent } from '../plaid/current-sources'
 import type {
@@ -164,7 +165,7 @@ implements CanonicalFinancialSummaryRepository {
     })
     const documentationRows = await inBatches(recordIds, async (ids) => {
       const { data, error } = await this.supabase.from('bookkeeping_documentation_events')
-        .select('bookkeeping_record_id,event_type').eq('business_id', input.businessId)
+        .select('id,supersedes_event_id,bookkeeping_record_id,event_type').eq('business_id', input.businessId)
         .in('bookkeeping_record_id', ids)
       if (error) throw new Error(`Unable to load canonical documentation state: ${error.message}`)
       return (data ?? []) as Row[]
@@ -232,8 +233,7 @@ implements CanonicalFinancialSummaryRepository {
     const transactionById = new Map(transactionRows.map((row) => [text(row, 'id'), row]))
     const documentedRecords = new Set(documentRows.map((row) =>
       resolution.resolve(text(row, 'bookkeeping_record_id'))))
-    const receiptLostRecords = new Set(documentationRows.filter((row) => text(row, 'event_type') === 'receipt_lost')
-      .map((row) => resolution.resolve(text(row, 'bookkeeping_record_id'))))
+    const receiptLostRecords = new Set([...receiptUnavailableRecordIds(documentationRows)].map(id=>resolution.resolve(id)))
     const receiptByRecord = new Map(documentRows.map((row) => [
       resolution.resolve(text(row, 'bookkeeping_record_id')), text(row, 'receipt_id'),
     ]))
@@ -318,7 +318,7 @@ implements CanonicalFinancialSummaryRepository {
           description: invoice ? nullableText(invoice, 'description') : transaction ? nullableText(transaction, 'original_description')
             : manual ? nullableText(manual, 'description') : null,
           hasEvidence: documentedRecords.has(id),
-          receiptLost: receiptLostRecords.has(id),
+          receiptLost: !documentedRecords.has(id) && receiptLostRecords.has(id),
           specialTreatmentReason: specialByRecord.get(id) ?? null,
           materiallyUnresolved: materiallyUnresolvedRecords.has(id),
           decisions: decisionsByRecord.get(id) ?? [],

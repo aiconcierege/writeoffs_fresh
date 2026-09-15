@@ -1,54 +1,36 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createServerSupabase } from '../../utils/supabase/server'
-import { listTransactionReadModel, parseTransactionCursor, transactionCursor } from '../lib/bookkeeping/transaction-read-model'
-import { EmptyState, PageContainer, PageHeader, StatusBadge } from '../components/ui'
-
-export const dynamic = 'force-dynamic'
-const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-
-export default async function TransactionsPage({ searchParams }: {
-  searchParams: Promise<{ q?: string | string[]; cursor?: string | string[] }>
-}) {
-  const supabase = await createServerSupabase()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-  const params = await searchParams
-  const query = (Array.isArray(params.q) ? params.q[0] : params.q ?? '').trim().slice(0, 100)
-  const cursorValue=Array.isArray(params.cursor)?params.cursor[0]:params.cursor
-  const after=query?null:parseTransactionCursor(cursorValue)
-  let rows = await listTransactionReadModel({ supabase, userId: user.id, limit: query?1000:101,after })
-  if (query) {
-    const needle = query.toLowerCase()
-    rows = rows.filter((row) => `${row.vendor} ${row.description ?? ''}`.toLowerCase().includes(needle))
-  }
-  const hasMore=!query&&rows.length>100;if(hasMore)rows=rows.slice(0,100)
-  const nextCursor=hasMore&&rows.length?transactionCursor(rows[rows.length-1]):null
-  return <main className="app-page">
-    <PageContainer wide>
-      <PageHeader eyebrow="Your books" title="Transactions" description="Here’s everything WriteOffs is keeping track of for your business."
-        actions={<form className="w-full sm:w-80"><label htmlFor="transaction-search" className="sr-only">Search transactions</label>
-          <input id="transaction-search" name="q" defaultValue={query} placeholder="Search merchant or description"
-            className="field text-sm" /></form>} />
-      {rows.length === 0 ? <EmptyState title={query ? 'No matching transactions' : 'No activity yet'}
-        description={query ? 'Try a different search.' : 'Connect or import an account and WriteOffs will start organizing it.'}
-        action={query ? null : <div className="flex flex-col justify-center gap-3 sm:flex-row"><Link href="/settings/banking" className="btn btn-primary">Connect an account</Link><Link href="/import" className="btn btn-secondary">Import a CSV</Link></div>} />
-      : <div className="record-list transaction-records mt-8">
-        {rows.map((row) => <Link key={`${row.sourceModel}:${row.id}`} href={`/transactions/${row.id}`}
-          className="record-row transaction-record-row grid min-h-[4.5rem] grid-cols-[1fr_auto] gap-3 px-1 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#243186] sm:min-h-[5rem] sm:grid-cols-[8rem_1fr_13rem_9rem] sm:items-center sm:px-4 sm:py-4">
-          <time className="hidden text-base text-slate-600 sm:block">{formatDate(row.date)}</time>
-          <div className="min-w-0"><p className="truncate text-base font-semibold text-slate-950 sm:text-lg">{row.vendor}</p>
-            <p className="mt-1 text-xs text-slate-500 sm:hidden">{formatDate(row.date)}</p>
-            <div className="mt-1.5 flex flex-wrap items-center gap-2"><StatusBadge tone={row.treatmentLabel === 'Business' ? 'positive' : row.treatmentLabel.includes('working') ? 'attention' : 'muted'}>{row.treatmentLabel}</StatusBadge>{row.sourceLabel&&<span className="text-xs text-slate-500">{row.sourceLabel}</span>}</div></div>
-          <div className="hidden text-base font-medium text-slate-600 sm:block">{row.has_receipt ? 'Receipt attached' : row.receiptLost ? 'Receipt unavailable' : 'No receipt'}</div>
-          <p className={`money-display text-right text-base font-semibold ${row.amountCents > 0 ? 'money-positive' : ''}`}>{money.format(row.amount)}</p>
-        </Link>)}
-      </div>}
-      {nextCursor&&<div className="mt-8 flex justify-center"><Link className="btn btn-secondary" href={`/transactions?cursor=${encodeURIComponent(nextCursor)}`}>Older activity</Link></div>}
-    </PageContainer>
-  </main>
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`))
+import { PageContainer } from '../components/ui'
+import { loadTransactionWork, WORK_VIEWS, type WorkView } from '../lib/bookkeeping/guided-review'
+import { TransactionReview } from './TransactionReview'
+export const dynamic='force-dynamic'
+const labels:Record<WorkView,string>={all:'All',receipts:'Needs a receipt','receipt-only':'Receipt only',review:'Needs review'}
+export default async function TransactionsPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}) {
+  const supabase=await createServerSupabase(),{data:{user}}=await supabase.auth.getUser()
+  if(!user)redirect('/login')
+  const params=await searchParams
+  const value=(key:string)=>typeof params[key]==='string'?(params[key] as string).slice(0,100):''
+  const view=WORK_VIEWS.includes(value('view') as WorkView)?value('view') as WorkView:'all'
+  const historical=value('scope')==='historical',query=value('q'),category=value('category'),account=value('account')
+  const date=(key:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value(key))?value(key):undefined
+  const offset=Math.max(0,Math.min(100000,Number.parseInt(value('offset')||'0',10)||0))
+  const {data:categories}=await supabase.from('categories').select('key,label').order('label')
+  const {data:accounts}=await supabase.from('financial_accounts').select('id,display_name').order('display_name')
+  const {rows,hasMore}=await loadTransactionWork({supabase,userId:user.id,view,historical,offset,query,start:date('start'),end:date('end'),category,account})
+  const href=(changes:Record<string,string>)=>{const next=new URLSearchParams();for(const key of ['view','scope','q','start','end','category','account'])if(value(key))next.set(key,value(key));for(const [key,val]of Object.entries(changes)){if(val)next.set(key,val);else next.delete(key)}return `/transactions?${next}`}
+  return <main className="app-page"><PageContainer wide>
+    <Link href="/home" className="inline-flex min-h-11 items-center font-semibold text-[#243186]">← Home</Link>
+    <h1 className="mt-3 text-3xl font-semibold tracking-tight">{historical?'Review older purchases':'Transactions'}</h1>
+    <p className="mt-2 text-[#59665f]">Your activity, with room to make it right.</p>
+    <nav aria-label="Transaction work views" className="transaction-work-views">{WORK_VIEWS.map(item=><Link key={item} href={href({view:item,scope:'',offset:''})} aria-current={view===item&&!historical?'page':undefined}>{labels[item]}</Link>)}</nav>
+    <form className="transaction-filters"><input type="hidden" name="view" value={view}/>{historical&&<input type="hidden" name="scope" value="historical"/>}
+      <label className="sr-only" htmlFor="transaction-search">Search merchant or description</label><input id="transaction-search" className="field" name="q" defaultValue={query} placeholder="Search purchases"/>
+      <details><summary className="inline-flex min-h-11 cursor-pointer items-center px-3 font-semibold text-[#243186]">Dates & filters</summary><div className="grid gap-3 py-3 sm:grid-cols-2"><label>From<input className="field" type="date" name="start" defaultValue={date('start')}/></label><label>Through<input className="field" type="date" name="end" defaultValue={date('end')}/></label><label>Category<select className="field" name="category" defaultValue={category}><option value="">All categories</option>{(categories??[]).map(item=><option key={item.key} value={item.key}>{item.label}</option>)}</select></label><label>Account<select className="field" name="account" defaultValue={account}><option value="">All accounts</option>{(accounts??[]).map(item=><option key={item.id} value={item.id}>{item.display_name}</option>)}</select></label></div></details><button className="btn btn-secondary">Search</button>
+    </form>
+    <TransactionReview key={`${view}:${historical}:${offset}:${query}:${account}:${category}:${date('start')}:${date('end')}`} rows={rows} view={view} historical={historical}/>
+    {(offset>0||hasMore)&&<nav aria-label="Transaction pages" className="my-6 flex justify-between gap-3">{offset>0?<Link href={href({offset:String(Math.max(0,offset-50))})} className="btn btn-secondary">Previous page</Link>:<span/>}{hasMore&&<Link href={href({offset:String(offset+50)})} className="btn btn-secondary">Next page</Link>}</nav>}
+    <div className="mt-6 flex flex-wrap gap-4"><Link className="inline-flex min-h-11 items-center font-semibold text-[#243186]" href="/settings/banking">Connect an account</Link><Link className="inline-flex min-h-11 items-center font-semibold text-[#243186]" href="/import">Upload a statement</Link></div>
+    <p className="mt-5 text-sm text-[#59665f]">Selection applies only to this page. Open a purchase to change its business portion or see its history.</p>
+  </PageContainer></main>
 }

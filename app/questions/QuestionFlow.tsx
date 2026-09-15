@@ -150,28 +150,25 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   const shownGuidance=question.kind==='business_purpose'&&question.evidence
     ?'I have the receipt, but I can’t tell what this was for.'
     :question.guidance
-  const conversation=<>{!embedded && <header className="mb-8 flex items-center justify-between gap-4 text-sm">
+  const conversation=<>{!embedded && <header className="mb-2 flex items-center justify-between gap-4 text-sm">
         <Link href="/home" className="inline-flex min-h-11 items-center font-semibold text-[#243186]">← Home</Link>
         {total > 1 && <p className="text-[#65736b]" role="status">{answered > 0 ? `${answered} answered` : 'One at a time'}{questions.length > 1 ? ' · More waiting' : ''}</p>}
       </header>}
       <section className={`question-conversation relative py-3 sm:py-6${embedded?' weekly-question-embedded':''}`}>
-        {!embedded && <p className="mb-6 text-lg text-[#59665f]">I have a question about this {question.transaction.amountCents != null && question.transaction.amountCents < 0 ? 'purchase' : 'activity'}.</p>}
-        <div className="question-context-line">
-        <div className="question-transaction-context py-3 text-sm">
-          <div className="font-semibold">{question.transaction.merchant}</div>
-          <div className="mt-1 flex flex-wrap gap-x-3 text-muted">
-            {amount && <span>{amount}</span>}
-            {question.transaction.date && <time dateTime={question.transaction.date}>{customerDate.format(new Date(`${question.transaction.date}T00:00:00Z`))}</time>}
-          </div>
-          {question.evidence&&<a href={question.evidence.receiptUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">View receipt <span className="ml-1" aria-hidden="true">↗</span></a>}
-        </div>{!embedded&&<BettiIllustration state="question" className="question-betti" priority sizes="5rem" />}</div>
-        <h1 ref={heading} tabIndex={-1} className="mt-4 text-[1.65rem] font-semibold leading-tight tracking-[-.035em] text-[#17211d] outline-none sm:mt-6 sm:text-3xl">
+        <div className="question-identity">{!embedded&&<BettiIllustration state="question" className="question-betti" priority sizes="3rem" />}<span>Betti</span></div>
+        <h1 ref={heading} tabIndex={-1} className="text-[1.65rem] font-semibold leading-tight tracking-[-.035em] text-[#17211d] outline-none sm:text-3xl">
           {showAmount ? `How much of the ${amount??'total'} was for your business?` : shownPrompt}
         </h1>
+        <div className="question-transaction-context my-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#59665f]">
+          <span className="font-semibold break-words">{question.transaction.merchant}</span>
+          {question.transaction.date && <time dateTime={question.transaction.date}>· {customerDate.format(new Date(`${question.transaction.date}T00:00:00Z`))}</time>}
+          {amount && <span>· {amount}</span>}
+          {question.evidence&&<a href={question.evidence.receiptUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center font-semibold text-[#243186]">View receipt ↗</a>}
+        </div>
         {shownGuidance && !showAmount && <p className="mt-2 text-muted">{shownGuidance}</p>}
         {showAmount && <p className="mt-2 text-muted">Enter the business dollars. I’ll handle the split.</p>}
 
-        <div className="mt-5 grid gap-3 sm:mt-7">
+        <div className="mt-4 grid gap-2">
           {question.kind === 'business_use' && <>
             <Action onClick={() => submit({ action: 'business_use', use: 'business' })} busy={busy}>Yes, business</Action>
             <Action onClick={() => submit({ action: 'business_use', use: 'personal' })} busy={busy}>No, personal</Action>
@@ -180,16 +177,16 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
           </>}
           {question.kind === 'business_purpose' && <>
             <label htmlFor="purpose" className="sr-only">What was this purchase for?</label>
-            <textarea id="purpose" value={purpose} onChange={(event) => setPurpose(event.target.value)}
-              maxLength={1000} rows={3} className="w-full rounded-lg border border-slate-300 p-3"
-              placeholder="For example, lunch with a client" />
+            <textarea id="purpose" value={purpose} onChange={(event) => { setPurpose(event.target.value); growResponse(event.currentTarget) }}
+              maxLength={1000} rows={2} className="w-full rounded-lg border border-slate-300 p-3"
+              placeholder={question.prompt.includes('meal')?'For example, lunch to discuss a client project':'For example, printer paper for customer projects'} />
             <Action onClick={() => submit({ action: 'business_purpose', businessPurpose: purpose })} busy={busy || !purpose.trim()}>Continue</Action>
             <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>I’m not sure</Action>
           </>}
           {question.kind === 'meal_relationship' && <>
             <label htmlFor="meal-relationship" className="sr-only">Who was the meal with?</label>
             <textarea id="meal-relationship" value={mealRelationship}
-              onChange={(event) => setMealRelationship(event.target.value)} maxLength={1000} rows={4}
+              onChange={(event) => { setMealRelationship(event.target.value); growResponse(event.currentTarget) }} maxLength={1000} rows={2}
               className="w-full rounded-lg border border-slate-300 p-3"
               placeholder="For example, Sarah Jones, client; Luis Garcia, prospective customer" />
             <Action onClick={() => submit({ action: 'meal_relationship', attendeeRelationship: mealRelationship })}
@@ -278,10 +275,15 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
         </button>}
       </section></>
   if(embedded)return <div className="weekly-question-flow">{conversation}</div>
-  return <main className="app-page -mx-4 -mb-10 px-4 sm:-mx-6 sm:px-6 lg:-mx-8"><div className="mx-auto max-w-2xl py-6 sm:py-10">{conversation}</div></main>
+  return <main className="app-page -mx-4 -mb-10 px-4 sm:-mx-6 sm:px-6 lg:-mx-8"><div className="mx-auto max-w-2xl py-2 sm:py-3">{conversation}</div></main>
 }
 
 function Action(props: { children: React.ReactNode; onClick: () => void; busy: boolean }) {
   return <button type="button" disabled={props.busy} onClick={props.onClick}
-    className={`btn ${props.children === 'Continue' ? 'btn-primary' : 'btn-secondary'} min-h-12 w-full justify-center text-base disabled:opacity-50`}>{props.children}</button>
+    className={props.children==='I’m not sure'?'min-h-11 w-full text-sm font-medium text-muted underline disabled:opacity-50':`btn ${props.children === 'Continue' ? 'btn-primary' : 'btn-secondary'} min-h-12 w-full justify-center text-base disabled:opacity-50`}>{props.children}</button>
+}
+
+function growResponse(control: HTMLTextAreaElement) {
+  control.style.height = 'auto'
+  control.style.height = `${Math.min(control.scrollHeight, 180)}px`
 }

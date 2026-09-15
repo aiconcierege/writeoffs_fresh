@@ -1,3 +1,4 @@
+import {receiptUnavailableRecordIds} from './receipt-availability'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { currentPlaidFinancialState, plaidFinancialTransactionIsCurrent } from '../plaid/current-sources'
 import { loadCurrentRecordConvergences } from './current-record-resolution'
@@ -111,6 +112,8 @@ export async function listTransactionReadModel(input: {
   end?: string | null
   limit?: number
   transactionId?: string
+  recordIds?: string[]
+  legacyIds?: string[]
   after?: { date: string; id: string } | null
 }): Promise<TransactionReadRow[]> {
   const { data: business, error: businessError } = await input.supabase.from('businesses')
@@ -145,6 +148,7 @@ export async function listTransactionReadModel(input: {
       .order('occurred_on', { ascending: false }).order('id', { ascending: false })
       .range(from, from + pageSize - 1)
     if (start && end) recordQuery = recordQuery.gte('occurred_on', start).lte('occurred_on', end)
+    if (input.recordIds) recordQuery = recordQuery.in('id', input.recordIds)
     if (input.transactionId) recordQuery = canonicalRecordIds.length
       ? recordQuery.in('id', canonicalRecordIds) : recordQuery.eq('id', input.transactionId)
     const { data: records, error: recordError } = await recordQuery
@@ -243,9 +247,7 @@ export async function listTransactionReadModel(input: {
       .in('bookkeeping_record_id', evidenceRecordIds)
     documentationEvents = (data ?? []) as Row[]
   }
-  const receiptLostRecords = new Set(documentationEvents
-    .filter((row) => text(row, 'event_type') === 'receipt_lost')
-    .map((row) => resolution.resolve(text(row, 'bookkeeping_record_id')!)))
+  const receiptLostRecords = new Set([...receiptUnavailableRecordIds(documentationEvents)].map(id=>resolution.resolve(id)))
   const supersededDocumentationEvents = new Set(documentationEvents
     .map((row) => text(row, 'supersedes_event_id')).filter(Boolean))
   const pendingAcknowledgedRecords = new Set(documentationEvents
@@ -330,7 +332,7 @@ export async function listTransactionReadModel(input: {
         resolution.resolve(text(link, 'bookkeeping_record_id')!) === recordId)
         .map((link) => ({ id: text(link, 'id')!, receiptId: text(link, 'receipt_id')!,
           attachedAt: text(link, 'linked_at')! })),
-      receiptLost: receiptLostRecords.has(recordId),
+      receiptLost: !documented.has(recordId) && receiptLostRecords.has(recordId),
       documentationPendingAcknowledged: pendingAcknowledgedRecords.has(recordId),
       sourceLabel: invoice
         ? [baseSourceLabel, `Invoice ${text(invoice, 'invoice_number')}`].filter(Boolean).join(' · ')
@@ -347,7 +349,8 @@ export async function listTransactionReadModel(input: {
     .order('date', { ascending: false }).limit(limit)
   if (start && end) legacyQuery = legacyQuery.gte('date', start).lte('date', end)
   if (input.transactionId) legacyQuery = legacyQuery.eq('id', input.transactionId)
-  const { data: legacyData, error: legacyError } = await legacyQuery
+  if(input.legacyIds?.length) legacyQuery=legacyQuery.in('id',input.legacyIds)
+  const { data: legacyData, error: legacyError } = input.recordIds && !input.legacyIds?.length ? { data: [], error: null } : await legacyQuery
   if (legacyError) throw new Error('Could not list legacy transactions.')
   const legacyRows = (legacyData ?? []) as Row[]
   const legacyIds = legacyRows.map((row) => text(row, 'id')!).filter(Boolean)

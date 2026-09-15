@@ -6,7 +6,8 @@ describe('customer Transactions experience', () => {
   it('uses the canonical route and plain-language history UI', () => {
     expect(source('app/components/Header.tsx')).toContain('["Transactions", "/transactions"]')
     const page = source('app/transactions/page.tsx')
-    expect(page).toContain('listTransactionReadModel')
+    expect(page).toContain('loadTransactionWork')
+    expect(source('app/lib/bookkeeping/guided-review.ts')).toContain('listTransactionReadModel')
     expect(page).toContain('Search merchant or description')
     expect(page).not.toMatch(/allocation|provenance|canonical|reconciliation/i)
     expect(source('app/review/page.tsx')).toContain("redirect('/transactions')")

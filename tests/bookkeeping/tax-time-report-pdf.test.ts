@@ -77,6 +77,14 @@ describe('Tax-Time Report PDF', () => {
     const renderer = readFileSync('app/lib/bookkeeping/tax-time-report-pdf.ts', 'utf8')
     expect(renderer).not.toMatch(/fetch\(|storage\.|createSignedUrl|openai|evaluateBookkeeping/)
   })
+  it('preserves historical documentation limits as searchable report text',async()=>{
+    const fixture=reportFixture()
+    Object.assign(fixture,{issues:[{code:'HISTORICAL_DOCUMENTATION_LIMITATION',detail:'21 purchases still lack meal details. No missing facts were assumed.'}]})
+    const result=await inspect(fixture)
+    expect(result.text).toContain('Documentation notes')
+    expect(result.text).toContain('21 purchases still lack meal details')
+    expect(result.text).toContain('Missing meal details have not been assumed.')
+  })
   it('preserves zero and negative annual values', async () => {
     const fixture = reportFixture()
     fixture.totals.businessIncomeCents = 0

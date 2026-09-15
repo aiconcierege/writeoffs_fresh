@@ -37,6 +37,27 @@ describe('tax-year readiness', () => {
     expect(readiness.status).toBe('ready')
     expect(readiness.dimensions.find(d => d.key === 'documentation')?.status).toBe('needs_attention')
   })
+  it('retains historical meal limitations without sending customers back to stale questions', () => {
+    const value = context({ customerQuestions: [{ id: 'old-meal', nonConversational: true,
+      prompt: 'Who was the meal with?', transaction: { date: '2025-03-01', amountCents: -433 } }] })
+    const readiness = deriveTaxYearReadiness(2025, value)
+    expect(readiness.issues).toEqual(expect.arrayContaining([expect.objectContaining({
+      code: 'HISTORICAL_DOCUMENTATION_LIMITATION', kind: 'documentation', actionHref: '/transactions',
+    })]))
+    expect(readiness.issues.some(issue => issue.code === 'BOOKKEEPING_QUESTIONS_OPEN')).toBe(false)
+    expect(readiness.totals.businessExpensesCents).toBe(value.report.businessExpensesCents)
+    expect(value.customerQuestions[0].nonConversational).toBe(true)
+  })
+  it('still blocks on useful facts alongside suppressed documentation', () => {
+    const value = context({ customerQuestions: [
+      { id: 'old-meal', nonConversational: true, prompt: 'Who was the meal with?', transaction: { date: '2025-03-01', amountCents: -433 } },
+      { id: 'ambiguous', prompt: 'What did you buy?', transaction: { date: '2025-02-01', amountCents: -8940 } },
+    ] })
+    const readiness = deriveTaxYearReadiness(2025, value)
+    expect(readiness.status).toBe('needs_attention')
+    expect(readiness.issues.find(issue => issue.code === 'BOOKKEEPING_QUESTIONS_OPEN')?.detail).toMatch(/^1 question/)
+    expect(readiness.issues.some(issue => issue.code === 'HISTORICAL_DOCUMENTATION_LIMITATION')).toBe(true)
+  })
   it('keeps tax-time judgment separate from customer facts', () => {
     const value = deriveTaxYearReadiness(2025, context({ canonicalReviewItems: [{ kind:'potential_capital_asset',
       title:'Computer equipment purchase',detail:'Equipment may have special tax treatment.',occurredOn:'2025-04-02',amountCents:180000 }],

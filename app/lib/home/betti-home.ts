@@ -50,7 +50,12 @@ export function projectBettiHome(input: {
   hasDeferredWork?: boolean
   historicalMileageNeedsAttention?: boolean
   outstandingDocumentation: number
+  missingReceipts?: boolean
+  historicalReview?: boolean
+  documentationLimitations?: boolean
 }): BettiHomeProjection {
+  if(input.missingReceipts)return {state:'documentation-follow-up',heading:'I’m missing receipts for some of your purchases.',supporting:'Let’s find the receipts you don’t have and keep the information you do.',action:{href:'/transactions?view=receipts',label:'Review missing receipts'}}
+  if(input.historicalReview)return {state:'needs-customer',heading:'I found some older purchases for you to look over.',supporting:'See anything that wasn’t for the business? A quick review can save questions later.',action:{href:'/transactions?scope=historical',label:'Review older purchases'}}
   if (input.askableQuestionCount > 0) return {
     state: 'needs-customer',
     heading: `${input.greeting}${input.name ? `, ${input.name}` : ''}. I went through your books.`,
@@ -77,7 +82,7 @@ export function projectBettiHome(input: {
     action: null,
   }
   if(input.hasDeferredWork)return {state:'documentation-follow-up',heading:'Your progress is saved.',supporting:'A few answers are still on your list for later. I’ll keep organizing the records I have.',action:{href:'/check-in',label:'See your saved work'}}
-  if (input.outstandingDocumentation > 0) return {
+  if (input.outstandingDocumentation > 0 && input.missingReceipts !== false) return {
     state: 'documentation-follow-up',
     heading: named('Your books are up to date', input.name),
     supporting: input.outstandingDocumentation === 1
@@ -85,6 +90,7 @@ export function projectBettiHome(input: {
       : `I’m still keeping track of ${input.outstandingDocumentation} receipts that need to be added.`,
     action: null,
   }
+  if(input.documentationLimitations)return {state:'documentation-follow-up',heading:'Your records are organized.',supporting:'Some older purchases still have documentation limits. Keep any records you find; they may help at tax time.',action:{href:'/reports',label:'See your reports'}}
   return {
     state: 'caught-up',
     heading: 'Your books are current.',

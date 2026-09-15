@@ -21,7 +21,7 @@ export async function getAuthenticatedCanonicalReport(input: {
   const [canonical, legacy, questions, categoryLabels, businessMilesMilli, contractorSummaries,vehicleReports,historicalMileage] = await Promise.all([
     repository.canonical.loadRecords({ businessId, periodStart: input.periodStart, periodEnd: input.periodEnd }),
     repository.loadLegacyRecords({ userId: user.id, periodStart: input.periodStart, periodEnd: input.periodEnd }),
-    listCustomerQuestions({ supabase: input.supabase }),
+    listCustomerQuestions({ supabase: input.supabase, includeNonConversational: true }),
     repository.loadCategoryLabels(),
     loadMileageTotal(input.supabase, { businessId, start: input.periodStart, end: input.periodEnd }),
     listContractorSummaries({ supabase: input.supabase, businessId,

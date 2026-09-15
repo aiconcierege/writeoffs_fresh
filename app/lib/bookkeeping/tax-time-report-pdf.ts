@@ -126,6 +126,13 @@ export async function createTaxTimeReportPdf(input: { readiness: TaxTimeReadines
     line(item.detail, { size: 9, color: muted, gap: 7 })
   }
 
+  const historicalDocumentation=readiness.issues?.find(issue=>issue.code==='HISTORICAL_DOCUMENTATION_LIMITATION')
+  if(historicalDocumentation){
+    heading('Documentation notes')
+    line(historicalDocumentation.detail,{size:9,color:muted,gap:6})
+    line('Missing meal details have not been assumed. Review the available records when determining tax treatment.',{size:9,color:muted,gap:0})
+  }
+
   ensure(75); y -= 14
   line('About this report', { size: 11, font: bold, gap: 3 })
   line('WriteOffs organized these records from connected financial information, documents, and facts you provided. Send this report to your tax preparer or use it while preparing your own return. Supporting receipts remain available in WriteOffs. WriteOffs does not prepare or file tax returns, or make final tax elections that require taxpayer or tax-professional judgment.', { size: 8, color: muted })

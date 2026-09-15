@@ -21,7 +21,7 @@ export async function getAuthenticatedTaxYearReadiness(input: { supabase: Supaba
   const start = `${taxYear}-01-01`, end = `${taxYear}-12-31`
   const [report, questions] = await Promise.all([
     getAuthenticatedCanonicalReport({ supabase: input.supabase, periodStart: start, periodEnd: end }),
-    listCustomerQuestions({ supabase: input.supabase }),
+    listCustomerQuestions({ supabase: input.supabase, includeNonConversational: true }),
   ])
   const admin = createServerAdminSupabase()
   const [{ data: jobs, error: jobsError }, { data: receiptEvents, error: receiptEventsError },
@@ -53,7 +53,7 @@ export async function getAuthenticatedTaxYearReadiness(input: { supabase: Supaba
     latestJobByRecord.set(String(job.bookkeeping_record_id), { state: String(job.state) })
   }
   const currentJobs = [...latestJobByRecord.values()]
-  const yearRecordIds = new Set(report.rows.map(row => row.recordId))
+  const yearRecordIds = new Set(report.rows.filter(row=>row.businessAmountCents!==0||row.treatment==='Still being worked on').map(row => row.recordId))
   const yearDeductionAttentions = (deductionAttentions ?? []).filter(row =>
     row.bookkeeping_record_id ? yearRecordIds.has(String(row.bookkeeping_record_id))
       : row.scope_kind === 'vehicle_year' ? String(row.scope_key).endsWith(`:${taxYear}`) : true)

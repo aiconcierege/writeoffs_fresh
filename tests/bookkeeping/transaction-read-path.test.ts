@@ -24,7 +24,7 @@ describe('canonical-first transaction read path', () => {
   })
 
   it('uses the same compatibility adapter for the page and list API', () => {
-    expect(source('app/transactions/page.tsx')).toContain('listTransactionReadModel')
+    expect(source('app/lib/bookkeeping/guided-review.ts')).toContain('listTransactionReadModel')
     expect(source('app/transactions/[id]/page.tsx')).toContain('getTransactionDetailReadModel')
     expect(source('app/api/transactions/list/route.ts')).toContain('listTransactionReadModel')
   })
@@ -36,7 +36,7 @@ describe('canonical-first transaction read path', () => {
     expect(model.indexOf('.range(from, from + pageSize - 1)')).toBeLessThan(model.indexOf('resolution.isAbsorbed(recordId)'))
     expect(model).toContain('b.date.localeCompare(a.date) || b.id.localeCompare(a.id)')
     expect(model).toContain("toString('base64url')")
-    expect(source('app/transactions/page.tsx')).toContain('Older activity')
+    expect(source('app/transactions/page.tsx')).toContain('Next page')
   })
 
   it('round-trips an opaque stable date/id cursor and rejects malformed input',()=>{

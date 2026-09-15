@@ -11,6 +11,7 @@ export type CustomerQuestion = {
   source?: 'bookkeeping' | 'deduction' | 'contractor'
   kind: 'business_use' | 'business_purpose' | 'meal_relationship' | 'mixed_use' | 'transaction_type' | 'factual_choice'
     | 'percentage' | 'yes_no' | 'integer' | 'date'
+  nonConversational?: boolean
   materiality?:'totals'|'disclosable'
   recordId?:string
   prompt: string
@@ -191,6 +192,7 @@ async function buildCustomerQuestions(input: {
   supabase: SupabaseClient
   scope?:'expenses'|'business'
   asOf: string
+  includeNonConversational?: boolean
 }) {
   const ensured = await input.supabase.rpc('ensure_current_meal_substantiation_questions')
   if (ensured.error && ensured.error.code !== 'PGRST202') throw new Error('Meal substantiation questions could not be prepared.')
@@ -200,10 +202,13 @@ async function buildCustomerQuestions(input: {
   const contractorQuestions = await listContractorQuestions(input.supabase,input.asOf)
   const [queue,validBookkeepingResult] = await Promise.all([
     listCanonicalReviewQueue(input),
-    input.supabase.rpc('list_current_askable_bookkeeping_question_event_ids',{p_as_of:input.asOf}),
+    input.supabase.rpc(input.includeNonConversational?'list_current_evidence_question_event_ids':'list_current_askable_bookkeeping_question_event_ids',{p_as_of:input.asOf}),
   ])
   if(validBookkeepingResult.error)throw new Error('Current bookkeeping questions could not be validated.')
   const validBookkeepingEventIds=new Set((validBookkeepingResult.data??[]).map((row:{event_id:string})=>row.event_id))
+  const conversational=input.includeNonConversational?await input.supabase.rpc('list_current_askable_bookkeeping_question_event_ids',{p_as_of:input.asOf}):validBookkeepingResult
+  if(conversational.error)throw new Error('Conversational question state could not be loaded.')
+  const conversationalIds=new Set((conversational.data??[]).map((row:{event_id:string})=>row.event_id))
   const currentQueue=queue.filter(item=>validBookkeepingEventIds.has(item.event.id))
   const recordIds = [...new Set(currentQueue.map(({ record }) => record.id))]
   if (!recordIds.length) return [...deductionQuestions, ...contractorQuestions]
@@ -297,6 +302,7 @@ async function buildCustomerQuestions(input: {
     return question ? [{ ...question, source: 'bookkeeping' as const,recordId:item.record.id,
       openedAt:item.event.createdAt,availableAt:item.event.deferredUntil,
       contextFingerprint:item.event.contextFingerprint,
+      nonConversational:!conversationalIds.has(item.event.id),
       materiality:(['BUSINESS_USE_UNCLEAR','MIXED_USE_CLARIFICATION','TRANSACTION_TYPE_UNCLEAR','CONFLICTING_EVIDENCE'].includes(item.event.reason)?'totals':'disclosable') as CustomerQuestion['materiality'],
       evidence:evidenceByRecord.get(item.record.id) }] : []
   })
@@ -312,6 +318,7 @@ export async function getCurrentAskableQuestionQueue(input: {
   supabase: SupabaseClient
   scope?: 'expenses' | 'business'
   asOf?: string
+  includeNonConversational?: boolean
 }): Promise<CurrentAskableQuestionQueue> {
   const asOf=input.asOf??new Date().toISOString()
   const questions=await buildCustomerQuestions({...input,asOf})
@@ -321,6 +328,7 @@ export async function getCurrentAskableQuestionQueue(input: {
 
 /** Compatibility contract for existing Weekly Review and /questions consumers. */
 export async function listCustomerQuestions(input: {
+  includeNonConversational?: boolean
   supabase: SupabaseClient
   scope?: 'expenses' | 'business'
 }) {
@@ -390,7 +398,13 @@ async function listDeductionQuestions(supabase: SupabaseClient): Promise<Custome
     : { data: [], error: null }
   if (recordsError) throw new Error(`Unable to load deduction question context: ${recordsError.message}`)
   const recordById = new Map((records ?? []).map((row) => [row.id, row]))
-  return (attentions ?? []).map((attention) => {
+  const decisionResult=recordIds.length?await supabase.from('bookkeeping_decisions')
+    .select('id,bookkeeping_record_id,supersedes_decision_id,treatment').eq('business_id',business.id).in('bookkeeping_record_id',recordIds):{data:[],error:null}
+  if(decisionResult.error)throw new Error('Deduction question ownership state could not be loaded.')
+  const supersededDecisions=new Set((decisionResult.data??[]).map(row=>row.supersedes_decision_id).filter(Boolean))
+  const nonbusinessRecords=new Set((decisionResult.data??[]).filter(row=>!supersededDecisions.has(row.id)&&['personal','excluded'].includes(row.treatment)).map(row=>row.bookkeeping_record_id))
+
+  return (attentions ?? []).filter(attention=>!attention.bookkeeping_record_id||!nonbusinessRecords.has(attention.bookkeeping_record_id)).map((attention) => {
     const record = attention.bookkeeping_record_id ? recordById.get(attention.bookkeeping_record_id) : null
     return {
       id: attention.attention_id, version: attention.id, source: 'deduction' as const,

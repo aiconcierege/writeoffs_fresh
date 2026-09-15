@@ -23,7 +23,7 @@ describe('authenticated mobile contracts',()=>{
     const css=source('app/globals.css')
     expect(css).toContain('.question-context-line { display:grid')
     expect(css).toContain('.question-betti { position: static')
-    expect(source('app/transactions/page.tsx')).toContain('min-h-[4.5rem]')
+    expect(source('app/globals.css')).toContain('min-height:88px')
     expect(source('app/receipts/page_inner.tsx')).toContain('customerReceiptLabel')
   })
   it('uses plain vehicle and report language',()=>{

@@ -96,11 +96,9 @@ Do not ask Most/Some/None receipt availability questions. Offer “Upload receip
 - Select the appropriate question within each record, then order records oldest
   first. Keep session survivors stable and append new discoveries. Submit/version
   checks, idempotency and authoritative reload remain intact.
-- Historical work appears separately from ongoing Check-in. Start with personal
-  exceptions and grouped information; individual historical questions are an explicit
-  secondary action. Do not automatically ask attendees for every old coffee. Keep
-  missing documentation truthful, and never fabricate facts or resolve items to hide
-  the backlog. Full bulk/grouped editing is Phase 2.
+- Phase 2A separates high-volume historical review from individual conversation using
+  the activity-date policy and guided Transactions work below. This supersedes the
+  Phase 1 joining-month split. Unresolved useful facts stay chronological in Check-in.
 - “I’ll come back to this,” “I’m not sure,” and explicit zero/no are distinct states.
 
 ### Historical mileage and shared report authority
@@ -118,12 +116,108 @@ canonical date-aware rate model. Home, Reports and Tax-Time share the same expen
 and profit projection, adding standard mileage once and excluding the same vehicle’s
 disallowed operating costs. Actual-expense treatment stays authoritative.
 
-### Approved next phase
+### Phase 2A: guided review and the 30-day policy
 
-Phase 2 refines Reports visually without replacing Tax-Time functionality. Transactions
-needs individual detail/editing, multi-selection, “Mark as personal” / “Remove from
-business,” individual mixed-use allocation, efficient business-only exceptions,
-grouped historical catch-up and an obvious Home path. Do not expose accounting internals.
+Betti guides customers to the smallest useful action: missing receipts, a scoped
+older-purchase sweep, then individual factual exceptions. Transactions handles
+selection at scale; Check-in asks questions that add value; receipts preserve evidence.
+
+Age is the difference between the activity date and the Business-local calendar date
+at the canonical `asOf` instant. The setup timezone takes precedence over retained
+cadence timezone; missing/invalid timezone falls back to UTC. **Exactly 30 days remains
+contemporaneous; 31 days is historical.** This is not a tax rule or a retention limit.
+
+#### Complete current question policy matrix
+
+| Question/fact | Age ≤30 days | Age >30 days | Reason and evidence consequence |
+| --- | --- | --- | --- |
+| Meal attendee/relationship | Ask when missing and business portion exists | Non-conversational | Stale recollection is low value; attendee remains unknown, never fabricated |
+| Meal business purpose (`receipt_meal_business_purpose`, purpose-stage meal candidate) | Ask when missing | Non-conversational | Purpose remains missing; business-only account context is not meal substantiation |
+| Meal candidate: was this business? (`BUSINESS_USE_UNCLEAR`) | Ask | Keep useful factual question | Business versus personal is a material fact; a personal sweep can eliminate it |
+| Other purchase business use | Ask | Keep | Customer can remove nonbusiness purchases in bulk; no inferred answer |
+| Ordinary purchase identity/purpose (“What did you buy?”) | Ask | Keep | Ambiguous merchant/category still requires a useful fact |
+| Travel destination/dates/business reason | Ask | Keep | Material trip facts can come from records; no invented travel justification |
+| Mixed-use dollars/percentage | Ask individually | Keep individually | Allocation changes amounts; never bulk assign a percentage |
+| Transaction nature (purchase, earned money, transfer, card payment, refund, owner money, borrowing) | Ask | Keep | These facts determine what the activity is, regardless of age |
+| Conflicting evidence / factual choices (including loan-related facts when canonically identified) | Ask | Keep | An evidence conflict cannot be resolved by age |
+| Phone business-use percentage | Ask when needed | Keep / discover when needed | Recurring allocation remains useful; no older-record discovery cutoff |
+| Internet business-use percentage | Ask when needed | Keep / discover when needed | Same factual allocation requirement |
+| Equipment business-use percentage | Ask when needed | Keep / discover when needed | Business portion is factual; asset tax decisions remain separate |
+| Equipment placed-in-service date | Ask if opened | Keep | Material date can be established from records |
+| Recurring shared-expense context | Ask if opened | Keep | Durable recurring facts remain useful |
+| Home-office regular/exclusive use | Ask if opened | Keep | Business-scoped yes/no facts, not a stale transaction memory test |
+| Home-office and total-home area | Ask if opened | Keep | Business-scoped measurements; age does not resolve them |
+| Vehicle association | Ask if opened | Keep | Identifies the vehicle; preserves method/allocation rules |
+| Vehicle total miles | Ask if opened | Keep | Record-based annual fact; missing is not zero |
+| Contractor payment method | Ask if unknown | Keep | Material factual payment context remains required |
+| Contractor W-9 status | Ask under existing deferral rules | Keep | A current document status, not retrospective meal detail |
+| Receipt request | Guided Needs a receipt view | Same guided view | Age never supplies a receipt; unavailable is a separate explicit assertion |
+| Any additional canonical percentage, yes/no, integer, date or factual-choice question | Existing behavior | Existing behavior | No broad suppression by control type; unsupported/unknown facts fail closed |
+
+The canonical askable SQL projection applies this policy to **existing and future**
+question leaves. It does not append answered/resolved events or change tax treatments.
+The original evidence-eligible projection remains available to reporting. Historical
+meal limitations appear as documentation issues, not instructions to reconstruct stale
+facts in Check-in. Other unresolved tax-treatment safeguards remain in force. Current
+customer corrections and later evidence continue to control the record.
+
+#### Transactions work views and selection
+
+- **All:** canonical current activity, retained legacy activity, and unmatched receipt
+  evidence. Inactive/absorbed records are projected through existing current-state logic.
+- **Needs a receipt:** bank-backed outflows that are expenses or unresolved activity,
+  still in business scope, with no attached receipt and no current unavailable assertion.
+  This is an organizational view, not a claim every purchase legally requires a receipt.
+- **Receipt only:** unmatched receipt evidence and receipt-backed records without a
+  bank account. Legitimate cash/owner-paid purchases are not errors. Existing receipt
+  handling remains authoritative.
+- **Needs review:** current record-bound review facts (including deferred facts that
+  remain materially necessary) and open deduction facts, excluding nonbusiness activity
+  and suppressed historical meal documentation. A missing receipt alone is not enough.
+
+Server-side filters cover merchant/description search, category, date range and account.
+Pages contain at most 50 rows; one extra index row establishes whether another page
+exists. Only that page is hydrated into customer records. **Select all means the activity displayed on this page**, never unseen activity on other pages.
+Rows and checkboxes are separate keyboard targets. Filters/pages clear the selection.
+Legacy and receipt-only records retain their existing individual controls. A selection
+containing those records cannot use bank-only bulk actions; the UI explains that they
+need individual review. No selected item is silently skipped.
+
+#### Guided assertions and history
+
+“Remove from business” is an explicit nonbusiness correction using the canonical
+personal-scope correction and restoration model. It preserves imported evidence,
+appends a decision, invalidates inapplicable questions, and can be restored from detail.
+It does not set a mixed-use allocation. Mixed use stays individual.
+
+“I don’t have these receipts” records the existing immutable receipt-unavailable
+assertion. It closes the upload request, **not** the missing factual evidence. It never
+changes business use or creates a deductibility conclusion. Outcomes identify records
+with enough other information, useful facts still needed, or documentation limitations.
+Later receipt attachment can supersede the unavailable state, retaining both histories.
+
+A bounded atomic database operation checks the authenticated owner, required MFA,
+active membership, deletion state, every selected record/version, and the scope before
+writing. A batch request ID binds the exact action and selection for retries. Per-record
+results retain prior/current references and guided-review provenance. One noisy new
+customer-facing event per processing step is not added.
+
+Historical sweep completion is a separate explicit “I’ve reviewed these purchases”
+assertion about the selected purchases, with the then-current decisions preserved in
+history. It changes neither treatment nor substantiation. A later factual answer does
+not erase that review or restart the same personal sweep. Receipt review has priority, then unreviewed
+older purchases, then useful conversational exceptions. Completed receipt assertions
+stop upload nags. Deferrals remain unresolved and do not count as answered.
+
+Check-in puts a small replaceable Betti presence beside the question, followed by
+compact transaction context, help, a modest auto-growing response, Continue and
+secondary actions. Stable session ordering, same-record follow-ups, retries and
+chronological selection remain unchanged. No denominator grows under an active answer.
+
+### Phase 2B and next manual phase
+
+Full Reports visual refinement remains Phase 2B. Preserve annual readiness, Tax-Time
+PDF, exports, mileage, corrections, tenant isolation and retained read-only access.
 
 Next manual document testing covers receipt upload/extraction/matching, receipt before
 bank activity, cash/receipt-only expenses, meals, statement PDFs, duplicate detection

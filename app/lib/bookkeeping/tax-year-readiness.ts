@@ -36,7 +36,7 @@ export type TaxTimeReviewItem = {
 
 export type TaxYearReadinessContext = {
   report: CanonicalReport
-  customerQuestions: Array<{ id: string; source?: string; prompt: string; transaction: { date: string | null; amountCents: number | null } }>
+  customerQuestions: Array<{ id: string; nonConversational?: boolean; source?: string; prompt: string; transaction: { date: string | null; amountCents: number | null } }>
   contractorSummaries: ContractorSummary[]
   businessMilesMilli: number
   vehicleReports?:Array<{displayName:string;method:string;businessMilesMilli:number;totalMilesMilli:number|null;allocationBasisPoints:number|null;mileageDeductionCents:number|null;actualExpenseCents:number;deductibleActualExpenseCents:number|null;requiresCpaReview:boolean;cpaReviewReasons:string[];expenses?:Array<{id:string;kind:string;status:string;deductibleCents:number|null}>}>
@@ -82,9 +82,12 @@ export function deriveTaxYearReadiness(taxYear: number, input: TaxYearReadinessC
   for (const row of unresolvedExpenses) issues.push({ code: 'EXPENSE_NATURE_UNRESOLVED', title: `Spending needs context: ${row.merchant}`,
     detail: 'WriteOffs still needs a business fact before this outflow can be treated safely.', kind: 'customer_action',
     actionHref: '/check-in', recordId: row.recordId })
-  if (yearQuestions.length && unresolvedIncome.length + unresolvedExpenses.length === 0) {
+  const documentationQuestions=yearQuestions.filter(question=>question.nonConversational)
+  const conversationalQuestions=yearQuestions.filter(question=>!question.nonConversational)
+  if(documentationQuestions.length) issues.push({code:'HISTORICAL_DOCUMENTATION_LIMITATION',title:'Older purchases have documentation limits',detail:`${plural(documentationQuestions.length, 'purchase')} still lack meal details. No missing facts were assumed. Keep any supporting records you find.`,kind:'documentation',actionHref:'/transactions'})
+  if (conversationalQuestions.length && unresolvedIncome.length + unresolvedExpenses.length === 0) {
     issues.push({ code: 'BOOKKEEPING_QUESTIONS_OPEN', title: 'Business details need answers',
-      detail: `${plural(yearQuestions.length, 'question')} remain in your existing attention queue.`,
+      detail: `${plural(conversationalQuestions.length, 'question')} remain in your existing attention queue.`,
       kind: 'customer_action', actionHref: '/check-in' })
   }
   if (missingDocumentation.length || lostDocumentation.length) issues.push({ code: 'DOCUMENTATION_INCOMPLETE',

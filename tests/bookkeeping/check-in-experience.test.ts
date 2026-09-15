@@ -39,7 +39,7 @@ describe('continuous Check in with Betti experience',()=>{
 
   it('renders conversational entry and zero-question states without a weekly date header',()=>{
     expect(flow).toContain('Check in with Betti')
-    expect(flow).toContain('I have a question about this')
+    expect(flow).toContain('question-identity')
     expect(flow).toContain('More waiting')
     expect(flow).not.toContain('Question {answered + 1} of {total}</p>{!embedded&&<Link')
     expect(flow).toContain('Your books are current.')
