@@ -1,8 +1,23 @@
 # WriteOffs Membership Architecture
 
+## Current launch authority — September 15, 2026
+
+The fresh-customer launch offer is **WriteOffs, $39/month**, one membership. Current
+and immediately previous calendar months are included; earlier catch-up costs
+**$20 per additional month once**, with explicit quoted consent and confirmed payment.
+See [Workflow specification](WORKFLOW_SPECIFICATION.md#3-membership-coverage-and-historical-cleanup).
+
+The older Expenses/Business catalog below is retained as historical architecture and
+subscription compatibility, not as an active offer. New checkout maps the single
+membership to the existing full Business entitlement set. No historical subscription
+is silently repriced, and legacy tier-switch actions are no longer offered. Existing
+cancellation, no-proration and 12-month read-only semantics remain unchanged.
+
+
+
 Status: canonical product specification. Implemented by the additive Business-owned membership authority; operational details are in [STRIPE_MEMBERSHIP_OPERATIONS.md](./STRIPE_MEMBERSHIP_OPERATIONS.md).
 
-This document defines what WriteOffs promises before Stripe is allowed to define billing behavior. It does not activate billing, gate routes, or alter canonical records. Membership prices remain separately governed. No historical-cleanup price or billing formula is currently approved.
+This document defines what WriteOffs promises before Stripe is allowed to define billing behavior. It does not activate billing, gate routes, or alter canonical records. Membership prices remain separately governed. The launch pricing above supersedes earlier commercial hypotheses in this document.
 
 ## Membership bookkeeping coverage
 

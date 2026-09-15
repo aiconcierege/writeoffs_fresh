@@ -194,25 +194,28 @@ export default function BankConnect(input: {
     finally { setBusy(false) }
   }
 
-  return <div className="space-y-5">
-    {input.enabled
+  const connectionControls=<div className="space-y-5">{input.enabled
       ? <>{input.sandbox && <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"><strong>Sandbox testing only.</strong> Use Plaid Sandbox institutions and test credentials—never real bank credentials.</div>}
         <p className="text-sm leading-6 text-slate-600">WriteOffs uses Plaid to securely connect your account and retrieve account and transaction information for your bookkeeping. Review the <a className="font-semibold underline underline-offset-2" href="/legal/privacy" target="_blank" rel="noreferrer">WriteOffs Privacy Policy</a> and <a className="font-semibold underline underline-offset-2" href="https://plaid.com/legal/#end-user-privacy-policy" target="_blank" rel="noreferrer">Plaid End User Privacy Policy</a>.</p>
         <div className="flex flex-wrap gap-3">
-          <button type="button" disabled={busy} onClick={() => void start()} className="btn btn-primary min-h-11 disabled:opacity-60">Connect an account</button>
+          <button type="button" disabled={busy} onClick={() => void start()} className="btn btn-primary min-h-11 disabled:opacity-60">Connect my accounts</button>
           {input.connections.some((item) => item.connection_status !== 'disconnected') && <button type="button" disabled={busy} onClick={() => void updateAccounts()} className="btn btn-secondary min-h-11 disabled:opacity-60">Update accounts</button>}
         </div></>
-      : <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">New bank connections are not available in this environment. You can still choose how you use accounts already connected.</div>}
+      : <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">New bank connections are not available in this environment. You can still choose how you use accounts already connected.</div>}</div>
+
+  return <div className="space-y-5">
+    {input.accounts.length===0&&connectionControls}
     {message && <p role="status" aria-live="polite" className="text-sm text-slate-700">{message}</p>}
-    <ul className="space-y-3">
+    {input.accounts.length>0&&<div className="sticky top-16 z-10 border-b border-[#dce3de] bg-[#fbfaf7]/95 py-4 backdrop-blur"><h2 className="text-xl font-semibold">Tell Betti how you use these accounts</h2><p className="mt-2 text-sm leading-6 text-[#59665f]">This helps me know which purchases belong in your books.</p><p className="mt-2 text-sm leading-6">For each account, choose whether you use it only for business or for business and personal spending.</p><p className="mt-2 text-sm font-semibold" role="status">{input.accounts.filter(a=>a.connection_status==='active'&&!accountUseById[a.id]).length} accounts still need a choice</p></div>}
+    <ul className="space-y-8">
       {input.connections.map((connection) => {
         const accounts = input.accounts.filter((account) => account.item_record_id === connection.id)
-        return <li key={connection.id} className="rounded-xl border border-slate-200 p-4">
+        return <li key={connection.id} className="border-t border-[#dce3de] py-5">
           <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-950">{connection.institution_name || 'Connected institution'}</h2><p className="mt-1 text-sm text-slate-600">{connectionLabel(connection.connection_status)}</p>{connection.last_successful_sync_at && <p className="mt-1 text-xs text-slate-500">Last updated {new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(connection.last_successful_sync_at))}</p>}</div>{input.enabled && <div className="flex gap-2">{['reconnect_required', 'needs_attention'].includes(connection.connection_status) && <button type="button" disabled={busy} onClick={() => void start(connection.id)} className="btn btn-secondary min-h-11">Reconnect account</button>}{connection.connection_status !== 'disconnected' && <button type="button" disabled={busy} onClick={() => void disconnect(connection.id)} className="min-h-11 rounded-md px-3 text-sm font-semibold text-red-700 hover:bg-red-50">Disconnect</button>}</div>}</div>
           {accounts.length > 0 && <ul className="mt-4 space-y-3">{accounts.map((account) => {
             const selected = accountUseById[account.id]
             const state = accountUseState[account.id]
-            return <li key={account.id} className="rounded-xl bg-slate-50 p-4">
+            return <li key={account.id} className="border-b border-[#e1e6e2] py-5">
               <div className="text-sm"><strong className="text-slate-950">{account.display_name}</strong>
                 <span className="text-slate-600">{account.mask_last_four ? ` •••• ${account.mask_last_four}` : ''}
                   {account.connection_status !== 'active' ? ' — Needs attention' : ''}</span></div>
@@ -238,5 +241,6 @@ export default function BankConnect(input: {
         </li>
       })}
     </ul>
+    {input.accounts.length>0&&connectionControls}
   </div>
 }

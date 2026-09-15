@@ -46,12 +46,15 @@ export function assessVehicleDeduction(input: {
   method: VehicleMethod
   ownership: 'owned' | 'leased' | 'unknown'
   businessMiles: Array<{ occurredOn: string; milesMilli: number }>
+  annualBusinessMilesMilli?: number
+  historicalMiles?: Array<{from:string;through:string;milesMilli:number}>
   totalMilesMilli: number | null
   isMixedUse: boolean | null
   expenses: Array<{ id: string; kind: VehicleExpenseKind; amountCents: number }>
 }) {
-  const businessMilesMilli = input.businessMiles.reduce((sum, trip) => sum + trip.milesMilli, 0)
-  const allocationBasisPoints = businessUseBasisPoints({ businessMilesMilli,
+  const historical=input.historicalMiles??[]
+  const businessMilesMilli = input.businessMiles.reduce((sum, trip) => sum + trip.milesMilli, 0)+historical.reduce((sum,period)=>sum+period.milesMilli,0)
+  const allocationBasisPoints = businessUseBasisPoints({ businessMilesMilli:input.annualBusinessMilesMilli??businessMilesMilli,
     totalMilesMilli: input.totalMilesMilli, isMixedUse: input.isMixedUse })
   const expenseRows = input.expenses.map(expense => {
     const special = expense.kind === 'purchase' || expense.kind === 'improvement'
@@ -65,7 +68,11 @@ export function assessVehicleDeduction(input: {
       deductibleCents }
   })
   const mileageDeduction = input.method === 'standard_mileage'
-    ? mileageDeductionCents(input.businessMiles) : input.method === 'actual_expenses' ? 0 : null
+    ? mileageDeductionCents(input.businessMiles)+historical.reduce((sum,period)=>{
+      const rate=BUSINESS_MILEAGE_RATES.find(rate=>period.from>=rate.effectiveFrom&&period.through<=rate.effectiveThrough)
+      if(!rate||period.from>period.through||!Number.isSafeInteger(period.milesMilli)||period.milesMilli<0)throw new Error('Historical mileage requires a supported rate period.')
+      return sum+Math.round(period.milesMilli*rate.rateMillisPerMile/1_000_000)
+    },0) : input.method === 'actual_expenses' ? 0 : null
   return {
     version: VEHICLE_TAX_ENGINE_VERSION,
     method: input.method,

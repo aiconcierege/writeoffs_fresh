@@ -26,7 +26,7 @@ describe('public production polish', () => {
 
   it('provides the complete restrained footer and only real destinations', () => {
     const footer = read('app/components/PublicFooter.tsx')
-    for (const destination of ['/#how','/#features','/#for-you','/contact','/press','/legal/privacy','/legal/terms','/legal/tax-disclaimer','/#waitlist']) {
+    for (const destination of ['/#how','/#features','/#for-you','/contact','/press','/legal/privacy','/legal/terms','/legal/tax-disclaimer','/signup']) {
       expect(footer).toContain(destination)
     }
     expect(footer).not.toMatch(/\/pricing|\/about|\/faq/)

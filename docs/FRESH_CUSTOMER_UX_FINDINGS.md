@@ -1,8 +1,9 @@
-# Fresh-customer UX findings — deferred design batch
+# Fresh-customer UX findings — Phase 1 tracking
 
 These product-owner-approved findings were recorded during the September 2026
-fresh-customer staging test. They are future design work, separate from functional
-blocker repairs. Existing onboarding/funnel findings collected elsewhere remain
+fresh-customer staging test. They were approved separately from functional blocker repairs and are now addressed
+by the Phase 1 refinement. Canonical decisions and remaining Phase 2 scope are in
+[WORKFLOW_SPECIFICATION.md](WORKFLOW_SPECIFICATION.md#phase-1-fresh-customer-experience). Existing onboarding/funnel findings collected elsewhere remain
 in force; this list does not replace or implement them.
 
 ## Home
@@ -14,9 +15,8 @@ in force; this list does not replace or implement them.
 
 ## Check-in
 
-The question presentation feels too blocky and form-like. A later cohesive redesign
-should make it lighter and more conversational, while preserving transaction
+The question presentation feels too blocky and form-like. The Phase 1 refinement makes it lighter and more conversational, while preserving transaction
 context, accessibility, mobile quality, deferral, and one question at a time.
 
-Do not implement the visual redesign as part of the stuck-Continue repair. The
-repair may change submission/recovery behavior and make live progress truthful.
+The earlier stuck-Continue repair remains intact: version checks, idempotency,
+authoritative queue reload and stable session ordering are preserved.

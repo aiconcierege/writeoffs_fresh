@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { validateOnboardingBusinessPatch } from '../lib/onboarding/validation'
+import {catchUpQuote, displayMonth, monthAt, monthIndex} from '../lib/onboarding/catch-up'
+import {HistoricalMileage} from './HistoricalMileage'
 import { BettiIllustration } from '../components/BettiIllustration'
 import {
   activeOnboardingSteps, getFirstIncompleteOnboardingStep,
@@ -11,26 +13,42 @@ import {
 
 const TITLES: Record<OnboardingUiStep, string> = {
   business: 'Your business', eligibility: 'Product fit', history: 'Business history',
-  operations: 'How you work', materials_history: 'Past materials handling',
-  catch_up: 'Starting point', starting_method: 'First activity', review: 'Review',
+  operations: 'How you work',
+  catch_up: 'Starting point', historical_mileage: 'Business mileage', starting_method: 'First activity', review: 'Review',
 }
 const FIELD = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base text-slate-950 outline-none focus:border-[#243186] focus:ring-2 focus:ring-[#243186]/20'
 
-export default function OnboardingFlow({ initialBusiness, editing = false }: {
+export default function OnboardingFlow({ initialBusiness, joinedMonth, vehicles = [], historicalMileageId, editing = false }: {
   initialBusiness: OnboardingBusinessData
+  joinedMonth: string
+  vehicles?: Array<{id:string;display_name:string}>
+  historicalMileageId?: string
   editing?: boolean
 }) {
   const router = useRouter()
   const [business, setBusiness] = useState(() => ({
     ...initialBusiness,
-    catch_up_start_date: initialBusiness.catch_up_start_date ?? `${new Date().getFullYear()}-01-01`,
+    catch_up_start_date: initialBusiness.catch_up_start_date ?? `${joinedMonth}-01`,
   }))
-  const [step, setStep] = useState<OnboardingUiStep>(() => getFirstIncompleteOnboardingStep(initialBusiness))
+  const [step, setStep] = useState<OnboardingUiStep>(() => getFirstIncompleteOnboardingStep(initialBusiness,new Date(),joinedMonth))
   const [saving, setSaving] = useState(false)
+  const [mileageRevision,setMileageRevision]=useState(historicalMileageId)
+  const [catchUpAgreed,setCatchUpAgreed]=useState(false)
+  const [serverQuote,setServerQuote]=useState<{startMonth:string;additionalMonths:number;totalCents:number;includedFrom:string}|null>(null)
+  useEffect(()=>{
+    if(step!=='catch_up')return
+    const controller=new AbortController(),startMonth=business.catch_up_start_date?.slice(0,7)
+    void fetch('/api/onboarding/catch-up',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({startMonth,preview:true}),signal:controller.signal})
+      .then(async response=>{if(!response.ok)throw new Error();return response.json()})
+      .then(quote=>{if(!controller.signal.aborted)setServerQuote({...quote,startMonth})})
+      .catch(()=>{if(!controller.signal.aborted)setError('We couldn’t confirm the catch-up price. Refresh to try again.')})
+    return ()=>controller.abort()
+  },[step,business.catch_up_start_date])
+  const activeQuote=serverQuote?.startMonth===business.catch_up_start_date?.slice(0,7)?serverQuote:null
   const [error, setError] = useState<string | null>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const pendingRequests = useRef(new Map<string, string>())
-  const steps = activeOnboardingSteps(business)
+  const steps = activeOnboardingSteps(business,joinedMonth)
   const stepIndex = Math.max(0, steps.indexOf(step))
 
   useEffect(() => {
@@ -41,7 +59,7 @@ export default function OnboardingFlow({ initialBusiness, editing = false }: {
     setBusiness((current) => ({ ...current, [field]: value }))
   }
 
-  async function save(stepToSave: Exclude<OnboardingUiStep, 'review'>, data: Record<string, unknown>) {
+  async function save(stepToSave: Exclude<OnboardingUiStep, 'review' | 'historical_mileage'>, data: Record<string, unknown>) {
     const checked = validateOnboardingBusinessPatch({ step: stepToSave, data })
     if (!checked.ok) throw new Error(checked.error)
     const fingerprint = `${stepToSave}:${JSON.stringify(data)}`
@@ -69,7 +87,7 @@ export default function OnboardingFlow({ initialBusiness, editing = false }: {
   }
 
   function nextStep() {
-    const currentSteps = activeOnboardingSteps(business)
+    const currentSteps = activeOnboardingSteps(business,joinedMonth)
     const index = currentSteps.indexOf(step)
     if (currentSteps[index + 1]) setStep(currentSteps[index + 1])
   }
@@ -96,10 +114,13 @@ export default function OnboardingFlow({ initialBusiness, editing = false }: {
         })
         if (business.keeps_future_sale_merchandise !== 'no') return
       }
-      if (step === 'materials_history') await save('materials_history', {
-        prior_materials_handling: business.prior_materials_handling,
-      })
-      if (step === 'catch_up') await save('catch_up', { catch_up_start_date: business.catch_up_start_date })
+      if (step === 'catch_up') {
+        const response=await fetch('/api/onboarding/catch-up',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({startMonth:business.catch_up_start_date?.slice(0,7),agreed:catchUpAgreed,expectedTotalCents:activeQuote?.totalCents})})
+        const result=await response.json()
+        if(!response.ok)throw new Error(result.error || 'We couldn’t save your starting month.')
+        if(result.url){window.location.assign(result.url);return}
+        if(!result.ready)throw new Error('Please review and agree to the one-time catch-up charge before continuing.')
+      }
       if (step === 'starting_method') await save('starting_method', { onboarding_start_method: business.onboarding_start_method })
       nextStep()
     } catch (caught) {
@@ -121,7 +142,7 @@ export default function OnboardingFlow({ initialBusiness, editing = false }: {
   }
 
   function back() {
-    const currentSteps = activeOnboardingSteps(business)
+    const currentSteps = activeOnboardingSteps(business,joinedMonth)
     const previous = currentSteps[currentSteps.indexOf(step) - 1]
     if (previous) setStep(previous)
   }
@@ -135,17 +156,17 @@ export default function OnboardingFlow({ initialBusiness, editing = false }: {
         <div className="flex items-center justify-between text-sm"><span className="font-semibold text-[#243186]">Step {stepIndex + 1} of {steps.length}</span><span className="text-slate-600">{TITLES[step]}</span></div>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={stepIndex + 1} aria-label="Onboarding progress"><div className="h-full rounded-full bg-[#00d0a6]" style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }} /></div>
       </div>
-      <div className="card overflow-hidden">
-        <form aria-busy={saving} onSubmit={(event) => { event.preventDefault(); void (step === 'review' ? complete() : continueStep()) }}>
-          <div className="relative overflow-visible p-5 sm:p-8">
+      <div className="onboarding-conversation">
+        <form aria-busy={saving} onSubmit={(event) => { event.preventDefault(); if(step==='historical_mileage')return; void (step === 'review' ? complete() : continueStep()) }}>
+          <div className="relative overflow-visible py-6 sm:py-10">
             {!editing && step === 'business' && <BettiIllustration state="welcome" decorative className="onboarding-betti-welcome" sizes="(max-width: 639px) 6rem, 8rem" />}
-            <p className="text-sm font-semibold uppercase tracking-wide text-[#243186]">Set up WriteOffs</p>
-            <div className="mt-4"><Step step={step} business={business} update={update} headingRef={headingRef} edit={setStep} /></div>
+
+            <div className="mt-4">{step==='historical_mileage'?<><h1 ref={headingRef} tabIndex={-1} className="text-2xl font-semibold tracking-tight sm:text-3xl">How many business miles have you driven so far this year?</h1><HistoricalMileage joinedMonth={joinedMonth} coverageStart={business.catch_up_start_date??undefined} vehicles={vehicles} expectedId={mileageRevision} onSaved={(answer,id)=>{setMileageRevision(id);update('historical_mileage_answer',answer);nextStep()}}/></>:<Step step={step} business={business} update={update} headingRef={headingRef} edit={setStep} joinedMonth={joinedMonth} agreed={catchUpAgreed} setAgreed={setCatchUpAgreed} serverQuote={activeQuote} />}</div>
             {error && <div role="alert" aria-live="assertive" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>}
           </div>
-          <div className="sticky bottom-0 flex gap-3 border-t border-slate-200 bg-white/95 p-4 sm:justify-between sm:px-8">
+          <div className="mt-6 flex gap-3 border-t border-slate-200 bg-[#fbfaf7]/95 py-4 sm:justify-between">
             <button type="button" onClick={back} disabled={saving || stepIndex === 0} className="btn btn-secondary min-h-11 flex-1 disabled:opacity-40 sm:flex-none">Back</button>
-            {!blocked && <button type="submit" disabled={saving} className="btn btn-primary min-h-11 flex-[2] px-5 disabled:opacity-60 sm:flex-none">{saving ? 'Saving…' : step === 'review' ? 'Finish setup' : 'Continue'}</button>}
+            {!blocked && step!=='historical_mileage' && <button type="submit" disabled={saving||(step==='catch_up'&&!activeQuote)} className="btn btn-primary min-h-11 flex-[2] px-5 disabled:opacity-60 sm:flex-none">{saving ? 'Saving…' : step === 'review' ? 'Start using WriteOffs' : 'Continue'}</button>}
           </div>
         </form>
       </div>
@@ -157,32 +178,40 @@ export default function OnboardingFlow({ initialBusiness, editing = false }: {
 type StepProps = {
   step: OnboardingUiStep; business: OnboardingBusinessData
   update: <K extends keyof OnboardingBusinessData>(field: K, value: OnboardingBusinessData[K]) => void
+  serverQuote: {startMonth:string;additionalMonths:number;totalCents:number;includedFrom:string}|null
+  joinedMonth: string; agreed: boolean; setAgreed: (value:boolean)=>void
   headingRef: React.RefObject<HTMLHeadingElement | null>; edit: (step: OnboardingUiStep) => void
 }
 
-function Step({ step, business, update, headingRef, edit }: StepProps) {
+function Step({ step, business, update, headingRef, edit, joinedMonth, agreed, setAgreed, serverQuote }: StepProps) {
   const heading = 'text-2xl font-bold text-slate-950 outline-none sm:text-3xl'
   if (step === 'business') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>Tell us about your business.</h1><p className="mt-3 text-sm leading-6 text-slate-600">A few basics help WriteOffs understand your work.</p><div className="mt-7 space-y-5"><Field label="Business name" optional><input className={FIELD} value={business.name ?? ''} maxLength={200} onChange={(e) => update('name', e.target.value)} /></Field><Field label="What does your business do?"><textarea required rows={4} maxLength={2000} className={FIELD} value={business.business_description ?? ''} onChange={(e) => update('business_description', e.target.value)} placeholder="I install and service residential heating and cooling systems." /></Field></div></div>
-  if (step === 'eligibility') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>Is this business reported on Schedule C with your personal tax return?</h1><p className="mt-3 text-sm leading-6 text-slate-600">WriteOffs v1 is built for self-employed businesses reported this way.</p><Choices legend="Schedule C reporting"><Choice name="schedule" selected={business.schedule_c_eligibility === 'yes'} onClick={() => update('schedule_c_eligibility', 'yes')} label="Yes" /><Choice name="schedule" selected={business.schedule_c_eligibility === 'no'} onClick={() => update('schedule_c_eligibility', 'no')} label="No" /><Choice name="schedule" selected={business.schedule_c_eligibility === 'not_sure'} onClick={() => update('schedule_c_eligibility', 'not_sure')} label="I’m not sure" /></Choices>{business.schedule_c_eligibility === 'no' && <Unsupported title="This setup isn’t supported yet">WriteOffs v1 does not yet provide entity-level books for partnerships or corporations. This is only a product limitation.</Unsupported>}{business.schedule_c_eligibility === 'not_sure' && <Unsupported title="Confirm this before continuing">A tax professional can tell you whether this business is reported on Schedule C. We’ll keep your saved answers here.</Unsupported>}</div>
+  if (step === 'eligibility') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>How do you report this business on your taxes?</h1><p className="mt-3 text-sm leading-6 text-slate-600">WriteOffs is built for people who report their self-employed business with their personal tax return.</p><Choices legend="Schedule C reporting"><Choice name="schedule" selected={business.schedule_c_eligibility === 'yes'} onClick={() => update('schedule_c_eligibility', 'yes')} label="With my personal tax return" detail="Usually called Schedule C." /><Choice name="schedule" selected={business.schedule_c_eligibility === 'no'} onClick={() => update('schedule_c_eligibility', 'no')} label="As a separate business tax return" /><Choice name="schedule" selected={business.schedule_c_eligibility === 'not_sure'} onClick={() => update('schedule_c_eligibility', 'not_sure')} label="I’m not sure" /></Choices>{business.schedule_c_eligibility === 'no' && <Unsupported title="This setup isn’t supported yet">WriteOffs v1 does not yet provide entity-level books for partnerships or corporations. This is only a product limitation.</Unsupported>}{business.schedule_c_eligibility === 'not_sure' && <Unsupported title="Confirm this before continuing">A tax professional can tell you whether this business is reported on Schedule C. We’ll keep your saved answers here.</Unsupported>}</div>
   if (step === 'history') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>Are you starting fresh or bringing in an existing business?</h1><Choices legend="Business history"><Choice name="stage" selected={business.business_stage === 'new'} onClick={() => update('business_stage', 'new')} label="I’m starting a new business" /><Choice name="stage" selected={business.business_stage === 'existing'} onClick={() => update('business_stage', 'existing')} label="This business already exists" /></Choices><div className="mt-6 max-w-sm"><Field label="When did the business start?"><input type="month" required max={new Date().toISOString().slice(0, 7)} className={FIELD} value={business.business_start_month?.slice(0, 7) ?? ''} onChange={(e) => update('business_start_month', e.target.value)} /></Field></div></div>
   if (step === 'operations') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>Does your business buy parts or materials for customer jobs?</h1><p className="mt-3 text-sm leading-6 text-slate-600">This includes items you install, use, or provide while completing a customer’s job.</p><Choices legend="Customer-job materials"><Choice name="materials" selected={business.uses_customer_job_materials === 'yes'} onClick={() => update('uses_customer_job_materials', 'yes')} label="Yes" detail="For example, fixtures, parts, paint, wire, equipment, or project materials." /><Choice name="materials" selected={business.uses_customer_job_materials === 'no'} onClick={() => update('uses_customer_job_materials', 'no')} label="No" /><Choice name="materials" selected={business.uses_customer_job_materials === 'not_sure'} onClick={() => update('uses_customer_job_materials', 'not_sure')} label="I’m not sure" /></Choices><div className="mt-8"><h2 className="text-lg font-semibold text-slate-950">Does your business keep a significant amount of products or merchandise in stock to sell later?</h2><p className="mt-2 text-sm leading-6 text-slate-600">Don’t count normal leftover parts or materials you keep for future jobs.</p><Choices legend="Products kept for future sale"><Choice name="inventory" selected={business.keeps_future_sale_merchandise === 'yes'} onClick={() => update('keeps_future_sale_merchandise', 'yes')} label="Yes" /><Choice name="inventory" selected={business.keeps_future_sale_merchandise === 'no'} onClick={() => update('keeps_future_sale_merchandise', 'no')} label="No" /><Choice name="inventory" selected={business.keeps_future_sale_merchandise === 'not_sure'} onClick={() => update('keeps_future_sale_merchandise', 'not_sure')} label="I’m not sure" /></Choices></div><p className="mt-5 text-sm leading-6 text-slate-600">Changing these answers later may affect how WriteOffs handles some business expenses, but it will not rewrite prior answers.</p>{business.keeps_future_sale_merchandise === 'yes' && <Unsupported title="WriteOffs isn’t the right fit for this setup yet">WriteOffs supports trades and service businesses with job materials and normal leftover parts. It does not yet manage substantial merchandise kept for later sale.</Unsupported>}{business.keeps_future_sale_merchandise === 'not_sure' && <Unsupported title="A little clarification is needed">Normal truck or shop stock is okay. Confirm whether your business primarily maintains substantial merchandise for future customers.</Unsupported>}</div>
-  if (step === 'materials_history') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>How have customer-job materials usually been handled at tax time?</h1><p className="mt-3 text-sm leading-6 text-slate-600">This saves useful history. It does not change how your taxes are handled.</p><Choices legend="Past handling"><Choice name="past" selected={business.prior_materials_handling === 'deduct_purchases'} onClick={() => update('prior_materials_handling', 'deduct_purchases')} label="I usually deduct what I buy during the year" /><Choice name="past" selected={business.prior_materials_handling === 'count_year_end'} onClick={() => update('prior_materials_handling', 'count_year_end')} label="I count what I still have at year-end" /><Choice name="past" selected={business.prior_materials_handling === 'accountant_handles'} onClick={() => update('prior_materials_handling', 'accountant_handles')} label="My accountant handles this" /><Choice name="past" selected={business.prior_materials_handling === 'not_sure'} onClick={() => update('prior_materials_handling', 'not_sure')} label="I’m not sure" /></Choices><p className="mt-5 rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">You can keep using WriteOffs while this is clarified. Customer-job material tax timing stays unresolved rather than being guessed.</p></div>
-  if (step === 'catch_up') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>When should WriteOffs start organizing your activity?</h1><p className="mt-3 text-sm leading-6 text-slate-600">Starting January 1 of this year is usually the simplest choice. You can bring in earlier records later if needed.</p><div className="mt-7 max-w-sm"><Field label="Start date"><input type="date" required max={new Date().toISOString().slice(0, 10)} className={FIELD} value={business.catch_up_start_date ?? ''} onChange={(e) => update('catch_up_start_date', e.target.value)} /></Field></div></div>
-  if (step === 'starting_method') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>What would you like to add first?</h1><p className="mt-3 text-sm leading-6 text-slate-600">You can use both options later. Bank connections are not required.</p><Choices legend="First activity"><Choice name="start" selected={business.onboarding_start_method === 'statement_uploads'} onClick={() => update('onboarding_start_method', 'statement_uploads')} label="Import a CSV" detail="Bring in bank or card activity from a downloaded CSV file." /><Choice name="start" selected={business.onboarding_start_method === 'receipts'} onClick={() => update('onboarding_start_method', 'receipts')} label="Upload receipts" detail="Start preserving receipts and expense evidence." /></Choices></div>
-  return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>You’re ready to use WriteOffs.</h1><p className="mt-3 text-sm leading-6 text-slate-600">WriteOffs will keep the accounting work in the background and ask simple factual questions only when they matter.</p><dl className="mt-7 divide-y divide-slate-200 rounded-xl border border-slate-200">{[
-    ['Business', business.name || business.business_description || 'Your business', 'business'],
-    ['Customer-job materials', business.uses_customer_job_materials === 'yes' ? 'Yes' : business.uses_customer_job_materials === 'no' ? 'No' : 'Not sure', 'operations'],
-    ['Products kept to sell later', business.keeps_future_sale_merchandise === 'yes' ? 'Yes' : business.keeps_future_sale_merchandise === 'no' ? 'No' : 'Not sure', 'operations'],
-    ...(business.business_stage === 'existing' && business.uses_customer_job_materials === 'yes'
-      ? [['Past materials handling', business.prior_materials_handling === 'accountant_handles' ? 'My accountant handles this' : business.prior_materials_handling === 'count_year_end' ? 'I count what remains at year-end' : business.prior_materials_handling === 'deduct_purchases' ? 'I usually deduct yearly purchases' : 'Not sure', 'materials_history']]
-      : []),
-    ['Start organizing', formatDate(business.catch_up_start_date), 'catch_up'],
-    ['First activity', business.onboarding_start_method === 'receipts' ? 'Upload receipts' : 'Import a CSV', 'starting_method'],
-  ].map(([label, value, target]) => <div key={label} className="flex items-center justify-between gap-4 p-4"><div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</dt><dd className="mt-1 text-sm text-slate-900">{value}</dd></div><button type="button" className="min-h-11 px-2 text-sm font-semibold text-[#243186] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#243186]" onClick={() => edit(target as OnboardingUiStep)}>Edit</button></div>)}</dl><p className="mt-6 text-sm text-slate-600">After setup, you’ll go straight to your selected first activity. Home remains available from the main navigation.</p></div>
+  if (step === 'catch_up') {
+    const preview=catchUpQuote(business.catch_up_start_date?.slice(0,7) || joinedMonth,joinedMonth)
+    const quote={...preview,...(serverQuote??{}),includedFrom:(serverQuote?.includedFrom??preview.includedFrom).slice(0,7)}
+    const choose=(month:string)=>{if(!/^(19|20)\d{2}-(0[1-9]|1[0-2])$/.test(month)||month>joinedMonth)return;update('catch_up_start_date',`${month}-01`);setAgreed(false)}
+    return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>How far back should Betti organize your books?</h1>
+      <p className="mt-4 leading-7 text-[#59665f]">{displayMonth(quote.includedFrom)} and {displayMonth(joinedMonth)} are included in your membership.</p>
+      <Choices legend="Starting month">{[[joinedMonth,'Start this month'],[monthAt(monthIndex(joinedMonth)-1),'Start with last month'],[`${joinedMonth.slice(0,4)}-01`,'Start January 1']].filter(([month],index,rows)=>rows.findIndex(row=>row[0]===month)===index).map(([month,label])=><Choice key={month} name="start-month" selected={quote.startMonth===month} onClick={()=>choose(month)} label={label}/>)}</Choices>
+      <div className="mt-6 max-w-sm"><Field label="Choose another starting month"><input type="month" required max={joinedMonth} className={FIELD} value={quote.startMonth} onChange={e=>{if(e.target.value)choose(e.target.value)}}/></Field></div>
+      <div className="mt-7 border-y border-[#dce3de] py-6" aria-live="polite"><p className="font-semibold">Starting {displayMonth(quote.startMonth)}</p><p className="mt-2 leading-6 text-[#59665f]">{!serverQuote?'Confirming your price…':quote.additionalMonths ? `${quote.additionalMonths} additional historical months × $20 = $${quote.totalCents/100}, one time.` : 'No catch-up charge.'}</p>
+      {quote.additionalMonths>0&&<label className="mt-5 flex items-start gap-3 leading-6"><input type="checkbox" disabled={!serverQuote} checked={agreed} onChange={e=>setAgreed(e.target.checked)} className="mt-1 h-5 w-5 shrink-0"/><span>I agree to the one-time ${quote.totalCents/100} catch-up charge. Continue to secure checkout.</span></label>}</div>
+    </div>
+  }
+  if (step === 'starting_method') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>Let’s connect your business accounts</h1><p className="mt-4 leading-7 text-[#59665f]">WriteOffs works best when you connect the bank accounts and credit cards you use for your business.</p><Choices legend="How to get started"><Choice name="start" selected={business.onboarding_start_method === 'connected_financial_accounts'} onClick={() => update('onboarding_start_method', 'connected_financial_accounts')} label="Connect my accounts" detail="Recommended. Betti can keep your books up to date as new activity arrives."/><Choice name="start" selected={business.onboarding_start_method === 'statement_uploads'} onClick={() => update('onboarding_start_method', 'statement_uploads')} label="Upload bank or credit-card statements"/><Choice name="start" selected={business.onboarding_start_method === 'receipts'} onClick={() => update('onboarding_start_method', 'receipts')} label="Start with receipts"/></Choices></div>
+  return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>You’re ready to use WriteOffs.</h1><p className="mt-4 leading-7 text-[#59665f]">Betti has what she needs to start organizing your books. You can change these details later.</p>
+    <div className="mt-9 space-y-8">{[
+      {title:'Your business',target:'business',lines:[business.name || business.business_description || 'Your business',`${business.business_stage==='existing'?'Existing business':'New business'} · Started ${formatDate(business.business_start_month)}`]},
+      {title:'How we’ll get started',target:'catch_up',lines:[`Organizing records starting ${formatDate(business.catch_up_start_date)}`,business.onboarding_start_method==='connected_financial_accounts'?'Connected accounts':business.onboarding_start_method==='receipts'?'Receipts':'Bank or credit-card statements']},
+      {title:'About your business',target:'operations',lines:[business.uses_customer_job_materials==='yes'?'Buys materials for customer jobs':business.uses_customer_job_materials==='no'?'Doesn’t buy materials for customer jobs':'Materials use still to clarify','Doesn’t keep significant inventory for resale']},
+    ].map(section=><section key={section.title} className="border-t border-[#dce3de] pt-5"><div className="flex items-center justify-between gap-4"><h2 className="text-sm font-semibold text-[#59665f]">{section.title}</h2><button type="button" onClick={()=>edit(section.target as OnboardingUiStep)} className="min-h-11 px-2 text-sm font-semibold text-[#243186]">Change<span className="sr-only"> {section.title.toLowerCase()}</span></button></div>{section.lines.map(line=><p key={line} className="mt-2 text-base leading-7">{line}</p>)}</section>)}</div></div>
 }
 
 function Field({ label, optional, children }: { label: string; optional?: boolean; children: React.ReactNode }) { return <label className="block"><span className="text-sm font-semibold text-slate-900">{label}</span>{optional && <span className="ml-2 text-xs text-slate-500">Optional</span>}<span className="mt-2 block">{children}</span></label> }
 function Choices({ legend, children }: { legend: string; children: React.ReactNode }) { return <fieldset className="mt-6 space-y-3"><legend className="sr-only">{legend}</legend>{children}</fieldset> }
 function Choice({ name, selected, onClick, label, detail }: { name: string; selected: boolean; onClick: () => void; label: string; detail?: string }) { return <label className={`flex cursor-pointer gap-3 rounded-xl border p-4 ${selected ? 'border-[#243186] bg-indigo-50/50 ring-1 ring-[#243186]' : 'border-slate-200'}`}><input type="radio" name={name} checked={selected} onChange={onClick} className="mt-1" /><span><span className="block font-semibold text-slate-950">{label}</span>{detail && <span className="mt-1 block text-sm leading-5 text-slate-600">{detail}</span>}</span></label> }
 function Unsupported({ title, children }: { title: string; children: React.ReactNode }) { return <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-5"><h2 className="font-semibold text-amber-950">{title}</h2><p className="mt-2 text-sm leading-6 text-amber-900">{children}</p></div> }
-function formatDate(value: string | null) { if (!value) return 'Not set'; return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`)) }
+function formatDate(value: string | null) { if (!value) return 'Not set'; return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`)) }

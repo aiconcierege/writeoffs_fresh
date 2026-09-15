@@ -1,5 +1,6 @@
 // app/layout.tsx
 import "./globals.css"
+import { Suspense } from "react"
 import { Inter } from "next/font/google"
 import { Header } from "./components/Header"
 
@@ -18,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body className={`${inter.className} min-h-screen bg-[#fbfaf7] text-[#17211d] antialiased`}>
-        <Header />
+        <Suspense><Header /></Suspense>
         <main className="pt-16 pb-10 px-4 sm:px-6 lg:px-8">
           {children}
         </main>

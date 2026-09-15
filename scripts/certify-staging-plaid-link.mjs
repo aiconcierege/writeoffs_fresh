@@ -37,7 +37,7 @@ try {
   const page = await context.newPage()
   await page.goto(`${origin}/get-started`)
   const tokenResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/api/plaid/link-token')
-  await page.getByRole('button', { name: 'Connect an account', exact: true }).click()
+  await page.getByRole('button', { name: 'Connect my accounts', exact: true }).click()
   const response = await tokenResponse
   console.log(JSON.stringify({ syntheticCustomer: true, realMfa: true, page: new URL(page.url()).pathname, tokenStatus: response.status() }))
   if (process.argv.includes('--expect-blocked')) {

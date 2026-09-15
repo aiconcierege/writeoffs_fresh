@@ -21,7 +21,7 @@ describe('Home command center', () => {
   it('moves the weekly workflow off Home and gives Betti one direct invitation', () => {
     expect(home).not.toContain('<WeeklyReview')
     expect(home).toContain('<HomeBettiHero projection={betti}/>')
-    expect(bettiModel).toContain("label: 'Check in with Betti'")
+    expect(bettiModel).toContain("label: 'Answer Betti’s questions'")
     expect(bettiHero).not.toContain('Not right now')
     expect(bettiHero).not.toContain('/api/bookkeeping/reviews')
   })

@@ -77,18 +77,18 @@ export async function proxy(req: NextRequest) {
       mfaSatisfied = assurance?.currentLevel === 'aal2'
       mfaFactorEnrolled = assurance?.nextLevel === 'aal2'
     }
-    const [{ data: membership }, { data: business }, { data: cadence }] = mfaSatisfied
+    const [{ data: membership }, { data: business }, { data: setup }] = mfaSatisfied
       ? await Promise.all([
         supabase.from('current_customer_membership').select('lifecycle').maybeSingle(),
         supabase.from('businesses').select('business_description,business_profile_context,schedule_c_eligibility,business_stage,business_start_month,uses_customer_job_materials,keeps_future_sale_merchandise,prior_materials_handling,catch_up_start_date,onboarding_start_method,v1_support_status,onboarding_state,onboarding_version').eq('owner_user_id', user.id).maybeSingle(),
-        supabase.from('current_business_review_cadence').select('id').maybeSingle(),
+        supabase.from('business_customer_setup').select('completed_at').maybeSingle(),
       ]) : [{ data: null }, { data: null }, { data: null }]
     const destination = nextRequiredCustomerDestination({
       mfaSatisfied,
       mfaFactorEnrolled,
       membershipLifecycle: membership?.lifecycle ?? null,
       onboardingComplete: Boolean(business && !onboardingNeedsFollowUp(business as OnboardingBusinessData)),
-      getStartedComplete: Boolean(cadence),
+      getStartedComplete: Boolean(setup?.completed_at),
     }, `${pathname}${req.nextUrl.search}`)
     if (destination) {
       const target = new URL(destination, req.url)

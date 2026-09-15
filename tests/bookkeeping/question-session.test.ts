@@ -15,6 +15,10 @@ describe('active Check-in queue',()=>{
   const a=question('a'),b=question('b'),updated=question('b','v2')
   expect(reconcileQuestionSession([a,b],[updated],new Set([questionVersionKey(b)]))).toEqual([updated])
  })
+ it('keeps a newly needed follow-up with its transaction while other discoveries append',()=>{
+  const pending=question('pending'),discovered=question('new'),followUp={...question('follow-up'),recordId:'record-a'}
+  expect(reconcileQuestionSession([pending],[discovered,pending,followUp],new Set(),'record-a').map(q=>q.id)).toEqual(['follow-up','pending','new'])
+ })
  it('deduplicates a repeated queue entry',()=>{
   const a=question('a')
   expect(reconcileQuestionSession([], [a,a], new Set())).toEqual([a])

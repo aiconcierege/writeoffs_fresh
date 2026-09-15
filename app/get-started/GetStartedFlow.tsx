@@ -1,71 +1,33 @@
 'use client'
-
 import Link from 'next/link'
-import { useState } from 'react'
+import {useRef,useState} from 'react'
 import BankConnect from '../components/BankConnect'
-import { BettiPageIntro } from '../components/ui'
-
-type ReceiptAnswer = 'most' | 'some' | 'none' | null
-const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
-
-export function GetStartedFlow({ initialCheckInWeekday, ...props }: React.ComponentProps<typeof BankConnect> & { initialCheckInWeekday: number | null }) {
-  const [receiptAnswer, setReceiptAnswer] = useState<ReceiptAnswer>(null)
-  const [day, setDay] = useState<number | null>(initialCheckInWeekday)
-  const [cadenceSaved, setCadenceSaved] = useState(initialCheckInWeekday !== null)
-  const [error, setError] = useState('')
-
-  async function saveCadence(value: number) {
-    setDay(value); setError('')
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
-    const dateParts = new Intl.DateTimeFormat('en-US', { timeZone: timezone,
-      year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date())
-    const date = Object.fromEntries(dateParts.map((part) => [part.type, part.value]))
-    const effectiveFrom = `${date.year}-${date.month}-${date.day}`
-    const response = await fetch('/api/bookkeeping/review-cadence', { method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-writeoffs-timezone': timezone }, body: JSON.stringify({
-        checkInWeekday: value, effectiveFrom,
-        requestId: crypto.randomUUID(),
-      }) })
-    if (!response.ok) { setError('Your check-in day could not be saved.'); return }
-    setCadenceSaved(true)
+import {BettiPageIntro} from '../components/ui'
+export function GetStartedFlow(props:React.ComponentProps<typeof BankConnect>) {
+  const hasAccounts=props.accounts.length>0
+  const [busy,setBusy]=useState(false),[error,setError]=useState(''),lock=useRef(false)
+  async function finish() {
+    if(lock.current)return
+    lock.current=true;setBusy(true);setError('')
+    try {
+      const response=await fetch('/api/onboarding/setup',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({timezone:Intl.DateTimeFormat().resolvedOptions().timeZone})})
+      const body=await response.json()
+      if(!response.ok)throw new Error(body.error)
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- Recheck the completed server prerequisite without a prefetched redirect.
+      window.location.assign('/home')
+    } catch(error) {setError(error instanceof Error?error.message:'We couldn’t finish setup.');setBusy(false);lock.current=false}
   }
-
-  return <div className="space-y-14">
+  return <div className="space-y-12">
     <section aria-labelledby="connect-heading">
-      <BettiPageIntro state="welcome" eyebrow="Start here" title={<span id="connect-heading">Let’s get your books started.</span>}>
-        Connect your accounts and I’ll begin organizing the activity I find. You can leave while I work.
+      {hasAccounts?<header><h1 id="connect-heading" className="text-3xl font-semibold tracking-tight text-[#17211d]">Your accounts are connected.</h1><p className="mt-4 leading-7 text-[#59665f]">One more thing before Betti gets to work.</p></header>:<><BettiPageIntro state="welcome" eyebrow="Let’s get started" title={<span id="connect-heading">Let’s connect your business accounts</span>}>
+        WriteOffs works best when you connect the bank accounts and credit cards you use for your business.
       </BettiPageIntro>
+      <p className="mt-5 max-w-xl text-base leading-7 text-[#59665f]">Dedicated business accounts work best. If possible, use a checking account and credit cards that are only for your business.</p>
+      <p className="mt-3 max-w-xl text-base leading-7 text-[#59665f]">If an account has both business and personal activity, that’s okay. Betti can help sort it out.</p></>}
       <div className="mt-7"><BankConnect {...props}/></div>
-      <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-base">
-        <Link href="/import" className="font-semibold text-[#243186]">Upload statements or a CSV</Link>
-        <Link href="/receipts" className="font-semibold text-[#243186]">Start with receipts instead</Link>
-      </div>
+      {!hasAccounts&&<div className="mt-6 flex flex-wrap gap-x-6 gap-y-3"><Link href="/import" className="inline-flex min-h-11 items-center font-semibold text-[#243186]">Upload bank or credit-card statements</Link><Link href="/receipts" className="inline-flex min-h-11 items-center text-[#243186]">Start with receipts</Link></div>}
     </section>
-
-    <section className="section-rule" aria-labelledby="receipts-heading">
-      <h2 id="receipts-heading" className="section-heading">Do you have receipts for these purchases?</h2>
-      <p className="section-description">Whatever you have is useful. WriteOffs will figure out which purchases they belong to.</p>
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">{([
-        ['most','Most or all of them'],['some','Some of them'],['none','None right now'],
-      ] as const).map(([value,label]) => <button type="button" key={value} onClick={() => setReceiptAnswer(value)}
-        className={`min-h-14 rounded-xl border px-4 text-left text-sm font-semibold ${receiptAnswer===value?'border-[#243186] bg-[#f1f2fb]':'border-[#dce3de] bg-white'}`}>{label}</button>)}</div>
-      {(receiptAnswer==='most'||receiptAnswer==='some')&&<div className="mt-5"><Link href="/receipts" className="btn btn-primary">Upload whatever you have</Link><p className="mt-2 text-sm text-[#59665f]">WriteOffs will match them automatically. Unmatched receipts won’t hold you up.</p></div>}
-      {receiptAnswer==='none'&&<p className="mt-5 text-sm text-[#59665f]">That’s okay. You can add receipts anytime.</p>}
-    </section>
-
-    <section className="section-rule" aria-labelledby="cadence-heading">
-      <h2 id="cadence-heading" className="section-heading">When should I check in with you?</h2>
-      <p className="section-description">Pick a normal day. If there’s nothing to review, WriteOffs won’t bother you.</p>
-      <label className="mt-5 block max-w-sm text-sm font-semibold">Weekly check-in day
-        <select value={day??''} onChange={(event)=>void saveCadence(Number(event.target.value))} className="field mt-2">
-          <option value="" disabled>Choose a day</option>{DAYS.map((label,index)=><option value={index} key={label}>{label}</option>)}
-        </select></label>
-      {cadenceSaved&&<p role="status" className="mt-3 text-sm text-[#176c54]">Got it. I’ll only check in when there’s something worth reviewing.</p>}
-      {error&&<p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
-    </section>
-    {/* The cadence write changes prerequisite state. Use a document navigation so
-        the proxy evaluates the newly persisted preference instead of a prefetched response. */}
-    {cadenceSaved?<a href="/home" className="btn btn-primary">Go to Home</a>
-      :<p className="text-sm text-[#59665f]">Choose a check-in day before heading Home.</p>}
+    <section className="section-rule" aria-labelledby="receipts-heading"><h2 id="receipts-heading" className="section-heading">Have receipts you want to add?</h2><p className="section-description">Upload them now or anytime later. Betti will match them to your purchases when she can.</p><Link href="/receipts" className="btn btn-secondary mt-5">Upload receipts</Link></section>
+    <footer><p className="mb-5 text-[#59665f]">Betti will ask when there’s something worth reviewing. You can add more records anytime.</p><button className="btn btn-primary min-h-12" disabled={busy} onClick={()=>void finish()}>{busy?'Finishing setup…':'Start using WriteOffs'}</button><button className="ml-4 min-h-12 text-sm font-semibold text-[#243186]" disabled={busy} onClick={()=>void finish()}>I’ll add receipts later</button>{error&&<p role="alert" className="mt-4 text-red-700">{error}</p>}</footer>
   </div>
 }

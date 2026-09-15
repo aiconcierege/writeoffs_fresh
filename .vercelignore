@@ -10,3 +10,7 @@ coverage/
 *.backup
 writeoffs-backup-*/
 writeoffs-restore-*/
+
+# Local credentials and Supabase runtime state never belong in deployments.
+.env*
+supabase/.temp/

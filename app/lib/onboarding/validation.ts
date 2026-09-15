@@ -3,7 +3,7 @@ export const BUSINESS_STAGES = ['new', 'existing'] as const
 export const MATERIALS_HANDLING_ANSWERS = [
   'deduct_purchases', 'count_year_end', 'accountant_handles', 'not_sure',
 ] as const
-export const ONBOARDING_START_METHODS = ['statement_uploads', 'receipts'] as const
+export const ONBOARDING_START_METHODS = ['connected_financial_accounts', 'statement_uploads', 'receipts'] as const
 export const ACCOUNTING_SENSITIVE_BUSINESS_FACTS = [
   'business_stage', 'business_start_month', 'uses_customer_job_materials',
   'keeps_future_sale_merchandise', 'prior_materials_handling',
@@ -105,7 +105,6 @@ function validateHistory(data: Record<string, unknown>, now: Date): ValidationRe
   return { ok: true, step: 'history', update: {
     business_stage: data.business_stage,
     business_start_month: `${data.business_start_month}-01`,
-    ...(data.business_stage === 'new' ? { prior_materials_handling: null } : {}),
   } }
 }
 
@@ -119,7 +118,6 @@ function validateOperations(data: Record<string, unknown>): ValidationResult {
   return { ok: true, step: 'operations', update: {
     uses_customer_job_materials: data.uses_customer_job_materials,
     keeps_future_sale_merchandise: data.keeps_future_sale_merchandise,
-    ...(data.uses_customer_job_materials !== 'yes' ? { prior_materials_handling: null } : {}),
   } }
 }
 
@@ -175,11 +173,6 @@ export function validateCompleteOnboarding(business: unknown, now = new Date()):
   if (!isOneOf(business.uses_customer_job_materials, THREE_WAY_ANSWERS)) errors.push('customer-job materials answer is required')
   if (business.keeps_future_sale_merchandise !== 'no') errors.push('future-sale merchandise eligibility must be resolved')
   if (business.v1_support_status !== 'eligible' || business.v1_support_reason !== null) errors.push('business is not currently eligible for v1 completion')
-  const needsHistory = business.business_stage === 'existing' && business.uses_customer_job_materials === 'yes'
-  if (needsHistory && !isOneOf(business.prior_materials_handling, MATERIALS_HANDLING_ANSWERS)) {
-    errors.push('prior materials handling is required')
-  }
-  if (!needsHistory && business.prior_materials_handling !== null) errors.push('prior materials handling must be empty when not applicable')
   if (typeof business.catch_up_start_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(business.catch_up_start_date)
     || business.catch_up_start_date > now.toISOString().slice(0, 10)) errors.push('catch-up start date is required')
   if (!isOneOf(business.onboarding_start_method, ONBOARDING_START_METHODS)) errors.push('starting choice is required')

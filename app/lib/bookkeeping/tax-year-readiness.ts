@@ -109,6 +109,7 @@ export function deriveTaxYearReadiness(taxYear: number, input: TaxYearReadinessC
     kind: 'customer_action', actionHref: '/contractors' })
   for (const row of contractorReview) reviewItems.push({ kind: 'contractor', title: `${row.displayName} may need tax-time review`,
     detail: 'WriteOffs tracked the payments and supporting facts. A return preparer can determine whether information reporting applies.' })
+  if(input.report.completeness.historicalMileageNeedsAttention)issues.push({code:'HISTORICAL_MILEAGE_FACTS_NEEDED',title:'Earlier business mileage needs a few facts',detail:'Your historical mileage is saved for follow-up. It has not been treated as zero.',kind:'customer_action',actionHref:'/mileage'})
   const unresolvedVehicles=(input.vehicleReports??[]).filter(vehicle=>vehicle.method==='unresolved'||vehicle.allocationBasisPoints==null)
   const cpaVehicles=(input.vehicleReports??[]).filter(vehicle=>vehicle.requiresCpaReview && (vehicle.businessMilesMilli > 0 || vehicle.actualExpenseCents > 0 || (vehicle.expenses?.length ?? 0) > 0))
   if ((input.businessMilesMilli > 0 && !input.vehicleReports) || unresolvedVehicles.some(vehicle => vehicle.businessMilesMilli > 0 || vehicle.actualExpenseCents > 0)) issues.push({ code: 'MILEAGE_TAX_TREATMENT_UNRESOLVED', title: 'Vehicle details need attention',

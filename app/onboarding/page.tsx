@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createServerSupabase } from '../../utils/supabase/server'
 import { onboardingNeedsFollowUp, type OnboardingBusinessData } from '../lib/onboarding/progress'
 import { ACCOUNTING_SENSITIVE_BUSINESS_FACTS } from '../lib/onboarding/validation'
+import {CatchUpPaymentPending} from './CatchUpPaymentPending'
 import OnboardingFlow from './OnboardingFlow'
 
 const BUSINESS_FIELDS =
@@ -14,7 +15,7 @@ const BUSINESS_FIELDS =
 export default async function OnboardingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string | string[] }>
+  searchParams: Promise<{ edit?: string | string[]; catch_up?: string }>
 }) {
   const params = await searchParams
   const editing = params.edit === '1'
@@ -55,19 +56,28 @@ export default async function OnboardingPage({
     )
   }
 
+  if(params.catch_up==='processing'){const {data:order}=await supabase.from('customer_catch_up_orders').select('paid_at').eq('business_id',business.id).is('canceled_at',null).order('consent_at',{ascending:false}).limit(1).maybeSingle();if(order&&!order.paid_at)return <CatchUpPaymentPending/>}
+
   const superseded = new Set((factEvents ?? []).map((event) => event.supersedes_event_id).filter(Boolean))
   const sensitiveFactRevisions = Object.fromEntries(ACCOUNTING_SENSITIVE_BUSINESS_FACTS.map((key) => [
     key,
     (factEvents ?? []).find((event) => event.fact_key === key && !superseded.has(event.id))?.id ?? null,
   ]))
-  const onboardingBusiness = { ...business, sensitive_fact_revisions: sensitiveFactRevisions } as OnboardingBusinessData
+  const {data: membershipStart}=await supabase.from('business_memberships').select('created_at').eq('business_id',business.id).maybeSingle()
+  const joinedMonth=(membershipStart?.created_at??new Date().toISOString()).slice(0,7)
+  const [{data:historicalMileage},{data:vehicles}]=await Promise.all([supabase.from('current_historical_mileage').select('id,answer').eq('business_id',business.id).eq('tax_year',Number(joinedMonth.slice(0,4))).order('tax_year',{ascending:false}).limit(1).maybeSingle(),supabase.from('business_vehicles').select('id,display_name').eq('business_id',business.id).is('archived_at',null)])
+  const onboardingBusiness = { ...business, historical_mileage_answer: historicalMileage?.answer, sensitive_fact_revisions: sensitiveFactRevisions } as OnboardingBusinessData
 
   if (!editing && !onboardingNeedsFollowUp(onboardingBusiness)) redirect('/home')
+
 
   return (
     <OnboardingFlow
       initialBusiness={onboardingBusiness}
+      joinedMonth={joinedMonth}
       editing={editing}
+      vehicles={vehicles??[]}
+      historicalMileageId={historicalMileage?.id}
     />
   )
 }

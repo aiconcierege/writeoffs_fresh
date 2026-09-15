@@ -21,7 +21,7 @@ describe('authoritative current askable question selection',()=>{
       deduction:[question('d1','deduction','percentage','rd','2026-09-07')],
       contractor:[question('c1','contractor','factual_choice',undefined,'2026-09-07')]})
     expect(selected).toHaveLength(6)
-    expect(selected.map(item=>item.source)).toEqual(['bookkeeping','bookkeeping','bookkeeping','bookkeeping','deduction','contractor'])
+    expect(selected.map(item=>item.source)).toEqual(['bookkeeping','bookkeeping','bookkeeping','bookkeeping','contractor','deduction'])
   })
 
   it('uses existing per-record precedence and specialized deduction precedence',()=>{

@@ -39,15 +39,15 @@ describe('continuous Check in with Betti experience',()=>{
 
   it('renders conversational entry and zero-question states without a weekly date header',()=>{
     expect(flow).toContain('Check in with Betti')
-    expect(flow).toContain('I need {entryCount} quick details.')
-    expect(flow).toContain('entryCount>1')
+    expect(flow).toContain('I have a question about this')
+    expect(flow).toContain('More waiting')
     expect(flow).not.toContain('Question {answered + 1} of {total}</p>{!embedded&&<Link')
     expect(flow).toContain('Your books are current.')
     expect(flow).toContain('I don’t need anything from you right now.')
   })
 
   it('retains newly returned questions and dependent follow-ups instead of slicing an old list',()=>{
-    expect(flow).toContain('reconcileQuestionSession(previous, currentQuestions(queueResult.questions!), completedVersions.current)')
+    expect(flow).toContain('reconcileQuestionSession(previous, currentQuestions(queueResult.questions!), completedVersions.current,followUp)')
     expect(flow).toContain("experience!=='check-in'&&initialQuestions.length>0")
     expect(flow).not.toContain('setQuestions((value) => value.slice(1))\n      setPurpose')
   })

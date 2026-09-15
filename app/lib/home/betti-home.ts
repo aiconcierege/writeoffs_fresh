@@ -47,16 +47,19 @@ export function projectBettiHome(input: {
   askableQuestionCount: number
   receiptsProcessing: number
   receiptsNeedHelp: number
+  hasDeferredWork?: boolean
+  historicalMileageNeedsAttention?: boolean
   outstandingDocumentation: number
 }): BettiHomeProjection {
   if (input.askableQuestionCount > 0) return {
     state: 'needs-customer',
     heading: `${input.greeting}${input.name ? `, ${input.name}` : ''}. I went through your books.`,
-    supporting: input.askableQuestionCount === 1
-      ? 'I need one detail from you.'
-      : `I need ${input.askableQuestionCount} details from you.`,
-    action: { href: '/check-in', label: 'Check in with Betti' },
+    supporting: input.askableQuestionCount > 10
+      ? 'I have a few things to go over with you. I’ll take them one at a time.'
+      : `I have ${input.askableQuestionCount} ${input.askableQuestionCount === 1 ? 'question' : 'questions'} for you.`,
+    action: { href: '/check-in', label: 'Answer Betti’s questions' },
   }
+  if(input.historicalMileageNeedsAttention)return {state:'needs-customer',heading:'Your earlier business miles are still on your list.',supporting:'Add the miles from your records, or fill in the vehicle details when you have them.',action:{href:'/mileage',label:'Review business mileage'}}
   if (input.receiptsNeedHelp > 0) return {
     state: 'attention',
     heading: named('I need your help with a receipt', input.name),
@@ -73,6 +76,7 @@ export function projectBettiHome(input: {
       : `I’m organizing ${input.receiptsProcessing} receipts. You don’t need to wait here.`,
     action: null,
   }
+  if(input.hasDeferredWork)return {state:'documentation-follow-up',heading:'Your progress is saved.',supporting:'A few answers are still on your list for later. I’ll keep organizing the records I have.',action:{href:'/check-in',label:'See your saved work'}}
   if (input.outstandingDocumentation > 0) return {
     state: 'documentation-follow-up',
     heading: named('Your books are up to date', input.name),
@@ -83,7 +87,7 @@ export function projectBettiHome(input: {
   }
   return {
     state: 'caught-up',
-    heading: named('Everything’s handled', input.name),
+    heading: 'Your books are current.',
     supporting: 'I don’t need anything from you right now.',
     action: null,
   }

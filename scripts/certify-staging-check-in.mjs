@@ -6,6 +6,7 @@ import { chromium } from '@playwright/test'
 const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
 if (process.env.WRITEOFFS_ENVIRONMENT !== 'staging' || new URL(url).hostname !== 'sgrqrrxrlglhjuetdtps.supabase.co') throw new Error('Staging only')
 const origin = 'https://writeoffs-fresh-staging.vercel.app'
+const phase1=process.argv.includes('--phase1')
 function totp(secret) {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
   const bits = [...secret.replace(/=+$/, '').toUpperCase()].map(c => alphabet.indexOf(c).toString(2).padStart(5, '0')).join('')
@@ -16,7 +17,7 @@ function totp(secret) {
 }
 const fixture = JSON.parse(await readFile('/private/tmp/writeoffs-check-in-fixture.json', 'utf8'))
 const browser = await chromium.launch({ headless: true })
-let supabase, factorId
+let supabase, factorId, stage='login'
 try {
   const cookies = new Map()
   supabase = createServerClient(url, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, { cookies: {
@@ -35,10 +36,24 @@ try {
   await context.addCookies([...cookies].map(([name, value]) => ({ name, value, domain: new URL(origin).hostname, path: '/', secure: true, sameSite: 'Lax' })))
   const page = await context.newPage()
   await page.goto(`${origin}/check-in`)
+  stage='initial-queue'
   const initial = await context.request.get(`${origin}/api/bookkeeping/questions`)
   assert.equal(initial.status(), 200)
   const initialQueue = (await initial.json()).questions
   assert.equal(initialQueue.length, 3, 'Three isolated fixture questions')
+  if(phase1){
+    for(const width of [390,430,768,1280]){
+      await page.setViewportSize({width,height:900});await page.goto(`${origin}/home`);await page.screenshot({path:`/private/tmp/writeoffs-phase1-proof/home-small-${width}.png`,fullPage:true})
+      await page.goto(`${origin}/check-in`);await page.screenshot({path:`/private/tmp/writeoffs-phase1-proof/check-in-question-${width}.png`,fullPage:true})
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
+    }
+    stage='append-background'
+    await (await import('./append-phase1-question.ts')).appendPhase1Question(supabase)
+    const grown=await context.request.get(`${origin}/api/bookkeeping/questions`);assert.equal((await grown.json()).questions.length,4)
+    await page.getByRole('heading',{name:'Who was the meal with?',exact:true}).waitFor()
+  }
+
+  stage='answer-progression'
   let submissions = 0
   page.on('request', request => { if(request.method()==='POST' && /\/api\/bookkeeping\/questions\//.test(request.url()))submissions++ })
   for(let index=0;index<3;index++){
@@ -57,13 +72,23 @@ try {
     await page.waitForTimeout(1000)
     const remaining = await context.request.get(`${origin}/api/bookkeeping/questions`)
     const queue = (await remaining.json()).questions
-    assert.equal(queue.length,2-index,'One question resolves per answer')
+    assert.equal(queue.length,(phase1?3:2)-index,'One question resolves per answer')
     assert.equal(submissions,index+1,'Double clicks issue one request')
     if(index===1){await page.goto(`${origin}/home`);await page.goto(`${origin}/check-in`)}
     else await page.reload()
     console.log(JSON.stringify({synthetic:true,answered:index+1,remaining:queue.length,submissions}))
   }
-  await page.getByRole('heading',{name:'Your books are current.',exact:true}).waitFor()
+  if(phase1){
+    const remaining=(await (await context.request.get(`${origin}/api/bookkeeping/questions`)).json()).questions;assert.equal(remaining.length,1)
+    const deferred=page.waitForResponse(r=>r.request().method()==='POST'&&/\/api\/bookkeeping\/questions\//.test(r.url()))
+    await page.getByRole('button',{name:'I’ll come back to this',exact:true}).click();assert.equal((await deferred).status(),200)
+    await page.getByRole('heading',{name:'Your progress is saved.',exact:true}).waitFor()
+    const events=await supabase.from('bookkeeping_review_events').select('event_type').eq('review_issue_id',remaining[0].id)
+    assert(events.data.some(e=>e.event_type==='skipped'));assert(!events.data.some(e=>e.event_type==='resolved'||e.event_type==='answered'))
+    await page.goto(`${origin}/home`);await page.goto(`${origin}/check-in`)
+    await page.getByRole('heading',{name:'Your progress is saved.',exact:true}).waitFor()
+    console.log(JSON.stringify({backgroundDiscovery:true,deferredNotResolved:true,leaveReturnPreservesDeferral:true}))
+  }else await page.getByRole('heading',{name:'Your books are current.',exact:true}).waitFor()
   for(const question of initialQueue){
     const events=await supabase.from('bookkeeping_review_events').select('event_type').eq('review_issue_id',question.id)
     assert.equal(events.data.filter(event=>event.event_type==='answered').length,1)
@@ -72,11 +97,12 @@ try {
     assert.equal(replay.status(),409,'Stale immutable version cannot write again')
   }
   await page.reload()
-  await page.getByRole('heading',{name:'Your books are current.',exact:true}).waitFor()
+  await page.getByRole('heading',{name:phase1?'Your progress is saved.':'Your books are current.',exact:true}).waitFor()
   await page.screenshot({path:'/private/tmp/writeoffs-check-in-complete.png'})
   console.log(JSON.stringify({consecutiveAnswers:3,multiline:true,doubleClickSafe:true,retryNoDuplicate:true,refreshPreservesProgress:true,leaveAndReturn:true,queueReadRecovery:true,resolvedQuestionsAbsent:true}))
   await context.close()
-} catch {
+} catch(error) {
+  console.error(JSON.stringify({stage,detail:error.message.replace(/https?:\/\/[^\s]+/g,'[url]').slice(0,700)}))
   console.error('Staging Check-in certification failed; no session or provider details logged.')
   process.exitCode = 1
 } finally {

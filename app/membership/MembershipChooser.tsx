@@ -1,7 +1,30 @@
 'use client'
-import {useState} from 'react'
-import {membershipPlans,type PlanId} from '../lib/membership/plans'
+import {useRef, useState} from 'react'
+import {launchMembership} from '../lib/membership/plans'
 
-export function MembershipChooser(){const[working,setWorking]=useState<PlanId|null>(null),[error,setError]=useState('')
-  async function choose(plan:PlanId){setWorking(plan);setError('');try{const response=await fetch('/api/checkout',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({plan,requestKey:crypto.randomUUID()})});const data=await response.json();if(!response.ok||!data.url)throw new Error();window.location.assign(data.url)}catch{setError('We couldn’t start checkout. Please try again.');setWorking(null)}}
-  return <div className="mt-10 grid gap-6 md:grid-cols-2">{(['expenses','business'] as const).map(plan=>{const item=membershipPlans[plan];return <section key={plan} className="surface flex flex-col p-6 sm:p-8"><p className="eyebrow">{item.name}</p><h2 className="mt-3 text-2xl font-semibold text-slate-950">{item.descriptor}</h2><p className="mt-4 flex-1 text-sm leading-6 text-slate-700">{item.description}</p><p className="mt-7 text-sm text-slate-600"><span className="money-display text-3xl font-semibold text-slate-950">{item.displayPrice}</span> / month</p><button className="btn btn-primary mt-6 min-h-12" disabled={working!==null} onClick={()=>choose(plan)}>{working===plan?'Opening secure checkout…':`Choose ${item.name.replace('WriteOffs ','')}`}</button></section>})}{error&&<p role="alert" className="text-sm text-red-700 md:col-span-2">{error}</p>}</div>}
+export function MembershipChooser() {
+  const [working,setWorking]=useState(false), [error,setError]=useState('')
+  const requestKey=useRef<string|null>(null), lock=useRef(false)
+  async function choose() {
+    if(lock.current)return
+    lock.current=true;setWorking(true);setError('')
+    requestKey.current??=crypto.randomUUID()
+    try {
+      const response=await fetch('/api/checkout',{method:'POST',headers:{'content-type':'application/json'},
+        body:JSON.stringify({plan:'business',requestKey:requestKey.current})})
+      const data=await response.json()
+      if(!response.ok||!data.url)throw new Error()
+      window.location.assign(data.url)
+    } catch {setError('We couldn’t start checkout. Please try again.');setWorking(false);lock.current=false}
+  }
+  return <section className="membership-offer mt-8" aria-labelledby="offer-name">
+    <h2 id="offer-name" className="text-xl font-semibold">{launchMembership.name}</h2>
+    <p className="mt-4 text-[#59665f]"><span className="text-5xl font-semibold tracking-tight text-[#17211d]">{launchMembership.displayPrice}</span> / month</p>
+    <ul className="my-6 space-y-2 text-[15px] leading-6">
+      {['Connect bank accounts and credit cards','Organize business income and expenses','Keep receipts organized','Track business mileage','Answer Betti when she needs something','Get your books ready for tax preparation'].map(text=><li key={text} className="flex gap-3"><span aria-hidden="true" className="text-[#168166]">✓</span>{text}</li>)}
+    </ul>
+    <button className="btn btn-primary min-h-12 w-full" disabled={working} onClick={()=>void choose()}>{working?'Opening secure checkout…':'Start WriteOffs — $39/month'}</button>
+    <p className="mt-4 text-center text-sm text-[#59665f]">Cancel anytime.</p>
+    {error&&<p role="alert" className="mt-4 text-sm text-red-700">{error}</p>}
+  </section>
+}

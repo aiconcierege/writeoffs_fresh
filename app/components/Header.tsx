@@ -2,7 +2,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { useEffect, useRef, useState, type KeyboardEvent } from "react"
 import BrandLogo from "../components/BrandLogo"
 import SignOutButton from "../components/SignOutButton"
@@ -20,6 +20,7 @@ const accountItems = [
 
 export function Header() {
   const pathname = usePathname()
+  const search = useSearchParams()
   const menu = useRef<HTMLDetailsElement>(null)
   const publicMenu = useRef<HTMLDetailsElement>(null)
   const [scrolled, setScrolled] = useState(false)
@@ -84,16 +85,16 @@ export function Header() {
               Log in
             </Link>
             <Link
-              href="/#waitlist"
+              href="/signup"
               className="group inline-flex min-h-9 items-center gap-2 whitespace-nowrap border-b-2 border-[#243186] px-0.5 text-xs font-semibold text-[#243186] transition hover:border-[#00a984] hover:text-[#17211d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#243186] sm:text-[13px]"
             >
-              Join the waitlist <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">→</span>
+              Get started <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">→</span>
             </Link>
           </div>
           <details ref={publicMenu} onKeyDown={handlePublicMenuKeyDown} className="public-mobile-menu relative sm:hidden">
             <summary className="grid min-h-11 min-w-11 cursor-pointer list-none place-items-center rounded-lg text-[#243186] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#243186] [&::-webkit-details-marker]:hidden" aria-label="Open navigation"><span aria-hidden="true" className="grid gap-1"><i className="block h-0.5 w-5 bg-current"/><i className="block h-0.5 w-5 bg-current"/><i className="block h-0.5 w-5 bg-current"/></span></summary>
             <div className="absolute right-0 mt-2 w-[min(19rem,calc(100vw-2rem))] rounded-2xl border border-[#d5ddd7] bg-[#fffdf8] p-3 shadow-[0_20px_55px_rgba(23,33,29,.16)]">
-              <nav aria-label="Public mobile" className="grid"><Link onClick={closePublicMenu} href="/#how" className="rounded-lg px-3 py-3 text-sm font-medium">How it works</Link><Link onClick={closePublicMenu} href="/#features" className="rounded-lg px-3 py-3 text-sm font-medium">What you get</Link><Link onClick={closePublicMenu} href="/#for-you" className="rounded-lg px-3 py-3 text-sm font-medium">Who it’s for</Link><Link onClick={closePublicMenu} href="/login" className="rounded-lg px-3 py-3 text-sm font-medium">Log in</Link><Link onClick={closePublicMenu} href="/#waitlist" className="mt-1 rounded-lg bg-[#243186] px-3 py-3 text-center text-sm font-semibold text-white">Join the waitlist</Link></nav>
+              <nav aria-label="Public mobile" className="grid"><Link onClick={closePublicMenu} href="/#how" className="rounded-lg px-3 py-3 text-sm font-medium">How it works</Link><Link onClick={closePublicMenu} href="/#features" className="rounded-lg px-3 py-3 text-sm font-medium">What you get</Link><Link onClick={closePublicMenu} href="/#for-you" className="rounded-lg px-3 py-3 text-sm font-medium">Who it’s for</Link><Link onClick={closePublicMenu} href="/login" className="rounded-lg px-3 py-3 text-sm font-medium">Log in</Link><Link onClick={closePublicMenu} href="/signup" className="mt-1 rounded-lg bg-[#243186] px-3 py-3 text-center text-sm font-semibold text-white">Get started</Link></nav>
             </div>
           </details>
         </div>
@@ -101,7 +102,7 @@ export function Header() {
     )
   }
 
-  if (pathname === "/onboarding") {
+  if (pathname === "/onboarding" || pathname === "/membership" || pathname.startsWith("/mfa/") || (pathname === "/settings/security" && search.get("enroll") === "required")) {
     return (
       <header className="fixed top-0 z-50 w-full border-b border-[#dce3de]/80 bg-[#fbfaf7]/95 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4 sm:px-6">

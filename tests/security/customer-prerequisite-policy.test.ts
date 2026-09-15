@@ -41,8 +41,10 @@ describe('authenticated customer prerequisite policy', () => {
       .toBe('/mfa/challenge?next=%2Fhome')
   })
 
-  it('re-evaluates prerequisites after the check-in cadence is saved', () => {
+  it('re-evaluates prerequisites after explicit setup completion', () => {
     const flow = readFileSync('app/get-started/GetStartedFlow.tsx', 'utf8')
-    expect(flow).toContain('cadenceSaved?<a href="/home"')
+    expect(flow).toContain("window.location.assign('/home')")
+    expect(flow).toContain('/api/onboarding/setup')
+    expect(flow).not.toContain('Weekly check-in day')
   })
 })

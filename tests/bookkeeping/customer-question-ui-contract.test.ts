@@ -8,7 +8,7 @@ const actions = readFileSync('app/lib/bookkeeping/customer-question-actions.ts',
 describe('customer question UI contract', () => {
   it('offers the locked factual actions and completion state', () => {
     for (const copy of [
-      'Yes, business', 'No, personal', 'Not sure', 'Come back to this later',
+      'Yes, business', 'No, personal', 'I’m not sure', 'I’ll come back to this',
       'No, all business', 'Yes, partly personal', 'How much of the',
       'Business amount', 'Enter the business dollars. I’ll handle the split.',
       'What did you buy?', 'I have the receipt, but I can’t tell what this was for.',

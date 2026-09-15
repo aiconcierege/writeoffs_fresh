@@ -28,6 +28,6 @@ describe('public WriteOffs brand surfaces', () => {
     expect(header).toContain('public-header fixed top-0')
     expect(header).toContain('BrandLogo heightPx={scrolled ? 34 : 40}')
     expect(header).toContain('aria-label="Public mobile"')
-    expect(header).toContain('Join the waitlist')
+    expect(header).toContain('Get started')
   })
 })

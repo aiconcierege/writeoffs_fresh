@@ -11,8 +11,8 @@ describe('Betti-led Home projection', () => {
     const state = projectBettiHome({ ...base, askableQuestionCount: 2 })
     expect(state.state).toBe('needs-customer')
     expect(state.heading).toBe('Good morning, Rick. I went through your books.')
-    expect(state.supporting).toBe('I need 2 details from you.')
-    expect(state.action).toEqual({ href: '/check-in', label: 'Check in with Betti' })
+    expect(state.supporting).toBe('I have 2 questions for you.')
+    expect(state.action).toEqual({ href: '/check-in', label: 'Answer Betti’s questions' })
   })
 
   it('distinguishes processing from customer intervention', () => {

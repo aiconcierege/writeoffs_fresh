@@ -9,6 +9,7 @@ vi.mock('../../app/lib/bookkeeping/reporting-repository', () => ({ SupabaseCanon
 vi.mock('../../app/lib/bookkeeping/customer-questions', () => ({ listCustomerQuestions: async () => [] }))
 vi.mock('../../app/lib/bookkeeping/contractor-awareness', () => ({ listContractorSummaries: async () => [] }))
 vi.mock('../../app/lib/mileage/repository', () => ({ loadMileageTotal: async () => 10000, loadVehicleTaxYearReports: mocks.vehicles }))
+vi.mock('../../app/lib/mileage/historical-repository',async importOriginal=>({...await importOriginal<typeof import('../../app/lib/mileage/historical-repository')>(),loadHistoricalMileage:async()=>[]}))
 import { getAuthenticatedCanonicalReport } from '../../app/lib/bookkeeping/reporting-service'
 const supabase = { auth: { getUser: async () => ({ data: { user: { id: 'owner-a' } } }) } }
 beforeEach(() => {
@@ -33,7 +34,8 @@ describe('canonical vehicle reconciliation', () => {
     const report = await getAuthenticatedCanonicalReport({ supabase: supabase as never, periodStart: '2025-01-01', periodEnd: '2025-12-31' })
     expect(report.estimatedDeductionsCents).toBe(10700)
     expect(report.deductibleCategoryTotals.reduce((sum, row) => sum + row.amountCents, 0)).toBe(10700)
-    expect(report.businessExpensesCents).toBe(10000)
+    expect(report.businessExpensesCents).toBe(10700)
+    expect(report.businessProfitCents).toBe(-10700)
     expect(report.vehicleReports[0].mileageDeductionCents).toBe(700)
   })
 })

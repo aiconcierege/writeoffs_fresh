@@ -14,7 +14,7 @@ export function PublicFooter() {
         <div className="max-w-sm">
           <span className="inline-flex rounded-lg bg-[#fffaf3] px-3 py-2"><BrandLogo heightPx={32}/></span>
           <p className="mt-5 text-base leading-7 text-[#dce9e3]">Your bookkeeper for the business you run.</p>
-          <Link href="/#waitlist" className="mt-6 inline-flex min-h-11 items-center border-b-2 border-[#8ce6cb] text-sm font-semibold text-white transition hover:border-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#8ce6cb]">Join the waitlist →</Link>
+          <Link href="/signup" className="mt-6 inline-flex min-h-11 items-center border-b-2 border-[#8ce6cb] text-sm font-semibold text-white transition hover:border-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#8ce6cb]">Get started →</Link>
         </div>
         {groups.map(group => <nav key={group.label} aria-label={`${group.label} links`}>
           <p className="text-xs font-bold uppercase tracking-[.14em] text-[#8ce6cb]">{group.label}</p>

@@ -1,6 +1,6 @@
 # WriteOffs workflow specification
 
-Status: canonical product and workflow authority, revised 2026-08-27.
+Status: canonical product and workflow authority, revised 2026-09-15.
 
 This document defines approved product behavior. It does not authorize implementation outside an approved engineering milestone. When legacy UI or workflow documentation conflicts with this document, this document governs; the conflict register near the end records intentional supersessions.
 
@@ -29,25 +29,21 @@ Personal activity leaves the normal business workflow, does not generate bookkee
 
 ## 3. Membership coverage and historical cleanup
 
-Normal membership bookkeeping coverage includes the first day of the previous
-calendar month forward. For example, a membership begun August 27 includes July 1
-forward. The customer chooses the bookkeeping start date/scope that reflects the
-real situation—such as this month, January 1, when prior books stopped, or when the
-business began—rather than selecting individual transactions to import. The included
-coverage boundary must be disclosed before purchase:
+WriteOffs offers **one $39/month membership**, with no feature tiers or annual option.
+Membership includes the joining calendar month and the immediately preceding month.
+Earlier cleanup is **$20 per additional month, paid once**. Joining in September and
+starting January means January–July: seven additional months, **$140 once**.
+Current and previous months are never charged as catch-up months.
 
-> Membership includes bookkeeping from the first day of the previous month forward.
-> Earlier historical catch-up may have a separately disclosed one-time charge.
+Customers choose a starting month. Before agreeing they see that month, the included
+months, the additional month count, the $20 rate and the total. Explicit agreement
+and confirmed payment are required before paid historical coverage starts. A checkout
+redirect is not payment authority. Retries reuse the same order. Existing customer
+coverage and historical subscriptions are retained without retroactive charges.
+Staging certification uses Stripe Sandbox only; Production activation remains separate.
 
-The customer may choose **Start with what's included** or **Catch up earlier books**.
-Historical cleanup is optional and may be added later. Earlier work may carry a
-separately disclosed one-time cleanup charge, but no cleanup price or billing formula
-is currently approved. Pricing and customer terms must be approved and shown before
-the customer agrees; this specification does not authorize cleanup billing.
-
-- The customer may select an exact earlier start date based on their circumstances.
-- Cleanup may require statements, receipts, or other records when connected history is insufficient.
-- Cleanup organizes supported books; it does not prepare, file, or amend tax returns.
+Cleanup may require statements or receipts when connected history is insufficient.
+It organizes books; it does not prepare, file, or amend tax returns.
 
 Historical cleanup finishes with a durable review state and immutable presented snapshot. Betti processes what is available, uses evidence and bulk decisions, resolves avoidable personal/mixed ambiguity, and presents a factual summary of business expenses, personal/excluded activity, mixed use, documentation limitations, and unresolved category/detail limitations. **Caught up through [date]** means available records and customer decisions were processed and reviewed honestly, not that every source is perfect. The customer may choose **Everything looks right** or **Make a change**.
 
@@ -61,22 +57,83 @@ For each connected checking, savings, or credit account ask **How do you use thi
 
 **Business and personal** does not presume either use for every transaction. WriteOffs applies structural rules, transaction and merchant evidence, linked documents, prior scoped customer facts, and approved tax intelligence first; it asks only for a material real-world fact that remains unknown.
 
-During onboarding ask for the customer's weekly check-in day:
-
-> When is usually a good time to check in with Betti?
-
-Explain that this is a gentle, flexible rhythm rather than a mandatory appointment;
-the review remains available whenever the customer is ready. The Business IANA
-timezone is canonical for cadence and quiet hours. An exact local check-in time is
-not part of the current product contract. Future cadence changes never rewrite
-historical periods or confirmations.
+Check-in is continuous and event-driven. Do not ask for a weekly day or make cadence
+a setup prerequisite. Existing cadence history and period-based notification
+infrastructure remain compatible; new customers are not assigned an arbitrary day.
+Explicit Get Started completion replaces that old prerequisite and checks that every
+active connected account has a saved use designation. Existing completed customers
+remain complete.
 
 Onboarding asks only real-world facts needed for fit and service. It must not ask the
 customer to choose tax treatment, accounting classifications, deduction categories,
 inventory/material accounting, prior tax treatment, or another rule WriteOffs must
 determine. **We ask for the facts. We handle the rules.**
 
-Receipt availability answers such as Most/Some/None are transient routing unless a later independent analytics requirement justifies a product event; they are not bookkeeping state.
+Do not ask Most/Some/None receipt availability questions. Offer “Upload receipts” or
+“I’ll do this later.” Receipts never block setup.
+
+### Phase 1 fresh-customer experience
+
+- Public conversion leads to signup. Successful creation replaces the form with
+  “Check your email” and the destination address; verification remains required.
+- Required MFA is a controlled “Protect your account” step, with an authenticator
+  setup key usable on the same phone. Recovery requires WriteOffs support; no bypass
+  or unsupported backup codes are promised.
+- Ask “How do you report this business on your taxes?” Personal return maps to the
+  supported Schedule C state; separate return is unsupported; “I’m not sure” remains
+  unresolved. Collect business start as month/year, stored with month precision.
+- Keep materials and merchandise facts. Remove the historical materials tax-method
+  question and its completion requirement. Retained historical answers do not select
+  a tax method or become an invented default.
+- Lead with connected accounts, followed by bank/card statements and receipts. CSV
+  remains a secondary format. “Business only” and “Business and personal” preserve
+  the existing account-evidence semantics. Business-only does not establish meal
+  attendees or business purpose.
+- Final confirmation groups business details, starting scope and business facts,
+  with one Change action per group. Setup finishes at Home.
+- Small queues say “I have 3 questions for you” and “Answer Betti’s questions.” Large
+  queues use calm language without a giant count. Empty state: “Your books are current.”
+- Select the appropriate question within each record, then order records oldest
+  first. Keep session survivors stable and append new discoveries. Submit/version
+  checks, idempotency and authoritative reload remain intact.
+- Historical work appears separately from ongoing Check-in. Start with personal
+  exceptions and grouped information; individual historical questions are an explicit
+  secondary action. Do not automatically ask attendees for every old coffee. Keep
+  missing documentation truthful, and never fabricate facts or resolve items to hide
+  the backlog. Full bulk/grouped editing is Phase 2.
+- “I’ll come back to this,” “I’m not sure,” and explicit zero/no are distinct states.
+
+### Historical mileage and shared report authority
+
+Catch-up may collect year-to-date business miles through the end of the month before
+joining, based on the customer’s log or records. Rate changes require separate
+period totals. Deferral is a durable unresolved fact, never zero. A summary is not a
+fabricated trip. Vehicle association and established tax method remain required for
+an expense; missing details stay visible under Mileage.
+
+Historical totals include already logged trips in that period; those trips remain
+in the log and are not counted twice. Conflicting totals or an unsupported partial
+period require facts rather than guessed allocation. Standard mileage uses the one
+canonical date-aware rate model. Home, Reports and Tax-Time share the same expense
+and profit projection, adding standard mileage once and excluding the same vehicle’s
+disallowed operating costs. Actual-expense treatment stays authoritative.
+
+### Approved next phase
+
+Phase 2 refines Reports visually without replacing Tax-Time functionality. Transactions
+needs individual detail/editing, multi-selection, “Mark as personal” / “Remove from
+business,” individual mixed-use allocation, efficient business-only exceptions,
+grouped historical catch-up and an obvious Home path. Do not expose accounting internals.
+
+Next manual document testing covers receipt upload/extraction/matching, receipt before
+bank activity, cash/receipt-only expenses, meals, statement PDFs, duplicate detection
+against Plaid and messy real-world documents. Preserve ingestion architecture.
+
+Remaining Plaid launch work: applicable Call endpoints and Basic Setup checklists,
+webhook receiver including NEW_ACCOUNTS_AVAILABLE, Production readiness, and the App
+Profile icon with the Account Manager. The staging banking redirect URI is registered.
+Native mobile SDKs, CPA sharing and tax-software integrations are outside this phase.
+
 
 ## 5. Continuous work and customer cadence
 
@@ -242,9 +299,9 @@ Until authoritative tax-rule support and sufficient vehicle-year facts exist, me
 
 ## 13. Potential writeoffs and reporting
 
-A potential writeoff is one distinct current canonical economic expense with a nonzero established business portion, even if tax treatment, documentation, or special treatment remains unresolved. It includes current business/mixed and receipt-only expenses, excludes unresolved/personal/income/transfers/card payments/owner funding/loans/standalone credits, converges duplicates through canonical currentness, and changes through the current decision leaf. Mileage remains separate. Both memberships use this same expense metric.
+A potential writeoff is one distinct current canonical economic expense with a nonzero established business portion, even if tax treatment, documentation, or special treatment remains unresolved. It includes current business/mixed and receipt-only expenses, excludes unresolved/personal/income/transfers/card payments/owner funding/loans/standalone credits, converges duplicates through canonical currentness, and changes through the current decision leaf. Mileage remains separate. Legacy membership records use this same expense metric.
 
-Reports derive from canonical records and membership scope. Expenses never implies income completeness or estimated profit. Business may show supported cash-basis income, expenses, and estimated profit. WriteOffs organizes records for tax preparation; it does not file returns or guarantee outcomes.
+Reports derive from canonical records. The launch membership includes supported cash-basis income, expenses, and estimated profit. Historical Expenses subscriptions retain their prior scope until an explicitly authorized migration. WriteOffs organizes records for tax preparation; it does not file returns or guarantee outcomes.
 
 ## 14. Ask Betti and character authority
 

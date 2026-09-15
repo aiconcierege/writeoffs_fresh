@@ -5,10 +5,11 @@ import type { HomeOperatingStatus } from './operating-status-model'
 type Row = Record<string, unknown>
 
 export async function getHomeOperatingStatus(supabase: SupabaseClient): Promise<HomeOperatingStatus> {
-  const [connections, cadence] = await Promise.all([
+  const [connections, cadence, setup] = await Promise.all([
     supabase.rpc('list_plaid_connections'),
     supabase.from('current_business_review_cadence')
       .select('check_in_weekday,timezone_name').maybeSingle(),
+    supabase.from('business_customer_setup').select('timezone_name').maybeSingle(),
   ])
   const rows = connections.error ? [] : (connections.data ?? []) as Row[]
   const connected = rows.filter((row) => row.connection_status !== 'disconnected'
@@ -25,6 +26,6 @@ export async function getHomeOperatingStatus(supabase: SupabaseClient): Promise<
     lastSuccessfulAccountCheck: successfulChecks[0] ?? null,
     checkInWeekday: weekday != null && Number.isInteger(weekday) && weekday >= 0 && weekday <= 6
       ? weekday : null,
-    timeZone,
+    timeZone: setup.data?.timezone_name??timeZone,
   }
 }

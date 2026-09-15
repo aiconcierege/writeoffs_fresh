@@ -1,4 +1,5 @@
 import Link from'next/link'
+import {hasDeferredBookkeepingWork} from '../lib/onboarding/deferred-work'
 import{redirect}from'next/navigation'
 import{createServerSupabase}from'../../utils/supabase/server'
 import{getAuthenticatedCanonicalReport}from'../lib/bookkeeping/reporting-service'
@@ -30,14 +31,15 @@ export default async function HomePage(){
  ])
  const betti=projectBettiHome({name:customerFirstName(user.user_metadata),
   greeting:timeOfDayGreeting(new Date(),operatingStatus.timeZone),askableQuestionCount:questionQueue.count,
-  receiptsProcessing:receiptWorkflow.processing,receiptsNeedHelp:receiptWorkflow.needsHelp,
-  outstandingDocumentation:receiptWorkflow.outstandingDocumentation})
+  hasDeferredWork:membership.businessId?await hasDeferredBookkeepingWork(supabase,membership.businessId):false,receiptsProcessing:receiptWorkflow.processing,receiptsNeedHelp:receiptWorkflow.needsHelp,
+  outstandingDocumentation:receiptWorkflow.outstandingDocumentation,historicalMileageNeedsAttention:summary.completeness.historicalMileageNeedsAttention})
  const needsSetup=businessResult.data?onboardingNeedsFollowUp(businessResult.data as OnboardingBusinessData):true
  return <main className="home-page"><div className="home-shell">
   <HomeBettiHero projection={betti}/>
 
   <section className="home-financial home-business-snapshot" aria-labelledby="financial-heading"><div className="home-section-heading"><div><p className="home-kicker">Your business</p><h2 id="financial-heading">Year to date</h2><p>{['needs-customer','attention'].includes(betti.state)?'Based on the bookkeeping Betti has safely completed so far.':'Kept up to date by Betti from the records currently available.'}</p></div><Link href="/reports">See reports <span aria-hidden="true">→</span></Link></div><FinancialRelationship business={isBusiness} income={summary.businessIncomeCents} expenses={summary.businessExpensesCents} profit={summary.businessProfitCents}/>{!isBusiness&&<p className="home-help-copy">Your Expenses membership organizes business spending. Income and profit are outside its reporting scope.</p>}</section>
 
+  {summary.businessMilesMilli>0&&<section className="home-follow-up" aria-labelledby="home-mileage-heading"><div><h2 id="home-mileage-heading">Business mileage</h2><p className="mt-3 text-2xl font-semibold">{new Intl.NumberFormat('en-US',{maximumFractionDigits:3}).format(summary.businessMilesMilli/1000)} miles</p>{summary.mileageDeductionCents!=null?<><p className="mt-2">{new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(summary.mileageDeductionCents/100)} mileage expense</p><p className="mt-2 text-sm text-[#59665f]">Included in your business expenses.</p></>:<p className="mt-2 text-sm text-[#59665f]">Your miles are saved. A few vehicle details are still needed to calculate the expense.</p>}</div><Link href="/mileage" className="font-semibold text-[#243186]">See mileage →</Link></section>}
   <HomeOperatingStatus status={operatingStatus} outstandingDocumentation={receiptWorkflow.outstandingDocumentation}/>
   <HomeRecentActivity activity={recentActivity}/>
   <HomeQuickActions business={isBusiness}/>

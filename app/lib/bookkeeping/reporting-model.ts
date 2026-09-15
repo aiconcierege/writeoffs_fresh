@@ -46,6 +46,7 @@ export type CanonicalReport = {
   categoryTotals: Array<{ categoryKey: string; categoryLabel: string; amountCents: number; transactionCount: number }>
   deductibleCategoryTotals?: Array<{ categoryKey: string; categoryLabel: string; amountCents: number; transactionCount: number }>
   completeness: {
+    historicalMileageNeedsAttention?: boolean
     isComplete: boolean
     unresolvedRecordCount: number
     unsupportedCurrencies: string[]

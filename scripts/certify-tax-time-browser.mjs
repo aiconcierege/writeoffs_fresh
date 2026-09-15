@@ -15,7 +15,8 @@ function totp(secret) {
   const hash = createHmac('sha1', key).update(counter).digest(), offset = hash.at(-1) & 15
   return String((hash.readUInt32BE(offset) & 0x7fffffff) % 1000000).padStart(6, '0')
 }
-const fixtures = JSON.parse(await readFile(`${directory}/staging-fixtures.json`, 'utf8'))
+const allFixtures = JSON.parse(await readFile(`${directory}/staging-fixtures.json`, 'utf8'))
+const fixtures = process.argv.includes('--home-only') ? allFixtures.filter(item => item.label === 'ready') : process.argv.includes('--phase1-regression') ? allFixtures.filter(item => item.label !== 'blocked') : allFixtures
 const browser = await chromium.launch({ headless: true })
 try {
   for (const fixture of (process.argv.includes('--resolve-blocker') ? fixtures.filter(item => item.label === 'blocked') : fixtures)) {
@@ -47,6 +48,10 @@ try {
     await context.addCookies([...cookies].map(([name, value]) => ({ name, value, domain: new URL(origin).hostname, path: '/', secure: true, sameSite: 'Lax' })))
     const page = await context.newPage(), errors = []
     page.on('pageerror', error => errors.push(error.message))
+    if(process.argv.includes('--home-only')){
+      for(const width of [390,430,768,1280]){await page.setViewportSize({width,height:900});await page.goto(`${origin}/home`);await page.getByRole('heading',{name:'Your books are current.',exact:true}).waitFor();await page.screenshot({path:`/private/tmp/writeoffs-phase1-proof/home-current-${width}.png`,fullPage:true});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))}
+      await context.close();await supabase.auth.mfa.unenroll({factorId:enrollment.data.id});console.log('Existing customer current-books Home passed.');continue
+    }
     const reportsResponse = await page.goto(`${origin}/reports`)
     assert.equal(reportsResponse?.status(), 200)
     await page.getByRole('heading', { name: /ready for tax preparation|Betti needs a few answers|Betti is checking/ }).first().waitFor()

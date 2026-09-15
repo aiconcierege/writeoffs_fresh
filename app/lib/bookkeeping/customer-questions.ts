@@ -57,6 +57,8 @@ export function selectCurrentAskableQuestions(input:{
     &&question.recordId&&question.kind==='percentage').map(question=>question.recordId))
   return [...scoped.filter(question=>!question.recordId||!specializedRecordIds.has(question.recordId)),
     ...input.deduction.filter(available),...input.contractor.filter(available)]
+    .sort((a,b) => (a.transaction.date ?? a.openedAt ?? input.asOf).localeCompare(b.transaction.date ?? b.openedAt ?? input.asOf)
+      || (a.openedAt ?? '').localeCompare(b.openedAt ?? '') || a.id.localeCompare(b.id))
 }
 
 type TransactionContext = CustomerQuestion['transaction']

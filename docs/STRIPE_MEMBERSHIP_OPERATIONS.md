@@ -1,6 +1,6 @@
 # Stripe Membership Operations
 
-Production activation is governed by `PRODUCTION_SECURITY_OPERATIONS.md` and `PRODUCTION_LAUNCH_GATE.md`. Set `STRIPE_MEMBERSHIP_ENABLED=true` only with live-mode credentials, both live monthly Price IDs, signed webhook secret, and the restricted live Portal configuration. Keep it false while the application is staged without live billing.
+Production activation is governed by `PRODUCTION_SECURITY_OPERATIONS.md` and `PRODUCTION_LAUNCH_GATE.md`. Set `STRIPE_MEMBERSHIP_ENABLED=true` only with live-mode credentials, the separately approved live launch Price ID, signed webhook secret, and the restricted live Portal configuration. Keep it false while the application is staged without live billing.
 
 This guide operates the membership model defined in [MEMBERSHIP_ARCHITECTURE.md](./MEMBERSHIP_ARCHITECTURE.md). Stripe collects payment; `business_memberships` is WriteOffs’ current product-access projection. Never grant access from a browser redirect, email address, legacy `subscriptions` row, or an unverified webhook.
 
@@ -13,8 +13,9 @@ Required server configuration:
 - `WRITEOFFS_STRIPE_MODE=test|live`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
-- `STRIPE_EXPENSES_PRICE_ID`
-- `STRIPE_BUSINESS_PRICE_ID`
+- `STRIPE_MEMBERSHIP_PRICE_ID` ($39 monthly launch offer)
+- `STRIPE_CATCH_UP_PRICE_ID` ($20 one-time historical month, Sandbox rollout only)
+- `STRIPE_EXPENSES_PRICE_ID` and `STRIPE_BUSINESS_PRICE_ID` (legacy history mapping only)
 - `STRIPE_PORTAL_CONFIGURATION_ID`
 - `NEXT_PUBLIC_BASE_URL`
 - `MEMBERSHIP_PAYMENT_GRACE_DAYS` (default 7)
@@ -25,11 +26,11 @@ Outside production, live Stripe mode is rejected. Return URLs must be an HTTPS o
 
 ## Stripe products and portal
 
-Create two products with one recurring monthly Price each: WriteOffs Expenses and WriteOffs Business. Configure the Price IDs above. No annual price or trial is supported. Checkout may optionally enable Stripe promotion codes and Stripe Tax through `STRIPE_ALLOW_PROMOTION_CODES=true` and `STRIPE_TAX_ENABLED=true`; discounts never alter entitlements.
+Create one WriteOffs product with a $39 USD monthly Price, and one historical catch-up product with a $20 USD one-time Price. New checkout offers only the launch membership. Preserve old products and historical subscriptions. No annual price or trial is supported. Checkout may optionally enable Stripe promotion codes and Stripe Tax through `STRIPE_ALLOW_PROMOTION_CODES=true` and `STRIPE_TAX_ENABLED=true`; discounts never alter entitlements.
 
 The Customer Portal configuration is explicit and server-selected. It should allow payment-method and billing-history management. Disable unrestricted subscription cancellation and plan switching: WriteOffs owns period-end downgrade/cancellation intent and its explainable projection. A missing Portal configuration fails closed.
 
-## Test-mode activation findings (August 2026)
+## Historical test-mode activation findings (August 2026; obsolete tier offer)
 
 The local lifecycle was validated against real Stripe test objects and Stripe CLI 1.31.1 using API version `2025-09-30.clover` for forwarded events. The canonical test catalog contains one active monthly USD Price for each product:
 
@@ -129,4 +130,23 @@ Never manually change a Stripe subscription plan, schedule, cancellation state, 
 - Membership still processing: inspect safe event ID/type/result metadata and canonical membership history; do not paste full payloads into logs.
 - Local user has no access: create an explicit local grant; legacy plan rows intentionally grant nothing.
 
-Production decisions still required: final prices, Plaid Item limits after Production economics, Stripe Tax configuration, Portal settings, Stripe retry schedule, billing email copy, and chargeback operator policy.
+Production decisions still required: explicit activation of the approved launch prices, Plaid Item limits after Production economics, Stripe Tax configuration, Portal settings, Stripe retry schedule, billing email copy, and chargeback operator policy.
+
+## Phase 1 catch-up payment authority
+
+`customer_catch_up_orders` stores the selected month, included boundary, count, total,
+explicit consent and confirmed provider session. The server computes the quote and
+rejects changed amounts; it never trusts a browser Business ID. Payment Checkout uses
+card-only payment methods for this one-time charge, without changing account-wide
+payment settings. Staging membership Checkout also explicitly offers card payments. The inherited
+Sandbox configuration offered Cash App and Klarna; no account-wide BNPL settings
+were changed. Production payment configuration is untouched.
+
+The signed webhook retrieves current Checkout state, verifies paid status, USD total,
+price, quantity, customer and Business mapping, then confirms coverage idempotently.
+A failed or abandoned payment grants no extra coverage. Open sessions are reused
+on retry; expired sessions get an idempotent replacement. Changing the starting
+month expires the previous payment page before retiring its quote. Only one
+unpaid order can be active per Business, and paid orders remain immutable. Non-subscription payment
+sessions and invoices do not enter subscription processing. Existing subscribers
+retain their original amounts. Prices and secrets remain environment configuration.

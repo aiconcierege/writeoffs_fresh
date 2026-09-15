@@ -12,8 +12,9 @@ import {
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 const customerDate = new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})
 
-export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete,experience='questions' }: { initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void;experience?:'questions'|'check-in' }) {
+export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete,experience='questions',ongoingFrom,otherWorkWaiting=false }: {ongoingFrom?:string;otherWorkWaiting?:boolean; initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void;experience?:'questions'|'check-in' }) {
   const [questions, setQuestions] = useState(initialQuestions)
+  const [deferredCount,setDeferredCount]=useState(0)
   const [answered, setAnswered] = useState(0)
   const [purpose, setPurpose] = useState('')
   const [mealRelationship, setMealRelationship] = useState('')
@@ -25,6 +26,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   const [submitting, setBusy] = useState(false)
   const [queueNeedsReload, setQueueNeedsReload] = useState(false)
   const submitLock = useRef(false)
+  const followUpRecord=useRef<string|null>(null)
   const completedVersions = useRef(new Set<string>())
   const busy = submitting || queueNeedsReload
   const [error, setError] = useState('')
@@ -33,13 +35,13 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   const deferredInThisSession = useRef(new Set<string>())
   const mixedOnly=useRef(experience!=='check-in'&&initialQuestions.length>0
     &&initialQuestions.every(item=>item.kind==='mixed_use'))
-  const [entryCount]=useState(initialQuestions.length)
   const total = answered + questions.length
   const question = questions[0]
 
   function currentQuestions(queue:CustomerQuestion[]){return queue.filter((candidate) =>
     (!mixedOnly.current||candidate.kind==='mixed_use')&&!deferredInThisSession.current.has(candidate.id)
     &&(!recordId||candidate.recordId===recordId)
+    &&(!ongoingFrom||candidate.transaction.date==null||candidate.transaction.date>=ongoingFrom)
     &&(!range||(candidate.transaction.date!=null&&candidate.transaction.date>=range.start&&candidate.transaction.date<=range.end))) }
 
   async function reloadAuthoritativeQueue(){
@@ -47,7 +49,9 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
     const queueResponse=await fetch('/api/bookkeeping/questions',{cache:'no-store',signal:AbortSignal.timeout(15_000)})
     const queueResult=await queueResponse.json() as {questions?:CustomerQuestion[];error?:string}
     if(!queueResponse.ok||!queueResult.questions)throw new Error(queueResult.error||'Unable to load the next question.')
-    setQuestions(previous => reconcileQuestionSession(previous, currentQuestions(queueResult.questions!), completedVersions.current))
+    const followUp=followUpRecord.current
+    setQuestions(previous => reconcileQuestionSession(previous, currentQuestions(queueResult.questions!), completedVersions.current,followUp))
+    followUpRecord.current=null
     setQueueNeedsReload(false)
   }
 
@@ -68,7 +72,8 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
         if(response.status===409)await reloadAuthoritativeQueue()
         throw new Error(result.error || 'Unable to save that answer.')
       }
-      if (command.action === 'defer') deferredInThisSession.current.add(question.id)
+      if (command.action === 'defer') {deferredInThisSession.current.add(question.id);setDeferredCount(value=>value+1)}
+      followUpRecord.current=command.action==='defer'?null:question.recordId??null
       completedVersions.current.add(questionVersionKey(question))
       // A committed answer stays committed even if the next queue read fails.
       setQueueNeedsReload(true)
@@ -127,8 +132,8 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
       <main className="app-page -mx-4 -mb-10 sm:-mx-6 lg:-mx-8"><section className="question-caught-up mx-auto flex min-h-[64vh] max-w-2xl flex-col items-center justify-center px-6 py-10 text-center sm:py-16">
           <BettiIllustration state="caught-up" className="question-betti-caught" priority sizes="(max-width: 639px) 13rem, 18rem" />
           {experience==='check-in'&&<p className="home-kicker">Check in with Betti</p>}
-          <h1 ref={heading} tabIndex={-1} className="mt-2 text-3xl font-semibold tracking-[-.045em] text-[#17211d] sm:text-4xl">{experience==='check-in'?'Your books are current.':'You’re all caught up.'}</h1>
-          <p className="mt-4 text-[#59665f]">{experience==='check-in'?`I don’t need anything from you right now. I’ll keep working in the background.`:'WriteOffs will keep working in the background.'}</p>
+          <h1 ref={heading} tabIndex={-1} className="mt-2 text-3xl font-semibold tracking-[-.045em] text-[#17211d] sm:text-4xl">{otherWorkWaiting||deferredCount>0?'Your progress is saved.':experience==='check-in'?'Your books are current.':'You’re all caught up.'}</h1>
+          <p className="mt-4 text-[#59665f]">{otherWorkWaiting||deferredCount>0?'Other items are still on your list. You can come back when you have the facts.':experience==='check-in'?`I don’t need anything from you right now. I’ll keep working in the background.`:'WriteOffs will keep working in the background.'}</p>
           <Link href="/home" className="btn btn-primary mt-8">Back to Home</Link>
         </section>
       </main>
@@ -145,10 +150,14 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   const shownGuidance=question.kind==='business_purpose'&&question.evidence
     ?'I have the receipt, but I can’t tell what this was for.'
     :question.guidance
-  const conversation=<>{experience==='check-in'&&answered===0&&entryCount>1&&<header className="mb-4"><p className="home-kicker">Check in with Betti</p><h1 className="mt-1 text-2xl font-semibold tracking-[-.035em] text-[#17211d] sm:text-3xl">I need {entryCount} quick details.</h1></header>}{total>1&&<div className="text-sm font-medium text-[#65736b]"><p>Question {answered + 1} · {questions.length} waiting right now</p></div>}
-      <section className={`question-conversation surface relative mt-3 overflow-visible p-4 sm:p-8${embedded?' weekly-question-embedded':''}`}>
+  const conversation=<>{!embedded && <header className="mb-8 flex items-center justify-between gap-4 text-sm">
+        <Link href="/home" className="inline-flex min-h-11 items-center font-semibold text-[#243186]">← Home</Link>
+        {total > 1 && <p className="text-[#65736b]" role="status">{answered > 0 ? `${answered} answered` : 'One at a time'}{questions.length > 1 ? ' · More waiting' : ''}</p>}
+      </header>}
+      <section className={`question-conversation relative py-3 sm:py-6${embedded?' weekly-question-embedded':''}`}>
+        {!embedded && <p className="mb-6 text-lg text-[#59665f]">I have a question about this {question.transaction.amountCents != null && question.transaction.amountCents < 0 ? 'purchase' : 'activity'}.</p>}
         <div className="question-context-line">
-        <div className="question-transaction-context surface-subtle p-3 text-sm">
+        <div className="question-transaction-context py-3 text-sm">
           <div className="font-semibold">{question.transaction.merchant}</div>
           <div className="mt-1 flex flex-wrap gap-x-3 text-muted">
             {amount && <span>{amount}</span>}
@@ -167,7 +176,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
             <Action onClick={() => submit({ action: 'business_use', use: 'business' })} busy={busy}>Yes, business</Action>
             <Action onClick={() => submit({ action: 'business_use', use: 'personal' })} busy={busy}>No, personal</Action>
             <Action onClick={() => submit({ action: 'business_use', use: 'mixed' })} busy={busy}>Partly</Action>
-            <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>Not sure</Action>
+            <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>I’m not sure</Action>
           </>}
           {question.kind === 'business_purpose' && <>
             <label htmlFor="purpose" className="sr-only">What was this purchase for?</label>
@@ -175,7 +184,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
               maxLength={1000} rows={3} className="w-full rounded-lg border border-slate-300 p-3"
               placeholder="For example, lunch with a client" />
             <Action onClick={() => submit({ action: 'business_purpose', businessPurpose: purpose })} busy={busy || !purpose.trim()}>Continue</Action>
-            <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>Not sure</Action>
+            <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>I’m not sure</Action>
           </>}
           {question.kind === 'meal_relationship' && <>
             <label htmlFor="meal-relationship" className="sr-only">Who was the meal with?</label>
@@ -185,12 +194,12 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
               placeholder="For example, Sarah Jones, client; Luis Garcia, prospective customer" />
             <Action onClick={() => submit({ action: 'meal_relationship', attendeeRelationship: mealRelationship })}
               busy={busy || !mealRelationship.trim()}>Continue</Action>
-            <Action onClick={() => submit({ action: 'defer' })} busy={busy}>I’ll add this later</Action>
+            <button type="button" disabled={busy} onClick={() => submit({ action: 'defer' })} className="min-h-11 text-sm font-semibold text-[#59665f] underline underline-offset-4 disabled:opacity-50">I’ll come back to this</button>
           </>}
           {question.kind === 'mixed_use' && !showAmount && <>
             <Action onClick={() => submit({ action: 'mixed_all_business' })} busy={busy}>No, all business</Action>
             <Action onClick={() => setShowAmount(true)} busy={busy}>Yes, partly personal</Action>
-            <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>Not sure</Action>
+            <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>I’m not sure</Action>
           </>}
           {question.kind === 'mixed_use' && showAmount && <>
             <div className="weekly-mixed-input-modes" role="group" aria-label="How to enter the business portion">
@@ -219,7 +228,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
             <Action onClick={()=>submit({action:'mixed_business_percentage',businessPercentage:mixedPercentage})}
               busy={busy||!/^(100(?:\.0{1,2})?|(?:[0-9]|[1-9][0-9])(?:\.[0-9]{1,2})?)$/.test(mixedPercentage)}>Continue</Action>
             </>}
-            <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>Not sure</Action>
+            <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>I’m not sure</Action>
           </>}
           {question.kind === 'factual_choice' && question.options?.map((option) =>
             <Action key={option.id} onClick={() => submit({ action: 'factual_choice', optionId: option.id })} busy={busy}>
@@ -265,7 +274,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
         {error && <div role="alert" className="mt-4 text-sm text-red-700"><p>{error}</p><button type="button" disabled={submitting} onClick={()=>void retryQueue()} className="mt-2 min-h-11 font-semibold text-[#243186]">Reload current question</button></div>}
         {!(embedded && question.kind === 'percentage') && question.kind!=='meal_relationship' && <button type="button" disabled={busy} onClick={() => submit({ action: 'defer' })}
           className="mt-4 min-h-11 w-full text-sm font-medium text-muted underline disabled:opacity-50">
-          Come back to this later
+          I’ll come back to this
         </button>}
       </section></>
   if(embedded)return <div className="weekly-question-flow">{conversation}</div>
@@ -274,5 +283,5 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
 
 function Action(props: { children: React.ReactNode; onClick: () => void; busy: boolean }) {
   return <button type="button" disabled={props.busy} onClick={props.onClick}
-    className="btn btn-secondary min-h-12 w-full justify-center text-base disabled:opacity-50">{props.children}</button>
+    className={`btn ${props.children === 'Continue' ? 'btn-primary' : 'btn-secondary'} min-h-12 w-full justify-center text-base disabled:opacity-50`}>{props.children}</button>
 }

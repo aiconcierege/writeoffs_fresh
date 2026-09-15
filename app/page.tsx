@@ -1,6 +1,5 @@
 import Image from "next/image"
 import Link from "next/link"
-import WaitlistForm from "./components/WaitlistForm"
 import { BettiIllustration } from "./components/BettiIllustration"
 import { PublicFooter } from "./components/PublicFooter"
 
@@ -54,10 +53,10 @@ export default function Page() {
               </p>
               <div className="mt-7 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
                 <a
-                  href="#waitlist"
+                  href="/signup"
                   className="inline-flex min-h-13 items-center justify-center rounded-xl bg-[#243186] px-7 py-3.5 text-base font-semibold text-white shadow-[0_12px_28px_rgba(36,49,134,0.2)] transition hover:-translate-y-0.5 hover:bg-[#1d2870] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#243186]"
                 >
-                  Join the waitlist
+                  Get started
                 </a>
                 <a href="#how" className="text-sm font-semibold text-[#243186] underline decoration-[#9ca8dc] decoration-2 underline-offset-4 transition hover:decoration-[#243186]">
                   See how it works
@@ -196,20 +195,18 @@ export default function Page() {
         </div>
       </section>
 
-      <section id="waitlist" className="relative overflow-hidden bg-[#15221d] text-white">
+      <section id="get-started" className="relative overflow-hidden bg-[#15221d] text-white">
         <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#00b889]/20 blur-3xl" aria-hidden="true" />
         <div className="relative mx-auto max-w-5xl px-6 py-16 text-center sm:px-10 sm:py-20 lg:py-24">
-          <p className="text-sm font-semibold text-[#8ce6cb]">Join the waitlist</p>
+          <p className="text-sm font-semibold text-[#8ce6cb]">Get started</p>
           <h2 className="mx-auto mt-4 max-w-4xl text-balance text-4xl font-semibold tracking-[-0.05em] sm:text-5xl lg:text-6xl">
             Run your business. Leave the books to WriteOffs.
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-[#c8d9d1]">
-            Join the waitlist to hear when WriteOffs is ready for your business.
+            Connect your accounts. Betti organizes your books. Answer simple questions when she needs you.
           </p>
-          <div className="mx-auto mt-8 max-w-2xl rounded-2xl bg-[#fffaf3] p-3 text-[#17211d] shadow-[0_24px_70px_rgba(0,0,0,0.24)] sm:p-4">
-            <WaitlistForm source="landing#waitlist" appearance="landing" />
-          </div>
-          <p className="mt-5 text-sm text-[#9fb8ad]">We’ll let you know when it’s your turn.</p>
+          <Link href="/signup" className="btn btn-primary mt-8 min-h-12">Get started</Link>
+          <p className="mt-5 text-sm text-[#9fb8ad]">Simple bookkeeping for your small business.</p>
         </div>
       </section>
 

@@ -1,4 +1,5 @@
 import 'server-only'
+import {confirmCatchUpPayment} from './catch-up-payment'
 
 import type Stripe from 'stripe'
 import type {SupabaseClient} from '@supabase/supabase-js'
@@ -22,13 +23,14 @@ export function membershipEventTypeFor(lifecycle:MembershipLifecycle,prior:{plan
   return prior?'provider_synced':'activated'}
 
 export async function applyStripeEvent({event,stripe,admin}:ApplyInput){let subscription:Stripe.Subscription|null=null,customerId='',metadata:Record<string,string>={}
+  if(event.type==='checkout.session.completed' && (event.data.object as Stripe.Checkout.Session).mode==='payment')return confirmCatchUpPayment(event.data.object as Stripe.Checkout.Session,stripe,admin)
   if(event.type==='checkout.session.completed'){const session=event.data.object as Stripe.Checkout.Session;customerId=typeof session.customer==='string'?session.customer:session.customer?.id??'';metadata=session.metadata??{}
     const subscriptionId=typeof session.subscription==='string'?session.subscription:session.subscription?.id;if(!subscriptionId)throw new Error('STRIPE_SUBSCRIPTION_UNAVAILABLE');subscription=await stripe.subscriptions.retrieve(subscriptionId)}
   else if(event.type.startsWith('customer.subscription.')){const delivered=event.data.object as Stripe.Subscription
     subscription=event.type==='customer.subscription.deleted'?delivered:await stripe.subscriptions.retrieve(delivered.id)
     customerId=providerCustomerId(subscription.customer);metadata=subscription.metadata}
   else if(event.type==='invoice.paid'||event.type==='invoice.payment_failed'){const invoice=event.data.object as Stripe.Invoice;customerId=typeof invoice.customer==='string'?invoice.customer:invoice.customer?.id??''
-    const parent=invoice.parent?.subscription_details?.subscription,subscriptionId=typeof parent==='string'?parent:parent?.id;if(!subscriptionId)throw new Error('STRIPE_SUBSCRIPTION_UNAVAILABLE');subscription=await stripe.subscriptions.retrieve(subscriptionId);metadata=subscription.metadata}
+    const parent=invoice.parent?.subscription_details?.subscription,subscriptionId=typeof parent==='string'?parent:parent?.id;if(!subscriptionId)return'ignored';subscription=await stripe.subscriptions.retrieve(subscriptionId);metadata=subscription.metadata}
   else return'ignored'
   const businessId=await businessFor({admin,customerId,metadata});if(!businessId)throw new Error('STRIPE_BUSINESS_UNRESOLVED')
   const providerLink=await admin.from('membership_provider_links').select('provider_subscription_id').eq('business_id',businessId).maybeSingle()

@@ -2,6 +2,86 @@
 
 Status: production-shaped staging authority. Rehearsal date: 2026-08-25.
 
+## Fresh-customer Phase 1 certification — 2026-09-15
+
+Scope: `v2-onboarding-staging`, dedicated `writeoffs-fresh-staging` Vercel project,
+Supabase `sgrqrrxrlglhjuetdtps`, Stripe Sandbox and Plaid Sandbox only. Production
+and main are unchanged. The earlier Plaid and Check-in repairs remain in history.
+
+### Audit and implementation
+
+The audit found obsolete waitlist CTAs, an ambiguous successful-signup form, an
+administrative MFA gate, the old $19/$29 Stripe catalog, and onboarding dependencies
+on materials tax-treatment history and a weekly day. Business-start storage already
+supported month precision. Mileage deductions existed canonically but were absent
+from business expense/profit totals; Phase 1 connects that existing calculation to
+the shared report projection. No vehicle election or meal-evidence rule changed.
+
+The implemented product decisions are authoritative in
+[WORKFLOW_SPECIFICATION.md](WORKFLOW_SPECIFICATION.md#phase-1-fresh-customer-experience).
+One $39 monthly test Price and one $20 one-time historical-month Price were added;
+old products and subscriptions were retained. Sandbox Checkout initially offered
+Cash App/Klarna. New staging Checkout sessions use cards without changing
+account-wide payment-method settings.
+
+Migrations `20260915000200` through `20260915000700` add explicit setup completion,
+consented/paid catch-up coverage, historical-mileage fact history, verified-session
+read policies, legacy materials-history compatibility, and safe checkout retries.
+Existing scope is grandfathered and completed customers stay complete. Old materials
+and cadence facts are retained; no customer is silently repriced. Supabase CLI
+commands stalled before execution; the staging management API applied the remaining
+migrations. Rollback-only integration checks passed afterward.
+
+### Certified behavior and artifacts
+
+- Public signup replaces its form with email confirmation. Synthetic email verification
+  was completed by the test operator through Auth administration; delivery and clicking
+  a real inbox link were not claimed as automated proof. Real TOTP enrollment passed.
+- The public-flow synthetic customer paid $39 in Stripe Sandbox, activated membership,
+  selected January in September, explicitly agreed to seven paid months, and paid the
+  separate $140 one-time charge. Current/prior-month quotes were free. A retry reused
+  Checkout; changed months expired old payment pages without another payment.
+- Consumer product fit, March 2022 business start, materials facts, welcome summary,
+  optional receipts and removal of weekly-day setup passed. No historical tax-method
+  choice was shown.
+- First Platypus Link opened and connected four Sandbox accounts. Both account-use
+  choices saved; incomplete selections blocked setup; completion reached Home.
+- Historical mileage deferral persisted with no zero value. Returning and entering
+  recorded test totals preserved history; missing vehicle facts stayed unresolved.
+  Calculation tests cover rate periods, annual allocation, overlap and one-time inclusion.
+- Small, empty/current and large historical queues were inspected. The Sandbox backlog
+  grew from 52 to 72 questions during certification without becoming the headline.
+  Ongoing questions lead the page; older meals remain unresolved in separate catch-up
+  review. No answers were fabricated for Rick's manual customer.
+- A separate fixture added a canonical question while Check-in was open. Three answers
+  committed exactly once; double-click, stale retry, interrupted queue read, refresh,
+  leave/return and deferral passed. Resolved questions did not return. Deferral produced
+  a skipped event, not an answer or resolution.
+- Existing ready/corrected/vehicle-review/read-only fixtures still downloaded Tax-Time
+  PDFs and transaction/mileage exports. Pending-deletion downloads followed existing
+  policy while mutations were rejected; the synthetic deletion was canceled immediately.
+  Arbitrary Business ID requests were rejected.
+- Layouts were inspected at 390, 430, 768 and 1280 pixels with overflow assertions.
+  Representative PNGs are in `/private/tmp/writeoffs-phase1-proof/` and the final
+  signup/MFA/membership PNGs in `/private/tmp/writeoffs-phase1-proof-secondary/`.
+  Share only PNG/PDF artifacts, never the private fixture or browser-session files.
+
+Reproduction tools: `certify-fresh-customer-phase1.mjs`,
+`certify-staging-check-in.mjs --phase1` (Node `--conditions=react-server --import tsx`),
+`validate-phase1-staging.mjs` (rollback-only), and
+`certify-tax-time-browser.mjs --phase1-regression`. These require explicitly selected
+staging configuration and isolated fixture manifests.
+
+Validation: full suite 1,240 passed / 143 environment-dependent skipped; TypeScript
+passed; ESLint zero errors / 30 existing warnings; local production webpack build
+and Vercel production Turbopack build passed; Gitleaks and whitespace checks passed.
+Dependency audit retains two moderate development-test-tool findings in Vitest and
+its mocker; no high/critical findings and zero runtime dependency vulnerabilities. No dependency upgrade was mixed into this phase.
+
+Phase 2 still owns full bulk/grouped Transactions review, Reports visual refinement,
+and the receipt/statement manual-test batch. Plaid launch administration remains
+separate. This phase does not provide a complete historical bulk-review editor.
+
 ## Environment identity
 
 The verified staging Supabase project is named `writeoffs-staging`, project reference `sgrqrrxrlglhjuetdtps`, hosted at `sgrqrrxrlglhjuetdtps.supabase.co` in `us-east-2`. Both public and server staging URLs resolve to that host, and the repository's Supabase link points to the same reference. This identifier is safe to record; credentials are not.

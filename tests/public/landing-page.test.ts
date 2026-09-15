@@ -9,7 +9,7 @@ describe('public landing page', () => {
     expect(page).toContain('You run your business.')
     expect(page).toContain('WriteOffs handles the books.')
     expect(page).toContain('Share your business activity and send us your receipts.')
-    expect(page).toContain('Join the waitlist')
+    expect(page).toContain('Get started')
   })
 
   it('uses the focused Connect, Work, Answer narrative', () => {
@@ -26,11 +26,11 @@ describe('public landing page', () => {
     expect(page).not.toContain('/blog')
   })
 
-  it('uses optimized responsive hero imagery and truthful waitlist behavior', () => {
+  it('uses optimized responsive hero imagery and the active signup path', () => {
     expect(page).toContain('src="/writeoffs-business-owner-hero.png"')
     expect(page).toContain('<Image')
     expect(page).toContain('sizes="(max-width: 1023px) 100vw, 48vw"')
-    expect(page).toContain('<WaitlistForm source="landing#waitlist"')
+    expect(page).toContain('href="/signup"')
     expect(page).not.toMatch(/Start free|Buy now|Subscribe|per month/i)
   })
 
@@ -52,11 +52,11 @@ describe('public landing page', () => {
     expect(page).not.toContain('Early access for U.S. independent business owners.')
   })
 
-  it('describes public availability consistently as a waitlist', () => {
-    expect(page).toContain('Join the waitlist')
+  it('offers signup consistently', () => {
+    expect(page).toContain('Get started')
     expect(page).toContain('Run your business. Leave the books to WriteOffs.')
-    expect(page).toContain('Join the waitlist to hear when WriteOffs is ready for your business.')
-    expect(page).toContain('We’ll let you know when it’s your turn.')
+    expect(page).toContain('Connect your accounts. Betti organizes your books. Answer simple questions when she needs you.')
+    expect(page).toContain('Simple bookkeeping for your small business.')
     expect(page).not.toMatch(/join early access|early access opens/i)
   })
 

@@ -20,8 +20,8 @@ describe('canonical onboarding completion', () => {
     expect(validateCompleteOnboarding(complete({ keeps_future_sale_merchandise: 'yes', v1_support_status: 'unsupported', v1_support_reason: 'substantial_future_sale_merchandise' })).ok).toBe(false)
   })
 
-  it('allows trade businesses but requires factual history for existing job-material users', () => {
-    expect(validateCompleteOnboarding(complete({ prior_materials_handling: null })).ok).toBe(false)
+  it('allows trade businesses without asking for historical tax-method judgments', () => {
+    expect(validateCompleteOnboarding(complete({ prior_materials_handling: null })).ok).toBe(true)
     expect(validateCompleteOnboarding(complete({ prior_materials_handling: 'not_sure' })).ok).toBe(true)
   })
 
@@ -29,8 +29,8 @@ describe('canonical onboarding completion', () => {
     expect(validateCompleteOnboarding(complete()).ok).toBe(true)
   })
 
-  it('requires history to be empty when it is not applicable', () => {
+  it('preserves old history without making it a completion prerequisite', () => {
     expect(validateCompleteOnboarding(complete({ business_stage: 'new', prior_materials_handling: null })).ok).toBe(true)
-    expect(validateCompleteOnboarding(complete({ business_stage: 'new', prior_materials_handling: 'deduct_purchases' })).ok).toBe(false)
+    expect(validateCompleteOnboarding(complete({ business_stage: 'new', prior_materials_handling: 'deduct_purchases' })).ok).toBe(true)
   })
 })

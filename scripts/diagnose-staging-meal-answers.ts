@@ -19,14 +19,15 @@ const businessId=b.data.id
 if(process.argv.includes('--browser-fixture')){
  const grant=await admin.rpc('create_business_membership_grant',{p_business_id:businessId,p_plan:'business',p_starts_at:'2025-01-01T00:00:00Z',p_ends_at:null,p_request_key:`check-in:${nonce}`,p_reason:'Isolated Check-in browser certification',p_provenance:'admin',p_actor_user_id:null})
  if(grant.error)throw Error('Fixture membership failed')
+ const setupState=await admin.from('business_customer_setup').insert({business_id:businessId,joined_month:new Date().toISOString().slice(0,7)+'-01',grandfathered_start_date:'2025-01-01',completed_at:new Date().toISOString(),timezone_name:'America/Phoenix'})
+ if(setupState.error)throw Error('Fixture setup state failed')
  const setup=await admin.from('businesses').update({name:'Check-in Synthetic Studio',business_description:'Independent graphic design consulting',business_profile_context:'general',schedule_c_eligibility:'yes',business_stage:'existing',business_start_month:'2024-01-01',uses_customer_job_materials:'no',keeps_future_sale_merchandise:'no',catch_up_start_date:'2025-01-01',onboarding_start_method:'receipts',onboarding_state:'completed',onboarding_version:3,onboarding_completed_at:'2025-01-01T00:00:00Z'}).eq('id',businessId)
  if(setup.error)throw Error('Fixture setup failed')
- await customer.rpc('set_business_review_cadence',{p_check_in_weekday:5,p_timezone_name:'America/Phoenix',p_effective_from:'2025-01-03',p_request_id:nonce})
  await writeFile('/private/tmp/writeoffs-check-in-fixture.json',JSON.stringify({businessId,userId:created.data.user.id,email,password}),{mode:0o600})
 }
 const trusted=new SupabaseBookkeepingRepository(admin),writer=new SupabaseBookkeepingRepository(customer)
 for(const [label,text] of [['single-line','Jim Jones, client'],['multiple-lines','Jim Jones,\nclient'],['repeated-spaces','Jim Jones,  client']]){
- const record=await trusted.ensureRecord({actor:{businessId,userId:null,provenance:'automation'},record:{sourceKind:'manual',financialTransactionId:null,ingestionKey:`check-in-proof:${crypto.randomUUID()}`,amountCents:-433,currency:'USD',occurredOn:'2026-05-11'}})
+ const record=await trusted.ensureRecord({actor:{businessId,userId:null,provenance:'automation'},record:{sourceKind:'manual',financialTransactionId:null,ingestionKey:`check-in-proof:${crypto.randomUUID()}`,amountCents:-433,currency:'USD',occurredOn:process.argv.includes('--browser-fixture')?new Date().toISOString().slice(0,7)+'-01':'2026-05-11'}})
  const initial=await writer.ensureInitialUnresolvedDecision(businessId,record.id)
  const decision=await writer.appendDecision({actor:{businessId,userId:created.data.user.id,provenance:'user'},record,supersedesDecisionId:initial.id,decision:{bookkeepingNature:'expense',treatment:'business',reviewStatus:'needs_review',provenance:'user',reason:'Isolated test fixture.',businessPurpose:null,allocations:[{kind:'business',amountCents:-433,taxCategoryKey:'meals'}]}})
  const assessment=await admin.rpc('record_bookkeeping_business_context_assessment',{p_business_id:businessId,p_bookkeeping_record_id:record.id,p_assessment_state:'established',p_assessment_basis:'account_business_only',p_economic_context:'restaurant_meal',p_evaluator_version:'bookkeeping-business-context:v1',p_evidence_fingerprint:nonce.replaceAll('-','').repeat(2),p_evidence_references:[]})

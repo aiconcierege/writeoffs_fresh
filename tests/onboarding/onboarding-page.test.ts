@@ -14,7 +14,7 @@ describe('canonical onboarding entry and existing-user compatibility', () => {
   it('redirects only users whose current v3 facts are complete', () => {
     expect(page).toContain('onboardingNeedsFollowUp')
     expect(page).toContain("redirect('/home')")
-    expect(page).not.toContain(".from('business_vehicles')")
+    expect(page).toContain(".eq('business_id',business.id)")
     expect(page).toContain("params.edit === '1'")
   })
   it('sends new signups into onboarding and gives existing users a minimal Home follow-up', () => {

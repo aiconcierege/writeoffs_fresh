@@ -15,7 +15,7 @@ const complete = business({ business_description: 'HVAC service', business_profi
   schedule_c_eligibility: 'yes', business_stage: 'existing', business_start_month: '2020-01-01',
   uses_customer_job_materials: 'yes', keeps_future_sale_merchandise: 'no',
   prior_materials_handling: 'accountant_handles', catch_up_start_date: '2026-01-01',
-  onboarding_start_method: 'statement_uploads', v1_support_status: 'eligible',
+  historical_mileage_answer:'deferred', onboarding_start_method: 'statement_uploads', v1_support_status: 'eligible',
   onboarding_state: 'completed', onboarding_version: 3 })
 
 describe('canonical onboarding progress', () => {
@@ -25,8 +25,8 @@ describe('canonical onboarding progress', () => {
     expect(getFirstIncompleteOnboardingStep(complete)).toBe('review')
   })
 
-  it('requires materials history only for an existing business that uses job materials', () => {
-    expect(activeOnboardingSteps(complete)).toContain('materials_history')
+  it('never requires a historical tax-method choice', () => {
+    expect(activeOnboardingSteps(complete)).not.toContain('materials_history')
     expect(activeOnboardingSteps({ ...complete, business_stage: 'new' })).not.toContain('materials_history')
     expect(activeOnboardingSteps({ ...complete, uses_customer_job_materials: 'no' })).not.toContain('materials_history')
   })
@@ -34,7 +34,7 @@ describe('canonical onboarding progress', () => {
   it('does not restart fully completed v3 users and flags older completed users for minimal follow-up', () => {
     expect(onboardingNeedsFollowUp(complete)).toBe(false)
     expect(onboardingNeedsFollowUp({ ...complete, onboarding_version: 2 })).toBe(true)
-    expect(onboardingNeedsFollowUp({ ...complete, uses_customer_job_materials: null })).toBe(true)
+    expect(onboardingNeedsFollowUp({ ...complete, uses_customer_job_materials: null })).toBe(false)
   })
 
   it('ignores retained legacy context when deriving progress', () => {

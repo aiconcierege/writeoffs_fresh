@@ -44,7 +44,7 @@ describe('canonical v1 onboarding validation', () => {
     expect(validate('catch_up', { catch_up_start_date: '2026-01-01' }).ok).toBe(true)
     expect(validate('catch_up', { catch_up_start_date: '2026-08-20' }).ok).toBe(false)
     expect(validate('starting_method', { onboarding_start_method: 'statement_uploads' }).ok).toBe(true)
-    expect(validate('starting_method', { onboarding_start_method: 'connected_financial_accounts' }).ok).toBe(false)
+    expect(validate('starting_method', { onboarding_start_method: 'connected_financial_accounts' }).ok).toBe(true)
   })
 
   it('rejects caller-controlled protected and accounting fields', () => {
