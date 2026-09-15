@@ -78,7 +78,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
       // A committed answer stays committed even if the next queue read fails.
       setQueueNeedsReload(true)
       setQuestions(previous => previous.filter(candidate => questionVersionKey(candidate) !== questionVersionKey(question)))
-      setAnswered((value) => value + 1)
+      if (command.action !== 'defer') setAnswered((value) => value + 1)
       setPurpose('')
       setMealRelationship('')
       setMixedAmount('')

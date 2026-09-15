@@ -56,7 +56,7 @@ migrations. Rollback-only integration checks passed afterward.
 - A separate fixture added a canonical question while Check-in was open. Three answers
   committed exactly once; double-click, stale retry, interrupted queue read, refresh,
   leave/return and deferral passed. Resolved questions did not return. Deferral produced
-  a skipped event, not an answer or resolution.
+  a skipped event, not an answer or resolution, and does not increase the answered count.
 - Existing ready/corrected/vehicle-review/read-only fixtures still downloaded Tax-Time
   PDFs and transaction/mileage exports. Pending-deletion downloads followed existing
   policy while mutations were rejected; the synthetic deletion was canceled immediately.

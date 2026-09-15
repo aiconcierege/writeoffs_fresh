@@ -39,6 +39,13 @@ try {
   await page.getByRole('button',{name:'Set up authenticator app',exact:true}).click();await page.getByLabel('Authenticator setup key').waitFor({state:'attached'});const secret=await page.getByLabel('Authenticator setup key').textContent();await page.getByLabel('Enter the 6-digit code').fill(totp(secret.trim()));await page.getByRole('button',{name:'Turn on two-factor authentication',exact:true}).click()
   stage='membership';await page.getByRole('button',{name:'Start WriteOffs — $39/month',exact:true}).waitFor({timeout:30000});await screenshot('membership-390');pass('MFA enrollment and single membership')
  }
+ if(process.argv.includes('--defer-progress')){
+  stage='defer-progress';await page.goto(`${origin}/check-in`)
+  const deferred=page.waitForResponse(r=>r.request().method()==='POST'&&/\/api\/bookkeeping\/questions\//.test(new URL(r.url()).pathname))
+  await page.getByRole('button',{name:'I’ll come back to this',exact:true}).click();assert.equal((await deferred).status(),200)
+  await page.waitForTimeout(1000);assert.equal(await page.getByText('1 answered',{exact:false}).count(),0)
+  await page.getByText('One at a time · More waiting',{exact:true}).waitFor();pass('deferral does not increment answered progress')
+ }
  if(process.argv.includes('--connected-visuals')){
   stage='connected-visuals';await page.goto(`${origin}/get-started`);await page.getByRole('heading',{name:'Your accounts are connected.',exact:true}).waitFor()
   for(const width of [390,430,768,1280]){await page.setViewportSize({width,height:900});await screenshot(`connected-final-${width}`)}
