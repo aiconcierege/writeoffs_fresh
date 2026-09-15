@@ -34,4 +34,14 @@ describe('meal answer understanding', () => {
       attendeeRelationship: 'Jim Jones', businessPurpose: null,
     })
   })
+  it.each(['Jim Jones,\nclient', 'Jim Jones,  client', 'Jim Jones,\tclient',
+    'Met with Jim Jones to discuss\nKool Aide project'])('preserves verbatim extracted facts: %j', (answer) => {
+    const result = understandMealAnswer(answer)
+    expect(result.originalAnswer).toBe(answer)
+    expect(result.attendeeRelationship).toBe(answer)
+    for (const fact of [result.attendeeRelationship, result.businessPurpose]) {
+      if (fact !== null) expect(answer).toContain(fact)
+    }
+  })
+
 })

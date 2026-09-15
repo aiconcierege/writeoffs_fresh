@@ -19,7 +19,9 @@ const VAGUE_PURPOSE = /^(?:(?:to\s+)?(?:discuss|review|plan|work(?:ed)?\s+on|tal
  * "meeting" alone as a business purpose.
  */
 export function understandMealAnswer(value: string): MealAnswerUnderstanding {
-  const originalAnswer = value.trim().replace(/\s+/g, ' ')
+  // Extract only verbatim spans: the canonical writer verifies that every fact
+  // appears in the customer's answer, including its internal whitespace.
+  const originalAnswer = value.trim()
   const candidatePurpose = originalAnswer.match(PURPOSE)?.[0]?.trim() ?? null
   const purposeMatch = candidatePurpose && !VAGUE_PURPOSE.test(candidatePurpose)
     ? candidatePurpose : null

@@ -13,7 +13,7 @@ export async function GET() {
   try {
     const membership=await loadCustomerEntitlements(supabase)
     const queue = await getCurrentAskableQuestionQueue({ supabase,scope:membership.plan??'expenses' })
-    return NextResponse.json(queue)
+    return NextResponse.json(queue, { headers: { 'Cache-Control': 'no-store' } })
   } catch {
     return NextResponse.json({ error: 'Unable to load questions.' }, { status: 500 })
   }

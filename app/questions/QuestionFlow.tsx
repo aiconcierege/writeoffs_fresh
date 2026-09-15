@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
+import { questionVersionKey, reconcileQuestionSession } from './question-session'
 import { BettiIllustration } from '../components/BettiIllustration'
 import {
   parsePositiveDollarCents,
@@ -21,7 +22,11 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   const [mixedPercentage,setMixedPercentage]=useState('')
   const [showAmount, setShowAmount] = useState(false)
   const [factValue, setFactValue] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [submitting, setBusy] = useState(false)
+  const [queueNeedsReload, setQueueNeedsReload] = useState(false)
+  const submitLock = useRef(false)
+  const completedVersions = useRef(new Set<string>())
+  const busy = submitting || queueNeedsReload
   const [error, setError] = useState('')
   const [unresolvedKept, setUnresolvedKept] = useState(0)
   const heading = useRef<HTMLHeadingElement>(null)
@@ -38,14 +43,17 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
     &&(!range||(candidate.transaction.date!=null&&candidate.transaction.date>=range.start&&candidate.transaction.date<=range.end))) }
 
   async function reloadAuthoritativeQueue(){
+    setQueueNeedsReload(true)
     const queueResponse=await fetch('/api/bookkeeping/questions',{cache:'no-store',signal:AbortSignal.timeout(15_000)})
     const queueResult=await queueResponse.json() as {questions?:CustomerQuestion[];error?:string}
     if(!queueResponse.ok||!queueResult.questions)throw new Error(queueResult.error||'Unable to load the next question.')
-    setQuestions(currentQuestions(queueResult.questions))
+    setQuestions(previous => reconcileQuestionSession(previous, currentQuestions(queueResult.questions!), completedVersions.current))
+    setQueueNeedsReload(false)
   }
 
   async function submit(command: Record<string, unknown>) {
-    if (!question || busy) return
+    if (!question || busy || submitLock.current) return
+    submitLock.current = true
     setBusy(true)
     setError('')
     try {
@@ -61,7 +69,10 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
         throw new Error(result.error || 'Unable to save that answer.')
       }
       if (command.action === 'defer') deferredInThisSession.current.add(question.id)
-      await reloadAuthoritativeQueue()
+      completedVersions.current.add(questionVersionKey(question))
+      // A committed answer stays committed even if the next queue read fails.
+      setQueueNeedsReload(true)
+      setQuestions(previous => previous.filter(candidate => questionVersionKey(candidate) !== questionVersionKey(question)))
       setAnswered((value) => value + 1)
       setPurpose('')
       setMealRelationship('')
@@ -70,20 +81,26 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
       setMixedPercentage('')
       setShowAmount(false)
       setFactValue('')
+      await reloadAuthoritativeQueue()
       requestAnimationFrame(() => heading.current?.focus())
     } catch (cause) {
+      // A transport failure can happen after commit. Require an authoritative
+      // reload before allowing another answer against an uncertain version.
+      if (!(cause instanceof Error) || cause.name === 'TimeoutError' || cause.name === 'TypeError' || cause.name === 'SyntaxError') setQueueNeedsReload(true)
       setError(cause instanceof Error&&cause.name!=='TimeoutError' ? cause.message : 'That took too long. Your answer may have saved, so reload the current question before trying again.')
     } finally {
+      submitLock.current = false
       setBusy(false)
     }
   }
 
   async function retryQueue(){
-    if(busy)return
+    if(submitting||submitLock.current)return
+    submitLock.current=true
     setBusy(true);setError('')
     try{await reloadAuthoritativeQueue()}
     catch{setError('I still can’t load the current question. Please try again in a moment.')}
-    finally{setBusy(false)}
+    finally{submitLock.current=false;setBusy(false)}
   }
 
   function keepUnresolvedAndContinue() {
@@ -95,7 +112,14 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
     requestAnimationFrame(() => heading.current?.focus())
   }
 
-  useEffect(()=>{if(!question&&embedded)onComplete?.({unresolvedCount:unresolvedKept})},[question,embedded,onComplete,unresolvedKept])
+  useEffect(() => {
+    setPurpose(''); setMealRelationship(''); setMixedAmount(''); setMixedPercentage('')
+    setMixedMode('dollars'); setShowAmount(false); setFactValue('')
+  }, [question?.id, question?.version])
+
+  useEffect(()=>{if(!question&&!queueNeedsReload&&embedded)onComplete?.({unresolvedCount:unresolvedKept})},[question,queueNeedsReload,embedded,onComplete,unresolvedKept])
+
+  if (!question && queueNeedsReload) return <div role="alert" className="app-page"><p>{error || 'Loading the next question…'}</p><button type="button" disabled={submitting} onClick={()=>void retryQueue()} className="btn btn-secondary">Reload current question</button></div>
 
   if (!question) {
     if(embedded)return <div className="weekly-question-complete" role="status"><strong>{unresolvedKept>0?'We can keep going.':'That’s everything I needed.'}</strong><p>{unresolvedKept>0?`I kept ${unresolvedKept} ${unresolvedKept===1?'item':'items'} on your list for more information.`:'I’ve saved your answers with this week’s records.'}</p></div>
@@ -121,7 +145,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   const shownGuidance=question.kind==='business_purpose'&&question.evidence
     ?'I have the receipt, but I can’t tell what this was for.'
     :question.guidance
-  const conversation=<>{experience==='check-in'&&answered===0&&entryCount>1&&<header className="mb-4"><p className="home-kicker">Check in with Betti</p><h1 className="mt-1 text-2xl font-semibold tracking-[-.035em] text-[#17211d] sm:text-3xl">I need {entryCount} quick details.</h1></header>}{total>1&&<div className="text-sm font-medium text-[#65736b]"><p>Question {answered + 1} of {total}</p></div>}
+  const conversation=<>{experience==='check-in'&&answered===0&&entryCount>1&&<header className="mb-4"><p className="home-kicker">Check in with Betti</p><h1 className="mt-1 text-2xl font-semibold tracking-[-.035em] text-[#17211d] sm:text-3xl">I need {entryCount} quick details.</h1></header>}{total>1&&<div className="text-sm font-medium text-[#65736b]"><p>Question {answered + 1} · {questions.length} waiting right now</p></div>}
       <section className={`question-conversation surface relative mt-3 overflow-visible p-4 sm:p-8${embedded?' weekly-question-embedded':''}`}>
         <div className="question-context-line">
         <div className="question-transaction-context surface-subtle p-3 text-sm">
@@ -238,7 +262,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
               busy={busy || !/^\d{4}-\d{2}-\d{2}$/.test(factValue)}>Continue</Action>
           </>}
         </div>
-        {error && <div role="alert" className="mt-4 text-sm text-red-700"><p>{error}</p><button type="button" disabled={busy} onClick={()=>void retryQueue()} className="mt-2 min-h-11 font-semibold text-[#243186]">Reload current question</button></div>}
+        {error && <div role="alert" className="mt-4 text-sm text-red-700"><p>{error}</p><button type="button" disabled={submitting} onClick={()=>void retryQueue()} className="mt-2 min-h-11 font-semibold text-[#243186]">Reload current question</button></div>}
         {!(embedded && question.kind === 'percentage') && question.kind!=='meal_relationship' && <button type="button" disabled={busy} onClick={() => submit({ action: 'defer' })}
           className="mt-4 min-h-11 w-full text-sm font-medium text-muted underline disabled:opacity-50">
           Come back to this later

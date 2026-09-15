@@ -47,7 +47,7 @@ describe('continuous Check in with Betti experience',()=>{
   })
 
   it('retains newly returned questions and dependent follow-ups instead of slicing an old list',()=>{
-    expect(flow).toContain('setQuestions(currentQuestions(queueResult.questions))')
+    expect(flow).toContain('reconcileQuestionSession(previous, currentQuestions(queueResult.questions!), completedVersions.current)')
     expect(flow).toContain("experience!=='check-in'&&initialQuestions.length>0")
     expect(flow).not.toContain('setQuestions((value) => value.slice(1))\n      setPurpose')
   })
