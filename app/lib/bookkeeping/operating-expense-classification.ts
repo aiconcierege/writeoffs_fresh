@@ -72,7 +72,7 @@ const specialPatterns: Array<[RegExp, OperatingExpenseClassification['status'], 
   [/\b(?:vehicle purchase|automobile purchase|bought (?:a )?(?:car|truck|van)|car down payment)\b/, 'special_treatment', 'VEHICLE_PURCHASE_CPA_REVIEW'],
   [/\b(?:vehicle improvement|engine replacement|transmission replacement)\b/, 'special_treatment', 'VEHICLE_IMPROVEMENT_CPA_REVIEW'],
   [/\b(?:car payment|vehicle expense|automobile expense|auto shop)\b/, 'special_treatment', 'VEHICLE_FACTS_REQUIRED'],
-  [/\b(?:equipment|machinery|computer|laptop|furniture|capital asset)\b/, 'special_treatment', 'POSSIBLE_ASSET'],
+  [/\b(?:equipment|machinery|computer|laptop|furniture|mower|capital asset)\b/, 'special_treatment', 'POSSIBLE_ASSET'],
   [/\b(?:renovation|remodel|improvement|addition|restoration)\b/, 'special_treatment', 'POSSIBLE_CAPITAL_IMPROVEMENT'],
   [/\b(?:annual prepaid|multi year|multi-year|prepaid)\b/, 'special_treatment', 'POSSIBLE_PREPAYMENT'],
 ]
@@ -83,7 +83,14 @@ function plaidText(snapshot: BookkeepingEvaluationSnapshot) {
 }
 
 export function classifyOperatingExpense(snapshot: BookkeepingEvaluationSnapshot): OperatingExpenseClassification {
-  const source = normalize(`${snapshot.merchantName ?? ''} ${snapshot.description ?? ''} ${plaidText(snapshot)} ${snapshot.currentDecision.businessPurpose ?? ''}`)
+  // A customer's specific purchase correction outranks provider/merchant text.
+  // A generic business-purpose answer alone does not erase purchase evidence.
+  const correction = normalize(snapshot.currentDecision.businessPurpose)
+  const specificCorrection = snapshot.currentDecision.provenance === 'user'
+    && (patterns.some(({ pattern }) => pattern.test(correction))
+      || specialPatterns.some(([pattern]) => pattern.test(correction)))
+  const source = specificCorrection ? correction
+    : normalize(`${snapshot.merchantName ?? ''} ${snapshot.description ?? ''} ${plaidText(snapshot)} ${snapshot.currentDecision.businessPurpose ?? ''}`)
   const baseFacts: TaxRuleFacts = {
     transactionNature: snapshot.currentDecision.bookkeepingNature === 'expense' ? 'expense' : null,
     businessPurpose: snapshot.currentDecision.businessPurpose ?? (snapshot.currentDecision.treatment === 'business'
@@ -93,6 +100,8 @@ export function classifyOperatingExpense(snapshot: BookkeepingEvaluationSnapshot
     conflictingEvidence: snapshot.hasOpenConflictingEvidence,
   }
   for (const [pattern, status, reasonCode] of specialPatterns) {
+    if (reasonCode === 'POSSIBLE_ASSET' && /\b(?:equipment rental|equipment lease|computer repair|laptop repair|equipment repair)\b/.test(source)
+      && !/\b(?:purchase|purchased|bought)\b/.test(source)) continue
     if (pattern.test(source)) return { version: OPERATING_EXPENSE_CLASSIFIER_VERSION, status,
       categoryKey: null, expenseNature: null, confidence: 0.95, reasonCode,
       evidence: ['merchant_or_description'], taxFacts: baseFacts }

@@ -8,6 +8,7 @@ export type CanonicalSummaryAllocation = {
 
 export type CanonicalSummaryDecision = {
   id: string
+  businessPurpose?: string | null
   supersedesDecisionId: string | null
   bookkeepingNature:
     | 'expense'

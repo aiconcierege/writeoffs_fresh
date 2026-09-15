@@ -84,7 +84,7 @@ implements CanonicalFinancialSummaryRepository {
     })
     const decisionRows = await inBatches(recordIds, async (ids) => {
       const { data, error } = await this.supabase.from('bookkeeping_decisions')
-        .select('id,bookkeeping_record_id,supersedes_decision_id,bookkeeping_nature,treatment')
+        .select('id,bookkeeping_record_id,supersedes_decision_id,bookkeeping_nature,treatment,business_purpose')
         .eq('business_id', input.businessId).in('bookkeeping_record_id', ids)
       if (error) throw new Error(`Unable to load canonical summary decisions: ${error.message}`)
       return (data ?? []) as Row[]
@@ -220,6 +220,7 @@ implements CanonicalFinancialSummaryRepository {
       const id = text(row, 'id')
       decisions.push({
         id,
+        businessPurpose: nullableText(row, 'business_purpose'),
         supersedesDecisionId: nullableText(row, 'supersedes_decision_id'),
         bookkeepingNature: nullableText(row, 'bookkeeping_nature') as CanonicalSummaryDecision['bookkeepingNature'],
         treatment: text(row, 'treatment') as CanonicalSummaryDecision['treatment'],
@@ -249,25 +250,25 @@ implements CanonicalFinancialSummaryRepository {
       return (data ?? []) as Row[]
     })
     const manualByRecord = new Map(manualRows.map((row) => [text(row, 'bookkeeping_record_id'), row]))
-    const specialRows = await inBatches(recordIds, async (ids) => {
-      const { data, error } = await this.supabase.from('bookkeeping_special_treatment_signals')
-        .select('bookkeeping_record_id,reason_code').eq('business_id', input.businessId)
-        .in('bookkeeping_record_id', ids)
-      if (error) throw new Error(`Unable to load special-treatment signals: ${error.message}`)
-      return (data ?? []) as Row[]
-    })
-    const specialByRecord = new Map(specialRows.map((row) => [text(row, 'bookkeeping_record_id'), text(row, 'reason_code')]))
+    // Only an assessment of the current decision can describe current treatment.
+    // Legacy record-level signals remain history; they cannot override corrections.
     const operatingAssessmentRows = await inBatches(recordIds, async (ids) => {
       const { data, error } = await this.supabase.from('current_schedule_c_expense_assessments')
-        .select('bookkeeping_record_id,assessment_status,special_treatment_reason')
+        .select('bookkeeping_record_id,bookkeeping_decision_id,assessment_status,special_treatment_reason')
         .eq('business_id', input.businessId).in('bookkeeping_record_id', ids)
-        .in('assessment_status', ['special_treatment', 'unsupported'])
-      if (error && error.code !== '42P01') throw new Error(`Unable to load Schedule C containment state: ${error.message}`)
+      if (error) throw new Error('Unable to load current expense assessments.')
       return (data ?? []) as Row[]
     })
+    const specialByRecord = new Map<string, string>()
     for (const row of operatingAssessmentRows) {
+      const history = decisionsByRecord.get(text(row, 'bookkeeping_record_id')) ?? []
+      const superseded = new Set(history.map(decision => decision.supersedesDecisionId))
+      const current = history.find(decision => !superseded.has(decision.id))
       const reason = nullableText(row, 'special_treatment_reason')
-      if (reason) specialByRecord.set(text(row, 'bookkeeping_record_id'), reason)
+      if (reason && current?.id === text(row, 'bookkeeping_decision_id')
+        && current.bookkeepingNature === 'expense' && ['business', 'mixed_use'].includes(current.treatment)) {
+        specialByRecord.set(text(row, 'bookkeeping_record_id'), reason)
+      }
     }
     const invoiceLinkRows = await inBatches(recordIds, async (ids) => {
       const { data, error } = await this.supabase.from('invoice_income_links')

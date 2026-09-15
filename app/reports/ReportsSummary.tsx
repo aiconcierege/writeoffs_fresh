@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 
 type SummaryData = {
@@ -18,7 +18,7 @@ type SummaryData = {
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
-export function ReportsSummary({scope,readOnly}:{scope:'expenses'|'business';readOnly:boolean}) {
+export function ReportsSummary({scope,readOnly,annual}:{scope:'expenses'|'business';readOnly:boolean;annual?:ReactNode}) {
   const [data, setData] = useState<SummaryData | null>(null)
   const [loading, setLoading] = useState(true)
   useEffect(() => { fetch('/api/reports/summary', { cache: 'no-store' })
@@ -27,11 +27,12 @@ export function ReportsSummary({scope,readOnly}:{scope:'expenses'|'business';rea
   if (loading) return <div role="status" aria-label="Loading report" className="page-container"><div className="skeleton h-12 max-w-md"/><div className="mt-8 grid gap-5 sm:grid-cols-2"><div className="skeleton h-28"/><div className="skeleton h-28"/></div></div>
   if (!data) return <div className="page-container"><div role="alert" className="notice notice-error">Your report is temporarily unavailable. Please try again.</div></div>
   return <main className="app-page -mx-4 -mb-10 sm:-mx-6 lg:-mx-8"><div className="page-container max-w-5xl space-y-8 sm:space-y-11">
+    {annual}
     <header><p className="text-xs font-semibold tracking-[0.16em] text-slate-500">YEAR TO DATE</p>
       <h1 className="page-title">{scope==='business'?'Your business so far':'Your expenses so far'}</h1>
       {readOnly&&<p className="mt-2 text-sm font-medium text-[#243186]">Historical records · read only</p>}
       {!data.completeness.isComplete && <p className="mt-2 text-sm text-slate-600">Betti still needs a few details before every total is final.</p>}
-      <Link href="/reports/tax-time" className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">See what still needs attention →</Link></header>
+      <Link href="/reports/tax-time" className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">Tax-Time Report and annual readiness →</Link></header>
     <section aria-labelledby="financial-summary-heading"><h2 id="financial-summary-heading" className="sr-only">Financial summary</h2>
       <dl className="grid border-t border-[#dce3de] sm:grid-cols-2 sm:gap-x-10">
         {scope==='business'&&<div className="border-b border-[#dce3de] py-5"><dt className="text-sm text-[#59665f]">Business income</dt><dd className="money-display mt-2 text-3xl font-semibold">{usd.format(data.businessIncomeCents / 100)}</dd></div>}

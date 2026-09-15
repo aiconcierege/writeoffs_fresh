@@ -2,6 +2,7 @@ import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServerAdminSupabase } from '../../../utils/supabase/admin'
 import { getAuthenticatedCanonicalReport } from './reporting-service'
+import { purchaseReviewItems } from './tax-time-review'
 import { listCustomerQuestions } from './customer-questions'
 import { deriveTaxYearReadiness, scopeTaxYearReadiness } from './tax-year-readiness'
 
@@ -11,11 +12,11 @@ export function validateTaxYear(value: unknown) {
   return year
 }
 
-export async function getAuthenticatedTaxYearReadiness(input: { supabase: SupabaseClient; taxYear: number; scope?: 'expenses'|'business' }) {
+export async function getAuthenticatedTaxYearReadiness(input: { supabase: SupabaseClient; taxYear: number; scope?: 'expenses'|'business'; includeDataSourceHealth?: boolean }) {
   const taxYear = validateTaxYear(input.taxYear)
   const { data: { user } } = await input.supabase.auth.getUser()
   if (!user) throw new Error('AUTH_REQUIRED')
-  const { data: business } = await input.supabase.from('businesses').select('id').eq('owner_user_id', user.id).maybeSingle()
+  const { data: business } = await input.supabase.from('businesses').select('id,name').eq('owner_user_id', user.id).maybeSingle()
   if (!business) throw new Error('BUSINESS_UNAVAILABLE')
   const start = `${taxYear}-01-01`, end = `${taxYear}-12-31`
   const [report, questions] = await Promise.all([
@@ -31,7 +32,7 @@ export async function getAuthenticatedTaxYearReadiness(input: { supabase: Supaba
       .order('created_at', { ascending: false }),
     input.supabase.from('bookkeeping_receipt_events').select('id,receipt_id,supersedes_event_id,event_type,created_at')
       .eq('business_id', business.id),
-    input.supabase.from('current_deduction_attentions').select('id').eq('business_id', business.id).eq('event_type', 'opened'),
+    input.supabase.from('current_deduction_attentions').select('id,bookkeeping_record_id,scope_kind,scope_key').eq('business_id', business.id).eq('event_type', 'opened'),
     input.supabase.from('current_deduction_business_facts').select('fact_type,fact_value').eq('business_id', business.id).eq('scope_kind', 'business'),
     input.supabase.from('current_canonical_invoices').select('status,bookkeeping_record_id,issue_date').eq('business_id', business.id)
       .gte('issue_date', start).lte('issue_date', end),
@@ -52,6 +53,11 @@ export async function getAuthenticatedTaxYearReadiness(input: { supabase: Supaba
     latestJobByRecord.set(String(job.bookkeeping_record_id), { state: String(job.state) })
   }
   const currentJobs = [...latestJobByRecord.values()]
+  const yearRecordIds = new Set(report.rows.map(row => row.recordId))
+  const yearDeductionAttentions = (deductionAttentions ?? []).filter(row =>
+    row.bookkeeping_record_id ? yearRecordIds.has(String(row.bookkeeping_record_id))
+      : row.scope_kind === 'vehicle_year' ? String(row.scope_key).endsWith(`:${taxYear}`) : true)
+  const canonicalReviewItems = purchaseReviewItems(report)
   const scopedQuestions=input.scope==='expenses'?questions.filter(question=>(question.transaction.amountCents??0)<=0):questions
   const readiness=deriveTaxYearReadiness(taxYear, {
     report, customerQuestions: scopedQuestions, contractorSummaries: report.contractorSummaries,
@@ -62,11 +68,13 @@ export async function getAuthenticatedTaxYearReadiness(input: { supabase: Supaba
     // cannot make canonical customer records look incomplete.
     receiptProcessingCount: currentReceiptEvents.filter(row => row.event_type === 'uploaded'
       && String(row.created_at).startsWith(`${taxYear}-`)).length,
-    openDeductionAttentionCount: deductionAttentions?.length ?? 0, incompleteHomeOfficeProfile,
+    openDeductionAttentionCount: yearDeductionAttentions.length, incompleteHomeOfficeProfile,
     paidInvoiceWithoutIncomeCount: input.scope==='expenses'?0:(invoices ?? []).filter(row => row.status === 'paid' && !row.bookkeeping_record_id).length,
-    disconnectedDataSourceCount: (plaidItems ?? []).filter(row => row.connection_status === 'needs_attention'
+    disconnectedDataSourceCount: input.includeDataSourceHealth === false ? 0 : (plaidItems ?? []).filter(row => row.connection_status === 'needs_attention'
       || row.connection_status === 'reconnect_required' || row.connection_status === 'disconnected'
       || row.consent_status !== 'active').length,
+    canonicalReviewItems,
   })
-  return scopeTaxYearReadiness(readiness, input.scope ?? 'business')
+  return { ...scopeTaxYearReadiness(readiness, input.scope ?? 'business'), scope: input.scope ?? 'business',
+    businessName: business.name?.trim() || 'Your business' }
 }

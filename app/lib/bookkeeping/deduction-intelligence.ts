@@ -2,6 +2,7 @@ import 'server-only'
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { BookkeepingEvaluationSnapshot } from './deterministic-evaluator'
+import { classifyOperatingExpense } from './operating-expense-classification'
 import { snapshotEconomicContext } from './evidence-aware-routing'
 
 export const DEDUCTION_INTELLIGENCE_VERSION = 'deduction-intelligence:v1'
@@ -25,8 +26,8 @@ export function deductionSignal(snapshot: BookkeepingEvaluationSnapshot) {
     const provider = ['comcast','xfinity','cox'].find((name) => source.includes(name)) ?? merchantScope
     return { kind: 'internet' as const, factType: 'internet_business_use_percentage', scope: provider }
   }
-  if (snapshot.amountCents != null && snapshot.amountCents <= -100_000
-    && /\b(?:equipment|mower|laptop|camera)\b/.test(source)) {
+  if (snapshot.amountCents != null && snapshot.amountCents < 0
+    && classifyOperatingExpense(snapshot).reasonCode === 'POSSIBLE_ASSET') {
     return { kind: 'equipment' as const, factType: 'equipment_business_use_percentage', scope: snapshot.recordId }
   }
   return null
@@ -61,10 +62,10 @@ export async function runDeductionIntelligenceForRecord(input: {
       signal_type: 'equipment_review', signal_version: DEDUCTION_INTELLIGENCE_VERSION,
       reason_code: 'POSSIBLE_DURABLE_EQUIPMENT', provenance: 'automation',
     }, { onConflict: 'business_id,bookkeeping_record_id,signal_type,signal_version', ignoreDuplicates: true })
-    if (questionEligible(snapshot.occurredOn, input.now)) {
+    if (snapshot.currentDecision.provenance !== 'user' && questionEligible(snapshot.occurredOn, input.now)) {
       await openAttention(admin, snapshot, signal.factType, 'bookkeeping_record', signal.scope,
         'percentage', 'About how much is this equipment used for your business?',
-        'Enter an approximate percentage. WriteOffs will keep special tax treatment unresolved until the needed facts and rules are available.')
+        'Enter an approximate percentage. WriteOffs will record the business use. You or your tax preparer can review the purchase at tax time.')
     }
     return { outcome: 'special_treatment' as const }
   }

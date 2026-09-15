@@ -8,6 +8,7 @@ const config = defineConfig([
   globalIgnores([
       'node_modules/**',
       '.next/**',
+      '.vercel/**',
       'coverage/**',
       'dist/**',
       'next-env.d.ts',

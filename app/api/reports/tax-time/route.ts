@@ -9,7 +9,8 @@ export async function GET(request: Request) {
   try {
     const year = validateTaxYear(new URL(request.url).searchParams.get('year') ?? new Date().getFullYear())
     const membership=await loadCustomerEntitlements(supabase);if(!membership.plan)throw new Error('MEMBERSHIP_REQUIRED')
-    return NextResponse.json(await getAuthenticatedTaxYearReadiness({ supabase, taxYear: year,scope:membership.plan }),
+    return NextResponse.json(await getAuthenticatedTaxYearReadiness({ supabase, taxYear: year,scope:membership.plan,
+      includeDataSourceHealth: !['expired_read_only','pending_deletion'].includes(membership.lifecycle) }),
       { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     const code = error instanceof Error ? error.message : ''

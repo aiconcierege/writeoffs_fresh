@@ -58,3 +58,19 @@ describe('Schedule C operating-expense classification', () => {
       .toMatchObject({ status: 'ordinary', categoryKey: 'meals', taxFacts: { mealBusinessContext: false } })
   })
 })
+
+
+describe('purchase correction authority', () => {
+  it('uses a specific customer correction instead of stale merchant evidence', () => {
+    const value = snapshot('Laptop equipment')
+    value.currentDecision.provenance = 'user'
+    value.currentDecision.businessPurpose = 'Computer repair service for my business'
+    expect(classifyOperatingExpense(value)).toMatchObject({ status: 'ordinary', categoryKey: 'repairs' })
+    value.currentDecision.businessPurpose = 'For my business'
+    expect(classifyOperatingExpense(value).reasonCode).toBe('POSSIBLE_ASSET')
+  })
+  it('does not impose a price threshold or mistake equipment rent for a purchase', () => {
+    expect(classifyOperatingExpense(snapshot('Laptop computer', { amountCents: -5000 })).reasonCode).toBe('POSSIBLE_ASSET')
+    expect(classifyOperatingExpense(snapshot('Equipment rental')).categoryKey).toBe('rent-other')
+  })
+})

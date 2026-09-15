@@ -29,11 +29,24 @@ export async function getAuthenticatedCanonicalReport(input: {
   const report = buildCanonicalReport({ canonicalRecords: canonical.records, legacyRecords: legacy,
     periodStart: input.periodStart, periodEnd: input.periodEnd, currency: input.currency ?? 'USD', categoryLabels })
   const relevantVehicles=vehicleReports.filter(vehicle=>vehicle.businessMilesMilli>0||vehicle.actualExpenseCents>0)
-  const vehicleReady=relevantVehicles.every(vehicle=>vehicle.method!=='unresolved'&&vehicle.allocationBasisPoints!=null&&!vehicle.requiresCpaReview)
-  const mileageDeductionCents=vehicleReady?relevantVehicles.reduce((sum,vehicle)=>sum+(vehicle.mileageDeductionCents??0),0):null
+  const vehicleReady=relevantVehicles.every(vehicle=>vehicle.method!=='unresolved'&&vehicle.allocationBasisPoints!=null)
+  const knownVehicleDeductions=relevantVehicles.map(vehicle=>vehicle.method==='standard_mileage'
+    ?vehicle.mileageDeductionCents:vehicle.method==='actual_expenses'?0:null)
+  const mileageDeductionCents=vehicleReady&&knownVehicleDeductions.every(value=>value!=null)
+    ?knownVehicleDeductions.reduce<number>((sum,value)=>sum+(value??0),0):null
   const estimatedDeductionsCents=report.estimatedDeductionsCents!=null&&mileageDeductionCents!=null
     ?report.estimatedDeductionsCents+mileageDeductionCents:null
-  return { ...report,estimatedDeductionsCents,businessMilesMilli,mileageDeductionCents,vehicleReports, contractorSummaries,
+  // Actual expenses (including parking/tolls) are already in allocation treatments.
+  // Only standard mileage adds a deduction beyond those transaction treatments.
+  const deductibleCategoryTotals = [...(report.deductibleCategoryTotals ?? [])]
+  if (mileageDeductionCents) {
+    const index = deductibleCategoryTotals.findIndex(row => row.categoryKey === 'car-truck')
+    if (index >= 0) deductibleCategoryTotals[index] = { ...deductibleCategoryTotals[index],
+      amountCents: deductibleCategoryTotals[index].amountCents + mileageDeductionCents }
+    else deductibleCategoryTotals.push({ categoryKey: 'car-truck', categoryLabel: categoryLabels['car-truck'] ?? 'Car and truck expenses',
+      amountCents: mileageDeductionCents, transactionCount: 0 })
+  }
+  return { ...report,deductibleCategoryTotals,estimatedDeductionsCents,businessMilesMilli,mileageDeductionCents,vehicleReports, contractorSummaries,
     mileageTaxTreatmentStatus: !relevantVehicles.length ? 'not_applicable' as const : vehicleReady?'ready' as const:'needs_attention' as const,
     completeness: { ...report.completeness,
     isComplete: report.completeness.isComplete && canonical.undatedRecordCount === 0&&vehicleReady,

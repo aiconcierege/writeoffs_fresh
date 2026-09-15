@@ -110,6 +110,9 @@ describe('canonical reporting read model', () => {
           provenance: 'system', confidence: null,
         }] }] }] })
     expect(report([supported]).estimatedDeductionsCents).toBe(8_000)
+    expect(report([supported]).deductibleCategoryTotals).toEqual([
+      expect.objectContaining({ categoryKey: 'supplies', amountCents: 8_000, transactionCount: 1 }),
+    ])
     expect(report([record()]).estimatedDeductionsCents).toBeNull()
   })
 
@@ -138,6 +141,23 @@ describe('canonical reporting read model', () => {
     expect(result.businessExpensesCents).toBe(10_000)
     expect(result.businessProfitCents).toBe(-10_000)
     expect(result.estimatedDeductionsCents).toBe(5_000)
+    expect(result.deductibleCategoryTotals).toEqual([
+      expect.objectContaining({ categoryKey: 'fixture-half', amountCents: 5_000 }),
+    ])
+  })
+
+  it('keeps a canonical special-treatment item out of deductions without making the books incomplete', () => {
+    const equipment = record({ specialTreatmentReason:'POSSIBLE_DURABLE_EQUIPMENT', decisions:[{ id:'equipment-decision',
+      supersedesDecisionId:null,bookkeepingNature:'expense',treatment:'business',allocations:[{id:'equipment-allocation',
+        kind:'business',amountCents:-120000,taxCategoryKey:'supplies',taxTreatments:[{id:'equipment-tax',
+          allocationId:'equipment-allocation',supersedesTaxTreatmentId:null,status:'special_treatment',deductibleAmountCents:null,
+          taxCategoryKey:'supplies',ruleKey:'tax.equipment-review',ruleVersion:1,reason:'Return-level review required.',
+          provenance:'system',confidence:null}]}]}] })
+    const result = report([equipment])
+    expect(result.businessExpensesCents).toBe(120000)
+    expect(result.estimatedDeductionsCents).toBe(0)
+    expect(result.completeness.unresolvedTaxTreatmentCount).toBe(0)
+    expect(result.deductibleCategoryTotals).toEqual([])
   })
 
   it('applies tax preparation only after exact mixed-use bookkeeping allocation', () => {
@@ -161,4 +181,29 @@ describe('canonical reporting read model', () => {
     expect(result.estimatedTaxableIncomeCents).toBeNull()
     expect(result).not.toHaveProperty('taxLiabilityCents')
   })
+
+  it('keeps a high-volume annual report bounded to summaries plus lightweight rows', () => {
+    const records = Array.from({ length: 2_000 }, (_, index) => record({ occurredOn:`2026-${String(index % 12 + 1).padStart(2,'0')}-15`,
+      amountCents:-100,decisions:[{id:`volume-decision-${index}`,supersedesDecisionId:null,bookkeepingNature:'expense',treatment:'business',
+        allocations:[{id:`volume-allocation-${index}`,kind:'business',amountCents:-100,taxCategoryKey:'supplies',taxTreatments:[{
+          id:`volume-tax-${index}`,allocationId:`volume-allocation-${index}`,supersedesTaxTreatmentId:null,status:'deductible',
+          deductibleAmountCents:-100,taxCategoryKey:'supplies',ruleKey:'tax.supplies',ruleVersion:1,reason:'Supported fixture.',provenance:'system',confidence:null}]}]}] }))
+    const result = report(records)
+    expect(result.businessExpensesCents).toBe(200_000)
+    expect(result.deductibleCategoryTotals).toEqual([expect.objectContaining({amountCents:200_000,transactionCount:2_000})])
+    expect(result.categoryTotals).toHaveLength(1)
+  })
+})
+
+
+it('nets signed expense credits in supported category totals', () => {
+  const records = [-10000, 2000].map((amount, index) => record({ amountCents: amount,
+    decisions: [{ id: `credit-decision-${index}`, supersedesDecisionId: null, bookkeepingNature: 'expense', treatment: 'business',
+      allocations: [{ id: `credit-allocation-${index}`, kind: 'business', amountCents: amount, taxCategoryKey: 'supplies',
+        taxTreatments: [{ id: `credit-tax-${index}`, allocationId: `credit-allocation-${index}`, supersedesTaxTreatmentId: null,
+          status: 'deductible', deductibleAmountCents: amount, taxCategoryKey: 'supplies', ruleKey: 'fixture', ruleVersion: 1,
+          reason: 'Signed expense adjustment fixture', provenance: 'system', confidence: null }] }] }] }))
+  const result = report(records)
+  expect(result.estimatedDeductionsCents).toBe(8000)
+  expect(result.deductibleCategoryTotals?.[0].amountCents).toBe(8000)
 })

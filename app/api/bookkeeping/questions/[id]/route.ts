@@ -6,6 +6,7 @@ import {
 } from '../../../../lib/bookkeeping/customer-question-actions'
 import { createServerAdminSupabase } from '../../../../../utils/supabase/admin'
 import { loadBookkeepingEvaluationSnapshot } from '../../../../lib/bookkeeping/evaluation-snapshot'
+import { finishAnsweredExpense } from '../../../../lib/bookkeeping/answered-expense-classification'
 import { runDeductionIntelligenceForRecord } from '../../../../lib/bookkeeping/deduction-intelligence'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -198,7 +199,8 @@ export async function POST(
       } else throw new Error('That answer does not match this deduction question.')
       return NextResponse.json({ ok: true })
     }
-    await actOnCustomerQuestion({ supabase, issueId: id, expectedEventId, command })
+    const result = await actOnCustomerQuestion({ supabase, issueId: id, expectedEventId, command })
+    await finishAnsweredExpense({ supabase, result })
     return NextResponse.json({ ok: true })
   } catch (cause) {
     const message = cause instanceof Error ? cause.message

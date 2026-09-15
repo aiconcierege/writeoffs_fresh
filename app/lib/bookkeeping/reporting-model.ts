@@ -28,6 +28,7 @@ export type ReportingRow = {
   categoryKey: string | null
   hasEvidence: boolean
   receiptLost: boolean
+  unresolvedTaxTreatmentCount?: number
   specialTreatmentReason: string | null
 }
 
@@ -43,6 +44,7 @@ export type CanonicalReport = {
   categorizedBusinessExpensesCents: number
   uncategorizedBusinessExpensesCents: number
   categoryTotals: Array<{ categoryKey: string; categoryLabel: string; amountCents: number; transactionCount: number }>
+  deductibleCategoryTotals?: Array<{ categoryKey: string; categoryLabel: string; amountCents: number; transactionCount: number }>
   completeness: {
     isComplete: boolean
     unresolvedRecordCount: number
@@ -93,6 +95,7 @@ export function buildCanonicalReport(input: {
   let unresolvedTaxTreatmentCount = 0
   const unsupportedCurrencies = new Set<string>()
   const categoryMap = new Map<string, { signed: number; count: number }>()
+  const deductibleCategoryMap = new Map<string, { amount: number; records: Set<string> }>()
   const rows: ReportingRow[] = []
 
   for (const record of input.canonicalRecords) {
@@ -110,10 +113,16 @@ export function buildCanonicalReport(input: {
       expenseSigned = safeAdd(expenseSigned, businessSigned)
       for (const allocation of business) {
         const taxTreatment = currentTaxTreatment(allocation.taxTreatments ?? [])
-        if (!taxTreatment || !['deductible', 'not_deductible'].includes(taxTreatment.status)) {
+        if (!taxTreatment || ['unresolved', 'requires_facts'].includes(taxTreatment.status)) {
           unresolvedTaxTreatmentCount += 1
         } else if (taxTreatment.status === 'deductible') {
           deductibleSigned = safeAdd(deductibleSigned, taxTreatment.deductibleAmountCents!)
+          if (taxTreatment.taxCategoryKey && taxTreatment.deductibleAmountCents) {
+            const slot = deductibleCategoryMap.get(taxTreatment.taxCategoryKey) ?? { amount: 0, records: new Set<string>() }
+            slot.amount = safeAdd(slot.amount, -taxTreatment.deductibleAmountCents)
+            slot.records.add(record.id)
+            deductibleCategoryMap.set(taxTreatment.taxCategoryKey, slot)
+          }
         }
         if (!allocation.taxCategoryKey) continue
         categorized = safeAdd(categorized, -allocation.amountCents)
@@ -129,13 +138,17 @@ export function buildCanonicalReport(input: {
       recordId: record.id, occurredOn: record.occurredOn,
       merchant: record.merchant?.trim() || (record.sourceKind === 'receipt' ? 'Receipt purchase'
         : record.sourceKind === 'manual' ? 'Recorded activity' : 'Transaction'),
-      description: record.description ?? null, currency: record.currency,
+      description: decision?.businessPurpose ?? record.description ?? null, currency: record.currency,
       signedAmountCents: record.amountCents ?? 0,
       businessAmountCents: decision?.bookkeepingNature === 'expense' ? -businessSigned : businessSigned,
       personalAmountCents: -personalSigned,
       treatment: treatmentLabel(decision?.treatment ?? null),
       categoryKey: business.length === 1 ? business[0].taxCategoryKey ?? null : null,
       hasEvidence: record.hasEvidence ?? record.sourceKind === 'receipt', receiptLost: record.receiptLost ?? false,
+      unresolvedTaxTreatmentCount: business.filter(allocation => {
+        const treatment = currentTaxTreatment(allocation.taxTreatments ?? [])
+        return !treatment || ['unresolved', 'requires_facts'].includes(treatment.status)
+      }).length,
       specialTreatmentReason: record.specialTreatmentReason ?? null,
     })
   }
@@ -176,6 +189,11 @@ export function buildCanonicalReport(input: {
     categoryKey, categoryLabel: input.categoryLabels?.[categoryKey] ?? categoryKey,
     amountCents: -value.signed, transactionCount: value.count,
   })).sort((a, b) => b.amountCents - a.amountCents || a.categoryKey.localeCompare(b.categoryKey))
+  const deductibleCategoryTotals = [...deductibleCategoryMap].map(([categoryKey, value]) => ({
+    categoryKey, categoryLabel: input.categoryLabels?.[categoryKey] ?? categoryKey,
+    amountCents: value.amount, transactionCount: value.records.size,
+  })).filter(row => row.amountCents !== 0)
+    .sort((a, b) => b.amountCents - a.amountCents || a.categoryKey.localeCompare(b.categoryKey))
   rows.sort((a, b) => b.occurredOn.localeCompare(a.occurredOn) || a.recordId.localeCompare(b.recordId))
   return {
     currency: input.currency, periodStart: input.periodStart, periodEnd: input.periodEnd,
@@ -187,7 +205,7 @@ export function buildCanonicalReport(input: {
     estimatedTaxableIncomeCents: null,
     categorizedBusinessExpensesCents: categorized,
     uncategorizedBusinessExpensesCents: safeAdd(businessExpensesCents, -categorized),
-    categoryTotals,
+    categoryTotals, deductibleCategoryTotals,
     completeness: { isComplete: unresolvedRecordCount === 0 && unsupportedCurrencies.size === 0,
       unresolvedRecordCount, unsupportedCurrencies: [...unsupportedCurrencies].sort(),
       legacyFallbackCount: input.legacyRecords.length, unresolvedTaxTreatmentCount },

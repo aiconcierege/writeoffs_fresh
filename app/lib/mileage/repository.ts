@@ -67,6 +67,6 @@ export async function loadVehicleTaxYearReports(supabase:SupabaseClient,input:{b
         ownership:(identity?.ownership??'unknown') as 'owned'|'leased'|'unknown',isMixedUse:vehicle.is_mixed_use,
         totalMilesMilli:use?.total_miles_milli==null?null:Number(use.total_miles_milli),
         businessMiles:(mileageResult.data??[]).filter(row=>row.vehicle_id===vehicle.id).map(row=>({occurredOn:row.occurred_on,milesMilli:Number(row.miles_milli)})),
-        expenses:associations.flatMap(row=>{const record=recordById.get(row.bookkeeping_record_id);return record?[{id:row.bookkeeping_record_id,kind:row.expense_kind as VehicleExpenseKind,amountCents:Number(record.amount_cents)}]:[]})})}
+        expenses:associations.filter(row=>row.vehicle_id===vehicle.id).flatMap(row=>{const record=recordById.get(row.bookkeeping_record_id);return record?[{id:row.bookkeeping_record_id,kind:row.expense_kind as VehicleExpenseKind,amountCents:Number(record.amount_cents)}]:[]})})}
   })
 }

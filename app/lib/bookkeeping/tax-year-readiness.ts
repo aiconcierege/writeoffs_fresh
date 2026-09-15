@@ -21,13 +21,25 @@ export type ReadinessDimension = {
   summary: string
   issueCount: number
 }
+export type TaxTimeReviewItem = {
+  kind: 'potential_capital_asset' | 'vehicle' | 'contractor'
+  title: string
+  detail: string
+  occurredOn?: string
+  description?: string
+  businessAmountCents?: number
+  merchant?: string
+  amountCents?: number
+  currentHandling?: string
+  recordId?: string
+}
 
 export type TaxYearReadinessContext = {
   report: CanonicalReport
   customerQuestions: Array<{ id: string; source?: string; prompt: string; transaction: { date: string | null; amountCents: number | null } }>
   contractorSummaries: ContractorSummary[]
   businessMilesMilli: number
-  vehicleReports?:Array<{displayName:string;method:string;businessMilesMilli:number;totalMilesMilli:number|null;allocationBasisPoints:number|null;mileageDeductionCents:number|null;actualExpenseCents:number;deductibleActualExpenseCents:number|null;requiresCpaReview:boolean;cpaReviewReasons:string[]}>
+  vehicleReports?:Array<{displayName:string;method:string;businessMilesMilli:number;totalMilesMilli:number|null;allocationBasisPoints:number|null;mileageDeductionCents:number|null;actualExpenseCents:number;deductibleActualExpenseCents:number|null;requiresCpaReview:boolean;cpaReviewReasons:string[];expenses?:Array<{id:string;kind:string;status:string;deductibleCents:number|null}>}>
   undatedRecordCount: number
   processingCount: number
   failedProcessingCount: number
@@ -36,6 +48,7 @@ export type TaxYearReadinessContext = {
   incompleteHomeOfficeProfile: boolean
   paidInvoiceWithoutIncomeCount: number
   disconnectedDataSourceCount: number
+  canonicalReviewItems?: TaxTimeReviewItem[]
 }
 
 const plural = (count: number, singular: string, pluralValue = `${singular}s`) => `${count} ${count === 1 ? singular : pluralValue}`
@@ -43,28 +56,36 @@ const plural = (count: number, singular: string, pluralValue = `${singular}s`) =
 export function deriveTaxYearReadiness(taxYear: number, input: TaxYearReadinessContext) {
   const supportedTaxYear = (SUPPORTED_TAX_YEARS as readonly number[]).includes(taxYear)
   const issues: ReadinessIssue[] = []
+  const reviewItems: TaxTimeReviewItem[] = [...(input.canonicalReviewItems ?? [])]
   const rows = input.report.rows
   const unresolvedIncome = rows.filter(row => row.treatment === 'Still being worked on' && row.signedAmountCents > 0)
   const unresolvedExpenses = rows.filter(row => row.treatment === 'Still being worked on' && row.signedAmountCents < 0)
   const missingDocumentation = rows.filter(row => row.businessAmountCents > 0 && row.signedAmountCents < 0
     && !row.hasEvidence && !row.receiptLost)
   const lostDocumentation = rows.filter(row => row.businessAmountCents > 0 && row.signedAmountCents < 0 && row.receiptLost)
-  const specialTreatment = rows.filter(row => Boolean(row.specialTreatmentReason))
+  const vehicleReviewRecords = (input.vehicleReports ?? []).flatMap(vehicle =>
+    (vehicle.expenses ?? []).filter(expense => expense.status === 'cpa_review').map(expense => expense.id))
+  const reviewRecordIds = new Set((input.canonicalReviewItems ?? []).map(item => item.recordId).filter(Boolean).concat(vehicleReviewRecords))
+  const unresolvedTaxTreatmentCount = Math.max(0, input.report.completeness.unresolvedTaxTreatmentCount
+    - rows.filter(row => reviewRecordIds.has(row.recordId)).reduce((sum, row) => sum + (row.unresolvedTaxTreatmentCount ?? 0), 0))
+  const specialTreatment = rows.filter(row => Boolean(row.specialTreatmentReason) && !reviewRecordIds.has(row.recordId))
   const yearQuestions = input.customerQuestions.filter(question => !question.transaction.date
     || question.transaction.date.startsWith(`${taxYear}-`))
   const contractorAttention = input.contractorSummaries.filter(row => row.totalPaidCents > 0
-    && ['information_incomplete', 'w9_needed', 'potential_1099_attention'].includes(row.awareness))
+    && ['information_incomplete', 'w9_needed'].includes(row.awareness))
+  const contractorReview = input.contractorSummaries.filter(row => row.totalPaidCents > 0
+    && row.awareness === 'potential_1099_attention')
 
   for (const row of unresolvedIncome) issues.push({ code: 'INCOME_NATURE_UNRESOLVED', title: `Income needs context: ${row.merchant}`,
     detail: 'WriteOffs still needs a business fact before this inflow can be included safely.', kind: 'customer_action',
-    actionHref: '/questions', recordId: row.recordId })
+    actionHref: '/check-in', recordId: row.recordId })
   for (const row of unresolvedExpenses) issues.push({ code: 'EXPENSE_NATURE_UNRESOLVED', title: `Spending needs context: ${row.merchant}`,
     detail: 'WriteOffs still needs a business fact before this outflow can be treated safely.', kind: 'customer_action',
-    actionHref: '/questions', recordId: row.recordId })
-  if (yearQuestions.some(question => question.source === 'bookkeeping') && unresolvedIncome.length + unresolvedExpenses.length === 0) {
+    actionHref: '/check-in', recordId: row.recordId })
+  if (yearQuestions.length && unresolvedIncome.length + unresolvedExpenses.length === 0) {
     issues.push({ code: 'BOOKKEEPING_QUESTIONS_OPEN', title: 'Business details need answers',
-      detail: `${plural(yearQuestions.filter(question => question.source === 'bookkeeping').length, 'question')} remain in your existing attention queue.`,
-      kind: 'customer_action', actionHref: '/questions' })
+      detail: `${plural(yearQuestions.length, 'question')} remain in your existing attention queue.`,
+      kind: 'customer_action', actionHref: '/check-in' })
   }
   if (missingDocumentation.length || lostDocumentation.length) issues.push({ code: 'DOCUMENTATION_INCOMPLETE',
     title: 'Some expense documentation is unavailable',
@@ -73,25 +94,30 @@ export function deriveTaxYearReadiness(taxYear: number, input: TaxYearReadinessC
   if (input.undatedRecordCount > 0) issues.push({ code: 'UNDATED_RECORDS', title: 'Some activity is missing a date',
     detail: `${plural(input.undatedRecordCount, 'record')} cannot be assigned to a tax year yet.`, kind: 'integrity', actionHref: '/transactions' })
   if (input.openDeductionAttentionCount > 0) issues.push({ code: 'DEDUCTION_FACTS_INCOMPLETE', title: 'Deduction details need information',
-    detail: `${plural(input.openDeductionAttentionCount, 'factual answer')} remain open.`, kind: 'customer_action', actionHref: '/questions' })
+    detail: `${plural(input.openDeductionAttentionCount, 'factual answer')} remain open.`, kind: 'customer_action', actionHref: '/check-in' })
   if (input.incompleteHomeOfficeProfile) issues.push({ code: 'HOME_OFFICE_PROFILE_INCOMPLETE', title: 'Home-office details are incomplete',
     detail: 'WriteOffs needs the remaining factual details before it can evaluate this safely.', kind: 'customer_action', actionHref: '/deductions' })
   for (const row of specialTreatment) issues.push({ code: 'SPECIAL_TAX_TREATMENT_UNRESOLVED', title: `${row.merchant} needs tax details`,
-    detail: 'No unsupported deduction has been included for this item.', kind: 'customer_action', actionHref: '/questions', recordId: row.recordId })
-  if (input.report.completeness.unresolvedTaxTreatmentCount > 0) issues.push({ code: 'TAX_TREATMENTS_UNRESOLVED', title: 'Some tax treatment is unresolved',
-    detail: `${plural(input.report.completeness.unresolvedTaxTreatmentCount, 'business expense')} remain excluded from estimated deductions.`,
-    kind: 'customer_action', actionHref: '/questions' })
+    detail: 'No unsupported deduction has been included for this item.', kind: 'customer_action', actionHref: '/check-in', recordId: row.recordId })
+  if (unresolvedTaxTreatmentCount > 0) issues.push({ code: 'TAX_TREATMENTS_UNRESOLVED', title: 'Some tax treatment is unresolved',
+    detail: `${plural(unresolvedTaxTreatmentCount, 'business expense')} remain excluded from estimated deductions.`,
+    kind: 'customer_action', actionHref: '/check-in' })
   for (const row of contractorAttention) issues.push({ code: `CONTRACTOR_${row.awareness.toUpperCase()}`,
     title: `${row.displayName} needs contractor-record attention`,
     detail: row.awareness === 'potential_1099_attention' ? 'Potential information-reporting attention; this is not a filing determination.'
       : row.awareness === 'w9_needed' ? 'W-9 information is not currently on file.' : 'Payment or contractor information is incomplete.',
     kind: 'customer_action', actionHref: '/contractors' })
+  for (const row of contractorReview) reviewItems.push({ kind: 'contractor', title: `${row.displayName} may need tax-time review`,
+    detail: 'WriteOffs tracked the payments and supporting facts. A return preparer can determine whether information reporting applies.' })
   const unresolvedVehicles=(input.vehicleReports??[]).filter(vehicle=>vehicle.method==='unresolved'||vehicle.allocationBasisPoints==null)
-  const cpaVehicles=(input.vehicleReports??[]).filter(vehicle=>vehicle.requiresCpaReview)
-  if (input.businessMilesMilli > 0&&(!input.vehicleReports||unresolvedVehicles.length)) issues.push({ code: 'MILEAGE_TAX_TREATMENT_UNRESOLVED', title: 'Vehicle details need attention',
+  const cpaVehicles=(input.vehicleReports??[]).filter(vehicle=>vehicle.requiresCpaReview && (vehicle.businessMilesMilli > 0 || vehicle.actualExpenseCents > 0 || (vehicle.expenses?.length ?? 0) > 0))
+  if ((input.businessMilesMilli > 0 && !input.vehicleReports) || unresolvedVehicles.some(vehicle => vehicle.businessMilesMilli > 0 || vehicle.actualExpenseCents > 0)) issues.push({ code: 'MILEAGE_TAX_TREATMENT_UNRESOLVED', title: 'Vehicle details need attention',
     detail: 'Choose how to track the vehicle and provide total miles when asked.', kind: 'customer_action', actionHref: '/mileage' })
-  for(const vehicle of cpaVehicles)issues.push({code:'VEHICLE_CPA_REVIEW',title:`${vehicle.displayName} needs tax-preparer review`,
-    detail:'WriteOffs preserved the vehicle facts and excluded unsupported special adjustments.',kind:'documentation',actionHref:'/mileage'})
+  for(const vehicle of cpaVehicles)reviewItems.push({kind:'vehicle',title:`Review ${vehicle.displayName} at tax time`,
+    detail: vehicle.cpaReviewReasons.includes('LEASE_INCLUSION_AMOUNT')
+      ? 'This leased vehicle uses actual expenses. You or your tax preparer may need to review lease-related tax adjustments.'
+      : 'The recorded vehicle purchase, improvement, or method needs a tax-return decision. No depreciation or other unsupported adjustment has been included.',
+    currentHandling: vehicle.method === 'actual_expenses' ? 'Actual vehicle expenses recorded' : 'Vehicle facts recorded'})
   if (input.paidInvoiceWithoutIncomeCount > 0) issues.push({ code: 'PAID_INVOICE_LINK_MISSING', title: 'A paid invoice is missing valid income support',
     detail: `${plural(input.paidInvoiceWithoutIncomeCount, 'invoice')} need an established income link.`, kind: 'integrity', actionHref: '/invoices' })
   if (input.processingCount + input.receiptProcessingCount > 0) issues.push({ code: 'RECORDS_PROCESSING', title: 'WriteOffs is still working',
@@ -100,6 +126,9 @@ export function deriveTaxYearReadiness(taxYear: number, input: TaxYearReadinessC
     detail: `${plural(input.failedProcessingCount, 'item')} could not finish. No customer accounting judgment is requested.`, kind: 'integrity', actionHref: null })
   if (input.disconnectedDataSourceCount > 0) issues.push({ code: 'DATA_SOURCE_NEEDS_ATTENTION', title: 'A connected account needs attention',
     detail: `${plural(input.disconnectedDataSourceCount, 'connection')} need to be restored or checked.`, kind: 'data_source', actionHref: '/settings/banking' })
+  if (input.report.completeness.unsupportedCurrencies.length) issues.push({ code: 'UNSUPPORTED_CURRENCY',
+    title: 'Some activity needs currency details', detail: 'These amounts cannot yet be included in the annual business totals.',
+    kind: 'integrity', actionHref: '/transactions' })
   if (!supportedTaxYear) issues.push({ code: 'UNSUPPORTED_TAX_YEAR', title: `${taxYear} tax rules are not yet supported`,
     detail: 'WriteOffs will not apply a different year’s tax rules.', kind: 'integrity', actionHref: null })
 
@@ -115,23 +144,24 @@ export function deriveTaxYearReadiness(taxYear: number, input: TaxYearReadinessC
           ? `${plural(missingDocumentation.length, 'expense')} have no attached document; ${lostDocumentation.length} reported unavailable.`
           : 'Available documentation is organized.', issueCount: missingDocumentation.length + lostDocumentation.length + input.receiptProcessingCount },
     { key: 'mileage', label: 'Mileage', status: !input.businessMilesMilli&&!(input.vehicleReports??[]).some(v=>v.actualExpenseCents)?'not_applicable'
-      :unresolvedVehicles.length||cpaVehicles.length?'needs_attention':'complete',
-      summary: input.businessMilesMilli ? `${(input.businessMilesMilli / 1000).toLocaleString('en-US')} business miles recorded${unresolvedVehicles.length?'; vehicle details remain.':'.'}` : 'Vehicle costs are tracked.', issueCount: unresolvedVehicles.length+cpaVehicles.length },
+      :unresolvedVehicles.length?'needs_attention':'complete',
+      summary: input.businessMilesMilli ? `${(input.businessMilesMilli / 1000).toLocaleString('en-US')} business miles recorded${unresolvedVehicles.length?'; vehicle details remain.':'.'}` : 'Vehicle costs are tracked.', issueCount: unresolvedVehicles.length },
     { key: 'contractors', label: 'Contractor records', status: contractorAttention.length ? 'needs_attention'
       : input.contractorSummaries.some(row => row.totalPaidCents > 0) ? 'complete' : 'not_applicable',
       summary: contractorAttention.length ? `${plural(contractorAttention.length, 'contractor')} need information.`
         : input.contractorSummaries.some(row => row.totalPaidCents > 0) ? 'Tracked contractor information is current.' : 'No contractor payments are tracked.', issueCount: contractorAttention.length },
     { key: 'tax_treatment', label: 'Tax treatment', status: !supportedTaxYear ? 'incomplete'
-      : input.report.completeness.unresolvedTaxTreatmentCount || specialTreatment.length || input.incompleteHomeOfficeProfile ? 'needs_attention' : 'complete',
+      : unresolvedTaxTreatmentCount || specialTreatment.length || input.incompleteHomeOfficeProfile ? 'needs_attention' : 'complete',
       summary: !supportedTaxYear ? `Approved tax rules are unavailable for ${taxYear}.`
-        : input.report.completeness.unresolvedTaxTreatmentCount || specialTreatment.length || input.incompleteHomeOfficeProfile
+        : unresolvedTaxTreatmentCount || specialTreatment.length || input.incompleteHomeOfficeProfile
           ? 'Unsupported deduction amounts remain excluded.' : 'Supported current tax treatment is complete.',
-      issueCount: input.report.completeness.unresolvedTaxTreatmentCount + specialTreatment.length + (input.incompleteHomeOfficeProfile ? 1 : 0) },
+      issueCount: unresolvedTaxTreatmentCount + specialTreatment.length + (input.incompleteHomeOfficeProfile ? 1 : 0) },
   ]
   const status: ReadinessStatus = issues.some(issue => issue.kind === 'integrity') ? 'incomplete'
-    : issues.some(issue => issue.kind === 'customer_action' || issue.kind === 'data_source' || issue.kind === 'documentation') ? 'needs_attention'
+    : issues.some(issue => issue.kind === 'customer_action' || issue.kind === 'data_source') ? 'needs_attention'
       : issues.some(issue => issue.kind === 'processing') ? 'still_processing' : 'ready'
-  return { version: TAX_YEAR_READINESS_VERSION, taxYear, supportedTaxYear, status, dimensions, issues,
+  return { version: TAX_YEAR_READINESS_VERSION, taxYear, supportedTaxYear, status, dimensions, issues, reviewItems,
+    scheduleCCategories: input.report.deductibleCategoryTotals ?? [], vehicleReports: input.vehicleReports ?? [],
     totals: { businessIncomeCents: input.report.businessIncomeCents, businessExpensesCents: input.report.businessExpensesCents,
       businessProfitCents: input.report.businessProfitCents, estimatedDeductionsCents: supportedTaxYear ? input.report.estimatedDeductionsCents : null,
       businessMilesMilli: input.businessMilesMilli },
@@ -148,7 +178,7 @@ export function scopeTaxYearReadiness(readiness: ReturnType<typeof deriveTaxYear
     && issue.code !== 'PAID_INVOICE_LINK_MISSING')
   const dimensions = readiness.dimensions.filter(dimension => dimension.key !== 'income')
   const status: ReadinessStatus = issues.some(issue => issue.kind === 'integrity') ? 'incomplete'
-    : issues.some(issue => ['customer_action','data_source','documentation'].includes(issue.kind)) ? 'needs_attention'
+    : issues.some(issue => ['customer_action','data_source'].includes(issue.kind)) ? 'needs_attention'
       : issues.some(issue => issue.kind === 'processing') ? 'still_processing' : 'ready'
   return { ...readiness, status, issues, dimensions,
     caveat: 'Expense records ready means supported expense and deduction records are complete based on the information currently in WriteOffs. Income is not tracked as part of this membership.' }

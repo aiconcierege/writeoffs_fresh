@@ -204,7 +204,23 @@ When caught up, use canonical Caught Up Betti and language such as **Everything'
 
 If an institution requires reauthentication, say **I need your help reconnecting [Bank]. Your bank is asking you to sign in again before I can get your latest transactions.** Offer **Reconnect account**. Successful reconnection triggers immediate refresh and processing, then restores normal Home status.
 
-## 11. Bank refresh direction
+## 11. Tax-time report and readiness
+
+The primary annual handoff is one human-readable **Tax-Time Report** for the selected calendar year. Every customer receives the same core report regardless of whether they prepare their own return, use tax software, or work with a tax professional. WriteOffs does not ask how the customer files because that fact is not needed to maintain the books.
+
+The completion statement is **Your books are ready for tax preparation.** The primary action is **Download Tax-Time Report**. Supporting guidance is **Send it to your tax preparer or use it while preparing your own return.**
+
+Readiness distinguishes two states. A missing customer fact that is required to finish canonical bookkeeping remains in **Check in with Betti** and prevents the statement that the books are ready. When a customer answers a factual Check-in question, the same authenticated command may finish a previously empty, supported bookkeeping category and its tax treatment. It preserves the customer’s purpose, business-use choice, exact allocation amounts, and any existing category; it does not ask the customer to choose an accounting category. A tax-time judgment item does not make completed books incomplete. Known equipment or longer-lived property, lease adjustments, and other preserved return-level review states appear under **Items for you or your tax preparer to review** without making a depreciation, Section 179, or other tax election.
+
+Potential equipment review uses append-only Schedule C assessments associated with the current bookkeeping decision, preserving evidence and supersession history. Prior-decision assessments and legacy record-level signals cannot override current customer corrections. No purchase-price threshold identifies assets. The annual report uses the current authoritative bookkeeping decision, customer correction, business allocation, and supported tax treatment. It does not double-count an ordinary expense and a possible return-level adjustment. Missing receipts alone do not block an otherwise supported report, and receipts are not bundled into the PDF.
+
+The report contains the annual business summary, nonzero supported Schedule C category totals, applicable vehicle and mileage facts, and specific review items. Detailed transactions, mileage, and contractor downloads remain secondary. WriteOffs does not prepare or file a tax return and does not make final taxpayer elections.
+
+Customers in the 12-month read-only retention period and pending-deletion state retain historical report/export access under the existing lifecycle policy; permanent deletion removes availability. Generation does not mutate or reevaluate the books. Report generation is authenticated, tenant-scoped, on demand, and streamed with private no-store delivery, with no persistent report copy. Each report includes its tax year and generation timestamp. Regeneration reflects current corrected books.
+
+V1 excludes CPA accounts/portals, preparer invitations or secure sharing, tax-software integrations (including TurboTax), ZIP packages, receipt bundles, depreciation schedules, and automatic Section 179 elections. Receipts remain accessible through the existing Receipts experience.
+
+## 12. Bank refresh direction
 
 The approved direction is approximately one normal automatic refresh per week in preparation for the scheduled review, not nightly polling solely for real-time monitoring. Betti processes activity immediately after receipt. Customer-initiated **Check for new transactions** may be rate/cost constrained after Plaid Production behavior is validated; no permanent arbitrary limit is approved yet.
 

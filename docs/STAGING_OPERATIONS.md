@@ -124,3 +124,32 @@ Record acceptance latency for Home, Transactions, Reports, receipt intake, and s
 ## Rollback
 
 Application rollback redeploys the previous tested commit. The new migrations are additive/history-preserving and normally remain; do not attempt destructive DOWN migrations after staging writes. Disable new provider entry points or expensive processing first when necessary, preserve signed webhook idempotency, and forward-fix schema defects. The actual Vercel rollback could not be rehearsed without a linked deployment.
+
+## Tax-Time Report certification — 2026-09-14
+
+The dedicated application target is `writeoffs-fresh-staging` (`prj_o56739F1pzd0TjFirEYoLMaa6oIJ`), at `https://writeoffs-fresh-staging.vercel.app`. Its Vercel primary deployment slot is named Production by Vercel; it is the **dedicated staging application**, separate from the WriteOffs production project. This certification did not deploy to or change the production project. Source deployment uses the staging project's existing server-side environment. No environment-secret export is needed.
+
+The Tax-Time Report consumes the canonical annual report, current decision-linked Schedule C assessments, and vehicle read models. The PDF is generated on demand, streamed with `private, no-store`, and never written to public Storage. Existing transaction and mileage exports remain available. Canonical workflow authority is section 11 of `WORKFLOW_SPECIFICATION.md`.
+
+### Reproducible proof tools
+
+Run with the existing local **staging-only** credentials. Each database tool hard-checks `WRITEOFFS_ENVIRONMENT=staging` and the exact staging Supabase hostname before accessing data.
+
+- `scripts/validate-staging-tax-time.ts`: creates isolated general-business synthetic tenants for ready, asset review, missing facts, correction, and read-only cases. Uses canonical ingestion/decisions/processing and compares annual totals, category totals, vehicle read models, exports, and RLS. Claims only jobs belonging to tenants created in that invocation; never globally drains the staging queue.
+- The same tool with `--new-blocker` creates a fresh missing-facts case without resetting the earlier tenant. The browser tool’s `--resolve-blocker` option answers that fixture’s real Betti question and verifies automatic readiness.
+- The same tool with `--extend` adds an asset-plus-leased-vehicle fixture, verifies two genuine review items, and preserves the corrected fixture.
+- The same tool with `--delete-proof` creates one new synthetic tenant, proves report availability, then completes the existing canonical deletion process for **only that new tenant** and verifies report access fails. It does not change retention rules or claim other deletion requests.
+- `scripts/certify-tax-time-browser.mjs`: uses real MFA on the synthetic identities; checks Reports, Check-in routing, PDF downloads at 1280px and 390px, detailed transaction/mileage exports, repeated generation, arbitrary Business ID rejection, and private response headers. It schedules and immediately cancels deletion on its synthetic grant-only tenant to prove retained downloads and blocked mutations. Cleanup is limited to MFA factors created by this proof on verified synthetic identities.
+- `scripts/render-tax-time-proof.ts`: writes one-page and multi-page representative PDFs and rasterized page previews for visual inspection. Text remains selectable in the PDF; the raster previews are QA artifacts only.
+
+Example invocation: `WRITEOFFS_ENVIRONMENT=staging node --env-file=.env.staging.local --conditions=react-server --import tsx scripts/validate-staging-tax-time.ts`. Run the browser tool with `node --env-file=.env.staging.local` and the same explicit staging marker. Run the rendering tool with `node --import tsx`.
+
+Proof output is local under `/private/tmp/writeoffs-tax-time-proof/`. The synthetic fixture credential file is mode 0600 and must not be committed or published. User B and existing staging financial data are preserved. Partial fixture attempts remain isolated synthetic tenants; no existing customer is reset.
+
+### Results and limits
+
+Live checks passed for ready/no-review, asset and vehicle review without blocking readiness, missing-fact Check-in routing, corrected purchase removing its former flag, historical read-only access, pending-deletion download/mutation boundaries, permanent-deletion access denial, tenant isolation, annual/category/vehicle reconciliation, repeated PDFs, and both secondary exports. Representative PDF pages were rendered and visually inspected; automated PDF extraction checks searchable text, Letter dimensions, clipping bounds, long names, multiple pages, zero/negative values, and absent empty sections.
+
+Desktop/mobile browser proof uses Chromium at desktop and phone viewport sizes; it is not a physical iPhone/Android device certification. The full default unit suite passes; database suites gated on local integration credentials are skipped, with the dedicated staging proof providing the live checks above. Lint retains existing source warnings. The default local Turbopack build encounters the environment's process/port restriction; the local webpack build and remote staging Turbopack build pass.
+
+Final validation: 1,174 automated tests passed; 143 environment-gated integration tests skipped. Typecheck passed. Lint: zero errors and 30 existing warnings. The live Check-in answer-to-ready transition passed after fixing answer-time completion of an empty supported category. The final application build was deployed successfully to the dedicated staging alias above. No production deployment, remote Git push, or merge was performed.
