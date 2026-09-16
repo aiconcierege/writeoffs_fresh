@@ -99,6 +99,11 @@ describe('independent decision dimensions', () => {
       expect(state.state).toBe('system_pending');expect(state.action?.href).toBe('/import')
     }
   })
+  it('keeps a material percentage question actionable while preserving its category candidate',()=>{
+    expect(decisionProgress({recordId:'phone',treatment:'unresolved',nature:'expense',category:null,
+      candidate:'utilities',hasReceipt:false,receiptUnavailable:false,needsFact:true,amountCents:-14628,description:'Phone service'}))
+      .toMatchObject({state:'unresolved',action:{href:'/check-in?record=phone'}})
+  })
   it('projects documentation separately from organized working books', () => {
     expect(decisionProgress({recordId:'r',treatment:'business',nature:'expense',category:'software',
       hasReceipt:false,receiptUnavailable:true,needsFact:false,amountCents:-2299,description:'Software'}))
