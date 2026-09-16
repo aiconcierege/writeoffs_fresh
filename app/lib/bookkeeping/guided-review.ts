@@ -19,6 +19,7 @@ export function validateGuidedReview(value: unknown) {
     || !UUID.test(String(body.requestId)) || !['remove_business','receipt_unavailable','reviewed'].includes(String(body.action))
     || !['all','receipts','historical','review'].includes(String(body.scope)) || !Array.isArray(body.items)
     || body.items.length < 1 || body.items.length > 100) throw new Error('Select up to 100 purchases on this page.')
+  if (body.scope === 'receipts' && body.action !== 'receipt_unavailable') throw new Error('Receipt review only records receipt availability.')
   const items = body.items.map(item => {
     if (!item || typeof item !== 'object' || Object.keys(item).sort().join(',') !== 'decisionId,recordId'
       || !UUID.test(item.recordId) || !UUID.test(item.decisionId)) throw new Error('Invalid purchase selection.')

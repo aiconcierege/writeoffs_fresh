@@ -7,7 +7,8 @@ const request={requestId:id(1),action:'receipt_unavailable',scope:'receipts',ite
 describe('bounded customer assertions',()=>{
  it('accepts an explicit unavailable assertion without a tax or business-use conclusion',()=>expect(validateGuidedReview(request)).toEqual(request))
  it.each([{...request,businessId:id(4)},{...request,action:'mixed'},{...request,items:[]},{...request,items:[request.items[0],request.items[0]]},{...request,items:Array.from({length:101},(_,i)=>({recordId:id(i+100),decisionId:id(i+500)}))},{...request,items:[{...request.items[0],businessUse:100}]}])('rejects unsafe or ambiguous bulk payload %j',value=>expect(()=>validateGuidedReview(value)).toThrow())
- it('does not reuse receipt unavailable as removal',()=>expect(validateGuidedReview({...request,action:'remove_business'}).action).toBe('remove_business'))
+ it('prevents removal in a receipt-cleanup scope',()=>expect(()=>validateGuidedReview({...request,action:'remove_business'})).toThrow())
+ it('does not reuse receipt unavailable as removal',()=>expect(validateGuidedReview({...request,scope:'all',action:'remove_business'}).action).toBe('remove_business'))
 })
 describe('guided next-work priority',()=>{
  const base={name:null,greeting:'Hello',askableQuestionCount:4,receiptsProcessing:0,receiptsNeedHelp:0,outstandingDocumentation:5}

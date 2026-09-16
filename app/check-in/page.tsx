@@ -8,7 +8,7 @@ import{QuestionFlow}from'../questions/QuestionFlow'
 
 export const dynamic='force-dynamic'
 
-export default async function CheckInPage(){
+export default async function CheckInPage({searchParams}:{searchParams:Promise<{record?:string}>}){
   const supabase=await createServerSupabase()
   const{data:{user}}=await supabase.auth.getUser()
   if(!user)redirect('/login')
@@ -18,5 +18,7 @@ export default async function CheckInPage(){
   const queue=await getCurrentAskableQuestionQueue({supabase,scope:membership.plan??'expenses'})
   const deferred=membership.businessId?await hasDeferredBookkeepingWork(supabase,membership.businessId):false
   const work=await loadGuidedWorkSummary(supabase)
-  return <QuestionFlow initialQuestions={queue.questions} experience="check-in" otherWorkWaiting={deferred||work.missingReceipts||work.historicalReview||work.documentationLimitations}/>
+  const {record}=await searchParams
+  const scoped=record?queue.questions.filter(question=>question.recordId===record):queue.questions
+  return <QuestionFlow initialQuestions={scoped} recordId={record} experience="check-in" otherWorkWaiting={deferred||work.missingReceipts||work.historicalReview||work.documentationLimitations}/>
 }

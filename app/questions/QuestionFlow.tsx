@@ -17,6 +17,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   const [deferredCount,setDeferredCount]=useState(0)
   const [answered, setAnswered] = useState(0)
   const [purpose, setPurpose] = useState('')
+  const [otherActivity, setOtherActivity] = useState(false)
   const [mealRelationship, setMealRelationship] = useState('')
   const [mixedAmount, setMixedAmount] = useState('')
   const [mixedMode,setMixedMode]=useState<'dollars'|'percentage'>('dollars')
@@ -80,6 +81,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
       setQuestions(previous => previous.filter(candidate => questionVersionKey(candidate) !== questionVersionKey(question)))
       if (command.action !== 'defer') setAnswered((value) => value + 1)
       setPurpose('')
+      setOtherActivity(false)
       setMealRelationship('')
       setMixedAmount('')
       setMixedMode('dollars')
@@ -232,8 +234,16 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
               {option.label}
             </Action>
           )}
-          {question.kind==='transaction_type'&&question.options?.map(option=><Action key={option.id}
-            onClick={()=>submit({action:'transaction_type',activity:option.id})} busy={busy}>{option.label}</Action>)}
+          {question.kind==='transaction_type'&&<>
+            {!otherActivity ? question.options?.map(option=><Action key={option.id}
+              onClick={()=>option.id==='other'?setOtherActivity(true):submit({action:'transaction_type',activity:option.id})} busy={busy}>{option.label}</Action>) : <>
+              <label htmlFor="money-source" className="text-sm font-medium">Tell me where this money came from</label>
+              <textarea id="money-source" rows={2} maxLength={1000} value={purpose} onChange={event=>setPurpose(event.target.value)} className="w-full rounded-lg border border-slate-300 p-3"/>
+              <Action onClick={()=>submit({action:'transaction_type',activity:'other',details:purpose})} busy={busy||!purpose.trim()}>Continue</Action>
+              <button type="button" disabled={busy} onClick={()=>setOtherActivity(false)} className="min-h-11 underline">Back to choices</button>
+            </>}
+            <button type="button" disabled={busy} onClick={()=>void submit({action:'not_sure'})} className="min-h-11 text-sm underline">I’m not sure</button>
+          </>}
           {question.kind === 'percentage' && embedded && <div className="weekly-question-blocked" role="status">
             <strong>I still need a little more information about this item.</strong>
             <p>I’ll keep it on your list while we finish the rest of your review.</p>

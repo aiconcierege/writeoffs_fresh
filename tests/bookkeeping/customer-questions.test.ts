@@ -45,6 +45,15 @@ function withDecision(
 const transaction = { merchant: 'Office Depot', amountCents: -18600, currency: 'USD', date: '2026-08-17' }
 
 describe('customer question projection', () => {
+  it.each(['ZELLE FROM ROBERT HALL','STRIPE PAYOUT','TRANSFER FROM SAVINGS'])('asks what incoming %s was without inventing income', merchant => {
+    const incoming=withNature(item('TRANSACTION_TYPE_UNCLEAR',{factType:'money_in_source'}),null)
+    incoming.record.authoritativeAmountCents=42500
+    const question=projectCustomerQuestion(incoming,{...transaction,merchant,amountCents:42500,date:'2026-05-07'})
+    expect(question).toMatchObject({kind:'transaction_type',materiality:'totals',prompt:'What was this money for?'})
+    expect(question?.options?.map(option=>option.id)).toEqual(['earned_money','moved_money','added_own_money','borrowed_money','received_refund','other'])
+    expect(incoming.decision.treatment).toBe('unresolved')
+  })
+
   it('asks the meal relationship only when trusted meal context requires it',()=>{
     const meal=withDecision(item('BUSINESS_PURPOSE_NEEDED'),{bookkeepingNature:'expense',treatment:'business',
       businessPurpose:'Discussed a listing',allocations:[{kind:'business',amountCents:-5000,taxCategoryKey:'meals'}]})

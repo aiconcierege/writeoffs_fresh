@@ -4,6 +4,7 @@ import { createServerSupabase } from '../../../utils/supabase/server'
 import { getTransactionDetailReadModel } from '../../lib/bookkeeping/transaction-read-model'
 import { SupabaseBookkeepingRepository } from '../../lib/bookkeeping/supabase-repository'
 import { CorrectionForm } from '../CorrectionForm'
+import { purchaseReceiptEligible } from '../../lib/bookkeeping/receipt-eligibility'
 import { ReceiptActions } from '../ReceiptActions'
 
 export const dynamic = 'force-dynamic'
@@ -17,8 +18,10 @@ export default async function TransactionDetailPage({ params,searchParams }: { p
   const transaction = await getTransactionDetailReadModel({ supabase, userId: user.id, transactionId: id })
   if (!transaction) notFound()
   const {data:work}=transaction.recordId?await supabase.from('customer_transaction_work').select('needs_fact,historical_documentation').eq('record_id',transaction.recordId).maybeSingle():{data:null}
+  const questionHref=transaction.recordId?`/check-in?record=${transaction.recordId}`:'/check-in'
+  const receiptEligible = purchaseReceiptEligible(transaction)
   let canMarkLost = false
-  if (transaction.recordId) {
+  if (receiptEligible && transaction.recordId) {
     const { data: business } = await supabase.from('businesses').select('id').eq('owner_user_id', user.id).single()
     if (business) {
       const outstanding = await new SupabaseBookkeepingRepository(supabase).listOutstandingDocumentationRequests(business.id)
@@ -35,7 +38,8 @@ export default async function TransactionDetailPage({ params,searchParams }: { p
       <div><h2 className="text-lg font-semibold text-slate-950">How Betti handled this</h2>
         <p className="mt-3"><span className="status-badge">{transaction.treatmentLabel}</span></p>
         <p className="mt-2 text-sm leading-6 text-slate-600">{transaction.decisionReason ?? (transaction.sourceModel === 'canonical' ? 'WriteOffs is still working on this transaction.' : 'This is a historical transaction.')}</p>
-        {work?.needs_fact&&<Link href="/check-in" className="inline-flex min-h-11 items-center font-semibold text-[#243186]">Answer Betti’s questions →</Link>}
+        {transaction.amountCents>0&&transaction.treatment==='unresolved'&&<p className="mt-2 text-sm text-slate-600">Betti needs one detail before she can finish this.</p>}
+        {work?.needs_fact&&transaction.treatment!=='unresolved'&&<Link href={questionHref} className="inline-flex min-h-11 items-center font-semibold text-[#243186]">Answer Betti’s questions →</Link>}
         {transaction.contractorName && <p className="mt-2 text-sm text-slate-600">Contractor: <span className="font-medium text-slate-900">{transaction.contractorName}</span></p>}
         {transaction.sourceModel==='canonical'&&transaction.currentDecisionId&&transaction.treatment==='personal'
           ?<CorrectionForm transactionId={transaction.id} currentDecisionId={transaction.currentDecisionId} totalCents={transaction.amountCents} restoreMode="personal"/>
@@ -45,13 +49,13 @@ export default async function TransactionDetailPage({ params,searchParams }: { p
           ? <CorrectionForm transactionId={transaction.id} currentDecisionId={transaction.currentDecisionId} totalCents={transaction.amountCents}
               reviewContext={reviewContext.review&&reviewContext.snapshot&&reviewContext.event?{reviewPeriodId:reviewContext.review,reviewSnapshotId:reviewContext.snapshot,expectedReviewEventId:reviewContext.event}:undefined}/>
           : transaction.sourceModel === 'canonical' && transaction.treatment === 'unresolved'
-            ? <Link href="/check-in" className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">Check in with Betti →</Link> : null}</div>
-      <div><h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Receipt and documentation</h2>
+            ? <Link href={questionHref} className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">Answer Betti’s question →</Link> : null}</div>
+      {(receiptEligible || transaction.has_receipt) && <div><h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{receiptEligible ? 'Receipt and documentation' : 'Supporting records'}</h2>
         <p className="mt-3 font-medium text-slate-950">{transaction.has_receipt ? 'Supporting receipt attached' : transaction.receiptLost ? 'Receipt reported unavailable' : 'No receipt attached'}</p>
         {work?.historical_documentation&&<p className="mt-2 text-sm leading-6 text-slate-600">This older meal is missing details about who was there or its business purpose. Keep any records you find; missing facts have not been assumed.</p>}
         {transaction.receiptLost && <p className="mt-2 text-sm leading-6 text-slate-600">The prior Receipt Lost history is preserved. You can still attach it later if you find it.</p>}
         {transaction.sourceModel === 'canonical' && transaction.recordId && <ReceiptActions transactionId={transaction.id} recordId={transaction.recordId} useRecordTarget={transaction.id === transaction.recordId} date={transaction.date} amount={transaction.amount} vendor={transaction.vendor}
-          links={transaction.evidenceLinks} canMarkLost={canMarkLost} />}</div>
+          links={transaction.evidenceLinks} canMarkLost={canMarkLost} />}</div>}
     </section>
     {transaction.sourceModel === 'canonical' && transaction.history.length > 0 && <section className="py-6 sm:py-8"><h2 className="text-lg font-semibold text-slate-950">History</h2>
       <ol className="mt-4 space-y-4">{transaction.history.map((item) => <li key={item.id} className="border-l border-slate-300 pl-4"><p className="font-medium text-slate-900">{item.summary}</p>

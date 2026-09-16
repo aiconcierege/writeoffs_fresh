@@ -141,6 +141,15 @@ export function projectCustomerQuestion(
       ? { ...base, kind: 'mixed_use', prompt: 'Was any of this purchase personal?' }
       : null
   }
+  if (item.event.reason === 'TRANSACTION_TYPE_UNCLEAR' && (transaction.amountCents ?? 0) > 0) return {
+    ...base, kind: 'transaction_type', materiality: 'totals', prompt: 'What was this money for?',
+    guidance: 'Tell me where it came from. I’ll handle the bookkeeping.',
+    options: [
+      ['earned_money', 'Payment from a customer'], ['moved_money', 'Transfer between my accounts'],
+      ['added_own_money', 'Money I added to the business'], ['borrowed_money', 'Loan proceeds'],
+      ['received_refund', 'Refund or reimbursement'], ['other', 'Something else'],
+    ].map(([id, label]) => ({ id, label })),
+  }
   if(item.event.reason==='TRANSACTION_TYPE_UNCLEAR')return{
     ...base,kind:'transaction_type',materiality:'totals',prompt:'What kind of activity was this?',
     guidance:'Choose what happened. I’ll handle the bookkeeping rules.',options:[
@@ -194,6 +203,8 @@ async function buildCustomerQuestions(input: {
   asOf: string
   includeNonConversational?: boolean
 }) {
+  const incoming = await input.supabase.rpc('ensure_current_money_in_questions')
+  if (incoming.error) throw new Error('Incoming money questions could not be prepared.')
   const ensured = await input.supabase.rpc('ensure_current_meal_substantiation_questions')
   if (ensured.error && ensured.error.code !== 'PGRST202') throw new Error('Meal substantiation questions could not be prepared.')
   const receiptMeals = await input.supabase.rpc('ensure_current_receipt_meal_candidate_questions')
