@@ -53,7 +53,12 @@ export function projectBettiHome(input: {
   missingReceipts?: boolean
   historicalReview?: boolean
   documentationLimitations?: boolean
+  statementAccountUseNeeded?: boolean
+  bookkeepingDecisionsPending?: number
 }): BettiHomeProjection {
+  if(input.statementAccountUseNeeded)return {state:'needs-customer',heading:'Tell me how you used this account.',
+    supporting:'One account detail will help me organize the activity in your statements.',
+    action:{href:'/check-in',label:'Tell Betti about your account'}}
   if(input.missingReceipts)return {state:'documentation-follow-up',heading:'I’m missing receipts for some of your purchases.',supporting:'Let’s find the receipts you don’t have and keep the information you do.',action:{href:'/transactions?view=receipts',label:'Review missing receipts'}}
   if(input.historicalReview)return {state:'needs-customer',heading:'I found some older purchases for you to look over.',supporting:'See anything that wasn’t for the business? A quick review can save questions later.',action:{href:'/transactions?scope=historical',label:'Review older purchases'}}
   if (input.askableQuestionCount > 0) return {
@@ -90,6 +95,9 @@ export function projectBettiHome(input: {
       : `I’m still keeping track of ${input.outstandingDocumentation} receipts that need to be added.`,
     action: null,
   }
+  if((input.bookkeepingDecisionsPending??0)>0)return {state:'attention',heading:'Some activity still needs review.',
+    supporting:'I’m keeping unresolved activity separate from your working totals. You can review it and add supporting records.',
+    action:{href:'/transactions',label:'Review activity'}}
   if(input.documentationLimitations)return {state:'documentation-follow-up',heading:'Your records are organized.',supporting:'Some older purchases still have documentation limits. Keep any records you find; they may help at tax time.',action:{href:'/reports',label:'See your reports'}}
   return {
     state: 'caught-up',

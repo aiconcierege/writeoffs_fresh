@@ -1,4 +1,5 @@
 import Link from'next/link'
+import {loadStatementAccountUse} from '../lib/bookkeeping/statement-account-use'
 import {loadGuidedWorkSummary} from '../lib/bookkeeping/guided-review'
 import {hasDeferredBookkeepingWork} from '../lib/onboarding/deferred-work'
 import{redirect}from'next/navigation'
@@ -25,12 +26,12 @@ export default async function HomePage(){
  const businessResult=await supabase.from('businesses').select('business_description,business_profile_context,schedule_c_eligibility,business_stage,business_start_month,uses_customer_job_materials,keeps_future_sale_merchandise,prior_materials_handling,catch_up_start_date,onboarding_start_method,v1_support_status,onboarding_state,onboarding_version')
   .eq('owner_user_id',user.id).maybeSingle()
  const coveredStart=businessResult.data?.catch_up_start_date&&businessResult.data.catch_up_start_date>yearStart?businessResult.data.catch_up_start_date:yearStart
- const[summary,receiptWorkflow,questionQueue,operatingStatus,recentActivity,guidedWork]=await Promise.all([
+ const[summary,receiptWorkflow,questionQueue,operatingStatus,recentActivity,guidedWork,statementAccounts]=await Promise.all([
   getAuthenticatedCanonicalReport({supabase,periodStart:coveredStart,periodEnd:today,currency:'USD'}),
   summarizeReceiptDocumentation(supabase),
-  getCurrentAskableQuestionQueue({supabase,scope:membership.plan!}),getHomeOperatingStatus(supabase),getHomeRecentActivity(supabase,user.id,coveredStart,today),loadGuidedWorkSummary(supabase),
+  getCurrentAskableQuestionQueue({supabase,scope:membership.plan!}),getHomeOperatingStatus(supabase),getHomeRecentActivity(supabase,user.id,coveredStart,today),loadGuidedWorkSummary(supabase),loadStatementAccountUse(supabase,true),
  ])
- const betti=projectBettiHome({...guidedWork,name:customerFirstName(user.user_metadata),
+ const betti=projectBettiHome({...guidedWork,statementAccountUseNeeded:statementAccounts.length>0,bookkeepingDecisionsPending:summary.completeness.unresolvedRecordCount,name:customerFirstName(user.user_metadata),
   greeting:timeOfDayGreeting(new Date(),operatingStatus.timeZone),askableQuestionCount:questionQueue.count,
   hasDeferredWork:membership.businessId?await hasDeferredBookkeepingWork(supabase,membership.businessId):false,receiptsProcessing:receiptWorkflow.processing,receiptsNeedHelp:receiptWorkflow.needsHelp,
   outstandingDocumentation:receiptWorkflow.outstandingDocumentation,historicalMileageNeedsAttention:summary.completeness.historicalMileageNeedsAttention})

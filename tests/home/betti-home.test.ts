@@ -7,6 +7,13 @@ const base = {
 }
 
 describe('Betti-led Home projection', () => {
+  it('prioritizes one missing statement-account fact over repeated transaction work',()=>{
+    expect(projectBettiHome({...base,statementAccountUseNeeded:true,missingReceipts:true,askableQuestionCount:20}))
+      .toMatchObject({state:'needs-customer',action:{href:'/check-in',label:'Tell Betti about your account'}})
+  })
+  it('never claims current books while unresolved system work remains',()=>{
+    expect(projectBettiHome({...base,bookkeepingDecisionsPending:3})).toMatchObject({state:'attention',action:{href:'/transactions'}})
+  })
   it('makes the current factual queue the single primary request', () => {
     const state = projectBettiHome({ ...base, askableQuestionCount: 2 })
     expect(state.state).toBe('needs-customer')
