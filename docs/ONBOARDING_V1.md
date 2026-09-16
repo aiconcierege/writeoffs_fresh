@@ -1,5 +1,9 @@
 # WriteOffs v1 onboarding architecture
 
+> Historical architecture reference. Phase 1 supersedes the weekly-day setup
+> requirement and receipt-availability choices described below. Current onboarding,
+> pricing and completion authority is [WORKFLOW_SPECIFICATION.md](WORKFLOW_SPECIFICATION.md).
+
 The current customer relationship and first-run sequence are governed by
 `CUSTOMER_BOOKKEEPER_EXPERIENCE.md` and `WORKFLOW_SPECIFICATION.md`. Receipt
 availability answers such as Most, Some, or None are transient routing choices,

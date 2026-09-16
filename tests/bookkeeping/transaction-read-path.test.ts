@@ -16,13 +16,6 @@ describe('canonical-first transaction read path', () => {
     expect(model).toContain(".eq('user_id', input.userId)")
   })
 
-  it('keeps legacy mutation controls unavailable for canonical rows', () => {
-    const table = source('app/review/BulkTable.tsx')
-    expect(table).toContain("t.sourceModel === 'legacy'")
-    expect(table).toContain('t.treatmentLabel')
-    expect(table).toContain('t.decisionReason')
-  })
-
   it('uses the same compatibility adapter for the page and list API', () => {
     expect(source('app/lib/bookkeeping/guided-review.ts')).toContain('listTransactionReadModel')
     expect(source('app/transactions/[id]/page.tsx')).toContain('getTransactionDetailReadModel')

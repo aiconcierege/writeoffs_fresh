@@ -1,7 +1,7 @@
 import 'server-only'
 
 import Stripe from 'stripe'
-import {membershipPlans,planFromPriceId} from './plans'
+import {planFromPriceId} from './plans'
 import type {MembershipPlan} from './entitlements'
 
 function safeBaseUrl(value:string){let url:URL;try{url=new URL(value)}catch{throw new Error('STRIPE_RETURN_URL_INVALID')}
@@ -26,4 +26,3 @@ export function subscriptionPlan(subscription:Stripe.Subscription):MembershipPla
 export function subscriptionPeriodEnd(subscription:Stripe.Subscription){const values=subscription.items.data.map(item=>item.current_period_end).filter(Number.isFinite)
   return values.length?new Date(Math.max(...values)*1000).toISOString():null}
 export function providerCustomerId(value:string|Stripe.Customer|Stripe.DeletedCustomer){return typeof value==='string'?value:value.id}
-export function displayPlan(plan:MembershipPlan){return membershipPlans[plan]}

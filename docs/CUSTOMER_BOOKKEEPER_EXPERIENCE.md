@@ -1,6 +1,12 @@
 # Customer bookkeeper experience
 
-Status: canonical product and interaction specification, revised 2026-08-27.
+Status: historical interaction specification (2026-08-27), with enduring relationship principles.
+
+> **Current workflow authority:** [WORKFLOW_SPECIFICATION.md](./WORKFLOW_SPECIFICATION.md).
+> The first-run receipt choices, weekly-day requirement, unpriced catch-up, potential-
+> writeoff headline, and two-membership presentation below are historical evidence,
+> superseded by the certified Phase 1/2A workflow. They must not drive new implementation.
+> Continuous Check-in and guided Transactions review are the current customer surfaces.
 
 The detailed workflow authority is [WORKFLOW_SPECIFICATION.md](./WORKFLOW_SPECIFICATION.md). This document summarizes the enduring customer relationship and presentation contract.
 

@@ -1,16 +1,29 @@
-app/api/waitlist/confirm/route 2.ts
-app/components/PublicFooter 2.tsx
-app/home/WeeklyReview 2.tsx
-app/login/page 2.tsx
-public/betti/ betti-working.webp
-.next/
-coverage/
+# Credentials and operator-local state never belong in deployments.
+.env*
+supabase/.temp/
+backups/
 *.wobak
 *.dump
 *.backup
 writeoffs-backup-*/
 writeoffs-restore-*/
 
-# Local credentials and Supabase runtime state never belong in deployments.
-.env*
-supabase/.temp/
+# Rebuilt by the deployment, not uploaded from a developer workspace.
+.git/
+node_modules/
+.next/
+.vercel/
+.cache/
+out/
+dist/
+coverage/
+test-results/
+playwright-report/
+playwright/.cache/
+*.tsbuildinfo
+next-env.d.ts
+*.log
+.DS_Store
+
+# Untracked historical design reference; not approved application artwork.
+public/betti/ betti-working.webp

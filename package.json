@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "e2e": "playwright test --reporter=line",
     "ci-checks": "npm run typecheck && npm run lint && npm run build && npm run test",

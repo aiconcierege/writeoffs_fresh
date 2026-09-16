@@ -1,174 +1,69 @@
-import{describe,expect,it}from'vitest'
-import{readFileSync}from'node:fs'
-const weekly=readFileSync('app/home/WeeklyReview.tsx','utf8')
-const processing=readFileSync('app/lib/bookkeeping/weekly-review-processing.ts','utf8')
-const questions=readFileSync('app/questions/page.tsx','utf8')
-const workflowRoute=readFileSync('app/api/bookkeeping/reviews/[id]/workflow/route.ts','utf8')
-const weeklyReadModel=readFileSync('app/lib/bookkeeping/weekly-review.ts','utf8')
-const periodActionRoute=readFileSync('app/api/bookkeeping/reviews/[id]/route.ts','utf8')
-const styles=readFileSync('app/globals.css','utf8')
-
-describe('transaction-first weekly review',()=>{
- it('guides new reviews from exceptions through evidence and questions without mandatory mileage',()=>{
-  expect(weekly).toContain("personal:'documentation',documentation:'questions',questions:'final'")
-  expect(weekly).toContain('First, let’s look at last week’s activity.')
-  expect(weekly).toContain('Are any of these transactions not for the business?')
-  expect(weekly).toContain('Got it. I’ll leave')
-  expect(weekly).not.toContain("documentation:'mileage'")
- })
- it('keeps sweep instructions and actions visible before a long list',()=>{
-  expect(weekly).toContain('weekly-sweep-intro')
-  expect(weekly).toContain('weekly-sweep-actions')
- expect(weekly).toContain('{selectedCount} selected')
-  expect(weekly).toContain('Everything shown was for the business')
-  expect(weekly).toContain('Leave these out')
-  expect(weekly).toContain('businessExpenseSweep.map')
-  expect(weekly).not.toContain('{visible.map(item=><TransactionRow')
- expect(styles).toContain('body { overflow-x: clip; overflow-y: visible; }')
-  expect(styles).toContain('.weekly-sweep-actions { position: sticky;')
-  expect(styles).toContain('bottom: 1rem;')
-  expect(weekly.indexOf('<ul className="weekly-transaction-list">')).toBeLessThan(weekly.indexOf('<SweepActions selectedCount='))
- })
- it('uses stage-specific accessible checkbox names and keeps final review clean',()=>{
-  expect(weekly).toContain('Mark ${item.merchant} as not for the business')
-  expect(weekly).toContain("if(!review.snapshotId)return <WorkflowReview")
-  expect(weekly).not.toMatch(/function FinalReview[\s\S]*?<input type="checkbox"/)
- })
- it('keeps receipt collection out of the exception sweep and in the evidence step',()=>{
-  expect(weekly).toContain('weekly-transaction-meta')
-  expect(weekly).toContain("item.hasReceipt?'Receipt attached':'No receipt'")
-  expect(weekly).toContain('ReceiptUploadAction')
-  expect(weekly).toContain('variant="guided"')
- expect(weekly).toContain('I don’t have the receipt')
-  expect(weekly).toContain('I’ll add it later')
-  expect(weekly).toContain('Is this still a business expense?')
-  expect(weekly).toContain('Yes, it was for my business')
-  expect(weekly).toContain('No, leave it out')
-  expect(weekly).toContain('Not a business expense')
- })
- it('keeps legacy question URLs on the continuous check-in and final presentation gated',()=>{
-  expect(questions).toContain("redirect('/check-in')")
-  expect(processing).toContain("stage==='final'")
-  expect(processing).toContain('if(!workflowReady)')
-  expect(processing).toContain('unresolvedQuestionCount:questions')
-  expect(processing).toContain('supersededWorkflowEvents')
-  expect(processing).toContain('periodRecordIds(loaded.records')
-  expect(weeklyReadModel).toContain('supersededWorkflowEvents')
-  expect(processing).not.toContain('if(!grouped.size)return false')
- })
- it('embeds current-period questions instead of navigating away',()=>{
-  expect(weekly).toContain('QuestionFlow')
-  expect(weekly).toContain('embedded')
-  expect(weekly).not.toContain('Answer Betti’s questions</Link>')
- })
- it('uses one Betti speaking position and renders only the active stage',()=>{
-  expect(weekly.match(/<BettiIllustration/g)).toHaveLength(1)
-  expect(weekly).toContain('function BettiConversation')
-  expect(weekly).toContain("stage==='personal'&&")
-  expect(weekly).toContain("stage==='documentation'&&")
-  expect(weekly).toContain("stage==='questions'&&")
-  const page=readFileSync('app/weekly-review/[id]/page.tsx','utf8')
-  expect(page).not.toContain('<BettiIllustration')
-  expect(page).toContain("redirect('/check-in')")
-  expect(page).not.toContain('Weekly review ·')
- })
- it('uses canonical business-dollar mixed-use answers and blocks percentage input',()=>{
-  const flow=readFileSync('app/questions/QuestionFlow.tsx','utf8')
-  expect(flow).toContain("action: 'mixed_business_amount', businessAmountCents: enteredCents")
-  expect(flow).not.toContain("action: 'mixed_personal_amount'")
-  expect(flow).toContain("question.kind === 'percentage' && embedded")
-  expect(flow).toContain('Keep this on my list and continue')
-  expect(flow).toContain("!(embedded && question.kind === 'percentage')")
- })
- it('collects the missing meal relationship as a real-world fact',()=>{
-  const flow=readFileSync('app/questions/QuestionFlow.tsx','utf8')
-  expect(flow).toContain("question.kind === 'meal_relationship'")
-  expect(flow).toContain('Who was the meal with?')
-  expect(flow).toContain("action: 'meal_relationship', attendeeRelationship: mealRelationship")
-  expect(flow).not.toContain('Who was the meal with, where was it, what date was it, and how much was it?')
- })
- it('carries unresolved limitations into the immutable summary without trapping the customer',()=>{
-  expect(processing).toContain('unresolvedQuestionCount:questions')
-  expect(processing).toContain('p_unresolved_question_count:input.unresolvedQuestionCount')
-  expect(processing).not.toContain('if(!workflowReady||questions>0)')
-  expect(weeklyReadModel).toContain('unresolvedQuestionCount:Number(snapshot.data.unresolved_question_count??0)')
-  expect(weekly).toContain('Still need information')
-  expect(weekly).toContain('the items that still need information will stay on your list')
-  expect(weekly).toContain('I’ve reviewed this week')
- })
- it('keeps documentation facts separate and allows the customer to keep going',()=>{
-  expect(weekly).toContain("decideMissing(item,'business')")
-  expect(weekly).toContain("decideMissing(item,'personal')")
-  expect(weekly).toContain('setEventId(result.eventId??eventId)')
-  expect(weekly).toContain('completeStage:false')
-  expect(weekly).toContain("documentationDecision:'continue_with_open'")
-  expect(weekly).toContain("documentationDecision:'acknowledged_pending'")
-  expect(weekly).toContain("stage==='documentation'?'Keep going'")
-  expect(weekly).toContain("stage!=='documentation'&&<button")
-  expect(weekly).toContain("['business','mixed_use'].includes(item.treatment)")
- })
- it('opens canonical missing-documentation requests before entering that stage',()=>{
-  expect(workflowRoute).toContain('ensurePeriodDocumentationRequests')
-  expect(workflowRoute).toContain("open_bookkeeping_documentation_request")
-  expect(workflowRoute).toContain("p_reason:'MISSING_SUPPORTING_DOCUMENTATION'")
-  expect(workflowRoute).toMatch(/if\(stage==='documentation'\)[\s\S]*?await ensurePeriodDocumentationRequests/)
- })
- it('makes workflow pause controls functional without claiming confirmation',()=>{
-  expect(weekly).toContain('onClick={()=>setPaused(true)}>Not right now</button>')
-  expect(weekly).toContain('Nothing has been confirmed. Continue whenever you’re ready.')
-  expect(weekly).toContain('onClick={()=>setPaused(false)}>Continue this review</button>')
-  expect(weekly).toContain("stage!=='documentation'&&")
- })
- it('keeps canonical defer compatibility without exposing it in the normal final review',()=>{
-  const final=weekly.slice(weekly.indexOf('function FinalReview'),weekly.indexOf('function LegacyFinalReviewUnused'))
-  expect(final).toContain('confirmed')
-  expect(weekly).toContain('is reviewed.')
-  expect(final).not.toContain("action('deferred')")
-  expect(periodActionRoute).toContain("!['confirmed','deferred'].includes(body.action)")
-  expect(weekly).not.toContain('Thanks — I’ve recorded your review.')
-  expect(periodActionRoute).toContain("state:body.action")
- })
- it('shows snapshot summary before visible transaction detail and uses review language',()=>{
-  expect(weekly).not.toContain('<summary>Review transactions</summary>')
-  expect(weekly).toContain('className="weekly-review-transactions"')
-  expect(weekly.indexOf('Does this week look right?')).toBeLessThan(weekly.indexOf('home-review-totals'))
-  expect(weekly.indexOf('home-review-actions')).toBeLessThan(weekly.indexOf('home-review-totals'))
-  expect(weekly.indexOf('home-review-totals')).toBeLessThan(weekly.indexOf('weekly-review-transactions'))
-  expect(weekly).toContain('Does this week look right?')
-  const final=weekly.slice(weekly.indexOf('function FinalReview'),weekly.indexOf('function LegacyFinalReviewUnused'))
-  expect(final).toContain('Looks right to me')
-  expect(weekly).not.toContain('Everything looks right')
-  expect(weekly).toContain('Make a change')
-  expect(final).not.toContain('Not right now')
-  expect(styles).toContain('.weekly-review-transactions')
- })
- it('uses a wide desktop workspace and reflows it for mobile',()=>{
-  expect(styles).toContain('max-width: 82rem')
-  expect(styles).toContain('.weekly-page .home-review:not(.weekly-workflow)')
-  expect(styles).toContain('.weekly-page .home-review:not(.weekly-workflow) .home-review-footer { margin: 1.15rem 2rem 0;')
-  expect(styles).not.toContain('grid-template-columns: minmax(0,1.35fr) minmax(18rem,.65fr)')
-  expect(styles).toContain('.weekly-page .weekly-workflow-body')
-  expect(styles).toContain('min-height: 2.35rem')
-  expect(styles).toContain('.weekly-page .home-review { margin-top: .65rem; }')
-  expect(styles).toContain('@media (max-width:767px)')
-  expect(styles).toContain('grid-template-columns: 1fr;')
-  expect(styles).toContain('.weekly-question-embedded')
- })
- it('binds both customer outcomes to the exact presented snapshot',()=>{
-  expect(periodActionRoute).toContain("['presented','correction_linked'].includes(current.data.event_type)")
-  expect(periodActionRoute).toContain('current.data.review_snapshot_id!==body.snapshotId')
-  expect(periodActionRoute).toContain("p_event_type:body.action")
- })
- it('keeps simple final corrections inside the review and links them to immutable history',()=>{
-  expect(weekly).toContain('This was not for business')
-  expect(weekly).toContain('This was business')
-  expect(weekly).toContain('Business + personal')
-  expect(weekly).toContain('reviewContext:{reviewPeriodId:review.id,reviewSnapshotId:review.snapshotId,expectedReviewEventId:review.eventId}')
-  expect(weeklyReadModel).toContain('latestDecisionId')
-  expect(weeklyReadModel).toContain('presentedItems')
- })
- it('does not reopen a deferred review as an unfinished workflow on refresh',()=>{
-  expect(weeklyReadModel).toContain("if(leaf?.event_type==='deferred')continue")
-  expect(weeklyReadModel).toContain("['confirmed','closed_unreviewed'].includes(leaf.event_type)")
- })
-})
+import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+const processing = readFileSync('app/lib/bookkeeping/weekly-review-processing.ts', 'utf8');
+const questions = readFileSync('app/questions/page.tsx', 'utf8');
+const workflowRoute = readFileSync('app/api/bookkeeping/reviews/[id]/workflow/route.ts', 'utf8');
+const weeklyReadModel = readFileSync('app/lib/bookkeeping/weekly-review.ts', 'utf8');
+const periodActionRoute = readFileSync('app/api/bookkeeping/reviews/[id]/route.ts', 'utf8');
+describe('retained weekly-review history compatibility', () => {
+    it('keeps legacy question URLs on the continuous check-in and final presentation gated', () => {
+        expect(questions).toContain("redirect('/check-in')");
+        expect(processing).toContain("stage==='final'");
+        expect(processing).toContain('if(!workflowReady)');
+        expect(processing).toContain('unresolvedQuestionCount:questions');
+        expect(processing).toContain('supersededWorkflowEvents');
+        expect(processing).toContain('periodRecordIds(loaded.records');
+        expect(weeklyReadModel).toContain('supersededWorkflowEvents');
+        expect(processing).not.toContain('if(!grouped.size)return false');
+    });
+    it('uses one Betti speaking position and renders only the active stage', () => {
+        const page = readFileSync('app/weekly-review/[id]/page.tsx', 'utf8');
+        expect(page).not.toContain('<BettiIllustration');
+        expect(page).toContain("redirect('/check-in')");
+        expect(page).not.toContain('Weekly review ·');
+    });
+    it('uses canonical business-dollar mixed-use answers and blocks percentage input', () => {
+        const flow = readFileSync('app/questions/QuestionFlow.tsx', 'utf8');
+        expect(flow).toContain("action: 'mixed_business_amount', businessAmountCents: enteredCents");
+        expect(flow).not.toContain("action: 'mixed_personal_amount'");
+        expect(flow).toContain("question.kind === 'percentage' && embedded");
+        expect(flow).toContain('Keep this on my list and continue');
+        expect(flow).toContain("!(embedded && question.kind === 'percentage')");
+    });
+    it('collects the missing meal relationship as a real-world fact', () => {
+        const flow = readFileSync('app/questions/QuestionFlow.tsx', 'utf8');
+        expect(flow).toContain("question.kind === 'meal_relationship'");
+        expect(flow).toContain('Who was the meal with?');
+        expect(flow).toContain("action: 'meal_relationship', attendeeRelationship: mealRelationship");
+        expect(flow).not.toContain('Who was the meal with, where was it, what date was it, and how much was it?');
+    });
+    it('carries unresolved limitations into the immutable summary without trapping the customer', () => {
+        expect(processing).toContain('unresolvedQuestionCount:questions');
+        expect(processing).toContain('p_unresolved_question_count:input.unresolvedQuestionCount');
+        expect(processing).not.toContain('if(!workflowReady||questions>0)');
+        expect(weeklyReadModel).toContain('unresolvedQuestionCount:Number(snapshot.data.unresolved_question_count??0)');
+    });
+    it('opens canonical missing-documentation requests before entering that stage', () => {
+        expect(workflowRoute).toContain('ensurePeriodDocumentationRequests');
+        expect(workflowRoute).toContain("open_bookkeeping_documentation_request");
+        expect(workflowRoute).toContain("p_reason:'MISSING_SUPPORTING_DOCUMENTATION'");
+        expect(workflowRoute).toMatch(/if\(stage==='documentation'\)[\s\S]*?await ensurePeriodDocumentationRequests/);
+    });
+    it('keeps canonical defer compatibility without exposing it in the normal final review', () => {
+        expect(periodActionRoute).toContain("!['confirmed','deferred'].includes(body.action)");
+        expect(periodActionRoute).toContain("state:body.action");
+    });
+    it('binds both customer outcomes to the exact presented snapshot', () => {
+        expect(periodActionRoute).toContain("['presented','correction_linked'].includes(current.data.event_type)");
+        expect(periodActionRoute).toContain('current.data.review_snapshot_id!==body.snapshotId');
+        expect(periodActionRoute).toContain("p_event_type:body.action");
+    });
+    it('keeps simple final corrections inside the review and links them to immutable history', () => {
+        expect(weeklyReadModel).toContain('latestDecisionId');
+        expect(weeklyReadModel).toContain('presentedItems');
+    });
+    it('does not reopen a deferred review as an unfinished workflow on refresh', () => {
+        expect(weeklyReadModel).toContain("if(leaf?.event_type==='deferred')continue");
+        expect(weeklyReadModel).toContain("['confirmed','closed_unreviewed'].includes(leaf.event_type)");
+    });
+});

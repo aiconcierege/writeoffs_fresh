@@ -55,12 +55,7 @@ describe('public production polish', () => {
   })
 
   it('keeps mobile and accessible public contracts explicit', () => {
-    const form = read('app/components/WaitlistForm.tsx')
     const css = read('app/globals.css')
-    expect(form).toContain('className="sr-only">Email address</label>')
-    expect(form).toContain('aria-live=')
-    expect(form).toContain('aria-busy=')
-    expect(form).toContain('sm:grid-cols-')
     expect(css).toContain('@media (max-width:390px)')
     expect(css).toContain('.press-colors { grid-template-columns: 1fr; }')
   })

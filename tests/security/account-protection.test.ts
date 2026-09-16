@@ -141,6 +141,13 @@ describe('account protection', () => {
       PLAID_PRODUCTION_ENABLED: 'false', PLAID_ENV: 'sandbox', PLAID_SANDBOX_LINK_ENABLED: 'false',
     }
     expect(() => validateEnvironment(staging)).not.toThrow()
+    const billing = { ...staging, STRIPE_MEMBERSHIP_ENABLED: 'true',
+      STRIPE_SECRET_KEY: ['sk', 'test', 'configuration-placeholder'].join('_'),
+      STRIPE_WEBHOOK_SECRET: 'signature-placeholder', STRIPE_PORTAL_CONFIGURATION_ID: 'portal-placeholder',
+      STRIPE_MEMBERSHIP_PRICE_ID: 'price_launch_placeholder' }
+    expect(() => validateEnvironment(billing)).not.toThrow()
+    expect(() => validateEnvironment({ ...billing, STRIPE_MEMBERSHIP_PRICE_ID: '',
+      STRIPE_EXPENSES_PRICE_ID: 'price_old_expenses', STRIPE_BUSINESS_PRICE_ID: 'price_old_business' })).toThrow(/STRIPE_MEMBERSHIP_PRICE_ID/)
     expect(() => validateEnvironment({ ...staging, NEXT_PUBLIC_BASE_URL: 'http://localhost:3000' })).toThrow(/Staging NEXT_PUBLIC_BASE_URL/)
     expect(() => validateEnvironment({ ...staging, MFA_ENFORCEMENT_MODE: 'enrolled' })).toThrow(/mandatory MFA/)
     expect(() => validateEnvironment({ ...staging, PLAID_ENV: 'development' })).toThrow(/Plaid Sandbox/)

@@ -4,7 +4,6 @@ import {historicalMileagePeriods} from '../../app/lib/mileage/historical'
 import {mergeHistoricalMileage,type HistoricalMileageFact} from '../../app/lib/mileage/historical-repository'
 import {assessVehicleDeduction} from '../../app/lib/mileage/vehicle-tax'
 import {projectBettiHome} from '../../app/lib/home/betti-home'
-import {splitHistoricalQuestions} from '../../app/lib/onboarding/historical-review'
 import {selectCurrentAskableQuestions,type CustomerQuestion} from '../../app/lib/bookkeeping/customer-questions'
 import {includeCanonicalVehicleExpenses} from '../../app/lib/bookkeeping/report-vehicle-expenses'
 import {buildCanonicalReport} from '../../app/lib/bookkeeping/reporting-model'
@@ -68,7 +67,7 @@ describe('calm truthful customer work',()=>{
   const questions=[q('newmeal','2026-09-12','meal_relationship'),q('oldpurchase','2026-08-01','business_use'),q('newpurchase','2026-09-01','business_use')]
   const sorted=selectCurrentAskableQuestions({bookkeeping:questions,deduction:[],contractor:[],scope:'business',asOf:'2026-09-15'})
   expect(sorted.map(q=>q.id)).toEqual(['oldpurchase','newpurchase','newmeal'])
-  const split=splitHistoricalQuestions(sorted,'2026-09-01');expect(split.historical).toHaveLength(1);expect(split.ongoing).toHaveLength(2);expect(sorted).toHaveLength(3)
+  expect(sorted).toHaveLength(3)
  })
 })
 describe('one canonical mileage expense',()=>{

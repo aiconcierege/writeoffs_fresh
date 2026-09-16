@@ -97,7 +97,7 @@ function validateEnvironment(env = process.env) {
       assertPlaidEndpoints(env)
     }
     if (env.STRIPE_MEMBERSHIP_ENABLED === 'true') {
-      required(env, ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_EXPENSES_PRICE_ID', 'STRIPE_BUSINESS_PRICE_ID', 'STRIPE_PORTAL_CONFIGURATION_ID'])
+      required(env, ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_MEMBERSHIP_PRICE_ID', 'STRIPE_PORTAL_CONFIGURATION_ID'])
       if (stripeMode !== 'test' || !env.STRIPE_SECRET_KEY.startsWith('sk_test_')) throw new Error('Enabled staging memberships require Stripe test mode and a test secret.')
     } else if (env.STRIPE_MEMBERSHIP_ENABLED !== 'false') {
       throw new Error('STRIPE_MEMBERSHIP_ENABLED must be true or false in staging.')
@@ -117,7 +117,7 @@ function validateEnvironment(env = process.env) {
     assertProcessingConfiguration(env)
 
     if (env.STRIPE_MEMBERSHIP_ENABLED === 'true') {
-      required(env, ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_EXPENSES_PRICE_ID', 'STRIPE_BUSINESS_PRICE_ID', 'STRIPE_PORTAL_CONFIGURATION_ID'])
+      required(env, ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_MEMBERSHIP_PRICE_ID', 'STRIPE_PORTAL_CONFIGURATION_ID'])
       if (stripeMode !== 'live' || !env.STRIPE_SECRET_KEY.startsWith('sk_live_')) throw new Error('Enabled production memberships require Stripe live mode and a live secret.')
     } else if (env.STRIPE_MEMBERSHIP_ENABLED !== 'false') {
       throw new Error('STRIPE_MEMBERSHIP_ENABLED must be true or false in production.')
