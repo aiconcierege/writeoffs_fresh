@@ -60,6 +60,29 @@ Unknown/ambiguous files are preserved with **Needs your help**. Native receipt P
 
 The existing 100 MiB/500-page statement backend protective bounds and 25-page continuations remain for legacy statement intake. The new normal intake has the lower 20 MiB transport bound above. The PDF runtime, worker and fonts are explicitly traced into deployment bundles. Continuations use the canonical `lease_id`, reset the retry budget after successful page progress, and retain immutable page evidence. Accumulated pages are reparsed within a two-million-character bound so repeated-row identities and reported counts remain stable across chunks. Provider failures retry; unreadable and unsupported documents terminate honestly. General intake exposes delayed/paused/failure states and owned failed-document retry.
 
+### Unified intake staging incident and certification — September 16, 2026
+
+The original statement had a durable object/job but no extracted pages, result or imported observations. The deployed PDF import had bypassed output tracing, leaving its runtime outside the function bundle. The native reader also flattened each PDF text item onto a separate line, losing transaction rows and debit/credit columns; named-month periods were unsupported, and a checking-row description mentioning a credit card could change the detected account type. The continuation RPC used `lease_owner` instead of the deployed `lease_id`. These independent defects were repaired. A deployment-only font-manifest lookup discovered during browser testing was replaced by a traced runtime font path.
+
+Expensive processing was already enabled during this incident (the earlier receipt incident had lifted the staging pause). Actual statement attempts exhausted the six-attempt budget. This was a code/runtime defect, not unreadable customer content or an uninvoked worker. The legacy CSV screen had separately trusted its selected UI route and read arbitrary bytes as text. Before repair, the manual tenant had 120 provider transactions, zero CSV/statement imports, and zero PDF-internal garbage rows.
+
+The original manual statement was preserved and resumed once through `requeue_terminal_document_processing_job`, with reason `STATEMENT_RUNTIME_REPAIRED`, after isolated certification passed. The scheduled worker then read both original pages and imported 24 transactions with zero ambiguous rows on its first recovered attempt. Read-only verification found 144 financial transactions: the original 120 provider transactions plus 24 statement transactions. No receipt facts, answers, account-use selections, classifications or financial rows were manually manufactured. The earlier receipt-path copy remains preserved with its original help state; its recovery action can route the same stored document without another financial import.
+
+Isolated browser certification uses two synthetic MFA-enrolled tenants, normal private uploads, deployed processors and real receipt OCR. It verifies:
+
+- Two-page checking: 24 rows, credits $6,793.06, debits $3,981.38; balances reconcile and no headers/PDF internals become activity.
+- Two-page card statement: two rows, including the positive $1,284.37 card payment paired with the checking withdrawal. Neither side is automatically counted as business income/expense. Movement reconciliation remains a separate canonical review decision.
+- Receipt before statement and receipt after statement: both match through existing canonical convergence/attachment, with no duplicate expense.
+- Mixed upload: card PDF, two-row bank export, receipt image and unsupported note route independently; the note terminates with help.
+- Equivalent statement with different file bytes: no duplicate financial activity (28 total financial rows across checking/card/export).
+- PDF with a structured-file extension routes as a statement; legacy JSON import rejects PDF internals. Possible cross-source duplicate activity stops for review.
+- Historical meal documentation stays out of conversational questions. Receipt-context statement recovery preserves the original and reuses the existing document.
+- Cross-tenant document reads/retries/worker claims are denied; storage remains private. UI checks cover Home, documents, Transactions and Receipts at 390, 430 and 1280 pixels, with screenshots inspected.
+
+The reusable fixtures/certification live in `scripts/seed-unified-documents-staging.ts` and `scripts/certify-unified-documents-staging.mjs`. Credentials, original uploads, diagnostic exports and browser artifacts remain operator-private, outside Git. The original statement fixture is supplied by path, not embedded as a customer document in the repository.
+
+Limits: unfamiliar/scanned general PDFs may need help; this is not universal OCR/table support. Automatic structured import recognizes common headers and fails closed rather than guessing ambiguous columns. Potential cross-source duplicate checks are conservative, not universal transaction equivalence. Account linking and transfer/payment reconciliation are separate existing workflows; this repair does not invent income/tax treatment. No new provider, dependency, public storage, billing or Production configuration was introduced.
+
 ## Queue and worker
 
 The existing `receipt_processing_jobs` queue is extended with either a `receipt_id` or `document_id`, never both. Typed jobs are:
