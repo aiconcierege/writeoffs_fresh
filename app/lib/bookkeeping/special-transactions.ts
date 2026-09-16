@@ -20,6 +20,7 @@ export async function loadSpecialWork(db:SupabaseClient,recordId:string):Promise
  return {recordId,decisionId:w.decision_id,nature:w.bookkeeping_nature,treatment:w.treatment,amountCents:w.amount_cents,kind,lastAction,candidates:candidates.slice(0,20),linked:kind==='refund'&&w.treatment!=='unresolved'}
 }
 export function specialNatureLabel(nature:string|null,treatment:string|null){
+ if(nature==='refund')return 'Refund'
  if(treatment==='personal')return 'Owner/personal use'
  return ({refund:'Refund',credit_card_payment:'Credit card payment',transfer:'Transfer',owner_contribution:'Money you added',loan_proceeds:'Loan proceeds',loan_principal_payment:'Loan payment',business_income:'Customer payment'} as Record<string,string>)[nature??'']??null
 }

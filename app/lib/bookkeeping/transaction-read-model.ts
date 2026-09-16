@@ -73,6 +73,11 @@ export function customerDecisionExplanation(decision:Row|undefined){
   const reason=(text(decision??{},'reason')??'').toLowerCase()
   const provenance=text(decision??{},'provenance')
   if(provenance==='user'){
+    const nature=text(decision??{},'bookkeeping_nature')
+    if(nature==='credit_card_payment')return'You identified this as a credit card payment, outside business income and expenses.'
+    if(nature==='loan_principal_payment')return'You identified this as a loan payment. Supporting documents establish the principal and interest.'
+    if(nature==='refund'&&treatment!=='unresolved')return'You linked this return to an earlier purchase.'
+    if(nature==='transfer'&&treatment==='personal')return'You identified this as money taken or used personally.'
     if(treatment==='business')return'You marked this as business.'
     if(treatment==='mixed_use')return'You set the part used for your business.'
     if(treatment==='personal'||treatment==='excluded')return'You marked this as personal.'

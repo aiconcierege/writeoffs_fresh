@@ -4,10 +4,17 @@ import {parseLoanPaymentStatement} from '../../app/lib/documents/loan-statement'
 import {buildCanonicalReport} from '../../app/lib/bookkeeping/reporting-model'
 import type {CanonicalSummaryRecord} from '../../app/lib/bookkeeping/financial-summary'
 import {purchaseReceiptEligible} from '../../app/lib/bookkeeping/receipt-eligibility'
-import {refundMerchant} from '../../app/lib/bookkeeping/special-transactions'
+import {refundMerchant,specialNatureLabel} from '../../app/lib/bookkeeping/special-transactions'
+import {customerDecisionExplanation} from '../../app/lib/bookkeeping/transaction-read-model'
 function row(id:string,nature:string,treatment:string,amount:number,business:number,personal:number):CanonicalSummaryRecord{return {id,occurredOn:'2026-05-12',currency:'USD',amountCents:amount,financialSourceAssociationId:id,financialTransactionId:id,sourceKind:'financial_transaction',decisions:[{id,supersedesDecisionId:null,bookkeepingNature:nature as never,treatment:treatment as never,allocations:[...(business?[{id:id+'b',kind:'business' as const,amountCents:business,taxCategoryKey:'supplies'}]:[]),...(personal?[{id:id+'p',kind:'personal' as const,amountCents:personal}]:[])]}]}}
 const report=(canonicalRecords:CanonicalSummaryRecord[])=>buildCanonicalReport({canonicalRecords,legacyRecords:[],currency:'USD',periodStart:'2026-01-01',periodEnd:'2026-12-31'})
 describe('transaction workflow and independent personal use',()=>{
+ it('keeps economic nature truthful in labels and customer history',()=>{
+  expect(specialNatureLabel('refund','personal')).toBe('Refund')
+  expect(customerDecisionExplanation({provenance:'user',bookkeeping_nature:'credit_card_payment',treatment:'excluded'})).toContain('credit card payment')
+  expect(customerDecisionExplanation({provenance:'user',bookkeeping_nature:'credit_card_payment',treatment:'excluded'})).not.toContain('personal')
+  expect(customerDecisionExplanation({provenance:'user',bookkeeping_nature:'refund',treatment:'business'})).toContain('linked this return')
+ })
  it('preserves complete list context through nested question return',()=>{const origin='/transactions?view=review&q=store&start=2026-05-01&end=2026-05-31&category=supplies&account=abc&offset=50';const detail=withReturnTo('/transactions/11111111-1111-4111-8111-111111111111',origin);expect(safeReturnTo(detail)).toBe(detail);expect(new URL(detail,'https://local').searchParams.get('returnTo')).toBe(origin)})
  it.each(['https://evil.test','//evil.test','/\\evil.test','/api/documents','/transactions/../api/secrets','javascript:alert(1)','/transactions\n'])('rejects untrusted return %s',value=>expect(safeReturnTo(value)).toBe('/transactions'))
  it('keeps owner use out of profit and reconciles mixed cents',()=>{const r=report([row('p','expense','personal',-10000,0,-10000),row('m','expense','mixed_use',-20000,-13000,-7000)]);expect(r.ownerPersonalUseCents).toBe(17000);expect(r.businessExpensesCents).toBe(13000);expect(r.businessProfitCents).toBe(-13000);expect(r.rows).toHaveLength(2);expect(r.categoryTotals[0].amountCents).toBe(13000)})
