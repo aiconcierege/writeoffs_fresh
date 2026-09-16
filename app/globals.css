@@ -594,6 +594,7 @@ body { background: var(--canvas); color: var(--ink); }
 .home-add-receipt [role="status"],.home-add-receipt [role="alert"] { grid-column: 1 / -1; width: 100%; max-width: none; font-weight: 400; overflow-wrap: break-word; }
 .home-add-receipt > div > a { grid-column: 2; }
 .home-add-receipt .receipt-upload-action > div { grid-column: 1 / -1; min-width: 0; }
+@media (max-width: 639px) { .home-add-receipt:has([role="status"]),.home-add-receipt:has([role="alert"]) { grid-column: 1 / -1; } }
 .home-add-receipt .btn:hover { transform: none; }
 .home-add-receipt .btn span { font-weight: 720; }
 .home-add-receipt a { margin-top: .1rem; color: #657169; font-size: .8125rem; font-weight: 650; text-decoration: underline; text-underline-offset: .14rem; }

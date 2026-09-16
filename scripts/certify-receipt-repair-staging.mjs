@@ -39,7 +39,7 @@ try{
    const response=await registration;assert.equal(response.status(),200);const body=await response.json();assert(body.receipt.id)
    state[c.key]={id:body.receipt.id,registration:response.request().postDataJSON()};await writeFile(`${dir}/browser-state.json`,JSON.stringify(state),{mode:0o600})
    assert.equal(page.url(),routeBefore,'Upload stays in its review context')
-   if(c.key==='unmatched')for(const width of [390,430,1280]){await page.setViewportSize({width,height:900});await page.locator('.home-add-receipt [role="status"]').waitFor();const box=await page.locator('.home-add-receipt [role="status"]').boundingBox(),card=await page.locator('.home-add-receipt').boundingBox();assert(box.width>=card.width-35,'Receipt status spans the card instead of collapsing beside the icon');await snapshot(`home-status-${width}`)}
+   if(c.key==='unmatched')for(const width of [390,430,1280]){await page.setViewportSize({width,height:900});await page.locator('.home-add-receipt [role="status"]').first().waitFor();const box=await page.locator('.home-add-receipt [role="status"]').first().boundingBox(),card=await page.locator('.home-add-receipt').boundingBox();assert(box.width>=card.width-35,'Receipt status spans the card instead of collapsing beside the icon');await snapshot(`home-status-${width}`)}
   }
   let item;for(let i=0;i<65;i++){item=(await receipts()).find(r=>r.id===state[c.key].id);if(item&&item.displayStatus!=='processing')break;await page.waitForTimeout(3000)}
   assert(item&&item.displayStatus!=='processing',`${c.key}: terminal state reached`)

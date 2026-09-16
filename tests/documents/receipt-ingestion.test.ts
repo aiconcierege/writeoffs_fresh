@@ -6,6 +6,10 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 afterEach(()=>{vi.unstubAllGlobals();vi.unstubAllEnvs();vi.useRealTimers()})
 describe('receipt OCR facts',()=>{
+  it('reads dates when OCR separates punctuation into words',()=>{
+    for(const visible of ['September 8 , 2026','09 / 08 / 2026','2026 - 09 - 08'])
+      expect(parseReceiptText(`Shop\n${visible}\nTotal $12.00`).occurredOn).toBe('2026-09-08')
+  })
   it('reads positive exact cents and normalizes typographic apostrophes and US dates',()=>{
     expect(parseReceiptText('McDonald’s\n09/08/2026\nSubtotal 11.10\nTax 0.90\nTotal\n$12.00')).toEqual({merchant:"McDonald's",occurredOn:'2026-09-08',totalAmountCents:1200,reason:null})
     expect(parseReceiptText("McDonald's\nSeptember 8, 2026\nTOTAL $9.54")).toMatchObject({occurredOn:'2026-09-08',totalAmountCents:954,reason:null})

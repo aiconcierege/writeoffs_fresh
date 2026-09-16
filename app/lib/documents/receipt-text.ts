@@ -11,9 +11,9 @@ function date(year: string, month: string, day: string) {
 export function parseReceiptText(text: string) {
   const lines=text.normalize('NFKC').replace(/[’‘]/g,"'").split(/\r?\n/).map(l=>l.trim()).filter(Boolean)
   const joined=lines.join(' '),dates=new Set<string>()
-  for(const match of joined.matchAll(/\b(20\d{2})[\/.-](\d{1,2})[\/.-](\d{1,2})\b/g)) {const d=date(match[1],match[2],match[3]);if(d)dates.add(d)}
-  for(const match of joined.matchAll(/\b(\d{1,2})[\/.-](\d{1,2})[\/.-](20\d{2})\b/g)) {const d=date(match[3],match[1],match[2]);if(d)dates.add(d)}
-  for(const match of joined.matchAll(/\b([a-z]+)\.?\s+(\d{1,2}),?\s+(20\d{2})\b/gi)) {
+  for(const match of joined.matchAll(/\b(20\d{2})\s*[\/.-]\s*(\d{1,2})\s*[\/.-]\s*(\d{1,2})\b/g)) {const d=date(match[1],match[2],match[3]);if(d)dates.add(d)}
+  for(const match of joined.matchAll(/\b(\d{1,2})\s*[\/.-]\s*(\d{1,2})\s*[\/.-]\s*(20\d{2})\b/g)) {const d=date(match[3],match[1],match[2]);if(d)dates.add(d)}
+  for(const match of joined.matchAll(/\b([a-z]+)\.?\s+(\d{1,2})\s*,?\s+(20\d{2})\b/gi)) {
     const m=months.findIndex(name=>name===match[1].toLowerCase()||name.slice(0,3)===match[1].toLowerCase())
     if(m>=0){const d=date(match[3],String(m+1),match[2]);if(d)dates.add(d)}
   }
