@@ -352,3 +352,50 @@ processing-drain timeout logs were observed separately; no backup/DR/worker sche
 provider administration changes were made to hide them. This phase does not certify
 real-device browsers, every external provider flow afresh, or unlimited-history performance.
 The bounded work RPC returned 51 index rows in approximately 200–500 ms in these fixtures.
+
+## Money-in and receipt eligibility repair — September 16, 2026
+
+The confirmed defect was unconditional purchase-receipt controls in transaction detail,
+combined with no source-of-money question for unresolved statement deposits. The existing
+missing-receipt list already tested for a negative amount. The repair centralizes purchase
+eligibility across read queries, Home documentation counts, detail, and the bulk mutation
+boundary instead of claiming that every deposit was previously in the receipt list.
+
+Migration `20260919000100_money_in_and_receipt_eligibility.sql` was validated with rollback
+and applied only to the dedicated staging database. It preserves records and history,
+uses current decision/evidence versions, and prepares at most 100 missing incoming-money
+questions per authenticated projection. Repeated projection does not reopen answered or
+deferred facts. Owner, MFA, active-membership and deletion guards remain enforced.
+
+Synthetic browser certification used `scripts/seed-money-in-staging.ts` and
+`scripts/certify-money-in-staging.mjs`. The first run correctly exposed a fixture coverage
+mistake: May test records were outside its August bookkeeping start. The corrected fixture
+explicitly covers May. Through the real UI, customer payment added $425 to both Home and
+Reports; transfers, owner funds and loans stayed excluded; refund remained unresolved and
+outside revenue. Two real purchase records remained receipt-eligible. Bulk receipt
+unavailability created exactly two factual events, preserved decisions, emptied that
+receipt queue, and returned the same result on replay. Cross-tenant reads, answers and bulk
+mutation were rejected. No credit-card statement was uploaded or tested.
+
+Screenshots and sanitized results are local in `/private/tmp/writeoffs-money-in/proof/`:
+390, 430 and 1280px, including selected bulk actions, incoming detail, money-source choices,
+Home and Reports. Rendered screenshots were inspected; no horizontal overflow or browser
+console/page errors occurred. This is Chromium emulation, not physical-device certification.
+The income choices, unknown answer and deferral fit the captured phone viewport.
+
+Rick's Zelle +$425, Stripe +$735.44 and checking-side card payment -$1,284.37 remain
+unresolved, with unchanged decisions and question history during operator verification.
+All three are ineligible for purchase-receipt work. Read-only counts showed 28 incoming
+transactions, zero eligible incoming receipt items, and 91 actionable purchase receipts.
+No answers, classifications, account-use choices or unavailable-receipt facts were supplied
+for Rick. Receipt extraction/matching, payment reconciliation, pricing and provider
+configuration were not changed.
+
+Validation: focused eligibility/question/bulk/P&L tests, full suite (1,309 passed; 143
+existing environment-gated tests skipped), TypeScript, ESLint (zero errors; 16 existing
+warnings), optimized local webpack build and normal Vercel Turbopack build, Gitleaks and
+diff checks. Local webpack avoids the environment's Turbopack IPC bind restriction; all
+pre-push checks still ran. Dependency audit retains two existing moderate development-tool
+findings, with no high/critical findings. Refund allocation/reversal still requires adequate
+facts; the repair deliberately does not invent that treatment. No full cross-account
+reconciliation or credit-card statement test is part of this certification.

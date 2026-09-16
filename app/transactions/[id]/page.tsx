@@ -38,7 +38,6 @@ export default async function TransactionDetailPage({ params,searchParams }: { p
       <div><h2 className="text-lg font-semibold text-slate-950">How Betti handled this</h2>
         <p className="mt-3"><span className="status-badge">{transaction.treatmentLabel}</span></p>
         <p className="mt-2 text-sm leading-6 text-slate-600">{transaction.decisionReason ?? (transaction.sourceModel === 'canonical' ? 'WriteOffs is still working on this transaction.' : 'This is a historical transaction.')}</p>
-        {transaction.amountCents>0&&transaction.treatment==='unresolved'&&<p className="mt-2 text-sm text-slate-600">Betti needs one detail before she can finish this.</p>}
         {work?.needs_fact&&transaction.treatment!=='unresolved'&&<Link href={questionHref} className="inline-flex min-h-11 items-center font-semibold text-[#243186]">Answer Betti’s questions →</Link>}
         {transaction.contractorName && <p className="mt-2 text-sm text-slate-600">Contractor: <span className="font-medium text-slate-900">{transaction.contractorName}</span></p>}
         {transaction.sourceModel==='canonical'&&transaction.currentDecisionId&&transaction.treatment==='personal'

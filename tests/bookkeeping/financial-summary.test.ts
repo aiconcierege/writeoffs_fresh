@@ -47,6 +47,13 @@ function summarize(records: CanonicalSummaryRecord[], overrides: Record<string, 
 }
 
 describe('canonical financial summary aggregation', () => {
+  it('keeps an unresolved incoming refund out of revenue and does not invent an expense reversal',()=>{
+    const result=summarize([record({amountCents:1500,decisions:[decision({bookkeepingNature:'refund',treatment:'unresolved',allocations:[]})]})])
+    expect(result.businessIncomeCents).toBe(0)
+    expect(result.businessExpensesCents).toBe(0)
+    expect(result.completeness.unresolvedRecordCount).toBe(1)
+  })
+
   it('does not count a materially unresolved amount as an established business expense',()=>{
     const result=summarize([record({materiallyUnresolved:true})])
     expect(result.businessExpensesCents).toBe(0)
