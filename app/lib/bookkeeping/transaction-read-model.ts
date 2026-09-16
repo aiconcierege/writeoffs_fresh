@@ -15,6 +15,9 @@ export type TransactionReadRow = {
   category_key: string | null
   categoryCandidate?: string | null
   categoryKeys?: string[]
+  compoundParts?: Array<{recordId:string;label:string;amountCents:number}>
+  businessAmountCents?: number
+  personalAmountCents?: number
   has_receipt: boolean
   receipt_waived: boolean
   treatmentLabel: string
@@ -198,7 +201,7 @@ export async function listTransactionReadModel(input: {
       input.supabase.from('current_schedule_c_expense_assessments')
         .select('bookkeeping_record_id,bookkeeping_decision_id,schedule_c_category_key,assessment_status')
         .eq('business_id', businessId).in('bookkeeping_record_id', recordIds),
-      input.supabase.from('bookkeeping_allocations').select('bookkeeping_decision_id,allocation_kind,tax_category_key')
+      input.supabase.from('bookkeeping_allocations').select('bookkeeping_decision_id,allocation_kind,tax_category_key,amount_cents')
         .eq('business_id', businessId).in('bookkeeping_decision_id', (decisionResult.data ?? []).map(row => row.id)),
     ])
     if (assessments.error || allocations.error) throw new Error('Could not load category evidence.')
@@ -334,6 +337,8 @@ export async function listTransactionReadModel(input: {
         : financial ? text(financial, 'original_description')
           : manual ? text(manual, 'description') : 'Recorded from a receipt', amount: amountCents / 100,
       amountCents, currency: financial && !compoundComponent ? text(financial, 'currency') ?? 'USD' : text(record, 'currency') ?? 'USD', category_key: categoryKeys.length === 1 ? categoryKeys[0] : null,
+      businessAmountCents:allocationRows.filter(a=>a.bookkeeping_decision_id===current?.id&&a.allocation_kind==='business').reduce((n,a)=>n+Math.abs(Number(a.amount_cents)),0),
+      personalAmountCents:allocationRows.filter(a=>a.bookkeeping_decision_id===current?.id&&a.allocation_kind==='personal').reduce((n,a)=>n+Math.abs(Number(a.amount_cents)),0),
       categoryKeys, categoryCandidate: categoryKeys.length ? null : text(candidate ?? {}, 'schedule_c_category_key'),
       has_receipt: documented.has(recordId), receipt_waived: false,
       treatmentLabel: customerTreatmentLabel(current), decisionReason: customerDecisionExplanation(current),
@@ -428,5 +433,16 @@ export async function getTransactionDetailReadModel(input: {
 }) {
   const rows = await listTransactionReadModel({ supabase: input.supabase,
     userId: input.userId, limit: 1, transactionId: input.transactionId })
-  return rows.find((row) => row.id === input.transactionId) ?? null
+  const direct=rows.find(row=>row.id===input.transactionId)
+  if(direct)return direct
+  const components=await input.supabase.from('current_bookkeeping_compound_components').select('bookkeeping_record_id,anchor_bookkeeping_record_id,linked_amount_cents,relationship_role').eq('anchor_financial_transaction_id',input.transactionId).eq('scenario','loan_payment_split')
+  if(components.error)throw new Error('Loan payment parts could not be loaded.')
+  if(!components.data?.length||!rows[0])return null
+  const source=await input.supabase.from('financial_transactions').select('amount_cents,transaction_date,merchant_name,original_description').eq('id',input.transactionId).single()
+  if(source.error||!source.data)return null
+  return {...rows[0],id:input.transactionId,recordId:components.data[0].anchor_bookkeeping_record_id,currentDecisionId:null,
+    amount:source.data.amount_cents/100,amountCents:source.data.amount_cents,date:source.data.transaction_date,
+    vendor:source.data.merchant_name??'Loan payment',description:source.data.original_description,
+    bookkeepingNature:'loan_principal_payment',treatment:'excluded',treatmentLabel:'Loan payment',categoryKeys:[],categoryCandidate:null,category_key:null,
+    compoundParts:components.data.map(c=>({recordId:c.bookkeeping_record_id,label:c.relationship_role==='loan_principal'?'Principal — outside business expenses':'Interest — business portion',amountCents:Math.abs(Number(c.linked_amount_cents))}))}
 }

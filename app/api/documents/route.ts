@@ -4,9 +4,12 @@ import {requireCapability,membershipErrorResponse} from '../../lib/membership/en
 import {drainCanonicalDocumentJobs} from '../../lib/documents/durable-processing'
 export const runtime='nodejs'
 export const maxDuration=180
-export async function GET(){
+export async function GET(request:Request){
  const db=await createServerSupabase(),{data:{user}}=await db.auth.getUser();if(!user)return NextResponse.json({error:'unauthorized'},{status:401})
- const r=await db.from('current_customer_document_status').select('*').order('created_at',{ascending:false}).limit(100)
+ const recordId=new URL(request.url).searchParams.get('record')
+ let query=db.from('current_customer_document_status').select('*').order('created_at',{ascending:false}).limit(100)
+ if(recordId){const links=await db.from('bookkeeping_supporting_documents').select('document_id').eq('bookkeeping_record_id',recordId);if(links.error)return NextResponse.json({error:'Documents could not be loaded.'},{status:400});query=query.in('id',(links.data??[]).map(l=>l.document_id))}
+ const r=await query
  if(r.error)return NextResponse.json({error:'Documents could not be loaded.'},{status:503})
  return NextResponse.json({documents:r.data,processingPaused:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED==='false'})
 }

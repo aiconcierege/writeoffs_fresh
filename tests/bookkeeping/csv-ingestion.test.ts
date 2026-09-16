@@ -73,3 +73,11 @@ describe('canonical CSV normalization', () => {
     expect(result.errors.map(({ row }) => row)).toEqual([2, 3])
   })
 })
+
+it('retains repeated merchant/amount activity on distinct dates with stable retry identities',()=>{
+ const input={mapping,rows:[{Date:'2026-05-01',Description:'FUN',Amount:'-89.40'},{Date:'2026-05-02',Description:'FUN',Amount:'-89.40'}]}
+ const first=prepareCsvFinancialRows(input).rows, retry=prepareCsvFinancialRows(input).rows
+ expect(first).toHaveLength(2)
+ expect(first[0].sourceFingerprint).not.toBe(first[1].sourceFingerprint)
+ expect(first.map(row=>row.sourceFingerprint)).toEqual(retry.map(row=>row.sourceFingerprint))
+})

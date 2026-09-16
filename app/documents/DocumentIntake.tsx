@@ -1,5 +1,5 @@
 'use client'
-import {useEffect,useRef,useState} from 'react'
+import {useCallback,useEffect,useRef,useState} from 'react'
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {supabase} from '../../utils/supabase/client'
@@ -9,10 +9,10 @@ type Document={id:string;original_name:string;document_class:string;state:string
 export function DocumentIntake({compact=false,recordId}:{compact?:boolean;recordId?:string}){
  const router=useRouter()
  const input=useRef<HTMLInputElement>(null),busyRef=useRef(false),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[documents,setDocuments]=useState<Document[]>([]),[paused,setPaused]=useState(false)
- async function refresh(){const r=await fetch('/api/documents',{cache:'no-store'});if(r.ok){const b=await r.json();setDocuments(b.documents??[]);setPaused(b.processingPaused===true)}}
- useEffect(()=>{void refresh()},[])
+ const refresh=useCallback(async()=>{const r=await fetch(recordId?`/api/documents?record=${recordId}`:'/api/documents',{cache:'no-store'});if(r.ok){const b=await r.json();setDocuments(b.documents??[]);setPaused(b.processingPaused===true)}},[recordId])
+ useEffect(()=>{void refresh()},[refresh])
  const pending=documents.some(d=>['pending','retryable','processing'].includes(d.state))
- useEffect(()=>{if(!pending)return;const timer=setInterval(()=>void refresh(),4000);return()=>clearInterval(timer)},[pending])
+ useEffect(()=>{if(!pending)return;const timer=setInterval(()=>void refresh(),4000);return()=>clearInterval(timer)},[pending,refresh])
  async function upload(files:File[]){
   if(!files.length||busyRef.current)return
   if(files.length>10){setMessage('Choose up to 10 documents at a time.');return}
@@ -39,7 +39,7 @@ export function DocumentIntake({compact=false,recordId}:{compact?:boolean;record
   <input ref={input} type="file" multiple className="sr-only" aria-label="Send Betti documents" accept="image/jpeg,image/png,image/webp,application/pdf,text/csv,.csv" onChange={e=>void upload(Array.from(e.target.files??[]))}/>
   {message&&<p role="status" className="mt-3 break-words text-sm leading-6">{message}</p>}
   {paused&&<p role="status" className="mt-3 text-sm">Your documents are safe. Organizing is paused; please check back later.</p>}
-  {!compact&&documents.length>0&&<ul className="mt-6 divide-y divide-slate-200" aria-label="Your documents">{documents.map(d=><li key={d.id} className="py-4"><div className="flex flex-wrap items-start justify-between gap-2"><strong className="min-w-0 break-words font-medium" style={{overflowWrap:'anywhere'}}>{d.original_name||'Document'}</strong><span className="text-sm text-slate-600">{paused&&['pending','retryable','processing'].includes(d.state)?'Organizing is paused':status(d)}</span></div>{['dead_letter','unreadable'].includes(d.state)&&<button type="button" className="mt-2 min-h-11 text-sm font-semibold text-[#243186]" onClick={async()=>{const r=await fetch(`/api/documents/${d.id}/retry`,{method:'POST'});setMessage(r.ok?'Betti will try this document again.':'Please try again later. Your document is safe.');await refresh()}}>Try again</button>}{d.state==='needs_attention'&&<p className="mt-2 text-sm leading-6 text-slate-600">{help(d.reason)}</p>}{d.state==='completed'&&d.transaction_count>0&&<Link href="/transactions" className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">View {d.transaction_count} transactions →</Link>}{d.document_class==='receipt'&&<Link href="/receipts" className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">View receipt →</Link>}</li>)}</ul>}
+  {!compact&&documents.length>0&&<ul className="mt-6 divide-y divide-slate-200" aria-label="Your documents">{documents.map(d=><li key={d.id} className="py-4"><div className="flex flex-wrap items-start justify-between gap-2"><strong className="min-w-0 break-words font-medium" style={{overflowWrap:'anywhere'}}>{d.original_name||'Document'}</strong><span className="text-sm text-slate-600">{paused&&['pending','retryable','processing'].includes(d.state)?'Organizing is paused':status(d)}</span></div>{(['dead_letter','unreadable'].includes(d.state)||(d.state==='needs_attention'&&d.reason?.startsWith('LOAN_')))&&<button type="button" className="mt-2 min-h-11 text-sm font-semibold text-[#243186]" onClick={async()=>{const r=await fetch(`/api/documents/${d.id}/retry`,{method:'POST'});setMessage(r.ok?'Betti will try this document again.':'Please try again later. Your document is safe.');await refresh()}}>Try again</button>}{d.state==='needs_attention'&&<p className="mt-2 text-sm leading-6 text-slate-600">{help(d.reason)}</p>}{d.state==='completed'&&d.transaction_count>0&&<Link href="/transactions" className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">View {d.transaction_count} transactions →</Link>}{d.document_class==='receipt'&&<Link href="/receipts" className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">View receipt →</Link>}</li>)}</ul>}
   {compact&&<Link href="/import" className="ml-3 mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">View documents →</Link>}
  </div>
 }
