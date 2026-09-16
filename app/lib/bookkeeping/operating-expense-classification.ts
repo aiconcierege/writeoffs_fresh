@@ -97,7 +97,7 @@ export function classifyOperatingExpense(snapshot: BookkeepingEvaluationSnapshot
   // A customer's specific purchase correction outranks provider/merchant text.
   // A generic business-purpose answer alone does not erase purchase evidence.
   const correction = normalize(snapshot.currentDecision.businessPurpose)
-  const specificCorrection = snapshot.currentDecision.provenance === 'user'
+  const specificCorrection = (snapshot.currentDecision.provenance === 'user' || snapshot.customerFactsAuthoritative)
     && (patterns.some(({ pattern }) => pattern.test(correction))
       || specialPatterns.some(([pattern]) => pattern.test(correction)))
   const source = specificCorrection ? correction

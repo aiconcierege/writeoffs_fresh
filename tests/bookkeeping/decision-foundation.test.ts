@@ -75,6 +75,13 @@ describe('independent decision dimensions', () => {
     value.currentDecision.businessPurpose='Printer paper for office work'
     expect(classifyOperatingExpense(value).categoryKey).toBe('office-expense')
   })
+  it('retains a factual purchase correction after unrelated automated enrichment',()=>{
+    const value=snapshot('Software merchant');value.customerFactsAuthoritative=true
+    value.currentDecision.businessPurpose='Printer paper for office work'
+    value.currentDecision.treatment='business'
+    value.currentDecision.allocations=[{kind:'business',amountCents:-2299,taxCategoryKey:'office-expense'}]
+    expect(classifyOperatingExpense(value)).toMatchObject({categoryKey:'office-expense',status:'ordinary'})
+  })
   it('fingerprints all nested material facts and ignores object key order', () => {
     expect(operatingExpenseFingerprint({version:2,facts:{meal:true,portion:80}}))
       .not.toBe(operatingExpenseFingerprint({version:2,facts:{meal:true,portion:50}}))

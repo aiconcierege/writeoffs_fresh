@@ -54,6 +54,19 @@ describe('customer question API', () => {
     expect(applyFact).toHaveBeenCalledTimes(value===80?1:0)
   })
 
+  it('verifies a committed answer after an uncertain RPC response',async()=>{
+    const attention={id:eventId,attention_id:issueId,event_type:'opened',fact_type:'phone_business_use_percentage',
+      bookkeeping_record_id:'record',business_id:'owned-business'}
+    maybeSingle.mockResolvedValueOnce({data:attention}).mockResolvedValueOnce({data:{...attention,id:issueId,
+      event_type:'answered',supersedes_event_id:eventId,answer_value:80}})
+    rpc.mockResolvedValueOnce({error:{message:'deduction question changed'}})
+    const route=await import('../../app/api/bookkeeping/questions/[id]/route')
+    const response=await route.POST(new Request('http://local',{method:'POST',
+      headers:{'content-type':'application/json','if-match':eventId},body:JSON.stringify({action:'deduction_fact',value:80})}),
+      {params:Promise.resolve({id:issueId})})
+    expect(response.status).toBe(200);expect(applyFact).toHaveBeenCalledTimes(1)
+  })
+
   it('rejects unauthenticated queue and answer access', async () => {
     getUser.mockResolvedValue({ data: { user: null }, error: null })
     const queue = await import('../../app/api/bookkeeping/questions/route')

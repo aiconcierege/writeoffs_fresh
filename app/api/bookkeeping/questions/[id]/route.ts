@@ -179,7 +179,15 @@ export async function POST(
           p_attention_id: id, p_expected_event_id: expectedEventId,
           p_value: command.value, p_request_key: key,
         })
-        if (answerError) throw answerError
+        if (answerError) {
+          // A provider retry can observe the committed successor. Verify the
+          // exact owned answer before treating that response as an idempotent success.
+          const saved=await supabase.from('current_deduction_attentions').select('*')
+            .eq('attention_id',id).maybeSingle()
+          if(saved.error || saved.data?.event_type!=='answered'
+            || saved.data.supersedes_event_id!==expectedEventId
+            || JSON.stringify(saved.data.answer_value)!==JSON.stringify(command.value)) throw answerError
+        }
         const admin = createServerAdminSupabase()
         const next = nextHomeOfficeQuestion(deduction.fact_type, command.value)
         if (next) await admin.rpc('open_deduction_attention', {
