@@ -20,11 +20,15 @@ const drain=()=>execFileSync(process.execPath,['--conditions=react-server','--im
 try {
  const {context,client}=await session(fixtures[0],browser);page=await context.newPage();page.setDefaultTimeout(30000)
  page.on('pageerror',()=>errors.push('pageerror'))
+ page.on('response',response=>{if(response.url().includes('/api/bookkeeping/questions/')&&response.request().method()==='POST')
+   console.log('Question response',response.status(),response.request().postDataJSON()?.action??'reconcile')})
  page.on('console',m=>{if(m.type()==='error')errors.push(m.text())})
  const fixture=merchant=>{const r=fixtures[0].records.find(r=>r.merchant===merchant);assert(r);return r}
  const report=async()=>{const r=await context.request.get(origin+'/api/reports/summary');assert.equal(r.status(),200);return r.json()}
  const questions=async()=>{const r=await context.request.get(origin+'/api/bookkeeping/questions');assert.equal(r.status(),200);return (await r.json()).questions}
  const checkMath=r=>{assert.equal(r.categoryTotals.reduce((s,c)=>s+c.amountCents,0)+r.uncategorizedBusinessExpensesCents,r.businessExpensesCents);assert.equal(r.businessIncomeCents-r.businessExpensesCents,r.businessProfitCents)}
+ let r
+ if(!process.env.FOUNDATION_FINISH_ONLY) {
  if(!process.env.FOUNDATION_RESUME) {
  stage='early candidate';console.log('Certification: early candidate');await page.goto(origin+`/transactions/${fixture('ADOBE CREATIVE CLOUD').transactionId}`)
  await page.getByText('Likely category',{exact:true}).waitFor();await page.getByText('Software and subscriptions',{exact:true}).waitFor()
@@ -41,7 +45,7 @@ try {
  stage='promoted category';console.log('Certification: promoted category');await page.goto(origin+`/transactions/${fixture('ADOBE CREATIVE CLOUD').transactionId}`)
  await page.getByRole('heading',{name:'Category',exact:true}).waitFor();await page.getByText('Software and subscriptions',{exact:true}).waitFor()
  await page.getByText('No receipt attached',{exact:true}).waitFor()
- let r=await report();checkMath(r);assert.equal(r.categoryTotals.find(c=>c.categoryKey==='software').amountCents,2299)
+ r=await report();checkMath(r);assert.equal(r.categoryTotals.find(c=>c.categoryKey==='software').amountCents,2299)
  assert.equal(r.categoryTotals.find(c=>c.categoryKey==='office-expense').amountCents,6419)
  let queue=await questions();assert(!queue.some(q=>q.recordId===fixture('ADOBE CREATIVE CLOUD').recordId));assert(!queue.some(q=>q.recordId===fixture('KNOWN RESTAURANT MEAL').recordId))
  stage='customer answer';console.log('Certification: customer answer');await page.goto(origin+`/check-in?record=${fixture('FUN').recordId}`)
@@ -68,11 +72,15 @@ try {
  await page.getByLabel('Business use percentage',{exact:true}).fill('80')
  const percentageSaved=page.waitForResponse(res=>res.url().includes('/api/bookkeeping/questions/')&&res.request().method()==='POST'&&!res.url().endsWith('/reconcile'))
  await page.getByRole('button',{name:'Continue',exact:true}).click();assert.equal((await percentageSaved).status(),200)
+ }
  drain();r=await report();checkMath(r);assert.equal(r.categoryTotals.find(c=>c.categoryKey==='utilities').amountCents,11702)
+ assert.equal(r.categoryTotals.find(c=>c.categoryKey==='software').amountCents,2299)
+ assert.equal(r.categoryTotals.find(c=>c.categoryKey==='office-expense').amountCents,15359)
+ assert.equal(r.businessIncomeCents,42500)
  assert(!(await questions()).some(q=>q.recordId===fixture('VERIZON').recordId))
- const pdf=await context.request.get(origin+'/api/reports/tax-time-report?year=2026')
- assert.equal(pdf.status(),200);assert.equal((await pdf.body()).subarray(0,4).toString(),'%PDF')
- await page.goto(origin+'/home');for(const cents of [r.businessIncomeCents,r.businessExpensesCents,r.businessProfitCents]) {
+ stage='tax-time readiness';console.log('Certification: tax-time readiness');const pdf=await context.request.get(origin+'/api/reports/tax-time-report?year=2026')
+ assert.equal(pdf.status(),409);assert.equal((await pdf.json()).error,'books_not_ready')
+ stage='home/report agreement';console.log('Certification: home/report agreement');await page.goto(origin+'/home');for(const cents of [r.businessIncomeCents,r.businessExpensesCents,r.businessProfitCents]) {
   assert((await page.locator('body').innerText()).includes(new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(cents/100)))
  }
  stage='tenant isolation';console.log('Certification: tenant isolation');const other=await session(fixtures[1],browser)

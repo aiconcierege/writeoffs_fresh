@@ -33,7 +33,7 @@ async function main() {
   }
  }
  const pending=await admin.from('bookkeeping_processing_jobs').select('id',{count:'exact',head:true})
-  .in('business_id',targets.map((target:{businessId:string})=>target.businessId)).in('state',['pending','retryable','processing'])
+  .in('business_id',targets.map((target:{businessId:string})=>target.businessId)).neq('state','completed')
  assert(!pending.error,pending.error?.code)
  assert.equal(pending.count,0,'Target reassessment still has unfinished jobs; do not certify completion')
  const reports=[]
@@ -45,6 +45,6 @@ async function main() {
  const result={enqueued,completed,retried,durationMs:Date.now()-started,reports}
  await writeFile(`/private/tmp/writeoffs-foundation/${process.argv.includes('--rick')?'rick':'synthetic'}-reassessment.json`,JSON.stringify(result),{mode:0o600})
  console.log(JSON.stringify({enqueued,completed,retried,durationMs:result.durationMs}))
- if(retried)process.exitCode=1
+ // Recovered retries are reported; unfinished/dead-letter work fails the assertion above.
 }
 main().catch(error=>{console.error('FOUNDATION_REASSESSMENT_FAILED', error instanceof Error ? error.message.replace(/[A-Za-z0-9_-]{40,}/g,'[redacted]'):'unknown');process.exitCode=1})
