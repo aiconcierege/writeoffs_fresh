@@ -45,7 +45,7 @@ export default async function TransactionDetailPage({ params,searchParams }: { p
       <p className="money-display text-3xl font-semibold sm:text-right">{money.format(transaction.amount)}</p></div></header>
     <section className="grid gap-6 border-b border-slate-200 py-6 sm:grid-cols-2 sm:gap-8 sm:py-8">
       <div><h2 className="text-lg font-semibold text-slate-950">How Betti handled this</h2>
-        <p className="mt-3"><span className="status-badge">{transaction.treatmentLabel}</span></p>
+        <p className="mt-3"><span className="status-badge">{transaction.treatment === 'unresolved' ? (progress.state === 'system_pending' ? 'Supporting records needed' : 'Needs your answer') : transaction.treatmentLabel}</span></p>
         <p className="mt-2 text-sm leading-6 text-slate-600">{progress.message}</p>
         {(transaction.categoryKeys?.length || transaction.categoryCandidate) ? <div className="mt-4"><h3 className="text-sm font-semibold">{transaction.categoryKeys?.length ? 'Category' : 'Likely category'}</h3><p className="mt-1 text-sm">{(transaction.categoryKeys?.length ? transaction.categoryKeys : [transaction.categoryCandidate!]).map(categoryLabel).join(' · ')}</p></div> : null}
         {progress.action && <Link href={progress.action.href} className="inline-flex min-h-11 items-center font-semibold text-[#243186]">{progress.action.label} →</Link>}
