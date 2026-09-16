@@ -62,3 +62,7 @@ Local verification: 1,249 tests passed, 143 database-dependent tests skipped; Ty
 Before staging deployment, push the reviewed cleanup non-forced and certify an isolated checkout from `origin/v2-onboarding-staging`: lockfile install, TypeScript, ESLint, full tests, optimized build, dependency audit, redacted secret scan, diff check, route manifest inspection and clean Git status. Use placeholder public configuration without copying local secret files. Record the actual checkout path, commit, results and staging deployment in the delivery report. No fresh-checkout or deployment result is claimed by this pre-deployment record.
 
 Staging smoke testing must remain read-only: public routes, authenticated-route gates, asset loading and browser errors. Do not run fixture creation or mutation scripts against Rick's customer to certify repository hygiene.
+
+### Read-only staging smoke follow-up
+
+The first certified cleanup deployment exposed an existing signed-out API response defect: `/api/reports/tax-time` loaded membership before checking authentication and reported absent membership as HTTP 500. The baseline contained the same implementation. The follow-up adds the same explicit user check used by the PDF endpoint and returns 401/403 for authentication/membership failures. It does not change readiness calculations or access policy. Regression tests cover signed-out rejection before any books query, missing membership, and preserved read-only access. Repeat fresh-checkout certification for this follow-up before final deployment.

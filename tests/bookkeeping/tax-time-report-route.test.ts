@@ -8,6 +8,7 @@ vi.mock('../../app/lib/bookkeeping/tax-year-readiness-service', () => ({
 }))
 vi.mock('../../app/lib/bookkeeping/tax-time-report-pdf', () => ({ createTaxTimeReportPdf: mocks.render }))
 import { GET } from '../../app/api/reports/tax-time-report/route'
+import { GET as readinessGET } from '../../app/api/reports/tax-time/route'
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -17,6 +18,24 @@ beforeEach(() => {
   mocks.render.mockResolvedValue(new Uint8Array(Buffer.from('%PDF-fixture')))
 })
 describe('private on-demand report delivery', () => {
+  it('rejects signed-out readiness requests before loading membership or books', async () => {
+    mocks.auth.mockResolvedValue({ data: { user: null } })
+    const response = await readinessGET(new Request('https://example.test/api/reports/tax-time?year=2025'))
+    expect(response.status).toBe(401)
+    expect(await response.json()).toEqual({ error: 'unauthorized' })
+    expect(mocks.membership).not.toHaveBeenCalled()
+    expect(mocks.readiness).not.toHaveBeenCalled()
+  })
+  it('returns membership-required rather than a server error for readiness', async () => {
+    mocks.membership.mockResolvedValue({ plan: null, lifecycle: 'none' })
+    expect((await readinessGET(new Request('https://example.test/?year=2025'))).status).toBe(403)
+    expect(mocks.readiness).not.toHaveBeenCalled()
+  })
+  it('preserves authorized read-only readiness access', async () => {
+    mocks.membership.mockResolvedValue({ plan: 'business', lifecycle: 'expired_read_only' })
+    expect((await readinessGET(new Request('https://example.test/?year=2025'))).status).toBe(200)
+    expect(mocks.readiness).toHaveBeenCalledWith(expect.objectContaining({ taxYear: 2025, includeDataSourceHealth: false }))
+  })
   it.each(['businessId', 'business_id', 'tenant'])('rejects arbitrary %s access before reading books', async key => {
     const response = await GET(new Request(`https://example.test/api/reports/tax-time-report?year=2025&${key}=tenant-b`))
     expect(response.status).toBe(400)
