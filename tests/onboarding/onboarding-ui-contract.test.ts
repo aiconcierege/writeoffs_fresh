@@ -40,8 +40,8 @@ describe('canonical v1 onboarding UI', () => {
   })
   it('leads with connected accounts and keeps documents secondary', () => {
     expect(flow).toContain('Connect my accounts')
-    expect(flow).toContain('Upload bank or credit-card statements')
-    expect(flow).toContain('Start with receipts')
+    expect(flow).toContain('Send Betti documents')
+    expect(flow).not.toContain('Start with receipts')
     expect(flow).not.toContain('Import a CSV')
   })
 

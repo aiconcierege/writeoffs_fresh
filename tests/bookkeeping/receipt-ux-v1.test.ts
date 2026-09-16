@@ -14,7 +14,7 @@ describe('autonomous Receipt UX v1', () => {
   it('keeps receipt intake easy to reach without making it routine bookkeeping work', () => {
     expect(home).toContain('<HomeQuickActions business={isBusiness}/>')
     expect(homeActions).toContain('<DocumentIntake compact')
-    expect(source('app/get-started/GetStartedFlow.tsx')).toContain('Upload receipts')
+    expect(source('app/get-started/GetStartedFlow.tsx')).toContain('Send Betti documents')
     expect(upload).toContain('onChange={(event) => void select(Array.from(event.target.files ?? []))}')
     expect(upload).toContain('multiple')
     expect(upload).not.toContain('Upload selected')

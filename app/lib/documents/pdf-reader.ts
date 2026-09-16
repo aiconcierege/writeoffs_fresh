@@ -1,11 +1,9 @@
 import 'server-only'
-import {createRequire} from 'node:module'
-import {dirname,join} from 'node:path'
+import {join} from 'node:path'
 import {pdfTextRows,statementPageText,type PdfTextItem} from './pdf-layout'
 export async function readPdfPages(bytes:Uint8Array,limit=500){
   const pdfjs=await import('pdfjs-dist/legacy/build/pdf.mjs')
-  const require=createRequire(import.meta.url),base=dirname(require.resolve('pdfjs-dist/package.json'))
-  let doc;try{doc=await pdfjs.getDocument({data:bytes.slice(),isEvalSupported:false,standardFontDataUrl:join(base,'standard_fonts/')}).promise}catch{throw new Error('PDF_UNREADABLE')}
+  let doc;try{doc=await pdfjs.getDocument({data:bytes.slice(),isEvalSupported:false,standardFontDataUrl:join(process.cwd(),'node_modules/pdfjs-dist/standard_fonts/')}).promise}catch{throw new Error('PDF_UNREADABLE')}
   try{
     if(doc.numPages<1||doc.numPages>limit)throw new Error('DOCUMENT_PAGE_LIMIT')
     const pages=[];let length=0

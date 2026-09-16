@@ -27,7 +27,7 @@ const VISION_ENDPOINT = 'https://vision.googleapis.com/v1/images:annotate'
 
 const asRows = (value: unknown): Row[] => Array.isArray(value) ? value as Row[] : value ? [value as Row] : []
 const safeErrorCode = (error: unknown) => {
-  if(error&&typeof error==='object'&&'code'in error&&error.code==='ERR_MODULE_NOT_FOUND')return 'DOCUMENT_PDF_RUNTIME_UNAVAILABLE'
+  if(error&&typeof error==='object'&&'code'in error&&['ERR_MODULE_NOT_FOUND','MODULE_NOT_FOUND'].includes(String(error.code)))return 'DOCUMENT_PDF_RUNTIME_UNAVAILABLE'
   const code = error instanceof Error ? error.message : ''
   return /^[A-Z0-9_]{1,100}$/.test(code) ? code : 'DOCUMENT_PROCESSING_FAILED'
 }
