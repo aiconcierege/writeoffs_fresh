@@ -1,14 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const getUser = vi.fn()
+const maybeSingle = vi.fn()
+const rpc = vi.fn()
+const applyFact = vi.fn()
 const getCurrentAskableQuestionQueue = vi.fn()
 const actOnCustomerQuestion = vi.fn()
 
 vi.mock('../../utils/supabase/server', () => ({
   createServerSupabase: vi.fn(async () => ({
-    auth: { getUser },
+    auth: { getUser }, rpc,
     from: vi.fn(() => ({
-      select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: null })) })) })),
+      select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle })) })),
     })),
   })),
 }))
@@ -16,18 +19,39 @@ vi.mock('../../app/lib/bookkeeping/customer-questions', () => ({ getCurrentAskab
 vi.mock('../../app/lib/bookkeeping/customer-question-actions', () => ({ actOnCustomerQuestion }))
 vi.mock('../../app/lib/membership/entitlements',()=>({loadCustomerEntitlements:vi.fn(async()=>({plan:'business'}))}))
 
+vi.mock('../../utils/supabase/admin',()=>({createServerAdminSupabase:vi.fn(()=>({rpc}))}))
+vi.mock('../../app/lib/bookkeeping/deduction-intelligence',()=>({runDeductionIntelligenceForRecord:applyFact}))
+vi.mock('../../app/lib/bookkeeping/evaluation-snapshot',()=>({loadBookkeepingEvaluationSnapshot:vi.fn(async()=>({}))}))
+
 const issueId = '11111111-1111-4111-8111-111111111111'
 const eventId = '22222222-2222-4222-8222-222222222222'
 
 describe('customer question API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    maybeSingle.mockResolvedValue({data:null})
+    rpc.mockResolvedValue({error:null})
+    applyFact.mockResolvedValue({outcome:'already_applied'})
     getUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     getCurrentAskableQuestionQueue.mockResolvedValue({
       asOf:'2026-09-08T12:00:00.000Z',count:1,oldestOutstandingAt:'2026-09-07T12:00:00.000Z',
       questions:[{ id: issueId }],
     })
     actOnCustomerQuestion.mockResolvedValue({})
+  })
+
+
+  it.each([80,50])('retries only the same committed factual answer (%s)',async value=>{
+    maybeSingle.mockResolvedValue({data:{id:issueId,attention_id:issueId,event_type:'answered',
+      supersedes_event_id:eventId,answer_value:80,fact_type:'phone_business_use_percentage',
+      bookkeeping_record_id:'record',business_id:'owned-business'}})
+    const route=await import('../../app/api/bookkeeping/questions/[id]/route')
+    const response=await route.POST(new Request('http://local',{method:'POST',
+      headers:{'content-type':'application/json','if-match':eventId},
+      body:JSON.stringify({action:'deduction_fact',value})}),{params:Promise.resolve({id:issueId})})
+    expect(response.status).toBe(value===80?200:409)
+    expect(rpc).not.toHaveBeenCalledWith('answer_deduction_attention',expect.anything())
+    expect(applyFact).toHaveBeenCalledTimes(value===80?1:0)
   })
 
   it('rejects unauthenticated queue and answer access', async () => {

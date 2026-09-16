@@ -147,7 +147,10 @@ export async function POST(
     const { data: deduction } = await supabase.from('current_deduction_attentions').select('*')
       .eq('attention_id', id).maybeSingle()
     if (deduction) {
-      if (deduction.id !== expectedEventId) throw new Error('This question changed.')
+      const answerReplay = command.action === 'deduction_fact' && deduction.event_type === 'answered'
+        && deduction.supersedes_event_id === expectedEventId
+        && JSON.stringify(deduction.answer_value) === JSON.stringify(command.value)
+      if (deduction.id !== expectedEventId && !answerReplay) throw new Error('This question changed.')
       const key = `deduction-answer:${id}:${expectedEventId}`
       if (command.action === 'defer') {
         const { error: deferError } = await supabase.rpc('defer_deduction_attention', {
@@ -172,7 +175,7 @@ export async function POST(
             p_expected_event_id:currentUse?.id??null,p_total_miles_milli:command.value*1000,p_request_key:`vehicle-question:${id}:${expectedEventId}`})
           if(vehicleError)throw vehicleError
         }
-        const { error: answerError } = await supabase.rpc('answer_deduction_attention', {
+        const { error: answerError } = answerReplay ? { error: null } : await supabase.rpc('answer_deduction_attention', {
           p_attention_id: id, p_expected_event_id: expectedEventId,
           p_value: command.value, p_request_key: key,
         })
