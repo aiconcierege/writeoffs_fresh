@@ -46,7 +46,7 @@ try{
   assert.equal(item.displayStatus,c.state,`${c.key}: correct outcome`)
   if(c.key==='multiple'){assert.equal(item.processingReason,'MULTIPLE_RECEIPTS_DETECTED');assert.equal(item.totalAmountCents,null)}
   else{assert.equal(item.occurredOn,'2026-09-08');assert.equal(item.totalAmountCents,Math.round(Number(c.total)*100));assert.equal(item.merchant.toLowerCase().replace(/[^a-z0-9]/g,''),c.merchant.toLowerCase().replace(/[^a-z0-9]/g,''))}
-  const jobs=await admin.from('receipt_processing_jobs').select('state,attempt_count,terminal_reason').eq('receipt_id',item.id).eq('business_id',fixtures[0].businessId).eq('job_type','canonical_receipt_extraction');assert(!jobs.error);assert.equal(jobs.data.length,1);assert(['completed','needs_attention','unreadable'].includes(jobs.data[0].state))
+  let jobs;for(let attempt=0;attempt<20;attempt++){jobs=await admin.from('receipt_processing_jobs').select('state,attempt_count,terminal_reason').eq('receipt_id',item.id).eq('business_id',fixtures[0].businessId).eq('job_type','canonical_receipt_extraction');assert(!jobs.error);assert.equal(jobs.data.length,1);if(['completed','needs_attention','unreadable'].includes(jobs.data[0].state))break;await page.waitForTimeout(500)}assert(['completed','needs_attention','unreadable'].includes(jobs.data[0].state))
   results.push({case:c.key,receiptId:item.id,status:item.displayStatus,merchant:item.merchant,date:item.occurredOn,totalCents:item.totalAmountCents,job:jobs.data[0]});console.log(`${c.key}: ${item.displayStatus}`)
  }
  stage='reconciliation'
@@ -71,7 +71,7 @@ try{
  stage='responsive-surfaces'
  for(const width of [390,430,1280]){
   await page.setViewportSize({width,height:900})
-  for(const [path,name] of [['/receipts','receipts'],['/transactions?view=receipts','needs-receipt'],['/transactions?view=receipt-only','receipt-only'],['/home','home']]){await page.goto(origin+path);await page.waitForTimeout(600);await snapshot(`${name}-${width}`)}
+  for(const [path,name] of [['/receipts','receipts'],['/transactions?view=receipts','needs-receipt'],['/transactions?view=receipt-only','receipt-only'],['/home','home']]){await page.goto(origin+path);await page.waitForTimeout(600);if(name==='needs-receipt'){const picker=page.waitForEvent('filechooser');await page.getByRole('button',{name:'Upload receipts',exact:true}).click();await(await picker).setFiles([]);assert.equal(page.url(),origin+path)}await snapshot(`${name}-${width}`)}
   await page.goto(`${origin}/receipts`);await page.locator('.receipt-record').filter({hasText:'Upload separately'}).locator('summary').click();await page.getByText('I found more than one receipt in this image. Please upload each receipt separately.',{exact:true}).waitFor();await snapshot(`multiple-help-${width}`)
  }
  assert.deepEqual(errors,[])

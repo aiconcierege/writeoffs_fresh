@@ -17,7 +17,7 @@ export function deriveHomeRecentActivity(rows:TransactionReadRow[]):HomeRecentAc
   .sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id))
  const transactions=relevant.slice(0,3).map(row=>({id:row.id,merchant:row.vendor,date:row.date,amountCents:row.amountCents,
   status:transactionStatus(row),href:`/transactions/${row.id}`}))
- const receiptMatches=relevant.flatMap(row=>row.evidenceLinks.map(link=>({id:link.id,merchant:row.vendor,date:link.attachedAt.slice(0,10),
+ const receiptMatches=relevant.filter(row=>row.sourceKind==='financial_transaction').flatMap(row=>row.evidenceLinks.map(link=>({id:link.id,merchant:row.vendor,date:link.attachedAt.slice(0,10),
   amountCents:row.amountCents,href:`/transactions/${row.id}`,attachedAt:link.attachedAt})))
   .sort((a,b)=>b.attachedAt.localeCompare(a.attachedAt)||b.id.localeCompare(a.id)).slice(0,3)
   .map(match=>({id:match.id,merchant:match.merchant,date:match.date,amountCents:match.amountCents,href:match.href}))

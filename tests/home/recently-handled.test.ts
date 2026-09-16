@@ -38,6 +38,11 @@ describe('Home recent records', () => {
     expect(deriveHomeRecentActivity([row({id:'no-match'})]).receiptMatches).toEqual([])
   })
 
+  it('does not call an unmatched receipt-only record a bank receipt match',()=>{
+    const activity=deriveHomeRecentActivity([row({sourceKind:'receipt',evidenceLinks:[{id:'link',receiptId:'receipt',attachedAt:'2026-08-30T12:00:00.000Z'}]})])
+    expect(activity.receiptMatches).toEqual([])
+  })
+
   it('caps compact lists at three without fabricating rows',()=>{
     const activity=deriveHomeRecentActivity(Array.from({length:7},(_,index)=>row({id:`${index}`,date:`2026-08-${String(10+index).padStart(2,'0')}`})))
     expect(activity.transactions).toHaveLength(3)
