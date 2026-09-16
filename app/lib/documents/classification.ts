@@ -1,6 +1,7 @@
 import {parseReceiptText} from './receipt-text'
-export type DocumentClass='receipt'|'bank_statement'|'card_statement'|'transaction_file'|'unknown'
+export type DocumentClass='receipt'|'bank_statement'|'card_statement'|'transaction_file'|'loan_statement'|'unknown'
 export function classifyDocumentText(text:string):DocumentClass{
+  if (/\bloan\s+(?:statement|account)\b/i.test(text)&&/\bprincipal\b/i.test(text)&&/\binterest\b/i.test(text)) return 'loan_statement'
   const header=text.split(/account activity|transaction(?:s| details)|date\s+description/i)[0].slice(0,12000)
   const statement=/statement\s+period|account\s+summary|previous\s+balance|beginning\s+balance/i.test(header)
     && /account|cardmember|bank|credit union|issuer/i.test(header)

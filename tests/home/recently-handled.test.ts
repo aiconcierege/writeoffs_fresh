@@ -34,7 +34,7 @@ describe('Home recent records', () => {
   it('derives only real receipt links and does not pad either list', () => {
     const activity=deriveHomeRecentActivity([row({id:'matched',evidenceLinks:[{id:'link',receiptId:'receipt',attachedAt:'2026-08-30T12:00:00.000Z'}]})])
     expect(activity.transactions).toHaveLength(1)
-    expect(activity.receiptMatches).toEqual([{id:'link',merchant:'Office Depot',date:'2026-08-30',amountCents:-2500,href:'/transactions/matched'}])
+    expect(activity.receiptMatches).toEqual([{id:'link',merchant:'Office Depot',date:'2026-08-30',amountCents:-2500,href:'/transactions/matched?returnTo=%2Fhome'}])
     expect(deriveHomeRecentActivity([row({id:'no-match'})]).receiptMatches).toEqual([])
   })
 

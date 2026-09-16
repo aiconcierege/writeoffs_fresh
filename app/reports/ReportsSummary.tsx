@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 
 type SummaryData = {
+  ownerPersonalUseCents?: number
   businessIncomeCents: number
   businessExpensesCents: number
   businessProfitCents: number
@@ -42,6 +43,7 @@ export function ReportsSummary({scope,readOnly,annual}:{scope:'expenses'|'busine
       </dl>
       {data.estimatedDeductionsCents != null && <div className="mt-3 max-w-xl border-l-2 border-[#9ccdbc] pl-4"><p className="eyebrow">Tax estimate</p><p className="mt-2 text-sm text-[#59665f]">Estimated deductions</p><p className="money-display mt-1 text-2xl font-semibold">{usd.format(data.estimatedDeductionsCents / 100)}</p></div>}
     </section>
+    <section><h2 className="text-lg font-semibold">Money taken or used personally</h2><p className="mt-2 tabular-nums">{usd.format((data.ownerPersonalUseCents??0)/100)}</p><p className="mt-1 text-sm text-slate-600">For this reporting period. This stays outside business income, expenses and profit.</p></section>
     <section aria-labelledby="category-heading"><h2 id="category-heading" className="text-xl font-semibold text-slate-950">Where the money went</h2>
       <p className="mt-1 text-sm text-slate-600">These working expenses include purchases still being categorized. Tax deductions may differ.</p>
       <div className="mt-4 border-t border-slate-200">{data.categoryTotals.map((row) => <div key={row.categoryKey} className="grid grid-cols-[1fr_auto] gap-4 border-b border-slate-200 py-3 text-sm">

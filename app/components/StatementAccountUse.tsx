@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 
 export type StatementUseAccount = { id: string; displayName: string; mask: string | null; designation: string | null }
 
-export function StatementAccountUse({ accounts }: { accounts: StatementUseAccount[] }) {
+export function StatementAccountUse({ accounts, conversational=false }: { accounts: StatementUseAccount[];conversational?:boolean }) {
   const router = useRouter()
   const [saving, setSaving] = useState<string | null>(null)
   const [message, setMessage] = useState('')
@@ -29,7 +29,7 @@ export function StatementAccountUse({ accounts }: { accounts: StatementUseAccoun
   }
   if (!accounts.length) return null
   return <section aria-labelledby="statement-account-use" className="mx-auto max-w-3xl space-y-5 px-4 py-6">
-    <h2 id="statement-account-use" className="text-xl font-semibold">How did you use these accounts?</h2>
+    <h2 id="statement-account-use" className="text-xl font-semibold">{conversational?'Before I finish this, how did you use this account?':'How did you use these accounts?'}</h2>
     <p className="text-sm text-slate-600">Tell Betti once for each statement account. This applies to the activity you sent from that account. You can change it in Bank connections.</p>
     {accounts.map(account => <fieldset key={account.id} disabled={saving !== null} className="border-b border-slate-200 pb-5">
       <legend className="font-semibold">{account.displayName}{account.mask ? ` •••• ${account.mask}` : ''}</legend>

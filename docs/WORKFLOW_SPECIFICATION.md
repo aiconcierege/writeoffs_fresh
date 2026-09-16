@@ -499,3 +499,21 @@ Complete the normal loan principal/interest workflow, multiple business-category
 allocations, receipt line-item allocation, exact reconciliation and split corrections.
 Raw OCR line items are not trusted category allocations. Broad customer-approved
 recurring rules are also deferred; existing phone/internet fact reuse is preserved.
+
+## Transaction workflow and special activity (staging repair)
+
+Transaction navigation carries a validated, internal originating URL, including work view, search, dates, account, category and page. Search text and Apply filters have distinct actions. Contextual Check-in returns to its transaction; Home-origin Check-in retains the ongoing queue.
+
+Account-use prerequisites are asked conversationally using the existing account fact; settings remains its correction surface. A transaction-specific personal/mixed exception never changes the account default. Corrections preserve financial evidence and history. Business dollars determine a mixed allocation; the personal remainder reconciles exactly.
+
+Personal allocations on financial activity represent owner/personal use outside P&L, including outgoing owner transfers. Reports shows this separately. This is a canonical non-P&L measure, not a full GAAP balance-sheet/equity ledger. Owner contributions remain separate non-income funding. Personal receipt-only spending does not imply a withdrawal from a business account.
+
+Merchant returns require a confirmed purchase relationship. Candidate evidence uses merchant normalization, amount, date window and account; matching is never automatic here. The mutation checks tenant ownership, current decisions, remaining total/business/personal capacity and exact cents under a tenant lock. Multiple partial returns are supported. Mixed returns require the business dollars returned. Cross-year returns and multi-category allocation ambiguity remain explicit review; no prior-year tax recovery is invented. Changing the original decision invalidates the dependent return allocation for renewed confirmation. Both source transactions remain.
+
+Credit-card payments stay outside P&L and purchase receipts; opposite payment sides remain relationship-ready. Owner transfers are personal non-P&L allocations. A confirmed business-loan payment requests its statement inline through unified intake. A bounded deterministic document reader accepts uniquely labeled payment date, total, principal and interest only when cents reconcile to the target payment. Ambiguous/unrelated documents need help. Supported splits use existing compound reconciliation: principal excluded, interest a business expense, tax support separately assessed. This does not generate amortization or implement broad line-item splitting.
+
+Successful answers use result language. Deferral records an explicit unresolved choice and uses return-later language. Read-only pages do not append decisions.
+
+### Next manual certification — recorded, not executed
+
+Create a separate fresh staging customer; initially do not connect Plaid. Upload the controlled multi-page checking and credit-card statements, with known dates and amounts. Let normal workers ingest them. Verify account use, categories, personal/mixed use, owner use, refunds, card payments, loan documents, money-in, receipts/matching, Reports and Tax-Time. Only after these document-based checks pass, connect Plaid for a separate ingestion/reconciliation test. Keep Rick’s existing customer as history/regression stress data; do not reset it or migrate its history into the new customer.

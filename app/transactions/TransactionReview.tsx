@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import { withReturnTo } from '../lib/navigation-context'
 import { purchaseReceiptEligible } from '../lib/bookkeeping/receipt-eligibility'
 import { ReceiptUploadAction } from '../receipts/ReceiptUploadAction'
 import { useRef, useState } from 'react'
@@ -10,7 +11,7 @@ import type { WorkIndex, WorkView } from '../lib/bookkeeping/guided-review'
 
 type Row=TransactionReadRow & {work:WorkIndex}
 type Outcome={recordId:string;outcome:'recorded'|'needs_fact'|'documentation'|'removed'}
-export function TransactionReview({rows,view,historical}:{rows:Row[];view:WorkView;historical:boolean}) {
+export function TransactionReview({rows,view,historical,returnTo='/transactions'}:{rows:Row[];view:WorkView;historical:boolean;returnTo?:string}) {
   const router=useRouter(),lock=useRef(false)
   const [selected,setSelected]=useState<Set<string>>(new Set())
   const [confirm,setConfirm]=useState<'remove_business'|'receipt_unavailable'|'reviewed'|null>(null)
@@ -62,7 +63,7 @@ export function TransactionReview({rows,view,historical}:{rows:Row[];view:WorkVi
     <div className="record-list transaction-records">
       {rows.map(row=><div key={row.id} className={`review-transaction-row ${selected.has(row.id)?'is-selected':''}`}>
         <label className="review-row-select"><input type="checkbox" aria-label={`Select ${row.vendor}, ${row.date}, ${money(row)}`} checked={selected.has(row.id)} disabled={busy} onChange={()=>toggle(row.id)}/></label>
-        <Link href={row.sourceKind==='receipt_evidence'?'/receipts':`/transactions/${row.id}`} className="review-row-open" aria-label={`Open ${row.vendor}, ${row.date}, ${money(row)}`}>
+        <Link href={row.sourceKind==='receipt_evidence'?'/receipts':withReturnTo(`/transactions/${row.id}`,returnTo)} className="review-row-open" aria-label={`Open ${row.vendor}, ${row.date}, ${money(row)}`}>
           <div className="min-w-0"><p className="truncate font-semibold">{row.vendor}</p><p className="mt-1 text-sm text-[#59665f]">{new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}).format(new Date(`${row.date}T00:00:00Z`))} · {row.treatmentLabel}</p><p className="mt-1 text-xs text-[#59665f]">{row.has_receipt?'Receipt attached':row.receiptLost?'Receipt unavailable':row.sourceLabel??(purchaseReceiptEligible(row)?'No receipt attached':'Financial activity')}</p></div>
           <span className="whitespace-nowrap font-semibold">{money(row)}</span><span aria-hidden="true">›</span>
         </Link>

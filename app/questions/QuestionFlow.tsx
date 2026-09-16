@@ -1,6 +1,8 @@
 'use client'
 
 import Link from 'next/link'
+import {useRouter} from 'next/navigation'
+import { safeReturnTo, returnLabel } from '../lib/navigation-context'
 import { useEffect, useRef, useState } from 'react'
 import { questionVersionKey, reconcileQuestionSession } from './question-session'
 import { BettiIllustration } from '../components/BettiIllustration'
@@ -12,7 +14,10 @@ import {
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 const customerDate = new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})
 
-export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete,experience='questions',ongoingFrom,otherWorkWaiting=false }: {ongoingFrom?:string;otherWorkWaiting?:boolean; initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void;experience?:'questions'|'check-in' }) {
+export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete,experience='questions',ongoingFrom,otherWorkWaiting=false,returnTo:origin='/home' }: {returnTo?:string;ongoingFrom?:string;otherWorkWaiting?:boolean; initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void;experience?:'questions'|'check-in' }) {
+  const router=useRouter()
+  const returnTo=safeReturnTo(origin,'/home')
+  const [success,setSuccess]=useState('Your answer is saved.')
   const [questions, setQuestions] = useState(initialQuestions)
   const [deferredCount,setDeferredCount]=useState(0)
   const [answered, setAnswered] = useState(0)
@@ -81,7 +86,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
       // A committed answer stays committed even if the next queue read fails.
       setQueueNeedsReload(true)
       setQuestions(previous => previous.filter(candidate => questionVersionKey(candidate) !== questionVersionKey(question)))
-      if (command.action !== 'defer') setAnswered((value) => value + 1)
+      if (command.action !== 'defer') { setAnswered((value) => value + 1); setSuccess(command.activity==='paid_card' ? 'Got it. I marked this as a credit card payment. It won’t be counted as a business expense.' : 'Got it. Your answer is saved with this transaction.') }
       setPurpose('')
       setOtherActivity(false)
       setMealRelationship('')
@@ -91,6 +96,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
       setShowAmount(false)
       setFactValue('')
       await reloadAuthoritativeQueue()
+      if(command.activity==='received_refund'&&question.recordId)router.push(`/check-in?record=${question.recordId}&returnTo=${encodeURIComponent(returnTo)}`)
       requestAnimationFrame(() => heading.current?.focus())
     } catch (cause) {
       // A transport failure can happen after commit. Require an authoritative
@@ -136,9 +142,9 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
       <main className="app-page -mx-4 -mb-10 sm:-mx-6 lg:-mx-8"><section className="question-caught-up mx-auto flex min-h-[64vh] max-w-2xl flex-col items-center justify-center px-6 py-10 text-center sm:py-16">
           <BettiIllustration state="caught-up" className="question-betti-caught" priority sizes="(max-width: 639px) 13rem, 18rem" />
           {experience==='check-in'&&<p className="home-kicker">Check in with Betti</p>}
-          <h1 ref={heading} tabIndex={-1} className="mt-2 text-3xl font-semibold tracking-[-.045em] text-[#17211d] sm:text-4xl">{otherWorkWaiting||deferredCount>0?'Your progress is saved.':experience==='check-in'?'Your books are current.':'You’re all caught up.'}</h1>
-          <p className="mt-4 text-[#59665f]">{otherWorkWaiting||deferredCount>0?'Other items are still on your list. You can come back when you have the facts.':experience==='check-in'?`I don’t need anything from you right now. I’ll keep working in the background.`:'WriteOffs will keep working in the background.'}</p>
-          <Link href="/home" className="btn btn-primary mt-8">Back to Home</Link>
+          <h1 ref={heading} tabIndex={-1} className="mt-2 text-3xl font-semibold tracking-[-.045em] text-[#17211d] sm:text-4xl">{deferredCount>0?'Your progress is saved.':answered>0?'Got it.':otherWorkWaiting?'You’re ready for the next step.':experience==='check-in'?'Your books are current.':'You’re all caught up.'}</h1>
+          <p className="mt-4 text-[#59665f]">{deferredCount>0?'I kept the deferred items on your list. You can come back when you have the facts.':answered>0?success:otherWorkWaiting?'Other work remains in your books. Betti will guide you to the next step.':experience==='check-in'?`I don’t need anything from you right now. I’ll keep working in the background.`:'WriteOffs will keep working in the background.'}</p>
+          <Link href={returnTo} className="btn btn-primary mt-8">{returnLabel(returnTo)}</Link>
         </section>
       </main>
     )
@@ -155,7 +161,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
     ?'I have the receipt, but I can’t tell what this was for.'
     :question.guidance
   const conversation=<>{!embedded && <header className="mb-2 flex items-center justify-between gap-4 text-sm">
-        <Link href="/home" className="inline-flex min-h-11 items-center font-semibold text-[#243186]">← Home</Link>
+        <Link href={returnTo} className="inline-flex min-h-11 items-center font-semibold text-[#243186]">← {returnLabel(returnTo)}</Link>
         {total > 1 && <p className="text-[#65736b]" role="status">{answered > 0 ? `${answered} answered` : 'One at a time'}{questions.length > 1 ? ' · More waiting' : ''}</p>}
       </header>}
       <section className={`question-conversation relative py-3 sm:py-6${embedded?' weekly-question-embedded':''}`}>

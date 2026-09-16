@@ -5,6 +5,6 @@ export function workingBusinessAllocations<T extends { kind: string }>(decision:
   treatment: string; bookkeepingNature: string | null; allocations: T[]
 } | null | undefined): T[] {
   if (!decision || !['business', 'mixed_use'].includes(decision.treatment)
-    || !['expense', 'business_income'].includes(decision.bookkeepingNature ?? '')) return []
+    || !['expense', 'refund', 'business_income'].includes(decision.bookkeepingNature ?? '')) return []
   return decision.allocations.filter(allocation => allocation.kind === 'business')
 }

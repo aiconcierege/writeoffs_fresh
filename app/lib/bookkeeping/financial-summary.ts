@@ -143,7 +143,7 @@ export function aggregateCanonicalFinancialSummary(
       continue
     }
 
-    if (decision.bookkeepingNature !== 'business_income' && decision.bookkeepingNature !== 'expense') {
+    if (decision.bookkeepingNature !== 'business_income' && !['expense','refund'].includes(decision.bookkeepingNature??'')) {
       continue
     }
 

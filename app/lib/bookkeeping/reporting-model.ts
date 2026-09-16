@@ -40,6 +40,7 @@ export type CanonicalReport = {
   businessIncomeCents: number
   businessExpensesCents: number
   businessProfitCents: number
+  ownerPersonalUseCents?: number
   estimatedDeductionsCents: number | null
   estimatedTaxableIncomeCents: null
   categorizedBusinessExpensesCents: number
@@ -89,6 +90,7 @@ export function buildCanonicalReport(input: {
   periodEnd: string
   currency: string
 }): CanonicalReport {
+  let ownerPersonalUseCents = 0
   let income = 0
   let expenseSigned = 0
   let unresolvedRecordCount = 0
@@ -109,9 +111,10 @@ export function buildCanonicalReport(input: {
     const personal = decision?.allocations.filter((item) => item.kind === 'personal') ?? []
     const businessSigned = business.reduce((sum, item) => safeAdd(sum, item.amountCents), 0)
     const personalSigned = personal.reduce((sum, item) => safeAdd(sum, item.amountCents), 0)
+    if (record.financialTransactionId && ((record.amountCents??0)<0 || decision?.bookkeepingNature==='refund') && decision && decision.treatment !== 'unresolved') ownerPersonalUseCents = safeAdd(ownerPersonalUseCents, -personalSigned)
     if (!decision || decision.treatment === 'unresolved') unresolvedRecordCount += 1
     if (decision?.bookkeepingNature === 'business_income') income = safeAdd(income, businessSigned)
-    if (decision?.bookkeepingNature === 'expense') {
+    if (['expense','refund'].includes(decision?.bookkeepingNature??'')) {
       expenseSigned = safeAdd(expenseSigned, businessSigned)
       for (const allocation of business) {
         const taxTreatment = currentTaxTreatment(allocation.taxTreatments ?? [])
@@ -142,7 +145,7 @@ export function buildCanonicalReport(input: {
         : record.sourceKind === 'manual' ? 'Recorded activity' : 'Transaction'),
       description: decision?.businessPurpose ?? record.description ?? null, currency: record.currency,
       signedAmountCents: record.amountCents ?? 0,
-      businessAmountCents: decision?.bookkeepingNature === 'expense' ? -businessSigned : businessSigned,
+      businessAmountCents: ['expense','refund'].includes(decision?.bookkeepingNature??'') ? -businessSigned : businessSigned,
       personalAmountCents: -personalSigned,
       treatment: treatmentLabel(decision?.treatment ?? null),
       categoryKey: business.length === 1 ? business[0].taxCategoryKey ?? null : null,
@@ -189,7 +192,7 @@ export function buildCanonicalReport(input: {
     ? safeAdd(0, -deductibleSigned) : null
   const categoryTotals = [...categoryMap].map(([categoryKey, value]) => ({
     categoryKey, categoryLabel: input.categoryLabels?.[categoryKey] ?? categoryKey,
-    amountCents: -value.signed, transactionCount: value.count,
+    amountCents: safeAdd(0, -value.signed), transactionCount: value.count,
   })).sort((a, b) => b.amountCents - a.amountCents || a.categoryKey.localeCompare(b.categoryKey))
   const deductibleCategoryTotals = [...deductibleCategoryMap].map(([categoryKey, value]) => ({
     categoryKey, categoryLabel: input.categoryLabels?.[categoryKey] ?? categoryKey,
@@ -199,7 +202,7 @@ export function buildCanonicalReport(input: {
   rows.sort((a, b) => b.occurredOn.localeCompare(a.occurredOn) || a.recordId.localeCompare(b.recordId))
   return {
     currency: input.currency, periodStart: input.periodStart, periodEnd: input.periodEnd,
-    businessIncomeCents: income, businessExpensesCents,
+    businessIncomeCents: income, businessExpensesCents, ownerPersonalUseCents,
     businessProfitCents: safeAdd(income, -businessExpensesCents),
     estimatedDeductionsCents,
     // No approved business-level "taxable income" definition exists yet. In

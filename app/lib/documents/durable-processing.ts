@@ -1,3 +1,4 @@
+import {parseLoanPaymentStatement} from './loan-statement'
 import 'server-only'
 import {documentMayOverlap} from './overlap'
 import {fileKind} from './file-validation'
@@ -219,6 +220,13 @@ async function processIntake(admin:SupabaseClient,job:Row){
     if(imported.error)throw new Error('DOCUMENT_CANONICAL_IMPORT_FAILED')
     if(imported.data?.review_required)return {state:'needs_attention',reason:'DOCUMENT_POSSIBLE_DUPLICATES'}
     transactionCount=Number(imported.data?.processed??0);documentClass='transaction_file'
+  }
+  if(documentClass==='loan_statement'){
+    const facts=parseLoanPaymentStatement(text)
+    if(!facts)return {state:'needs_attention',reason:'LOAN_SPLIT_UNCLEAR'}
+    const result=await admin.rpc('worker_apply_loan_document',{p_job:job.id,p_lease:job.lease_id,p_date:facts.paymentDate,p_principal:facts.principalCents,p_interest:facts.interestCents})
+    if(result.error)throw new Error('LOAN_EVIDENCE_WRITE_FAILED')
+    return result.data===true?{state:'completed',reason:null}:{state:'needs_attention',reason:'LOAN_PAYMENT_RELATIONSHIP_NEEDED'}
   }
   if(documentClass==='unknown')return {state:'needs_attention',reason:'DOCUMENT_TYPE_UNCLEAR'}
   if(documentClass==='bank_statement'||documentClass==='card_statement'){

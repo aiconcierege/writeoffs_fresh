@@ -21,7 +21,7 @@ describe('customer Transactions experience', () => {
   })
   it('routes unresolved activity to factual questions and never exposes canonical deletion', () => {
     const detail = source('app/transactions/[id]/page.tsx')
-    expect(detail).toContain('href={progress.action.href}')
+    expect(detail).toContain('href={withReturnTo(progress.action.href,detailContext)}')
     expect(source('app/lib/bookkeeping/decision-progress.ts')).toContain('/check-in?record=')
     expect(detail).not.toMatch(/Delete transaction|Remove transaction/)
   })

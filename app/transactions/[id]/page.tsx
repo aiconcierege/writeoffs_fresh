@@ -1,3 +1,5 @@
+import { specialNatureLabel } from '../../lib/bookkeeping/special-transactions'
+import { safeReturnTo, returnLabel, withReturnTo } from '../../lib/navigation-context'
 import { decisionProgress } from '../../lib/bookkeeping/decision-progress'
 import { SCHEDULE_C_OPERATING_CATEGORIES } from '../../lib/bookkeeping/operating-expense-classification'
 import Link from 'next/link'
@@ -12,11 +14,13 @@ import { ReceiptActions } from '../ReceiptActions'
 export const dynamic = 'force-dynamic'
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
-export default async function TransactionDetailPage({ params,searchParams }: { params: Promise<{ id: string }>;searchParams:Promise<{review?:string;snapshot?:string;event?:string}> }) {
+export default async function TransactionDetailPage({ params,searchParams }: { params: Promise<{ id: string }>;searchParams:Promise<{review?:string;snapshot?:string;event?:string;returnTo?:string}> }) {
   const supabase = await createServerSupabase(); const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
   const { id } = await params
   const reviewContext=await searchParams
+  const returnTo=safeReturnTo(reviewContext.returnTo)
+  const detailContext=withReturnTo(`/transactions/${id}`,returnTo)
   const transaction = await getTransactionDetailReadModel({ supabase, userId: user.id, transactionId: id })
   if (!transaction) notFound()
   const {data:work}=transaction.recordId?await supabase.from('customer_transaction_work').select('needs_fact,historical_documentation,account_id').eq('record_id',transaction.recordId).maybeSingle():{data:null}
@@ -38,24 +42,25 @@ export default async function TransactionDetailPage({ params,searchParams }: { p
     }
   }
   return <main className="app-page"><article className="page-container page-container-narrow">
-    <Link href="/transactions" className="text-sm text-slate-600 hover:text-slate-950">← Transactions</Link>
+    <Link href={returnTo} className="text-sm text-slate-600 hover:text-slate-950">← {returnLabel(returnTo)}</Link>
     <header className="mt-6 border-b border-[#dce3de] pb-5 sm:mt-8 sm:pb-8"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
       <div><h1 className="page-title mt-0">{transaction.vendor}</h1>
         <p className="mt-2 text-sm text-slate-600">{formatDate(transaction.date)}{transaction.sourceLabel ? ` · ${transaction.sourceLabel}` : ''}</p></div>
       <p className="money-display text-3xl font-semibold sm:text-right">{money.format(transaction.amount)}</p></div></header>
     <section className="grid gap-6 border-b border-slate-200 py-6 sm:grid-cols-2 sm:gap-8 sm:py-8">
-      <div><h2 className="text-lg font-semibold text-slate-950">How Betti handled this</h2>
+      <div><h2 className="text-lg font-semibold text-slate-950">{specialNatureLabel(transaction.bookkeepingNature,transaction.treatment)??'How Betti handled this'}</h2>
         <p className="mt-3"><span className="status-badge">{transaction.treatment === 'unresolved' ? (progress.state === 'system_pending' ? 'Supporting records needed' : 'Needs your answer') : transaction.treatmentLabel}</span></p>
         <p className="mt-2 text-sm leading-6 text-slate-600">{progress.message}</p>
         {(transaction.categoryKeys?.length || transaction.categoryCandidate) ? <div className="mt-4"><h3 className="text-sm font-semibold">{transaction.categoryKeys?.length ? 'Category' : 'Likely category'}</h3><p className="mt-1 text-sm">{(transaction.categoryKeys?.length ? transaction.categoryKeys : [transaction.categoryCandidate!]).map(categoryLabel).join(' · ')}</p></div> : null}
-        {progress.action && <Link href={progress.action.href} className="inline-flex min-h-11 items-center font-semibold text-[#243186]">{progress.action.label} →</Link>}
+        {transaction.bookkeepingNature==='refund'&&transaction.treatment!=='unresolved'&&<Link className="btn btn-secondary" href={withReturnTo(`/check-in?record=${transaction.recordId}`,detailContext)}>Review return relationship</Link>}
+        {progress.action && <Link href={withReturnTo(progress.action.href,detailContext)} className="inline-flex min-h-11 items-center font-semibold text-[#243186]">{progress.action.label} →</Link>}
         {transaction.contractorName && <p className="mt-2 text-sm text-slate-600">Contractor: <span className="font-medium text-slate-900">{transaction.contractorName}</span></p>}
         {transaction.sourceModel==='canonical'&&transaction.currentDecisionId&&transaction.treatment==='personal'
-          ?<CorrectionForm transactionId={transaction.id} currentDecisionId={transaction.currentDecisionId} totalCents={transaction.amountCents} restoreMode="personal"/>
+          ?<CorrectionForm currentTreatment={transaction.treatment??undefined} transactionId={transaction.id} currentDecisionId={transaction.currentDecisionId} totalCents={transaction.amountCents} restoreMode="personal"/>
           :transaction.sourceModel==='canonical'&&transaction.currentDecisionId&&transaction.treatment==='excluded'&&transaction.decisionProvenance==='user'
-          ?<CorrectionForm transactionId={transaction.id} currentDecisionId={transaction.currentDecisionId} totalCents={transaction.amountCents} restoreMode="exclusion"/>
+          ?<CorrectionForm currentTreatment={transaction.treatment??undefined} transactionId={transaction.id} currentDecisionId={transaction.currentDecisionId} totalCents={transaction.amountCents} restoreMode="exclusion"/>
           :transaction.sourceModel === 'canonical' && transaction.sourceKind !== 'manual' && transaction.bookkeepingNature === 'expense' && transaction.currentDecisionId
-          ? <CorrectionForm transactionId={transaction.id} currentDecisionId={transaction.currentDecisionId} totalCents={transaction.amountCents}
+          ? <CorrectionForm currentTreatment={transaction.treatment??undefined} transactionId={transaction.id} currentDecisionId={transaction.currentDecisionId} totalCents={transaction.amountCents}
               reviewContext={reviewContext.review&&reviewContext.snapshot&&reviewContext.event?{reviewPeriodId:reviewContext.review,reviewSnapshotId:reviewContext.snapshot,expectedReviewEventId:reviewContext.event}:undefined}/>
           : null}</div>
       {(receiptEligible || transaction.has_receipt) && <div><h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{receiptEligible ? 'Receipt and documentation' : 'Supporting records'}</h2>

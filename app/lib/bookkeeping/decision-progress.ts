@@ -15,7 +15,10 @@ export function decisionProgress(input: {
     return { state: 'non_pnl', message: 'This activity is not included in business income or expenses.', action: null }
   if (input.accountUseNeeded && input.treatment === 'unresolved' && input.amountCents < 0)
     return { state: 'unresolved', message: 'Tell Betti how you used the account this activity came from.',
-      action: { label: 'Tell Betti about this account', href: '/settings/banking' } }
+      action: { label: 'Tell Betti about this account', href: `/check-in?record=${input.recordId}` } }
+  if (input.nature === 'credit_card_payment' && input.treatment !== 'unresolved')
+    return { state: 'non_pnl', message: 'Credit card payment. Not included in business income or expenses.', action: null }
+  if (['refund','loan_principal_payment'].includes(input.nature??'') && input.treatment==='unresolved') return {state:'unresolved',message:input.nature==='refund'?'Betti needs the purchase or expense this money relates to.':'Send Betti the loan statement to separate principal and interest.',action:question}
   if (input.needsFact) return { state: 'unresolved', action: question,
     message: input.amountCents > 0 ? 'Betti needs to know where this money came from.'
       : input.treatment === 'unresolved' ? 'Betti needs a fact about the business use or kind of activity.'

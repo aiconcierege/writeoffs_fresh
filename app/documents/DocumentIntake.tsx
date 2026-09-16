@@ -6,7 +6,7 @@ import {supabase} from '../../utils/supabase/client'
 import {fileKind} from '../lib/documents/file-validation'
 import {runBoundedBatch} from '../lib/documents/batch-intake'
 type Document={id:string;original_name:string;document_class:string;state:string;reason:string|null;receipt_outcome:string|null;transaction_count:number}
-export function DocumentIntake({compact=false}:{compact?:boolean}){
+export function DocumentIntake({compact=false,recordId}:{compact?:boolean;recordId?:string}){
  const router=useRouter()
  const input=useRef<HTMLInputElement>(null),busyRef=useRef(false),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[documents,setDocuments]=useState<Document[]>([]),[paused,setPaused]=useState(false)
  async function refresh(){const r=await fetch('/api/documents',{cache:'no-store'});if(r.ok){const b=await r.json();setDocuments(b.documents??[]);setPaused(b.processingPaused===true)}}
@@ -25,7 +25,7 @@ export function DocumentIntake({compact=false}:{compact?:boolean}){
     const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))).map(n=>n.toString(16).padStart(2,'0')).join(''),path=`receipts/${user.id}/${hash}`
     const stored=await supabase.storage.from('receipts').upload(path,file,{contentType:mime,upsert:false})
     if(stored.error&&!/already exists|duplicate/i.test(stored.error.message))throw new Error('UPLOAD')
-    const r=await fetch('/api/documents',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:crypto.randomUUID(),fingerprint:hash,name:file.name,mime,bytes:file.size})})
+    const r=await fetch('/api/documents',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:crypto.randomUUID(),fingerprint:hash,name:file.name,mime,bytes:file.size,...(recordId?{recordId}:{})})})
     if(!r.ok)throw new Error('REGISTER');return file.name
    }})
    const failed=results.filter(r=>r.status==='rejected').length,received=results.length-failed
@@ -44,9 +44,11 @@ export function DocumentIntake({compact=false}:{compact?:boolean}){
  </div>
 }
 function status(d:Document){if(['pending','retryable','processing'].includes(d.state))return 'Betti is organizing this'
+ if(d.state==='completed'&&d.document_class==='loan_statement')return 'Loan payment organized'
  if(d.state==='completed')return d.receipt_outcome==='matched'?'Receipt matched':d.document_class==='receipt'?'Saved for later matching':d.document_class==='transaction_file'?'Activity imported':'Statement imported'
  return d.state==='needs_attention'?'Needs your help':'Could not be read'}
-function help(reason:string|null){if(reason==='DOCUMENT_TYPE_UNCLEAR')return 'I’m not sure what kind of document this is. Please send a clear receipt or a complete bank or credit-card statement.'
+function help(reason:string|null){if(reason?.startsWith('LOAN_'))return 'I need a statement showing this payment’s date, principal and interest separately. The amounts must add up to the payment. Your document is saved; no split has been assumed.'
+ if(reason==='DOCUMENT_TYPE_UNCLEAR')return 'I’m not sure what kind of document this is. Please send a clear receipt or a complete bank or credit-card statement.'
  if(reason==='DOCUMENT_POSSIBLE_DUPLICATES')return 'Some activity may already be in your books. I’ve saved this document for review instead of adding it twice.'
  if(reason==='MULTIPLE_RECEIPTS_DETECTED')return 'I found more than one receipt in this image. Please upload each receipt separately.'
  return 'I couldn’t safely read all the information I need. Your original is saved. Please try a clearer or complete document.'}
