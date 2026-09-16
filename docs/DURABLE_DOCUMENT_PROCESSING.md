@@ -1,6 +1,6 @@
 # Durable Document Processing
 
-Status: launch architecture v1, 2026-08-25.
+Status: receipt pipeline updated September 16, 2026; statement sections retain their original milestone scope. See WORKFLOW_SPECIFICATION.md for current product authority.
 
 ## Boundary
 
@@ -18,11 +18,23 @@ The receipt input accepts multiple JPEG, PNG, WebP, or PDF files. It uploads fou
 
 Receipt files are limited to 20 MiB each. This is a transport/provider safety bound, not a monthly usage quota. Exact duplicate bytes within one Business resolve to the existing receipt. The second upload does not create another receipt, canonical economic record, extraction job, or provider call.
 
-The canonical receipt job checks for a completed `vision:v1` extraction before loading the document. Existing extraction results are immutable and reused by rematching, convergence, answers, and reporting. Those later operations never resend the file to OCR or a model.
+The canonical receipt job checks for a completed `vision:v1` extraction before invoking OCR. Existing extraction results are immutable and reused by rematching, convergence, answers, and reporting. Those later operations never resend the file to OCR or a model.
 
 Images receive magic-byte/MIME validation, then bounded Google Vision text detection with a 20-second timeout. The normalized parser accepts only labeled total/amount-due decimal amounts; it does not select arbitrary large numbers or payment IDs. The existing deterministic `receipt-quality:v1` and autonomous finalizer remain authoritative.
 
 PDF receipt sources are retained. The ordinary expensive-vision policy remains at most 10 pages. The current canonical worker records a safe incomplete extraction and terminal attention reason when native PDF facts are not available; it never silently truncates pages into trusted economics. Multimodal receipt understanding remains write-disabled shadow work.
+
+## Receipt repair and recovery — September 2026
+
+Staging's expense-processing pause flag had left three uploads pending with zero attempts, even though cron was running. Resume the flag only on the dedicated staging deployment with the repaired pipeline; never infer that a successful upload means extraction has run.
+
+Canonical extraction remains Google Vision `DOCUMENT_TEXT_DETECTION`, not an AI bookkeeping decision. Word geometry reconnects separated label/value columns. Dates support unambiguous US numeric and named-month forms; labeled totals preserve exact cents. Multiple purchase dates plus multiple totals stop processing with `MULTIPLE_RECEIPTS_DETECTED`. Conflicting totals or dates also require help. V1 does not split images: ask the customer to upload each receipt separately. This is conservative OCR-based detection, not a guarantee of detecting every composite image; ambiguous evidence never supplies invented facts.
+
+A new receipt may attach to an already classified financial transaction without changing its decision or allocation. Candidates require the same Business, a current posted source, USD, an exact inverse-signed amount, equal normalized merchants, and a date within three days. A one-to-one candidate relationship is required; conflicting amounts and ambiguous candidates never auto-match. Existing record-convergence rules remain separate and unchanged. Matching records receipt/documentation history and requests canonical evidence reevaluation; it does not blanket-answer questions.
+
+`Receipt only` contains processed unmatched evidence, not uploads awaiting extraction. Processing/help states remain visible in Receipts. The page refreshes processing status; guided upload opens the chooser directly in Transactions and retains review context. Home upload feedback spans the receipt card's width.
+
+Provider HTTP/response errors and 20-second timeouts retry under existing six-attempt/backoff rules. Exhausted jobs and expired final leases become visible failure states. Customers can request another processing attempt for an owned failed receipt through the authenticated retry route; only the trusted worker can change operational job state. Multi-receipt help asks for separate uploads rather than retrying the same ambiguous image. Paused or unusually delayed work is labeled truthfully instead of appearing to make progress indefinitely. Originals and extraction history are retained.
 
 ## Statement intake
 
@@ -40,7 +52,7 @@ The existing `receipt_processing_jobs` queue is extended with either a `receipt_
 - `statement_inspection`
 - `receipt_understanding_shadow`
 
-Typed `FOR UPDATE SKIP LOCKED` claims prevent one processor from consuming another job type. Claims have leases; expired leases recover automatically. Each scheduled drain claims at most eight canonical document jobs, twelve bookkeeping jobs, and three optional receipt-understanding shadow jobs. Receipt canonical concurrency is bounded by the server invocation and queue claim, not customer upload count.
+Typed `FOR UPDATE SKIP LOCKED` claims prevent one processor from consuming another job type. Claims have leases; expired leases recover automatically. Each scheduled drain claims at most four canonical document jobs, twelve bookkeeping jobs, and one optional receipt-understanding shadow job, with a 300-second invocation budget. Authenticated receipt registration additionally wakes its own durable job after responding, with a 60-second invocation budget. Typed/scoped claims keep overlapping upload and scheduled workers idempotent. Receipt canonical concurrency is bounded by the server invocation and queue claim, not customer upload count.
 
 `/api/internal/processing/drain` requires a timing-safe Bearer comparison against `CRON_SECRET` or `BOOKKEEPING_WORKER_SECRET`. It is safe to invoke repeatedly and returns bounded counts plus queue health. `vercel.json` declares a once-per-minute schedule for deployment configuration. Production must configure Vercel's `CRON_SECRET` and verify invocations before enabling customer uploads. No remote schedule was configured by this milestone.
 
@@ -107,7 +119,7 @@ Receipt history accepts up to 500 recent receipt records in this bounded UI iter
 
 - canonical statement text/table extraction and transaction ingestion;
 - combined-PDF logical statement-period splitting;
-- customer-facing operator retry controls;
+- general operator queue-management UI (owned failed-receipt retry is supported);
 - production scheduler activation and alert delivery;
 - canonical activation of multimodal receipt understanding;
 - plan/billing quotas;

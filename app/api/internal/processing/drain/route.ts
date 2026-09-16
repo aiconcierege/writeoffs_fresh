@@ -9,7 +9,7 @@ import {drainAccountDeletionQueue}from '../../../../lib/account-lifecycle/deleti
 import {drainLifecycleNotifications}from '../../../../lib/account-lifecycle/notifications'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 300
 
 function authorized(request: Request) {
   const provided = request.headers.get('authorization')
@@ -28,12 +28,12 @@ async function run(request: Request) {
   // Emergency cost control: intake remains durable while new OCR/AI work pauses.
   const expensiveProcessingEnabled = process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED !== 'false'
   const documents = expensiveProcessingEnabled
-    ? await drainCanonicalDocumentJobs({ batchSize: 8 })
+    ? await drainCanonicalDocumentJobs({ batchSize: 4 })
     : { paused: true, claimed: 0, completed: 0, needsAttention: 0, failed: 0, retryScheduled: 0 }
   const bookkeeping = await drainBookkeepingProcessingJobs({ batchSize: 12 })
   const weeklyReviews = await prepareWeeklyReviews({ limit: 12 })
   const shadow = expensiveProcessingEnabled
-    ? await drainReceiptUnderstandingJobs({ batchSize: 3 })
+    ? await drainReceiptUnderstandingJobs({ batchSize: 1 })
     : { paused: true, claimed: 0, completed: 0, failed: 0 }
   return NextResponse.json({ documents,bookkeeping,weeklyReviews,shadow,accountLifecycle,lifecycleNotifications,expensiveProcessingEnabled,membershipsExpired:expiration.data,health: await documentQueueHealth() })
 }

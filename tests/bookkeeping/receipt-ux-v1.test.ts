@@ -23,7 +23,7 @@ describe('autonomous Receipt UX v1', () => {
 
   it('uses device-appropriate labels and a standard file chooser', () => {
     expect(routePolicy).toContain("'/receipts'")
-    expect(upload).toContain('Upload receipt</span>')
+    expect(upload).toContain("label='Upload receipt'")
     expect(upload).toContain("mobileLabel='Add receipt'")
     expect(upload).toContain('accept="image/jpeg,image/png,image/webp,application/pdf"')
     expect(homeActions).toContain('capture="environment"')

@@ -18,6 +18,7 @@ export type ReceiptReadItem = {
   qualityStatus: 'usable' | 'incomplete' | 'suspect' | null
   qualityReasons: string[]
   processingStatus: 'queued' | 'processing' | 'organized' | 'needs_attention' | 'unreadable' | 'discarded'
+  processingReason?: string | null
   processingAttempts: number
 }
 
@@ -47,7 +48,7 @@ export async function listCanonicalReceipts(input: { supabase: SupabaseClient; l
     input.supabase.from('current_bookkeeping_record_convergences')
       .select('receipt_id').eq('business_id', businessId).in('receipt_id', ids),
     input.supabase.from('current_customer_receipt_processing_status')
-      .select('receipt_id,processing_status,attempt_count').eq('business_id', businessId).in('receipt_id', ids),
+      .select('receipt_id,processing_status,attempt_count,terminal_reason,last_error_code').eq('business_id', businessId).in('receipt_id', ids),
   ]) : [{ data: [], error: null }, { data: [], error: null }, { data: [], error: null }, { data: [], error: null }]
   if (eventResult.error || extractionResult.error || convergenceResult.error || processingResult.error) throw new Error('Receipt history could not be loaded.')
   const currentByReceipt = new Map<string, Record<string, unknown>>()
@@ -78,6 +79,10 @@ export async function listCanonicalReceipts(input: { supabase: SupabaseClient; l
       qualityReasons: Array.isArray(extraction?.quality_reasons)
         ? extraction.quality_reasons.filter((reason): reason is string => typeof reason === 'string') : [],
       processingStatus: (processing?.processing_status ?? 'queued') as ReceiptReadItem['processingStatus'],
+      processingReason: ['queued','processing'].includes(processing?.processing_status ?? '')
+        && process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED === 'false' ? 'PROCESSING_PAUSED'
+        : ['queued','processing'].includes(processing?.processing_status ?? '') && Date.now()-new Date(receipt.created_at).getTime()>15*60_000
+          ? 'PROCESSING_DELAYED' : processing?.terminal_reason ?? processing?.last_error_code ?? null,
       processingAttempts: Number(processing?.attempt_count ?? 0),
     }
   })

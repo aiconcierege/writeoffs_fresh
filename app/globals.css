@@ -588,8 +588,12 @@ body { background: var(--canvas); color: var(--ink); }
 .home-add-action:hover { transform: translateY(-1px); border-color: #7da18a; background: #f6fbf6; }
 .home-add-action:focus-visible,.home-follow-up a:focus-visible { outline: 3px solid rgba(36,49,134,.3); outline-offset: 2px; }
 .home-add-action .home-shortcut-icon { width: 2.5rem; height: 2.5rem; flex: 0 0 auto; background: #e3f2e7; }
-.home-add-receipt > div { display: grid; min-width: 0; }
-.home-add-receipt .inline-flex,.home-add-receipt .btn { width: auto; min-height: 1.5rem; justify-content: flex-start; background: transparent; padding: 0; color: #17211d; box-shadow: none; }
+.home-add-receipt { display: grid; grid-template-columns: auto minmax(0,1fr); align-content: center; }
+.home-add-receipt > div,.home-add-receipt .receipt-upload-action { display: contents; }
+.home-add-receipt .btn { grid-column: 2; grid-row: 1; width: auto; min-height: 1.5rem; justify-content: flex-start; background: transparent; padding: 0; color: #17211d; box-shadow: none; }
+.home-add-receipt [role="status"],.home-add-receipt [role="alert"] { grid-column: 1 / -1; width: 100%; max-width: none; font-weight: 400; overflow-wrap: break-word; }
+.home-add-receipt > div > a { grid-column: 2; }
+.home-add-receipt .receipt-upload-action > div { grid-column: 1 / -1; min-width: 0; }
 .home-add-receipt .btn:hover { transform: none; }
 .home-add-receipt .btn span { font-weight: 720; }
 .home-add-receipt a { margin-top: .1rem; color: #657169; font-size: .8125rem; font-weight: 650; text-decoration: underline; text-underline-offset: .14rem; }

@@ -1,7 +1,12 @@
-import { NextResponse } from 'next/server'
+import { after, NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../utils/supabase/server'
 import { listCanonicalReceipts, registerReceipt } from '../../lib/bookkeeping/receipt-workflow'
 import { membershipErrorResponse, requireCapability } from '../../lib/membership/entitlements'
+
+import { drainCanonicalDocumentJobs } from '../../lib/documents/durable-processing'
+
+export const runtime = 'nodejs'
+export const maxDuration = 60
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const HASH = /^[a-f0-9]{64}$/
@@ -42,7 +47,13 @@ export async function POST(request: Request) {
     const receipt = await registerReceipt({ supabase, id: body.id,
       uploadFingerprint: body.uploadFingerprint, storagePath: body.storagePath,
       originalName: body.originalName, mimeType: body.mimeType, bytes: body.bytes as number })
-    return NextResponse.json({ ok: true, receipt })
+    if (process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED !== 'false') {
+      after(async () => {
+        // The durable job remains retryable by cron if this wake-up cannot run.
+        try { await drainCanonicalDocumentJobs({ receiptId: receipt.id, batchSize: 1 }) } catch { /* queue owns recovery */ }
+      })
+    }
+    return NextResponse.json({ ok: true, receipt, processingPaused: process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED === 'false' })
   } catch (cause) {
     return NextResponse.json({ error: cause instanceof Error ? cause.message : 'Unable to save receipt.' }, { status: 400 })
   }

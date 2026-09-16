@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import { ReceiptUploadAction } from '../receipts/ReceiptUploadAction'
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { TransactionReadRow } from '../lib/bookkeeping/transaction-read-model'
@@ -35,7 +36,7 @@ export function TransactionReview({rows,view,historical}:{rows:Row[];view:WorkVi
   }
   const money=(row:Row)=>row.work.source_kind==='receipt_evidence'&&row.work.amount_cents==null?'Amount pending':new Intl.NumberFormat('en-US',{style:'currency',currency:row.currency}).format(row.amount)
   return <>
-    {view==='receipts'&&<section className="guided-review-intro" aria-labelledby="receipt-review-heading"><h2 id="receipt-review-heading">Let’s find the receipts you don’t have.</h2><p>Select the purchases where you don’t have a receipt. Don’t select anything you still plan to upload.</p><p className="text-sm">This helps organize your records. It doesn’t mean every purchase legally requires a receipt.</p><Link href="/receipts" className="inline-flex min-h-11 items-center font-semibold text-[#243186]">Upload receipts →</Link></section>}
+    {view==='receipts'&&<section className="guided-review-intro" aria-labelledby="receipt-review-heading"><h2 id="receipt-review-heading">Let’s find the receipts you don’t have.</h2><p>Select the purchases where you don’t have a receipt. Don’t select anything you still plan to upload.</p><p className="text-sm">This helps organize your records. It doesn’t mean every purchase legally requires a receipt.</p><ReceiptUploadAction variant="guided" label="Upload receipts" mobileLabel="Upload receipts" onComplete={()=>router.refresh()}/></section>}
     {historical&&<section className="guided-review-intro"><h2>See anything that wasn’t for the business?</h2><p>I organized these older purchases from your accounts. Select any personal or nonbusiness activity to remove it from your business books.</p><p className="text-sm">For a purchase that was partly business, open it to enter the business portion. You can also select purchases you’ve checked and mark this review done.</p></section>}
     {view==='receipt-only'&&<p className="my-5 text-[#59665f]">These purchases have receipt evidence without a matched bank transaction. They may be cash purchases, paid another way, or waiting for bank activity. Open a purchase to see its records. <Link href="/receipts" className="underline">See all receipts</Link></p>}
     {view==='review'&&<p className="my-5 text-[#59665f]">These purchases need a useful fact or correction. Open one to review it, or remove selected activity that wasn’t for your business.</p>}

@@ -48,7 +48,7 @@ describe('Home command center', () => {
       expect(quickActions).toContain(label)
     }
     const upload = readFileSync('app/receipts/ReceiptUploadAction.tsx', 'utf8')
-    expect(upload).toContain('Upload receipt</span>')
+    expect(upload).toContain("label='Upload receipt'")
     expect(quickActions).toContain('mobileLabel="Receipt"')
     expect(quickActions).toContain('capture="environment"')
     for (const copy of ['Add something','Tell Betti anytime','Choose a file']) expect(quickActions).toContain(copy)

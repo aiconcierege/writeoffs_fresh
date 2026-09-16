@@ -12,7 +12,7 @@ describe('production operations contracts', () => {
     const route = read('app/api/internal/processing/drain/route.ts')
     expect(route).toContain('timingSafeEqual')
     expect(route).toContain("request.headers.get('authorization')")
-    expect(route).toContain('batchSize: 8')
+    expect(route).toContain('batchSize: 4')
     expect(route).toContain('batchSize: 12')
     expect(route).not.toMatch(/searchParams.*secret|console\.(log|error)/)
   })

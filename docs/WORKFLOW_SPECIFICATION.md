@@ -291,6 +291,8 @@ An unmatched customer-uploaded receipt is strong evidence and may establish a re
 
 Betti reads line items to reduce customer work. Groceries, wine, clothing, household goods, and similar items may have legitimate business context; they can trigger ambiguity but never automatic Personal treatment. When evidence supports a factual proposal, Betti may propose it and allow correction. For ambiguous mixed receipts, ask the minimum real-world fact necessary.
 
+Receipt processing distinguishes saved/processing, processed unmatched, matched, and needs-help states. `Receipt only` excludes uploads still processing. In Needs a receipt, **Upload receipts** opens the upload interaction in place. A confidently matched receipt supplies evidence without changing an existing customer classification. Exact cents, Business ownership, normalized merchant agreement, a three-day posting window, and unique candidates are required. Multi-receipt images are not silently merged; v1 asks for separate uploads. See `DURABLE_DOCUMENT_PROCESSING.md` for extraction, retry and recovery details.
+
 ### Missing receipts
 
 Handle missing documentation mainly during review/finalization, beginning with a bulk decision when truthful. Explain once that the IRS may ask for records supporting business expenses and that receipts are one form of support. Offer **Include these expenses**, **Exclude these expenses**, **Upload receipts**, and **Review individually**.

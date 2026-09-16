@@ -1,4 +1,6 @@
 import 'server-only'
+import { parseReceiptText, visionReceiptText } from './receipt-text'
+export { parseReceiptText } from './receipt-text'
 
 import { createHash, randomUUID } from 'node:crypto'
 import { PDFDocument } from 'pdf-lib'
@@ -56,7 +58,7 @@ async function loadTarget(admin: SupabaseClient, job: Row) {
     documentClass:typeof data.document_class==='string'?data.document_class:null }
 }
 
-async function googleVision(bytes: Uint8Array) {
+export async function googleVision(bytes: Uint8Array, receiptLayout = false) {
   const apiKey = process.env.GCV_API_KEY
   if (!apiKey) throw new Error('DOCUMENT_PROVIDER_NOT_CONFIGURED')
   const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 20_000)
@@ -67,11 +69,13 @@ async function googleVision(bytes: Uint8Array) {
         features: [{ type: 'DOCUMENT_TEXT_DETECTION' }], imageContext: { languageHints: ['en'] } }] }),
     })
     const body = await response.json().catch(() => ({})) as Record<string, unknown>
-    if (!response.ok) throw new Error('DOCUMENT_PROVIDER_FAILED')
+    if (!response.ok) throw new Error(`DOCUMENT_PROVIDER_HTTP_${response.status}`)
     const responses = Array.isArray(body.responses) ? body.responses as Row[] : []
     const first = responses[0] ?? {}; const annotation = first.fullTextAnnotation as Row | undefined
     const annotations = Array.isArray(first.textAnnotations) ? first.textAnnotations as Row[] : []
-    return String(annotation?.text ?? annotations[0]?.description ?? '')
+    if (first.error) throw new Error('DOCUMENT_PROVIDER_FAILED')
+    if (!responses.length) throw new Error('DOCUMENT_PROVIDER_INVALID_RESPONSE')
+    return receiptLayout && annotation ? visionReceiptText(annotation) : String(annotation?.text ?? annotations[0]?.description ?? '')
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') throw new Error('DOCUMENT_PROVIDER_TIMEOUT')
     throw error
@@ -85,36 +89,6 @@ async function rasterizeStatementPage(page: PDFPageProxy) {
   const sample=context.getImageData(0,0,canvas.width,canvas.height).data;let nonWhite=0
   for(let index=0;index<sample.length;index+=16){if(sample[index]<245||sample[index+1]<245||sample[index+2]<245)nonWhite+=1}
   return {blank:nonWhite<sample.length/16*0.001,bytes:new Uint8Array(canvas.toBuffer('image/png'))}
-}
-
-export function parseReceiptText(text: string) {
-  const lines = text.replace(/\r/g, '').split('\n').map((line) => line.trim()).filter(Boolean)
-  const joined = lines.join(' ')
-  let date: string | null = null
-  let match = joined.match(/(\d{4})[\/\-.](\d{2})[\/\-.](\d{2})/)
-  if (match && validDate(match[1], match[2], match[3])) date = `${match[1]}-${match[2]}-${match[3]}`
-  if (!date) {
-    match = joined.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/)
-    if (match) { const month = pad(match[1]); const day = pad(match[2]); if (validDate(match[3], month, day)) date = `${match[3]}-${month}-${day}` }
-  }
-  let total: number | null = null
-  for (const line of lines.filter((value) => /\b(total|amount due)\b/i.test(value))) {
-    const money = [...line.matchAll(/(?:\$|USD\s*)?([0-9]{1,9}(?:,[0-9]{3})*\.\d{2})\b/g)]
-    if (money.length) { total = Math.round(Number(money.at(-1)![1].replace(/,/g, '')) * 100); break }
-  }
-  const generic = /^(receipt|invoice|date|total|subtotal|amount|thank you)$/i
-  const merchant = lines.map((line) => line.replace(/[^a-zA-Z0-9&' .-]+/g, ' ').trim())
-    .find((line) => line.length >= 3 && line.length <= 120 && !generic.test(line)
-      && !/\$|\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}/.test(line)) ?? null
-  return { merchant, occurredOn: date, totalAmountCents: total }
-}
-
-function pad(value: string) { return String(Number(value)).padStart(2, '0') }
-function validDate(year: string, month: string, day: string) {
-  const candidate = new Date(`${year}-${month}-${day}T00:00:00Z`)
-  return Number(year) >= 2000 && Number(year) <= 2100 && !Number.isNaN(candidate.getTime())
-    && candidate.getUTCFullYear() === Number(year) && candidate.getUTCMonth() + 1 === Number(month)
-    && candidate.getUTCDate() === Number(day)
 }
 
 async function processReceipt(admin: SupabaseClient, job: Row) {
@@ -135,9 +109,10 @@ async function processReceipt(admin: SupabaseClient, job: Row) {
     return { state: 'needs_attention', reason: pages > ORDINARY_VISION_PAGE_LIMIT ? 'ORDINARY_DOCUMENT_PAGE_LIMIT' : 'PDF_TEXT_UNAVAILABLE' }
   }
   if (!supportedImage(target.bytes, target.mimeType)) return { state: 'unreadable', reason: 'MIME_CONTENT_MISMATCH' }
-  const text = await googleVision(target.bytes)
+  const text = await googleVision(target.bytes, true)
   if (!text.trim()) return { state: 'unreadable', reason: 'NO_READABLE_TEXT' }
   const parsed = parseReceiptText(text)
+  if (parsed.reason) return { state: 'needs_attention', reason: parsed.reason }
   const { data, error } = await admin.rpc('worker_record_bookkeeping_receipt_extraction', {
     p_receipt_id: target.receiptId, p_extraction_key: 'vision:v1', p_provider: 'google_vision',
     p_merchant: parsed.merchant, p_occurred_on: parsed.occurredOn,
@@ -208,10 +183,12 @@ async function processStatement(admin: SupabaseClient, job: Row,ocr: (bytes:Uint
 }
 
 export async function drainCanonicalDocumentJobs(input: { admin?: SupabaseClient; batchSize?: number;
-  statementOcr?: (bytes:Uint8Array)=>Promise<string> } = {}) {
+  statementOcr?: (bytes:Uint8Array)=>Promise<string>; receiptId?: string } = {}) {
   const admin = input.admin ?? createServerAdminSupabase(); const leaseId = randomUUID()
   const batchSize = Math.max(1, Math.min(CANONICAL_DOCUMENT_BATCH_MAX, Math.trunc(input.batchSize ?? 5)))
-  const { data, error } = await admin.rpc('claim_receipt_processing_jobs_by_type', { p_lease_id: leaseId,
+  const { data, error } = input.receiptId
+    ? await admin.rpc('claim_canonical_receipt_job', { p_receipt_id: input.receiptId, p_lease_id: leaseId })
+    : await admin.rpc('claim_receipt_processing_jobs_by_type', { p_lease_id: leaseId,
     p_job_types: ['canonical_receipt_extraction','statement_inspection'],p_limit: batchSize,p_lease_seconds: 180 })
   if (error) throw new Error('DOCUMENT_PROCESSING_CLAIM_FAILED')
   const claimed = asRows(data); let completed = 0; let attention = 0; let unreadable = 0; let retried = 0
