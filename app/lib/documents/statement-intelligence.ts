@@ -15,14 +15,15 @@ export type StatementPeriod = { periodIdentity:string; institutionName:string; m
 const sha=(value:string)=>createHash('sha256').update(value).digest('hex')
 const iso=(year:number,month:number,day:number)=>{const value=`${year.toString().padStart(4,'0')}-${month.toString().padStart(2,'0')}-${day.toString().padStart(2,'0')}`;
   const parsed=new Date(`${value}T00:00:00Z`);return parsed.getUTCFullYear()===year&&parsed.getUTCMonth()+1===month&&parsed.getUTCDate()===day?value:null}
-const cents=(value:string)=>{let clean=value.replace(/[$,\s]/g,'');const paren=/^\(.*\)$/.test(clean);if(paren)clean=clean.slice(1,-1);
+const cents=(value:string,allowZero=false)=>{let clean=value.replace(/[$,\s]/g,'');const paren=/^\(.*\)$/.test(clean);if(paren)clean=clean.slice(1,-1);
   if(!/^[+-]?\d+\.\d{2}$/.test(clean))return null;const sign=(clean.startsWith('-')?-1:1)*(paren?-1:1);const [whole,fraction]=clean.replace(/^[+-]/,'').split('.');
-  const result=sign*(Number(whole)*100+Number(fraction));return Number.isSafeInteger(result)&&result!==0?result:null}
+  const result=sign*(Number(whole)*100+Number(fraction));return Number.isSafeInteger(result)&&(allowZero||result!==0)?result:null}
 
 export function normalizeStatementDescription(value:string){return value.toUpperCase().replace(/\b(?:REF|REFERENCE|TRACE|TERMINAL)\s*#?\w+\b/g,' ')
   .replace(/\s+/g,' ').trim().slice(0,512)}
 
 function dateFrom(value:string,periodStart:string|null,periodEnd:string|null){
+  const named=/^([A-Za-z]+)\s+(\d{1,2}),?\s+(20\d{2})$/.exec(value.trim());if(named){const months=['january','february','march','april','may','june','july','august','september','october','november','december'];const month=months.findIndex(m=>m===named[1].toLowerCase()||m.slice(0,3)===named[1].toLowerCase());return month>=0?iso(+named[3],month+1,+named[2]):null}
   let match=/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/.exec(value);if(match)return iso(+match[1],+match[2],+match[3])
   match=/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(value);if(match){const year=match[3].length===2?2000+(+match[3]):+match[3];return iso(year,+match[1],+match[2])}
   match=/^(\d{1,2})\/(\d{1,2})$/.exec(value);if(!match||!periodStart||!periodEnd)return null
@@ -30,14 +31,16 @@ function dateFrom(value:string,periodStart:string|null,periodEnd:string|null){
   return [startYear,endYear].map(year=>iso(year,month,day)).find(candidate=>candidate&&candidate>=periodStart&&candidate<=periodEnd)??null
 }
 
-function periodDates(text:string){const match=/(?:statement\s+period|period)\s*:?\s*(\d{1,2}\/\d{1,2}\/\d{2,4}|\d{4}-\d{1,2}-\d{1,2})\s*(?:-|to|through)\s*(\d{1,2}\/\d{1,2}\/\d{2,4}|\d{4}-\d{1,2}-\d{1,2})/i.exec(text)
+export function periodDates(text:string){const token='(?:\\d{1,2}/\\d{1,2}/\\d{2,4}|\\d{4}-\\d{1,2}-\\d{1,2}|[A-Za-z]+\\s+\\d{1,2},?\\s+20\\d{2})'
+  const match=new RegExp(`(?:statement\\s+period|period)\\s*:?\\s*(${token})\\s*(?:-|–|to|through)\\s*(${token})`,'i').exec(text)
   if(!match)return {start:null,end:null};return {start:dateFrom(match[1],null,null),end:dateFrom(match[2],null,null)}}
-function accountType(text:string,documentClass:string):StatementAccountType{return /credit\s*card|cardmember|payment due/i.test(text)||documentClass==='card_statement'?'credit_card':/savings/i.test(text)?'savings':'checking'}
+function accountType(text:string,documentClass:string):StatementAccountType{const header=text.split(/account activity|transaction(?:s| details)|date\s+description/i)[0]
+  return /credit\s*card\s+statement|cardmember|payment due/i.test(header)||documentClass==='card_statement'?'credit_card':/savings\s+(?:statement|account)/i.test(header)?'savings':'checking'}
 function institution(text:string){const explicit=/(?:institution|bank|issuer)\s*:\s*([^\n]{2,100})/i.exec(text)?.[1]?.trim();if(explicit)return explicit
-  return text.split('\n').map(line=>line.trim()).find(line=>/bank|credit union|card/i.test(line)&&line.length<=100)??'Statement account'}
-function mask(text:string){return /(?:ending in|account(?: number)?|card)\s*(?:#|:|x+|\*+)?\s*(\d{4})\b/i.exec(text)?.[1]??null}
+  return text.split(/account activity|transaction(?:s| details)|date\s+description/i)[0].split('\n').map(line=>line.trim()).find(line=>/bank|credit union|issuer/i.test(line)&&line.length<=100&&!/\d{4}|[•*]{2}|statement period|ending balance/i.test(line))??'Statement account'}
+function mask(text:string){return /(?:ending(?: in)?|account(?: number)?|card)\s*(?:#|:|x+|\*+)?\s*(\d{4})\b/i.exec(text)?.[1]??null}
 function labeledMoney(text:string,label:RegExp){const line=text.split('\n').find(value=>label.test(value));if(!line)return null
-  const values=line.match(/\(?-?\$?[0-9][0-9,]*\.\d{2}\)?/g)??[];return values.length?cents(values[values.length-1]):null}
+  const values=line.match(/\(?-?\$?[0-9][0-9,]*\.\d{2}\)?/g)??[];return values.length?cents(values[values.length-1],true):null}
 function signAmount(raw:number,description:string,type:StatementAccountType,rawToken:string){if(/^[+(]/.test(rawToken.trim())||rawToken.trim().startsWith('-'))return raw
   if(type==='credit_card')return /payment|refund|credit|cashback|reward/i.test(description)?Math.abs(raw):-Math.abs(raw)
   return /deposit|credit|interest paid|refund/i.test(description)?Math.abs(raw):/withdrawal|debit|check|fee|payment|purchase/i.test(description)?-Math.abs(raw):null}
@@ -48,11 +51,11 @@ function parseStatementGroup(input:{pages:{page:number;text:string}[];documentCl
   const beginning=labeledMoney(all,/beginning balance|opening balance/i),ending=labeledMoney(all,/ending balance|closing balance/i)
   const occurrences=new Map<string,number>();const transactions:StatementTransaction[]=[];let ambiguous=0
   for(const page of input.pages){const lines=page.text.replace(/\r/g,'').split('\n').map(line=>line.trim()).filter(Boolean)
-    lines.forEach((line,index)=>{if(/balance|statement period|amount due|payment due/i.test(line))return
+    lines.forEach((line,index)=>{if(line.startsWith('AMBIGUOUS_TRANSACTION ')){ambiguous++;return}if(/balance|statement period|amount due|payment due/i.test(line))return
       const match=/^(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?|\d{4}-\d{1,2}-\d{1,2})\s+(.+?)\s+(\(?[+-]?\$?[\d,]+\.\d{2}\)?)(?:\s+(\(?[+-]?\$?[\d,]+\.\d{2}\)?))?$/.exec(line)
       if(!match)return;const transactionDate=dateFrom(match[1],dates.start,dates.end),rawAmount=cents(match[3]);const description=match[2].trim().slice(0,512)
       const signed=rawAmount===null?null:signAmount(rawAmount,description,type,match[3]);if(!transactionDate||signed===null){ambiguous++;return}
-      const running=match[4]?cents(match[4]):null,normalized=normalizeStatementDescription(description)
+      const running=match[4]?cents(match[4],true):null,normalized=normalizeStatementDescription(description)
       if(!normalized){ambiguous++;return}const check=/\bCHECK\s*#?([0-9]{2,12})\b/i.exec(description)?.[1]??null
       const base=[institutionName.toUpperCase(),maskedAccount??'',type,currency,transactionDate,signed,normalized,running??'',check??''].join('|')
       const occurrence=(occurrences.get(base)??0)+1;occurrences.set(base,occurrence)

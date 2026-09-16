@@ -49,9 +49,9 @@ describe('Home command center', () => {
     }
     const upload = readFileSync('app/receipts/ReceiptUploadAction.tsx', 'utf8')
     expect(upload).toContain("label='Upload receipt'")
-    expect(quickActions).toContain('mobileLabel="Receipt"')
-    expect(quickActions).toContain('capture="environment"')
-    for (const copy of ['Add something','Tell Betti anytime','Choose a file']) expect(quickActions).toContain(copy)
+    expect(quickActions).toContain('DocumentIntake')
+    expect(quickActions).toContain('Send Betti documents')
+    for (const copy of ['Add something','Tell Betti anytime','Send Betti documents']) expect(quickActions).toContain(copy)
     expect(quickActions).not.toContain('Quick actions')
     expect(styles).toContain('.home-add-list')
     expect(styles).toContain('@media (max-width:639px)')

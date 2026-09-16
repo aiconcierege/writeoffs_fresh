@@ -1,5 +1,5 @@
 import Link from'next/link'
-import{ReceiptUploadAction}from'../receipts/ReceiptUploadAction'
+import{DocumentIntake}from'../documents/DocumentIntake'
 
 type IconName='receipt'|'miles'|'money'|'invoice'
 const paths:Record<IconName,React.ReactNode>={
@@ -11,7 +11,7 @@ const paths:Record<IconName,React.ReactNode>={
 const Icon=({name}:{name:IconName})=><span className="home-shortcut-icon" aria-hidden="true"><svg viewBox="0 0 23 23" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg></span>
 
 export function HomeQuickActions({business}:{business:boolean}){return <section className="home-add" aria-labelledby="home-add-heading"><div className="home-add-heading"><p className="home-kicker">Add something</p><h2 id="home-add-heading">Tell Betti anytime</h2></div><div className="home-add-list">
- <div className="home-add-action home-add-receipt"><Icon name="receipt"/><div><ReceiptUploadAction variant="home" mobileLabel="Receipt" capture="environment"/><Link href="/receipts">Choose a file</Link></div></div>
+ <div className="home-add-action home-add-documents"><div className="flex items-center gap-3"><Icon name="receipt"/><h3>Send Betti documents</h3></div><DocumentIntake compact/></div>
  <Link href="/mileage" className="home-add-action"><Icon name="miles"/><strong>Mileage</strong></Link>
  <Link href={business?'/money':'/money?kind=spent'} className="home-add-action"><Icon name="money"/><strong>Money</strong></Link>
  <Link href="/invoices" className="home-add-action"><Icon name="invoice"/><strong>Invoice</strong></Link>

@@ -18,10 +18,10 @@ describe('durable document processing', () => {
   })
   it('uses typed claims, bounded work, timeouts, and extraction caching', () => {
     const worker = source('app/lib/documents/durable-processing.ts')
-    expect(worker).toContain("['canonical_receipt_extraction','statement_inspection']")
+    expect(worker).toContain("['canonical_receipt_extraction','statement_inspection','document_intake']")
     expect(worker).toContain(".eq('extraction_key', 'vision:v1')")
     expect(worker).toContain('AbortController')
-    expect(worker).toContain("import(/* webpackIgnore: true */ 'pdfjs-dist/legacy/build/pdf.mjs')")
+    expect(worker).toContain("import('pdfjs-dist/legacy/build/pdf.mjs')")
     expect(worker).toContain("p_next_page:result.nextPage")
     expect(worker).toContain('startPage+STATEMENT_CHUNK_PAGES-1')
     expect(worker).not.toMatch(/console\.(log|error).*text|signedUrl/i)

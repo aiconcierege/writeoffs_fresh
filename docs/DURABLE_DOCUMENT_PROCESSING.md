@@ -1,6 +1,6 @@
 # Durable Document Processing
 
-Status: receipt pipeline updated September 16, 2026; statement sections retain their original milestone scope. See WORKFLOW_SPECIFICATION.md for current product authority.
+Status: unified intake and statement pipeline updated September 16, 2026. See WORKFLOW_SPECIFICATION.md for current product authority.
 
 ## Boundary
 
@@ -44,13 +44,21 @@ The original manual uploads were not edited or replayed by an operator. The sche
 
 Full automated validation passes; database integration tests requiring a local Supabase instance are skipped when that instance is absent. Staging browser checks supplement, rather than replace, those tests. PDF extraction and universal multi-receipt detection are not claimed by this repair.
 
-## Statement intake
+## Unified customer intake and statement processing
 
-Bank and card statements are Business-owned documents, not receipts and not bookkeeping records. The Import route accepts multiple PDFs, hashes and uploads three concurrently, and registers each independently. Exact Business/file duplicates collapse before processing.
+The normal path is **Send Betti documents**, available on Home and `/import`. Customers choose files once; they do not choose a parser or file format. Contextual missing-receipt upload remains receipt-focused. Receipts and Transactions are evidence/activity views, not separate normal intake requirements.
 
-Statement PDFs may be up to 100 MiB and 500 pages. These high protective bounds accommodate multi-month and combined statements while preventing unbounded memory/provider work. They are deliberately separate from the 10-page receipt vision bound. The worker validates PDF structure, counts pages, and records 25-page chunk boundaries so a future native text/table adapter can process logical sections independently.
+Each selection is limited to ten files, with two concurrent uploads, 20 MiB per file, and thirty pending documents per Business. These bounds limit staging/v1 upload and processing bursts; they are not monthly usage or pricing limits. Each file has an independent durable outcome. A bad file cannot corrupt its neighbors.
 
-This milestone does **not** create financial transactions from statement PDFs. Native text/table extraction and overlap-safe canonical ingestion remain a bounded follow-up. Until that adapter is approved, a valid statement reaches `Needs your help` with `STATEMENT_EXTRACTION_ADAPTER_PENDING`; it is never represented as organized financial activity. Customers can still use canonical CSV import. This fail-closed state is preferable to silently inventing statement rows.
+Signature validation runs before parsing. Images, PDF bytes and UTF-8 structured text are distinguished independently of filename/MIME. PDF bytes never enter the structured-row parser. Automatic column recognition handles dated transaction exports with signed amounts or explicit debit/credit columns. Ambiguous columns/rows stop for help; the old normal CSV mapper is removed. The compatibility JSON importer also rejects PDF internals.
+
+Native PDF text retains table coordinates. Credit, debit and running-balance columns supply financial direction; headers, summaries and balances do not become transactions. Multiple pages and named-month statement periods are supported. Statement source observations enter the existing financial accounts, immutable financial transactions, canonical records, and bookkeeping worker. Importing a deposit does not itself declare business income, and importing a card payment does not declare an expense. Existing historical question policy remains authoritative.
+
+A statement upload uses existing period/observation identities to prevent retry and equivalent-file duplication. Potential cross-source overlap is held for review rather than merged from merchant/amount alone. Receipt evidence uses existing attachment and receipt-first convergence rules. Account-equivalence and movement reconciliation remain separate canonical decisions.
+
+Unknown/ambiguous files are preserved with **Needs your help**. Native receipt PDFs use the receipt pipeline; detected statements supplied to receipt-focused intake offer explicit routing of the original stored file into the unified path. Composite receipt images still request separate uploads. Scanned or unfamiliar layouts may require clearer/complete documents; automatic support for every institution/layout is not claimed.
+
+The existing 100 MiB/500-page statement backend protective bounds and 25-page continuations remain for legacy statement intake. The new normal intake has the lower 20 MiB transport bound above. The PDF runtime, worker and fonts are explicitly traced into deployment bundles. Continuations use the canonical `lease_id`, reset the retry budget after successful page progress, and retain immutable page evidence. Accumulated pages are reparsed within a two-million-character bound so repeated-row identities and reported counts remain stable across chunks. Provider failures retry; unreadable and unsupported documents terminate honestly. General intake exposes delayed/paused/failure states and owned failed-document retry.
 
 ## Queue and worker
 
@@ -58,6 +66,7 @@ The existing `receipt_processing_jobs` queue is extended with either a `receipt_
 
 - `canonical_receipt_extraction`
 - `statement_inspection`
+- `document_intake`
 - `receipt_understanding_shadow`
 
 Typed `FOR UPDATE SKIP LOCKED` claims prevent one processor from consuming another job type. Claims have leases; expired leases recover automatically. Each scheduled drain claims at most four canonical document jobs, twelve bookkeeping jobs, and one optional receipt-understanding shadow job, with a 300-second invocation budget. Authenticated receipt registration additionally wakes its own durable job after responding, with a 60-second invocation budget. Typed/scoped claims keep overlapping upload and scheduled workers idempotent. Receipt canonical concurrency is bounded by the server invocation and queue claim, not customer upload count.
@@ -70,7 +79,7 @@ Operational states are `pending`, `processing`, `retryable`, `completed`, `needs
 
 - Network/provider timeouts, unavailable storage, and transient writes retry with exponential backoff.
 - MIME/content mismatch, unreadable PDFs, and documents with no readable text stop as `unreadable`.
-- Safe but incomplete extraction, the ordinary-document page bound, and statement-adapter absence stop as `needs_attention`.
+- Safe but incomplete extraction, the ordinary-document page bound, and ambiguous document classification stop as `needs_attention`.
 - Six unsuccessful claims produce `dead_letter`; jobs do not remain Processing forever.
 - Completed, attention, and unreadable outcomes have a completion timestamp and bounded terminal reason.
 
@@ -125,8 +134,7 @@ Receipt history accepts up to 500 recent receipt records in this bounded UI iter
 
 ## Intentionally deferred
 
-- canonical statement text/table extraction and transaction ingestion;
-- combined-PDF logical statement-period splitting;
+- broader institution-specific and scanned-statement layout support;
 - general operator queue-management UI (owned failed-receipt retry is supported);
 - production scheduler activation and alert delivery;
 - canonical activation of multimodal receipt understanding;

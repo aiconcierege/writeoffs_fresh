@@ -34,11 +34,11 @@ function workerFixture() {
   const job={id:'job',business_id:'tenant-a',receipt_id:'receipt-a',job_type:'canonical_receipt_extraction',document_sha256:createHash('sha256').update(bytes).digest('hex')}
   const query={select:vi.fn(),eq:vi.fn(),single:vi.fn(),maybeSingle:vi.fn()}
   query.select.mockReturnValue(query);query.eq.mockReturnValue(query)
-  query.single.mockResolvedValue({data:{id:'receipt-a',upload_fingerprint:job.document_sha256,storage_path:'private/object',mime_type:'image/png'},error:null})
+  query.single.mockResolvedValue({data:{id:'receipt-a',upload_fingerprint:job.document_sha256,storage_path:'private/object',mime_type:'image/png',bytes:bytes.length},error:null})
   query.maybeSingle.mockResolvedValue({data:null,error:null})
   const rpc=vi.fn(async(name:string)=>({data:name.startsWith('claim_')?[job]:name==='worker_record_bookkeeping_receipt_extraction'?{state:'matched'}:true,error:null}))
   const download=vi.fn().mockResolvedValue({data:new Blob([bytes]),error:null})
-  const admin={rpc,from:vi.fn(()=>query),storage:{from:vi.fn(()=>({download}))}} as unknown as SupabaseClient
+  const admin={rpc,from:vi.fn(()=>query),storage:{from:vi.fn(()=>({download,info:vi.fn().mockResolvedValue({data:{size:bytes.length},error:null})}))}} as unknown as SupabaseClient
   vi.stubEnv('GCV_API_KEY','unit-test-placeholder')
   return {admin,rpc,query,download}
 }

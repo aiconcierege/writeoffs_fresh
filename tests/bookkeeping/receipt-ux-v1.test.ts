@@ -13,7 +13,7 @@ const routePolicy = source('app/lib/route-policy.ts')
 describe('autonomous Receipt UX v1', () => {
   it('keeps receipt intake easy to reach without making it routine bookkeeping work', () => {
     expect(home).toContain('<HomeQuickActions business={isBusiness}/>')
-    expect(homeActions).toContain('<ReceiptUploadAction')
+    expect(homeActions).toContain('<DocumentIntake compact')
     expect(source('app/get-started/GetStartedFlow.tsx')).toContain('Upload receipts')
     expect(upload).toContain('onChange={(event) => void select(Array.from(event.target.files ?? []))}')
     expect(upload).toContain('multiple')
@@ -26,7 +26,7 @@ describe('autonomous Receipt UX v1', () => {
     expect(upload).toContain("label='Upload receipt'")
     expect(upload).toContain("mobileLabel='Add receipt'")
     expect(upload).toContain('accept="image/jpeg,image/png,image/webp,application/pdf"')
-    expect(homeActions).toContain('capture="environment"')
+    expect(homeActions).toContain('Send Betti documents')
   })
 
   it('finishes the normal journey without confirmation or Keep', () => {

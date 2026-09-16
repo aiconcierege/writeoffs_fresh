@@ -11,6 +11,8 @@ import {
 } from "../../../lib/bookkeeping/csv-ingestion";
 import { membershipErrorResponse, requireCapability } from "../../../lib/membership/entitlements";
 
+import { containsDocumentBinaryText } from "../../../lib/documents/file-validation";
+
 type Body = {
   mapping: CsvColumnMapping;
   rows: Record<string, string>[];
@@ -26,6 +28,7 @@ export async function POST(req: Request) {
 
     const body = (await req.json()) as Body;
 
+    if (containsDocumentBinaryText(body)) return NextResponse.json({error:"This file needs document processing. Use Send Betti documents."},{status:400});
     if (!body?.rows?.length) {
       return NextResponse.json({ error: "No rows provided." }, { status: 400 });
     }
@@ -40,6 +43,7 @@ export async function POST(req: Request) {
       mapping: body.mapping,
       rows: body.rows,
     });
+    if(prepared.errors.length) return NextResponse.json({error:"Some activity could not be read safely. Please check the document."},{status:400});
     const result = await ingestCsvFinancialActivity({
       supabase,
       rows: prepared.rows,
@@ -56,7 +60,8 @@ export async function POST(req: Request) {
       { status: 200 }
     );
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unexpected error.";
+    const message = "The file could not be imported safely.";
+    void error;
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

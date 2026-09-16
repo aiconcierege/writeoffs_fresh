@@ -438,3 +438,7 @@ These decisions intentionally supersede earlier guidance:
 - Implement only approved milestones. This specification is not blanket authorization to build every requirement.
 
 **WriteOffs does the bookkeeping. The customer supplies facts, corrects when needed, and confirms the result.**
+
+### Unified document intake (September 2026)
+
+The normal upload model is **Send Betti documents**: receipts, bank/card statements and structured bank exports use one file chooser. Customers do not select PDF/CSV/receipt parsers. Safe content classification precedes parsing; unknown documents stop for help. The general entry points are Home and `/import`; contextual **Needs a receipt → Upload receipts** remains receipt-focused. Ten files per selection, two concurrent uploads, and per-Business pending-work bounds keep processing controlled. See `DURABLE_DOCUMENT_PROCESSING.md` for supported extraction, provenance, duplicate protection and recovery boundaries. Statement activity uses the existing canonical ledger, historical question policy and receipt matching; statement signs do not independently establish income or expense treatment.

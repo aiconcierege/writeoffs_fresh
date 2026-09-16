@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReceiptReadItem } from '../lib/bookkeeping/receipt-workflow'
 import { ReceiptUploadAction } from './ReceiptUploadAction'
@@ -76,6 +77,7 @@ export default function ReceiptsInner() {
 }
 
 function ReceiptCard({ receipt, refresh }: { receipt: ReceiptReadItem; refresh: () => Promise<void> }) {
+  const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [editing, setEditing] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
@@ -84,11 +86,13 @@ function ReceiptCard({ receipt, refresh }: { receipt: ReceiptReadItem; refresh: 
   const amount = receipt.totalAmountCents == null ? null : new Intl.NumberFormat('en-US', {
     style: 'currency', currency: 'USD',
   }).format(receipt.totalAmountCents / 100)
+  const statement = receipt.processingReason === 'STATEMENT_USE_DOCUMENT_INTAKE'
+  const documentRecovery = statement || receipt.processingReason === 'PDF_TEXT_UNAVAILABLE'
   const multiple = receipt.processingReason === 'MULTIPLE_RECEIPTS_DETECTED'
   const ambiguousImage = ['RECEIPT_TOTAL_AMBIGUOUS','RECEIPT_DATE_AMBIGUOUS'].includes(receipt.processingReason ?? '')
   const delayed = ['PROCESSING_PAUSED','PROCESSING_DELAYED'].includes(receipt.processingReason ?? '')
   const status = multiple ? 'Upload separately' : delayed ? 'Organizing is delayed' : receiptStatus(receipt.displayStatus)
-  const mayCorrect = receipt.displayStatus === 'details_unavailable' && !multiple && !ambiguousImage
+  const mayCorrect = receipt.displayStatus === 'details_unavailable' && !multiple && !ambiguousImage && !documentRecovery
 
   async function remove() {
     setBusy(true); setError(null)
@@ -103,8 +107,8 @@ function ReceiptCard({ receipt, refresh }: { receipt: ReceiptReadItem; refresh: 
 
   return <details className="receipt-record group border-b border-slate-200">
     <summary className="receipt-record-summary min-h-14 cursor-pointer list-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#243186]"><span className="min-w-0"><strong className="block truncate font-medium text-slate-950">{customerReceiptLabel(receipt)}</strong><span className="mt-0.5 block text-sm text-slate-600">{formatDate(receipt.occurredOn)??'Date unavailable'} · <span>{status}</span></span></span><span className="text-right"><strong className="block font-medium tabular-nums text-slate-950">{amount??'—'}</strong><span className="receipt-row-chevron mt-1 block text-slate-400" aria-hidden="true">›</span></span></summary>
-    <div className="receipt-record-detail pb-3 pl-3 pr-2 text-sm sm:pl-4"><p className="text-slate-600">{multiple ? 'I found more than one receipt in this image. Please upload each receipt separately.' : ambiguousImage ? 'I couldn’t read one clear receipt from this image. If it contains more than one receipt, please upload each separately. Otherwise, try a clearer photo of the whole receipt.' : delayed ? 'Your receipt is safely saved. Organizing is taking longer than usual. Please check back later.' : statusDescription(receipt.displayStatus)}</p>
-    <div className="mt-1 flex flex-wrap items-center gap-3">
+    <div className="receipt-record-detail pb-3 pl-3 pr-2 text-sm sm:pl-4"><p className="text-slate-600">{statement ? 'This looks like a bank statement. I can organize its activity for you.' : multiple ? 'I found more than one receipt in this image. Please upload each receipt separately.' : ambiguousImage ? 'I couldn’t read one clear receipt from this image. If it contains more than one receipt, please upload each separately. Otherwise, try a clearer photo of the whole receipt.' : delayed ? 'Your receipt is safely saved. Organizing is taking longer than usual. Please check back later.' : statusDescription(receipt.displayStatus)}</p>
+    <div className="mt-1 flex flex-wrap items-center gap-3">{documentRecovery&&<button type="button" disabled={busy} className="inline-flex min-h-11 items-center font-semibold text-[#243186]" onClick={async()=>{setBusy(true);setError(null);try{const response=await fetch(`/api/receipts/${receipt.id}/route-document`,{method:'POST'});const result=await response.json();if(!response.ok)throw new Error('ROUTE_FAILED');await fetch(`/api/documents/${result.documentId}/retry`,{method:'POST'});router.push('/import')}catch{setError('Please try again. Your original document is safe.');setBusy(false)}}}>Let Betti organize this document →</button>}
       <a href={`/api/receipts/${receipt.id}/view`} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center font-semibold text-[#243186] hover:underline">View receipt</a>
       {receipt.processingStatus === 'unreadable' && <button type="button" disabled={busy} className="min-h-11 font-semibold text-[#243186]" onClick={async()=>{setBusy(true);setError(null);try{const response=await fetch(`/api/receipts/${receipt.id}/retry`,{method:'POST'});if(!response.ok)throw new Error('RETRY_FAILED');await refresh()}catch{setError('Please try again later. Your original receipt is safe.')}finally{setBusy(false)}}}>{busy?'Trying again…':'Try processing again'}</button>}
       {mayCorrect && <button type="button" onClick={() => setEditing((value) => !value)} className="min-h-11 text-sm font-semibold text-[#243186]">Edit details</button>}

@@ -711,3 +711,6 @@ body { background: var(--canvas); color: var(--ink); }
 .review-bulk-actions { position:sticky;top:4.25rem;z-index:10;padding:.75rem;background:#f4f7f3;border-block:1px solid #dce3de;margin:.5rem 0;box-shadow:0 4px 10px #17211d08; }
 .review-bulk-actions p { margin-bottom:.6rem;font-size:.875rem;line-height:1.5; }
 @media(max-width:639px) { .review-bulk-actions { position:sticky;top:3.75rem; }.review-row-select { scroll-margin-top:17rem; }.transaction-work-views a { padding:.5rem .6rem;font-size:.875rem; }.review-row-open { gap:.45rem; } }
+
+.home-add-documents { grid-column: 1 / -1; display: block; }
+.home-add-documents .document-intake { margin-top: .6rem; font-weight: 400; }

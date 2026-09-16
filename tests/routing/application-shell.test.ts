@@ -101,7 +101,7 @@ describe('canonical application and public shell routes', () => {
 
   it('keeps receipt and import workflows reachable without redesigning them', () => {
     expect(source('app/receipts/page.tsx')).toContain('<ReceiptsInner />')
-    expect(source('app/import/page.tsx')).toContain("fetch('/api/import/csv'")
-    expect(source('app/import/page.tsx')).toContain('WriteOffs will add this activity to Transactions')
+    expect(source('app/import/page.tsx')).toContain('<DocumentIntake/>')
+    expect(source('app/import/page.tsx')).toContain('Send Betti documents')
   })
 })

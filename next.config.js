@@ -12,6 +12,9 @@ const nextConfig = {
   serverExternalPackages: ['@napi-rs/canvas', 'pdfjs-dist'],
   // Runtime configuration comes from the deployment environment. Never copy
   // developer or staging environment files into server-function bundles.
+  outputFileTracingIncludes: {
+    '/api/*': ['./node_modules/pdfjs-dist/legacy/build/**', './node_modules/pdfjs-dist/standard_fonts/**', './node_modules/@napi-rs/canvas*/**'],
+  },
   outputFileTracingExcludes: {
     '/*': ['./.env', './.env.*', './.env*'],
   },
