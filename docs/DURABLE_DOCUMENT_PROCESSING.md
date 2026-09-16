@@ -36,6 +36,14 @@ A new receipt may attach to an already classified financial transaction without 
 
 Provider HTTP/response errors and 20-second timeouts retry under existing six-attempt/backoff rules. Exhausted jobs and expired final leases become visible failure states. Customers can request another processing attempt for an owned failed receipt through the authenticated retry route; only the trusted worker can change operational job state. Multi-receipt help asks for separate uploads rather than retrying the same ambiguous image. Paused or unusually delayed work is labeled truthfully instead of appearing to make progress indefinitely. Originals and extraction history are retained.
 
+### Staging validation evidence
+
+The September 16 repair was exercised through real PNG uploads and Google Vision on isolated synthetic tenants. Cases: exact merchant/date/$12 receipt versus -$12 bank transaction (automatic match); $9.54 wrong amount (unmatched); no bank candidate (receipt only); two receipts in one image (help, no combined extraction); two bank candidates (no automatic match); two-day posting difference (automatic match). Each canonical job reached a terminal state on its first attempt. Tests verified one evidence link/history match, registration retry idempotency, preserved customer classification, no duplicate expense, work-view updates, and cross-tenant read/retry/attachment rejection. Responsive coverage is 390, 430, and 1280 pixels.
+
+The original manual uploads were not edited or replayed by an operator. The scheduled worker naturally processed them after the staging pause was lifted: exact amount matched, wrong amount retained unmatched, composite image stopped with conflicting-total help. Originals remain stored. OCR punctuation spacing discovered during certification has regression coverage. Home's match summary now excludes unmatched receipt-origin records.
+
+Full automated validation passes; database integration tests requiring a local Supabase instance are skipped when that instance is absent. Staging browser checks supplement, rather than replace, those tests. PDF extraction and universal multi-receipt detection are not claimed by this repair.
+
 ## Statement intake
 
 Bank and card statements are Business-owned documents, not receipts and not bookkeeping records. The Import route accepts multiple PDFs, hashes and uploads three concurrently, and registers each independently. Exact Business/file duplicates collapse before processing.

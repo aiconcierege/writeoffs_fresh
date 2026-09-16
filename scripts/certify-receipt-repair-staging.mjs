@@ -71,7 +71,7 @@ try{
  stage='responsive-surfaces'
  for(const width of [390,430,1280]){
   await page.setViewportSize({width,height:900})
-  for(const [path,name] of [['/receipts','receipts'],['/transactions?view=receipts','needs-receipt'],['/transactions?view=receipt-only','receipt-only'],['/home','home']]){await page.goto(origin+path);await page.waitForTimeout(600);if(name==='needs-receipt'){const picker=page.waitForEvent('filechooser');await page.getByRole('button',{name:'Upload receipts',exact:true}).click();await(await picker).setFiles([]);assert.equal(page.url(),origin+path)}await snapshot(`${name}-${width}`)}
+  for(const [path,name] of [['/receipts','receipts'],['/transactions?view=receipts','needs-receipt'],['/transactions?view=receipt-only','receipt-only'],['/home','home']]){await page.goto(origin+path);if(name==='receipts')await page.locator('.receipt-record').first().waitFor();await page.waitForTimeout(600);if(name==='needs-receipt'){const picker=page.waitForEvent('filechooser');await page.getByRole('button',{name:'Upload receipts',exact:true}).click();await(await picker).setFiles([]);assert.equal(page.url(),origin+path)}await snapshot(`${name}-${width}`)}
   await page.goto(`${origin}/receipts`);await page.locator('.receipt-record').filter({hasText:'Upload separately'}).locator('summary').click();await page.getByText('I found more than one receipt in this image. Please upload each receipt separately.',{exact:true}).waitFor();await snapshot(`multiple-help-${width}`)
  }
  assert.deepEqual(errors,[])
