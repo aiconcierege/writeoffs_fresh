@@ -4,11 +4,12 @@
  * payments never become purchases merely because their amount is negative.
  */
 export function purchaseReceiptEligible(activity: {
+  supportingDocumentOnly?: boolean
   amountCents: number | null
   bookkeepingNature: string | null
   treatment: string | null
 }) {
-  return activity.amountCents != null && activity.amountCents < 0
+  return !activity.supportingDocumentOnly && activity.amountCents != null && activity.amountCents < 0
     && activity.bookkeepingNature === 'expense'
     && ['business', 'mixed_use', 'unresolved'].includes(activity.treatment ?? '')
 }

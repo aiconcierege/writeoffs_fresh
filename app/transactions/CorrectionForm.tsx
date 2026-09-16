@@ -10,6 +10,8 @@ export function CorrectionForm({ transactionId, currentDecisionId, totalCents, r
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [restoring,setRestoring]=useState(false)
+  const restoreAction=restoreMode==='exclusion'||restoring
   const [use, setUse] = useState<'business'|'personal'|'mixed'>(currentTreatment==='mixed_use'?'mixed':currentTreatment==='personal'?'personal':'business')
   const [personal, setPersonal] = useState('')
   const [error, setError] = useState<string|null>(null)
@@ -21,7 +23,7 @@ export function CorrectionForm({ transactionId, currentDecisionId, totalCents, r
       setBusy(false); return
     }
     const cents = Math.round(Number(personal) * 100)
-    const answer = restoreMode?{schemaVersion:1,use:restoreMode==='personal'?'restore_previous':'restore_exclusion'}
+    const answer = restoreAction?{schemaVersion:1,use:restoreMode==='personal'?'restore_previous':'restore_exclusion'}
       :use === 'mixed' ? { schemaVersion: 1, use, personalAmountCents: Math.abs(totalCents)-cents } : { schemaVersion: 1, use }
     try {
       const response = await fetch(`/api/bookkeeping/transactions/${transactionId}/correction`, {
@@ -35,13 +37,13 @@ export function CorrectionForm({ transactionId, currentDecisionId, totalCents, r
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to save correction.') }
     finally { setBusy(false) }
   }
-  if (!open) return <div className="mt-4"><h3 className="text-sm font-semibold">Business use</h3><p>{currentTreatment==='personal'?'Personal':currentTreatment==='mixed_use'?'Part business and part personal':currentTreatment==='business'?'Business':'Not yet established'}</p><button onClick={() => setOpen(true)} className="mt-3 min-h-11 text-sm font-semibold text-[#243186] underline-offset-4 hover:underline">{restoreMode==='personal'?'Undo personal choice':restoreMode==='exclusion'?'Include this expense again':'Change →'}</button></div>
+  if (!open) return <div className="mt-4"><h3 className="text-sm font-semibold">Business use</h3><p>{currentTreatment==='personal'?'Personal':currentTreatment==='mixed_use'?'Part business and part personal':currentTreatment==='business'?'Business':'Not yet established'}</p><button onClick={() => {setRestoring(false);setOpen(true)}} className="mt-3 min-h-11 text-sm font-semibold text-[#243186] underline-offset-4 hover:underline">{restoreMode==='exclusion'?'Include this expense again':'Change →'}</button>{restoreMode==='personal'&&<button className="ml-4 min-h-11 text-sm underline" onClick={()=>{setRestoring(true);setOpen(true)}}>Undo personal choice</button>}</div>
   return <div className="mt-4 border-l-2 border-[#243186] pl-4">
-    <p className="font-medium text-slate-950">{restoreMode==='personal'?'Put this back for WriteOffs to review?':restoreMode==='exclusion'?'Include this expense again?':'How was this purchase used?'}</p>
-    {!restoreMode&&<div className="mt-3 flex flex-wrap gap-2">{([['business','Business'],['personal','Personal'],['mixed','Part business and part personal']] as const).map(([value,label]) =>
-      <button key={value} onClick={() => setUse(value)} className={`rounded-md border px-3 py-2 text-sm ${use === value ? 'border-[#243186] bg-[#243186] text-white' : 'border-slate-300 bg-white text-slate-700'}`}>{label}</button>)}</div>}
-    {restoreMode&&<p className="mt-2 text-sm leading-6 text-slate-600">WriteOffs will restore the prior decision and continue from there. The correction history stays with the transaction.</p>}
-    {!restoreMode&&use === 'mixed' && <label className="mt-4 block text-sm text-slate-700">How much was for your business?
+    <p className="font-medium text-slate-950">{restoring?'Put this back for WriteOffs to review?':restoreMode==='exclusion'?'Include this expense again?':'How was this purchase used?'}</p>
+    {!restoreAction&&<div role="group" aria-label="Business use choices" className="mt-3 flex flex-wrap gap-2">{([['business','Business'],['personal','Personal'],['mixed','Part business and part personal']] as const).map(([value,label]) =>
+      <button key={value} aria-pressed={use===value} onClick={() => setUse(value)} className={`min-h-11 rounded-md border px-3 py-2 text-sm ${use === value ? 'border-[#243186] bg-[#243186] text-white' : 'border-slate-300 bg-white text-slate-700'}`}>{label}</button>)}</div>}
+    {restoreAction&&<p className="mt-2 text-sm leading-6 text-slate-600">WriteOffs will restore the prior decision and continue from there. The correction history stays with the transaction.</p>}
+    {!restoreAction&&use === 'mixed' && <label className="mt-4 block text-sm text-slate-700">How much was for your business?
       <span className="mt-1 flex max-w-xs items-center rounded-md border border-slate-300 bg-white px-3"><span>$</span><input value={personal} onChange={(event) => setPersonal(event.target.value)} inputMode="decimal" placeholder="0.00" className="min-h-10 w-full px-2 outline-none" /></span>
       <span className="mt-1 block text-xs text-slate-500">Enter less than {(Math.abs(totalCents)/100).toFixed(2)}.</span></label>}
     {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}

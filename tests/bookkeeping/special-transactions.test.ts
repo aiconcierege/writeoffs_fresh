@@ -15,6 +15,7 @@ describe('transaction workflow and independent personal use',()=>{
  it('respects separately established business and personal return amounts',()=>{const r=report([row('p','expense','mixed_use',-20000,-13000,-7000),row('r','refund','mixed_use',5000,3000,2000)]);expect(r.businessExpensesCents).toBe(10000);expect(r.ownerPersonalUseCents).toBe(5000)})
  it('does not assume an unresolved refund is revenue or reversal',()=>{const r=report([row('r','refund','unresolved',3210,0,0)]);expect(r.businessExpensesCents).toBe(0);expect(r.businessIncomeCents).toBe(0);expect(r.completeness.unresolvedRecordCount).toBe(1)})
  it.each(['credit_card_payment','loan_principal_payment','refund','transfer'])('never expects purchase receipts for %s',nature=>expect(purchaseReceiptEligible({amountCents:-10000,treatment:'unresolved',bookkeepingNature:nature})).toBe(false))
+ it('uses loan documentation, not a purchase receipt, for loan components',()=>expect(purchaseReceiptEligible({amountCents:-4000,treatment:'business',bookkeepingNature:'expense',supportingDocumentOnly:true})).toBe(false))
  it('requires meaningful merchant equality beyond return prefixes',()=>expect(refundMerchant('REFUND - OFFICE DEPOT')).toBe(refundMerchant('OFFICE DEPOT #1142')))
 })
 describe('loan statement evidence',()=>{

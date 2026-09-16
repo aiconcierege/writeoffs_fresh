@@ -15,6 +15,7 @@ export type TransactionReadRow = {
   category_key: string | null
   categoryCandidate?: string | null
   categoryKeys?: string[]
+  supportingDocumentOnly?: boolean
   compoundParts?: Array<{recordId:string;label:string;amountCents:number}>
   businessAmountCents?: number
   personalAmountCents?: number
@@ -339,6 +340,7 @@ export async function listTransactionReadModel(input: {
       amountCents, currency: financial && !compoundComponent ? text(financial, 'currency') ?? 'USD' : text(record, 'currency') ?? 'USD', category_key: categoryKeys.length === 1 ? categoryKeys[0] : null,
       businessAmountCents:allocationRows.filter(a=>a.bookkeeping_decision_id===current?.id&&a.allocation_kind==='business').reduce((n,a)=>n+Math.abs(Number(a.amount_cents)),0),
       personalAmountCents:allocationRows.filter(a=>a.bookkeeping_decision_id===current?.id&&a.allocation_kind==='personal').reduce((n,a)=>n+Math.abs(Number(a.amount_cents)),0),
+      supportingDocumentOnly: ['loan_principal','loan_interest'].includes(text(source ?? {},'relationship_role')??''),
       categoryKeys, categoryCandidate: categoryKeys.length ? null : text(candidate ?? {}, 'schedule_c_category_key'),
       has_receipt: documented.has(recordId), receipt_waived: false,
       treatmentLabel: customerTreatmentLabel(current), decisionReason: customerDecisionExplanation(current),
@@ -440,7 +442,9 @@ export async function getTransactionDetailReadModel(input: {
   if(!components.data?.length||!rows[0])return null
   const source=await input.supabase.from('financial_transactions').select('amount_cents,transaction_date,merchant_name,original_description').eq('id',input.transactionId).single()
   if(source.error||!source.data)return null
-  return {...rows[0],id:input.transactionId,recordId:components.data[0].anchor_bookkeeping_record_id,currentDecisionId:null,
+  const anchorHistory=await input.supabase.from('bookkeeping_decisions').select('*').eq('bookkeeping_record_id',components.data[0].anchor_bookkeeping_record_id).order('created_at')
+  if(anchorHistory.error)throw new Error('Loan payment history could not be loaded.')
+  return {...rows[0],history:customerTransactionHistory(anchorHistory.data??[]),id:input.transactionId,recordId:components.data[0].anchor_bookkeeping_record_id,currentDecisionId:null,
     amount:source.data.amount_cents/100,amountCents:source.data.amount_cents,date:source.data.transaction_date,
     vendor:source.data.merchant_name??'Loan payment',description:source.data.original_description,
     bookkeepingNature:'loan_principal_payment',treatment:'excluded',treatmentLabel:'Loan payment',categoryKeys:[],categoryCandidate:null,category_key:null,
