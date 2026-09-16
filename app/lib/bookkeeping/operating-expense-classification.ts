@@ -165,5 +165,8 @@ export function classifyOperatingExpense(snapshot: BookkeepingEvaluationSnapshot
   }
   return { version: OPERATING_EXPENSE_CLASSIFIER_VERSION, status: 'ordinary',
     categoryKey: match.categoryKey, expenseNature: match.nature, confidence: 0.94,
-    reasonCode: `STRONG_${match.categoryKey.toUpperCase()}_EVIDENCE`, evidence: ['merchant_or_description', 'plaid'], taxFacts }
+    reasonCode: `STRONG_${match.categoryKey.toUpperCase()}_EVIDENCE`,
+    evidence: specificCorrection ? ['customer_description'] : ['merchant_or_description',
+      ...(snapshot.personalFinanceCategory ? ['plaid'] : []),
+      ...(established.includes(match.categoryKey) ? ['established_category'] : [])], taxFacts }
 }

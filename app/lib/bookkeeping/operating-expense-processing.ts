@@ -33,7 +33,7 @@ export async function processOperatingExpenseTreatment(input: {
   const evidenceFingerprint = operatingExpenseFingerprint({ version: classification.version,
     decisionId: snapshot.currentDecision.id, recordId: snapshot.recordId,
     categoryKey: classification.categoryKey, reasonCode: classification.reasonCode,
-    taxFacts: classification.taxFacts, mealFactId })
+    taxFacts: classification.taxFacts, evidence: classification.evidence, mealFactId })
   const { data: currentAssessment, error: assessmentLoadError } = await admin
     .from('current_schedule_c_expense_assessments').select('id,evidence_fingerprint')
     .eq('business_id', snapshot.businessId).eq('bookkeeping_record_id', snapshot.recordId).maybeSingle()

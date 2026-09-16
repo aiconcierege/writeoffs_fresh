@@ -82,6 +82,10 @@ describe('independent decision dimensions', () => {
     value.currentDecision.allocations=[{kind:'business',amountCents:-2299,taxCategoryKey:'office-expense'}]
     expect(classifyOperatingExpense(value)).toMatchObject({categoryKey:'office-expense',status:'ordinary'})
   })
+  it('does not claim provider evidence for a statement-only candidate',()=>{
+    const result=classifyOperatingExpense(snapshot())
+    expect(result.evidence).not.toContain('plaid')
+  })
   it('fingerprints all nested material facts and ignores object key order', () => {
     expect(operatingExpenseFingerprint({version:2,facts:{meal:true,portion:80}}))
       .not.toBe(operatingExpenseFingerprint({version:2,facts:{meal:true,portion:50}}))
