@@ -24,6 +24,3 @@ playwright/.cache/
 next-env.d.ts
 *.log
 .DS_Store
-
-# Untracked historical design reference; not approved application artwork.
-public/betti/ betti-working.webp

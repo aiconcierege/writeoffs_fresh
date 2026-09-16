@@ -1591,7 +1591,7 @@ node_modules/yaml/bin 2.mjs,B — GENERATED / REBUILDABLE,Removed by npm ci,Depe
 node_modules/yaml/package 2.json,B — GENERATED / REBUILDABLE,Removed by npm ci,Dependency directory rebuilt from unchanged lockfile; numbered vendor copies absent afterward,Not project source; lockfile authoritative,Not canonical package entry,ignored
 node_modules/yaml/util 2.js,B — GENERATED / REBUILDABLE,Removed by npm ci,Dependency directory rebuilt from unchanged lockfile; numbered vendor copies absent afterward,Not project source; lockfile authoritative,Not canonical package entry,ignored
 public/.DS_Store,B — GENERATED / REBUILDABLE,Removed,Rebuildable compiler cache or operating-system metadata.,No current required content,No,ignored
-public/betti/ betti-working.webp,H — UNKNOWN,Preserved,Unique design/portrait asset; owner decision required,Yes,No,untracked
+public/betti/ betti-working.webp,D — SUPERSEDED,Removed September 16 2026,Rick explicitly approved removing the obsolete historical mockup,Yes; obsolete design reference intentionally removed,No,untracked
 public/founder-photo.png,H — UNKNOWN,Preserved,Unique design/portrait asset; owner decision required,Yes,No,tracked
 public/media/auto-classify.png,D — SUPERSEDED,Removed,"Unreferenced former landing/press artwork. Current landing, official logo downloads and Betti assets preserved.",Historical artwork remains in Git,No,tracked
 public/media/export.png,D — SUPERSEDED,Removed,"Unreferenced former landing/press artwork. Current landing, official logo downloads and Betti assets preserved.",Historical artwork remains in Git,No,tracked

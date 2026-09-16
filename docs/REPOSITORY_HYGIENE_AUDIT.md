@@ -43,7 +43,7 @@ Removed four unused old marketing mockups and five unused press-name SVGs. Remov
 
 The four current Betti PNGs, replaceable character interface, active landing illustration, social image, logo SVG and working CSV template remain. Three unique unreferenced portrait originals (`public/founder-photo.png`, `public/rick.png`, `public/media/founder.jpg`) remain pending an owner decision; no filename-based deletion was performed.
 
-`public/betti/ betti-working.webp` is a unique, untracked historical two-panel Home design mockup, not an active Betti character asset. Its README calls it a design reference. It remains explicitly excluded from deployment and intentionally untracked pending owner approval to delete. It is the only explained pre-existing untracked item left.
+`public/betti/ betti-working.webp` was a unique, untracked historical two-panel Home design mockup, not an active Betti character asset. Initially preserved for an owner decision, it was removed on September 16, 2026 after Rick explicitly approved removal. Its obsolete README note and deployment-ignore entry were also removed. The four active Betti illustrations remain unchanged.
 
 Removed stale `.next` (2,311 files; 1,357,659,489 bytes), `.vercel/output`, generated `.vercel/node`, TypeScript build cache and Finder metadata. Generated `next-env.d.ts` is no longer tracked; Next regenerates it. `.gitignore` and `.vercelignore` now consistently exclude generated/cache/browser-test output and local secrets. Source duplicate filenames are not hidden by ignore rules; obsolete per-file source exclusions were removed after deleting the files.
 

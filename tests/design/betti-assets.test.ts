@@ -34,7 +34,6 @@ describe('Betti illustration contract', () => {
     ]) expect(source).toContain(dimensions)
     expect(source).not.toContain('.webp')
     expect(contract).toContain('no clothing')
-    expect(contract).toContain('not a production asset')
   })
 
   it('forbids accidental cropping of full-body Betti compositions', () => {

@@ -18,9 +18,6 @@ features, and polished coral leather sneakers. She wears no clothing and no
 logo or standalone W mark. All four production files are transparent PNGs;
 approved atmospheric shading within an illustration is part of the artwork.
 
-The historical ` betti-working.webp` mockup may remain as a design reference,
-but it is not a production asset and must never be rendered by the application.
-
 The application renders these files only through
 `app/components/BettiIllustration.tsx`.
 
