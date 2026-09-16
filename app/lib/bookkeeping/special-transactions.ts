@@ -9,7 +9,7 @@ export async function loadSpecialWork(db:SupabaseClient,recordId:string):Promise
  const {data:events,error:eventError}=await db.from('bookkeeping_special_events').select('action,decision_id').eq('bookkeeping_record_id',recordId).order('created_at',{ascending:false}).limit(1)
  if(eventError)throw new Error('Unable to load supporting facts.')
  const lastAction=events?.[0]?.action??null
- const kind=w.bookkeeping_nature==='refund'?'refund':w.bookkeeping_nature==='loan_principal_payment'?'loan':w.treatment==='unresolved'&&((w.amount_cents<0&&/loan|payment|transfer/i.test(w.description??w.merchant??''))||(w.amount_cents>0&&/payment received.*thank you|credit.card payment/i.test(w.description??w.merchant??'')))?'movement':null
+ const kind=w.bookkeeping_nature==='refund'?'refund':w.bookkeeping_nature==='loan_principal_payment'?'loan':(w.bookkeeping_nature==='credit_card_payment'||(w.bookkeeping_nature==='transfer'&&w.treatment==='personal'))?'movement':w.treatment==='unresolved'&&((w.amount_cents<0&&/loan|payment|transfer/i.test(w.description??w.merchant??''))||(w.amount_cents>0&&/payment received.*thank you|credit.card payment/i.test(w.description??w.merchant??'')))?'movement':null
  const candidates:RefundCandidate[]=[]
  if(kind==='refund'&&w.treatment==='unresolved'){
   const start=new Date(`${w.activity_date}T00:00:00Z`);start.setUTCDate(start.getUTCDate()-180)

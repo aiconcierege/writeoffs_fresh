@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs'
 import {describe,it,expect} from 'vitest'
 import {safeReturnTo,withReturnTo} from '../../app/lib/navigation-context'
 import {parseLoanPaymentStatement} from '../../app/lib/documents/loan-statement'
@@ -9,6 +10,7 @@ import {customerDecisionExplanation} from '../../app/lib/bookkeeping/transaction
 function row(id:string,nature:string,treatment:string,amount:number,business:number,personal:number):CanonicalSummaryRecord{return {id,occurredOn:'2026-05-12',currency:'USD',amountCents:amount,financialSourceAssociationId:id,financialTransactionId:id,sourceKind:'financial_transaction',decisions:[{id,supersedesDecisionId:null,bookkeepingNature:nature as never,treatment:treatment as never,allocations:[...(business?[{id:id+'b',kind:'business' as const,amountCents:business,taxCategoryKey:'supplies'}]:[]),...(personal?[{id:id+'p',kind:'personal' as const,amountCents:personal}]:[])]}]}}
 const report=(canonicalRecords:CanonicalSummaryRecord[])=>buildCanonicalReport({canonicalRecords,legacyRecords:[],currency:'USD',periodStart:'2026-01-01',periodEnd:'2026-12-31'})
 describe('transaction workflow and independent personal use',()=>{
+ it('limits purchase restoration controls to expense nature',()=>{const page=readFileSync('app/transactions/[id]/page.tsx','utf8');expect(page).toContain("bookkeepingNature==='expense'&&transaction.treatment==='excluded'");expect(page).toContain('Review payment type')})
  it('keeps economic nature truthful in labels and customer history',()=>{
   expect(specialNatureLabel('refund','personal')).toBe('Refund')
   expect(customerDecisionExplanation({provenance:'user',bookkeeping_nature:'credit_card_payment',treatment:'excluded'})).toContain('credit card payment')
