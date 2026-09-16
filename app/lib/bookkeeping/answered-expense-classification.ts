@@ -16,7 +16,7 @@ export function answeredExpenseAllocations(snapshot: BookkeepingEvaluationSnapsh
   if (classification.status !== 'ordinary' || !classification.categoryKey) return null
   const business = snapshot.currentDecision.allocations.filter(allocation => allocation.kind === 'business')
   // A specific existing category is not overwritten by answer-time enrichment.
-  if (!business.length || business.some(allocation => allocation.taxCategoryKey != null)) return null
+  if (business.length !== 1 || business.some(allocation => allocation.taxCategoryKey != null)) return null
   return snapshot.currentDecision.allocations.map(allocation => ({ ...allocation,
     taxCategoryKey: allocation.kind === 'business' ? classification.categoryKey : allocation.taxCategoryKey }))
 }

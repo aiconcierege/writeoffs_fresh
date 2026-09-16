@@ -57,9 +57,9 @@ describe('Betti-led Weekly Review v3', () => {
         expect(questions).toContain("action:'mixed_business_percentage'");
         expect(questions).toContain("action: 'mixed_business_amount'");
     });
-    it('blocks v3 presentation for material questions and excludes uncertain dollars', () => {
+    it('blocks final review presentation but uses the shared working allocation policy', () => {
         expect(worker).toContain("questions.material>0");
-        expect(summary).toContain('record.materiallyUnresolved');
+        expect(summary).toContain('workingBusinessAllocations(decision)');
     });
     it('derives customer treatment text instead of rendering raw decision provenance', () => {
         expect(transactions).toContain('customerDecisionExplanation(current)');

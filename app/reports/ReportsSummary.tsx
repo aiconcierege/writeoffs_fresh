@@ -11,6 +11,7 @@ type SummaryData = {
   businessMilesMilli: number
   mileageDeductionCents: null
   mileageTaxTreatmentStatus: 'facts_only' | 'not_applicable'
+  uncategorizedBusinessExpensesCents: number
   categoryTotals: { categoryKey: string; categoryLabel: string; amountCents: number; transactionCount: number }[]
   completeness: { isComplete: boolean; unresolvedRecordCount: number; unresolvedTaxTreatmentCount: number }
   contractorSummaries: { id:string;displayName:string;totalPaidCents:number;paymentMethods:string[];w9Status:string;awareness:string }[]
@@ -42,10 +43,12 @@ export function ReportsSummary({scope,readOnly,annual}:{scope:'expenses'|'busine
       {data.estimatedDeductionsCents != null && <div className="mt-3 max-w-xl border-l-2 border-[#9ccdbc] pl-4"><p className="eyebrow">Tax estimate</p><p className="mt-2 text-sm text-[#59665f]">Estimated deductions</p><p className="money-display mt-1 text-2xl font-semibold">{usd.format(data.estimatedDeductionsCents / 100)}</p></div>}
     </section>
     <section aria-labelledby="category-heading"><h2 id="category-heading" className="text-xl font-semibold text-slate-950">Where the money went</h2>
-      <p className="mt-1 text-sm text-slate-600">These are the business expenses Betti has enough information to organize.</p>
+      <p className="mt-1 text-sm text-slate-600">These working expenses include purchases still being categorized. Tax deductions may differ.</p>
       <div className="mt-4 border-t border-slate-200">{data.categoryTotals.map((row) => <div key={row.categoryKey} className="grid grid-cols-[1fr_auto] gap-4 border-b border-slate-200 py-3 text-sm">
         <span>{row.categoryLabel}</span><span className="tabular-nums">{usd.format(row.amountCents / 100)}</span></div>)}
-        {data.categoryTotals.length === 0 && <p className="py-5 text-sm text-slate-600">No supported category totals are available yet.</p>}</div>
+        {data.uncategorizedBusinessExpensesCents !== 0 && <div className="grid grid-cols-[1fr_auto] gap-4 border-b border-slate-200 py-3 text-sm"><span>Still being categorized</span><span className="tabular-nums">{usd.format(data.uncategorizedBusinessExpensesCents / 100)}</span></div>}
+        <div className="flex justify-between gap-4 border-b border-slate-200 py-3 text-sm font-semibold"><span>Total business expenses</span><span className="tabular-nums">{usd.format(data.businessExpensesCents / 100)}</span></div>
+        {data.categoryTotals.length === 0 && data.uncategorizedBusinessExpensesCents === 0 && <p className="py-5 text-sm text-slate-600">No supported category totals are available yet.</p>}</div>
     </section>
     {data.businessMilesMilli>0&&<section aria-labelledby="mileage-heading"><h2 id="mileage-heading" className="text-xl font-semibold text-slate-950">Business driving</h2>
       <p className="mt-2 text-2xl font-semibold tabular-nums">{(data.businessMilesMilli / 1000).toLocaleString('en-US', { maximumFractionDigits: 3 })} miles</p>
@@ -54,6 +57,7 @@ export function ReportsSummary({scope,readOnly,annual}:{scope:'expenses'|'busine
     {data.contractorSummaries.some(row=>row.totalPaidCents>0)&&<section aria-labelledby="contractor-heading"><div className="flex items-center justify-between gap-4"><h2 id="contractor-heading" className="text-lg font-semibold text-slate-950">People you hired</h2><a href="/contractors" className="text-sm font-semibold text-[#243186]">Manage details</a></div>
       <div className="mt-4 border-t border-slate-200">{data.contractorSummaries.filter(row=>row.totalPaidCents>0).map(row=><div key={row.id} className="grid gap-1 border-b border-slate-200 py-4 sm:grid-cols-[1fr_auto] sm:gap-5"><div><p className="font-medium">{row.displayName}</p><p className="text-sm text-slate-600">Details: {row.w9Status.replaceAll('_',' ')}</p></div><p className="font-medium tabular-nums">{usd.format(row.totalPaidCents/100)}</p></div>)}</div>
     </section>}
-    {(data.completeness.unresolvedTaxTreatmentCount>0||data.completeness.unresolvedRecordCount>0)&&<section className="border-t border-slate-200 pt-7"><h2 className="text-xl font-semibold text-slate-950">What still needs attention</h2><p className="mt-2 text-sm text-slate-600">Betti is keeping {Math.max(data.completeness.unresolvedTaxTreatmentCount,data.completeness.unresolvedRecordCount)} {Math.max(data.completeness.unresolvedTaxTreatmentCount,data.completeness.unresolvedRecordCount)===1?'item':'items'} out of final totals until the missing details are clear.</p></section>}
+    {(data.completeness.unresolvedTaxTreatmentCount>0||data.completeness.unresolvedRecordCount>0)&&<section className="border-t border-slate-200 pt-7"><h2 className="text-xl font-semibold text-slate-950">What still needs attention</h2>{data.completeness.unresolvedRecordCount > 0 && <p className="mt-2 text-sm text-slate-600">{data.completeness.unresolvedRecordCount} transactions still need bookkeeping decisions.</p>}
+      {data.completeness.unresolvedTaxTreatmentCount > 0 && <p className="mt-2 text-sm text-slate-600">{data.completeness.unresolvedTaxTreatmentCount} expense allocations still need tax or documentation review. Established business amounts remain in working expenses.</p>}</section>}
   </div></main>
 }

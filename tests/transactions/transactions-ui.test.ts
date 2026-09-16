@@ -21,8 +21,8 @@ describe('customer Transactions experience', () => {
   })
   it('routes unresolved activity to factual questions and never exposes canonical deletion', () => {
     const detail = source('app/transactions/[id]/page.tsx')
-    expect(detail).toContain('href={questionHref}')
-    expect(detail).toContain('/check-in?record=')
+    expect(detail).toContain('href={progress.action.href}')
+    expect(source('app/lib/bookkeeping/decision-progress.ts')).toContain('/check-in?record=')
     expect(detail).not.toMatch(/Delete transaction|Remove transaction/)
   })
   it('uses canonical receipt endpoints only for canonical rows', () => {

@@ -1,3 +1,4 @@
+import { workingBusinessAllocations } from './working-books-policy'
 import type { CanonicalSummaryRecord } from './financial-summary'
 import { currentTaxTreatment } from './tax-treatment-model'
 
@@ -104,7 +105,7 @@ export function buildCanonicalReport(input: {
     if (record.occurredOn < input.periodStart || record.occurredOn > input.periodEnd) continue
     if (record.currency !== input.currency) { unsupportedCurrencies.add(record.currency); continue }
     const decision = currentDecision(record)
-    const business = decision?.allocations.filter((item) => item.kind === 'business') ?? []
+    const business = workingBusinessAllocations(decision)
     const personal = decision?.allocations.filter((item) => item.kind === 'personal') ?? []
     const businessSigned = business.reduce((sum, item) => safeAdd(sum, item.amountCents), 0)
     const personalSigned = personal.reduce((sum, item) => safeAdd(sum, item.amountCents), 0)

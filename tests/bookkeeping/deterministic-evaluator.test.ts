@@ -71,24 +71,23 @@ describe('deterministic bookkeeping evaluator v1', () => {
       } })
   })
 
-  it('never supersedes a customer-authored allocation to add a category', () => {
+  it('fills only the blank category while preserving the customer allocation', () => {
     const currentDecision = { ...snapshot().currentDecision, bookkeepingNature: 'expense' as const,
       treatment: 'mixed_use' as const, reviewStatus: 'resolved' as const, provenance: 'user' as const,
       actorUserId: crypto.randomUUID(), allocations: [
         { kind: 'business' as const, amountCents: -6_000 }, { kind: 'personal' as const, amountCents: -4_000 }] }
     expect(evaluateDeterministicBookkeeping(snapshot({ merchantName: 'Adobe software subscription',
-      movement: null, movementCandidates: [], currentDecision }))).toBeNull()
+      movement: null, movementCandidates: [], currentDecision }))).toMatchObject({proposal:{allocations:[
+        {kind:'business',amountCents:-6000,taxCategoryKey:'software'},{kind:'personal',amountCents:-4000,taxCategoryKey:null}]}})
   })
 
-  it('append-only reclassifies a system category when better evidence arrives', () => {
+  it('does not silently replace a current category when evidence conflicts', () => {
     const currentDecision = { ...snapshot().currentDecision, bookkeepingNature: 'expense' as const,
       treatment: 'business' as const, reviewStatus: 'resolved' as const, provenance: 'system' as const,
       allocations: [{ kind: 'business' as const, amountCents: -10_000, taxCategoryKey: 'advertising' }] }
     expect(evaluateDeterministicBookkeeping(snapshot({ merchantName: 'Canva Pro software subscription',
       movement: null, movementCandidates: [], currentDecision })))
-      .toMatchObject({ ruleKey: 'bookkeeping.schedule_c.operating_expense.v1', proposal: {
-        allocations: [{ taxCategoryKey: 'software' }],
-      } })
+      .toBeNull()
   })
 
   it('does not force contained special domains into an ordinary category', () => {
@@ -160,7 +159,6 @@ describe('deterministic bookkeeping evaluator v1', () => {
 
   it.each([
     ['merchant only', { movement: movement({ structuralHint: null }), movementCandidates: [] }],
-    ['airline', { merchantName: 'United Airlines', movementCandidates: [] }],
     ['weak restaurant name', { merchantName: 'Food purchase', movementCandidates: [] }],
     ['general retailer', { merchantName: 'Amazon', movementCandidates: [] }],
     ['uncorrelated refund description', { merchantName: 'Merchant refund', movementCandidates: [] }],

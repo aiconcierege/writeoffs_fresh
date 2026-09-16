@@ -148,7 +148,7 @@ describe('customer question projection', () => {
     expect(typeQuestion?.kind).toBe('transaction_type')
     expect(typeQuestion?.options?.map(option=>option.label)).toEqual([
       'A purchase','Money I earned','Money moved between accounts','A credit card payment',
-      'A refund','Money I added','Money I borrowed',
+      'A refund','Money I added','Money I borrowed','Something else',
     ])
     expect(JSON.stringify(typeQuestion)).not.toMatch(/ledger|schedule c|tax category|classification/i)
     expect(projectCustomerQuestion(item('CONFLICTING_EVIDENCE', {

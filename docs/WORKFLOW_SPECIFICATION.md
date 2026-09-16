@@ -450,3 +450,52 @@ Purchase receipts are a distinct evidence type, not a generic document requireme
 Unresolved incoming financial activity receives one canonical transaction-type question, including historical imports. Customer payment establishes business income once; transfers, owner contributions, and loan proceeds have no P&L effect. Refund/reimbursement and other answers preserve the customer's fact but remain unresolved until supporting facts establish an appropriate adjustment; they do not default to revenue or an invented expense reversal. Existing chronological ordering, deferral, unknown-answer semantics, evidence versions, and historical meal suppression remain in force.
 
 Needs a receipt selection directly offers **I don’t have these receipts** and **Clear selection**. This records the existing receipt-unavailable assertion, preserves financial treatment and history, and permits a later receipt. Business removal belongs in general transaction correction, not receipt cleanup. Incoming transaction detail directs the customer to its factual Betti question instead of presenting a missing receipt.
+
+## Decision-engine foundation — Phase A+B
+
+Category evidence is independent of business use, business allocation, documentation,
+and supported tax treatment. The append-only operating-expense assessment preserves
+an evidence-backed candidate before business use is known. Established allocation
+categories remain the reporting authority. A candidate alone never creates a business
+expense or tax deduction. Receipt absence/unavailability does not erase an established
+business allocation or category.
+
+Statement accounts use the same customer-authored Business only / Business and personal
+fact as connected accounts. Unknown account use is collected once under Check-in or
+Bank connections, not inferred from the statement title. Changes enqueue the existing
+leased, resumable account-dependent reassessment jobs.
+
+The deterministic classifier normalizes provider vocabulary, shares meal and telecom
+context, preserves existing categories against weaker recognition failures, and routes
+incoming money and payment descriptions before ordinary purchases. Customer-authored
+facts remain authoritative. Automation may fill one blank business category only while
+preserving every nature/use/amount/purpose/split fact; it may not flatten multiple
+business allocations or replace existing categories. Ambiguous answers require a useful
+factual clarification rather than an invented category.
+
+Working income, expenses and profit use established business allocations through the
+shared working-books policy. Reports shows named categories plus “Still being
+categorized,” reconciling exactly to total expenses. Bookkeeping-decision counts and
+incomplete tax-allocation counts are separate; included working expenses are never
+labelled excluded merely because tax treatment is incomplete. Tax-Time retains the
+separate supported-deduction basis.
+
+Current-question projection filters obsolete category/business-use questions without
+marking them answered. Historical meal limitations remain evidence limitations, not
+substantiated facts. GET question/report projections do not generate questions. The
+explicit question-reconciliation POST command remains an idempotent compatibility
+path after customer actions/refresh; normal record workers also generate applicable
+questions. This command retains authentication, MFA and membership enforcement.
+
+### Deferred Phase C: controlled semantic intelligence
+
+Semantic merchant/customer-answer interpretation and category/ambiguity proposals need
+measured evaluation, evidence references, correction precedence and conflict handling.
+Transaction AI remains shadow-only; no model acquires independent tax authority.
+
+### Deferred Phase D: complete split workflows
+
+Complete the normal loan principal/interest workflow, multiple business-category
+allocations, receipt line-item allocation, exact reconciliation and split corrections.
+Raw OCR line items are not trusted category allocations. Broad customer-approved
+recurring rules are also deferred; existing phone/internet fact reuse is preserved.

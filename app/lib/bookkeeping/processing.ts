@@ -95,13 +95,17 @@ async function recordBusinessContextAssessment(admin: SupabaseClient,
 async function openBusinessContextMealQuestion(input: { admin: SupabaseClient
   snapshot: Awaited<ReturnType<typeof loadBookkeepingEvaluationSnapshot>>; assessmentId: string | null }) {
   if (!input.assessmentId || input.snapshot.currentDecision.bookkeepingNature !== 'expense'
-    || input.snapshot.currentDecision.treatment !== 'business' || input.snapshot.receiptMealSupported) return
+    || input.snapshot.currentDecision.treatment !== 'business') return
   const assessment = assessBusinessContext(input.snapshot)
-  if (assessment.state !== 'established' || assessment.economicContext !== 'restaurant_meal') return
+  if (!['established', 'customer_authoritative'].includes(assessment.state) || assessment.economicContext !== 'restaurant_meal') return
+  const { data: knownMeal, error: mealError } = await input.admin.from('current_bookkeeping_meal_substantiation_facts')
+    .select('id').eq('business_id', input.snapshot.businessId).eq('bookkeeping_record_id', input.snapshot.recordId).maybeSingle()
+  if (mealError) throw new Error('MEAL_FACT_LOAD_FAILED')
+  if (knownMeal) return
   const repository = new SupabaseBookkeepingRepository(input.admin)
   await repository.openReviewIssue({ businessId: input.snapshot.businessId, recordId: input.snapshot.recordId,
     decisionId: input.snapshot.currentDecision.id, reason: 'BUSINESS_PURPOSE_NEEDED',
-    issueKey: `business-context-meal:${input.snapshot.recordId}`,
+    issueKey: `business-context-meal:${input.snapshot.recordId}:${input.assessmentId}`,
     contextFingerprint: `${assessment.evidenceFingerprint}:meal-substantiation`,
     questionContext: { schemaVersion: 1, routingVersion: assessment.version,
       reason: 'BUSINESS_PURPOSE_NEEDED', factType: 'meal_attendee_relationship',
@@ -111,7 +115,9 @@ async function openBusinessContextMealQuestion(input: { admin: SupabaseClient
 
 async function openRemainingBusinessUseQuestion(input: { admin: SupabaseClient
   snapshot: Awaited<ReturnType<typeof loadBookkeepingEvaluationSnapshot>> }) {
-  if (input.snapshot.currentDecision.bookkeepingNature !== 'expense'
+  if ((input.snapshot.amountCents ?? 0) >= 0
+    || (input.snapshot.accountProvider === 'statement' && !input.snapshot.accountUse)
+    || input.snapshot.currentDecision.bookkeepingNature !== 'expense'
     || input.snapshot.currentDecision.treatment !== 'unresolved'
     || input.snapshot.hasOpenConflictingEvidence) return
   const context = assessBusinessContext(input.snapshot)
@@ -146,6 +152,18 @@ async function openBusinessContextAllocationQuestion(input: { admin: SupabaseCli
   })
 }
 
+async function ensureRemainingNatureQuestion(admin: SupabaseClient, snapshot: Awaited<ReturnType<typeof loadBookkeepingEvaluationSnapshot>>) {
+  if (snapshot.currentDecision.provenance === 'user' || snapshot.currentDecision.treatment !== 'unresolved' || snapshot.currentDecision.bookkeepingNature !== null
+    || snapshot.amountCents == null || snapshot.hasOpenConflictingEvidence) return
+  await new SupabaseBookkeepingRepository(admin).openReviewIssue({ businessId: snapshot.businessId,
+    recordId: snapshot.recordId, decisionId: snapshot.currentDecision.id, reason: 'TRANSACTION_TYPE_UNCLEAR',
+    issueKey: `nature:${snapshot.recordId}:${snapshot.currentDecision.id}`,
+    contextFingerprint: createHash('sha256').update(JSON.stringify({decision:snapshot.currentDecision.id,
+      description:snapshot.description,amount:snapshot.amountCents})).digest('hex'),
+    questionContext: { schemaVersion:1, reason:'TRANSACTION_TYPE_UNCLEAR',
+      factType: snapshot.amountCents > 0 ? 'money_in_source' : 'economic_nature' } })
+}
+
 export async function evaluateBookkeepingProcessingJob(
   admin: SupabaseClient,
   job: Row,
@@ -171,7 +189,7 @@ export async function evaluateBookkeepingProcessingJob(
     throw error
   })
   if (!snapshot) return { outcome: 'inactive' as const }
-  const { assessment: contextAssessment } = await recordBusinessContextAssessment(admin, snapshot)
+  const { assessment: contextAssessment, assessmentId: contextAssessmentId } = await recordBusinessContextAssessment(admin, snapshot)
   if (contextAssessment.state === 'established'
     && snapshot.currentDecision.bookkeepingNature === 'expense') {
     await resolveCurrentQuestions({ admin, businessId, recordId: snapshot.recordId,
@@ -188,6 +206,9 @@ export async function evaluateBookkeepingProcessingJob(
       ? { outcome: 'drain_limit' as const }
       : await runAiShadowEvaluation({ admin, snapshot, now: options.now })
     const deduction = await runDeductionIntelligenceForRecord({ admin, snapshot, now: options.now })
+    await openBusinessContextMealQuestion({ admin, snapshot, assessmentId: contextAssessmentId })
+    await openRemainingBusinessUseQuestion({ admin, snapshot })
+    await ensureRemainingNatureQuestion(admin, snapshot)
     const operatingExpense = await processOperatingExpenseTreatment({ admin, snapshot })
     const vehicleExpense = await processVehicleExpense({admin,snapshot})
     return { outcome: 'unresolved' as const, aiShadow: aiShadow.outcome,
@@ -195,6 +216,9 @@ export async function evaluateBookkeepingProcessingJob(
   }
   if (decisionMatchesProposal(snapshot.currentDecision, evaluation.proposal)) {
     const deduction = await runDeductionIntelligenceForRecord({ admin, snapshot, now: options.now })
+    await openBusinessContextMealQuestion({ admin, snapshot, assessmentId: contextAssessmentId })
+    await openRemainingBusinessUseQuestion({ admin, snapshot })
+    await ensureRemainingNatureQuestion(admin, snapshot)
     const operatingExpense=await processOperatingExpenseTreatment({admin,snapshot})
     const vehicleExpense=await processVehicleExpense({admin,snapshot})
     return { outcome: 'already_resolved' as const, ruleKey: evaluation.ruleKey,
@@ -225,6 +249,7 @@ export async function evaluateBookkeepingProcessingJob(
         proposal: categoryEvaluation.proposal })
       refreshed = await loadBookkeepingEvaluationSnapshot({ admin, businessId, recordId })
     }
+    await ensureRemainingNatureQuestion(admin, refreshed)
     const refreshedContext = await recordBusinessContextAssessment(admin, refreshed)
     await openBusinessContextMealQuestion({ admin, snapshot: refreshed,
       assessmentId: refreshedContext.assessmentId })

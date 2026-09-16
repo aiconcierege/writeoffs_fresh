@@ -42,7 +42,7 @@ export function assessBusinessContext(snapshot: BookkeepingEvaluationSnapshot): 
   })).digest('hex')
   const economicContext = economic?.context
     ?? (snapshot.currentDecision.bookkeepingNature === 'expense' ? 'ordinary_expense' : null)
-  if (snapshot.currentDecision.provenance === 'user') return {
+  if (snapshot.currentDecision.provenance === 'user' || snapshot.customerFactsAuthoritative) return {
     version: BUSINESS_CONTEXT_VERSION, state: 'customer_authoritative', basis: 'customer_correction',
     economicContext, evidenceFingerprint, evidenceReferences: references,
   }

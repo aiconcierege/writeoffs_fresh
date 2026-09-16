@@ -128,8 +128,8 @@ export function projectCustomerQuestion(
       && hasBusinessPortion ? {
       ...base,
       kind: 'business_purpose',
-      prompt: 'What was this purchase for?',
-      guidance: 'Tell WriteOffs what you bought or why you needed it.',
+      prompt: item.decision.businessPurpose ? 'How will you use what you bought?' : 'What was this purchase for?',
+      guidance: item.decision.businessPurpose ? 'For example: office work, materials for a customer job, or products you sell. Tell me the use, not an accounting category.' : 'Tell WriteOffs what you bought or why you needed it.',
     } : null
   }
   if (item.event.reason === 'MIXED_USE_CLARIFICATION') {
@@ -155,7 +155,7 @@ export function projectCustomerQuestion(
     guidance:'Choose what happened. I’ll handle the bookkeeping rules.',options:[
       ['purchase','A purchase'],['earned_money','Money I earned'],['moved_money','Money moved between accounts'],
       ['paid_card','A credit card payment'],['received_refund','A refund'],['added_own_money','Money I added'],
-      ['borrowed_money','Money I borrowed'],
+      ['borrowed_money','Money I borrowed'], ['other','Something else'],
     ].map(([id,label])=>({id,label})),
     ...(economicContext?.confidence === 'narrowed_confirmation' ? {
       prompt: economicContext.context === 'telecom_service'
@@ -203,12 +203,6 @@ async function buildCustomerQuestions(input: {
   asOf: string
   includeNonConversational?: boolean
 }) {
-  const incoming = await input.supabase.rpc('ensure_current_money_in_questions')
-  if (incoming.error) throw new Error('Incoming money questions could not be prepared.')
-  const ensured = await input.supabase.rpc('ensure_current_meal_substantiation_questions')
-  if (ensured.error && ensured.error.code !== 'PGRST202') throw new Error('Meal substantiation questions could not be prepared.')
-  const receiptMeals = await input.supabase.rpc('ensure_current_receipt_meal_candidate_questions')
-  if (receiptMeals.error && receiptMeals.error.code !== 'PGRST202') throw new Error('Receipt meal questions could not be prepared.')
   const deductionQuestions = await listDeductionQuestions(input.supabase)
   const contractorQuestions = await listContractorQuestions(input.supabase,input.asOf)
   const [queue,validBookkeepingResult] = await Promise.all([

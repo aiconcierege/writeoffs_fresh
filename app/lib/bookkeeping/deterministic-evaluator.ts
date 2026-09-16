@@ -4,7 +4,7 @@ import type {
 } from './model'
 import { hasStrongOrdinaryExpenseEvidence, snapshotEconomicContext } from './evidence-aware-routing'
 import { assessBusinessContext, businessContextAllocationDomain } from './business-context'
-import { classifyOperatingExpense } from './operating-expense-classification'
+import { classifyOperatingExpense, expenseMovementReason } from './operating-expense-classification'
 
 export const BOOKKEEPING_EVALUATOR_VERSION = 'v1' as const
 
@@ -38,6 +38,7 @@ export type BookkeepingEvaluationSnapshot = {
   description: string | null
   businessDescription: string | null
   activeDocumentCount: number
+  customerFactsAuthoritative?: boolean
   customerAnswerCount: number
   hasOpenConflictingEvidence: boolean
   decisionHistoryLength: number
@@ -46,6 +47,7 @@ export type BookkeepingEvaluationSnapshot = {
   movementCandidates: MovementEvidence[]
   personalFinanceCategory?: { primary: string | null; detailed: string | null } | null
   receiptMealSupported?: boolean
+  accountProvider?: string | null
   accountUse?: {
     eventId: string
     designation: 'business_only' | 'business_and_personal'
@@ -67,6 +69,7 @@ export type DeterministicBookkeepingRuleKey =
   | 'bookkeeping.business_context.default_business.v1'
   | 'bookkeeping.business_context.withdrawn.v1'
   | 'bookkeeping.schedule_c.operating_expense.v1'
+  | 'bookkeeping.incoming_source.reset.v1'
 
 export type DeterministicEvaluation = {
   ruleKey: DeterministicBookkeepingRuleKey
@@ -129,14 +132,26 @@ export function evaluateDeterministicBookkeeping(
     || snapshot.amountCents == null
     || (snapshot.movement && (!snapshot.movement.sourceCurrent || snapshot.movement.pending))) return null
 
+  // Repair only an unsupported automated purchase inference, never a customer
+  // refund decision or an established allocation.
+  if (snapshot.amountCents > 0 && snapshot.currentDecision.provenance !== 'user'
+    && snapshot.currentDecision.bookkeepingNature === 'expense'
+    && snapshot.currentDecision.treatment === 'unresolved' && !snapshot.currentDecision.allocations.length) {
+    const ruleKey = 'bookkeeping.incoming_source.reset.v1' as const
+    return { ruleKey, proposal: { bookkeepingNature: null, treatment: 'unresolved', reviewStatus: 'needs_review',
+      confidence: 1, reason: 'Incoming money needs its source established before purchase classification.',
+      businessPurpose: snapshot.currentDecision.businessPurpose, allocations: [],
+      basis: { ruleKey, ruleAllowed: true, evidenceSufficient: false,
+        businessPurposeSupported: false, mixedUseAllocationSupported: false } } }
+  }
   const context = snapshotEconomicContext(snapshot)
   const operatingClassification = classifyOperatingExpense(snapshot)
-  const ordinaryExpenseEstablished = snapshot.currentDecision.bookkeepingNature === 'expense'
+  const ordinaryExpenseEstablished = !expenseMovementReason(snapshot) && (snapshot.currentDecision.bookkeepingNature === 'expense'
     || hasStrongOrdinaryExpenseEvidence({
       amountCents: snapshot.amountCents,
       plaidPrimary: snapshot.personalFinanceCategory?.primary,
     })
-    || operatingClassification.status === 'ordinary'
+    || operatingClassification.status === 'ordinary')
   const businessContext = assessBusinessContext(snapshot)
 
   // Classification is an automated reporting conclusion, not a customer
@@ -144,13 +159,12 @@ export function evaluateDeterministicBookkeeping(
   // allocation amounts; only enrich an uncategorized current business portion.
   const currentBusinessAllocations = snapshot.currentDecision.allocations.filter(allocation => allocation.kind === 'business')
   if (snapshot.currentDecision.bookkeepingNature === 'expense'
-    && snapshot.currentDecision.provenance !== 'user'
     && ['business', 'mixed_use'].includes(snapshot.currentDecision.treatment)
     && currentBusinessAllocations.length > 0
     && !snapshot.hasOpenConflictingEvidence) {
     const classification = classifyOperatingExpense(snapshot)
     if (classification.status === 'ordinary' && classification.categoryKey
-      && currentBusinessAllocations.some(allocation => allocation.taxCategoryKey !== classification.categoryKey)) {
+      && currentBusinessAllocations.length === 1 && currentBusinessAllocations[0].taxCategoryKey == null) {
       const ruleKey = 'bookkeeping.schedule_c.operating_expense.v1' as const
       return { ruleKey, proposal: {
         bookkeepingNature: snapshot.currentDecision.bookkeepingNature,
@@ -161,7 +175,7 @@ export function evaluateDeterministicBookkeeping(
         businessPurpose: snapshot.currentDecision.businessPurpose,
         allocations: snapshot.currentDecision.allocations.map(allocation => ({
           kind: allocation.kind, amountCents: allocation.amountCents,
-          taxCategoryKey: allocation.kind === 'business' ? classification.categoryKey : null,
+          taxCategoryKey: allocation.kind === 'business' ? classification.categoryKey : allocation.taxCategoryKey ?? null,
           memo: allocation.memo ?? null,
         })),
         basis: { evidenceSufficient: true, ruleKey, ruleAllowed: true,
@@ -171,7 +185,7 @@ export function evaluateDeterministicBookkeeping(
     }
   }
 
-  if (snapshot.currentDecision.provenance === 'user') return null
+  if (snapshot.currentDecision.provenance === 'user' || snapshot.customerFactsAuthoritative) return null
   const inferredBusinessContextDecision = snapshot.currentDecision.bookkeepingNature === 'expense'
     && snapshot.currentDecision.treatment === 'business'
     && /Customer (?:designated the payment account|deliberately provided the receipt)/.test(
@@ -238,7 +252,7 @@ export function evaluateDeterministicBookkeeping(
         businessPurposeSupported: false, mixedUseAllocationSupported: false },
     } }
   }
-  if (context?.confidence === 'strong') {
+  if (!expenseMovementReason(snapshot) && context?.confidence === 'strong') {
     const ruleKey = `bookkeeping.economic_context.${context.context}.v1` as DeterministicBookkeepingRuleKey
     return { ruleKey, proposal: {
       bookkeepingNature: 'expense', treatment: 'unresolved', reviewStatus: 'needs_review',

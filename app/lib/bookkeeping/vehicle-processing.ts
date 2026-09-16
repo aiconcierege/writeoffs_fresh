@@ -28,7 +28,7 @@ export function vehicleExpenseKind(snapshot:BookkeepingEvaluationSnapshot):Vehic
 const hash=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex')
 export async function processVehicleExpense(input:{admin:SupabaseClient;snapshot:BookkeepingEvaluationSnapshot}){
   const {admin,snapshot}=input;const kind=vehicleExpenseKind(snapshot)
-  if(!kind||snapshot.currentDecision.bookkeepingNature!=='expense'||snapshot.currentDecision.provenance==='user'
+  if(!kind||snapshot.currentDecision.bookkeepingNature!=='expense'||(snapshot.currentDecision.provenance==='user'||snapshot.customerFactsAuthoritative)
     ||(!['business','mixed_use','unresolved'].includes(snapshot.currentDecision.treatment)))return{outcome:'not_applicable' as const}
   const associationResult=await admin.from('current_vehicle_expense_associations').select('*')
     .eq('business_id',snapshot.businessId).eq('bookkeeping_record_id',snapshot.recordId).maybeSingle()

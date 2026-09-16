@@ -1,3 +1,5 @@
+import { StatementAccountUse } from '../components/StatementAccountUse'
+import { loadStatementAccountUse } from '../lib/bookkeeping/statement-account-use'
 import {loadGuidedWorkSummary} from '../lib/bookkeeping/guided-review'
 import {hasDeferredBookkeepingWork} from '../lib/onboarding/deferred-work'
 import{redirect}from'next/navigation'
@@ -20,5 +22,6 @@ export default async function CheckInPage({searchParams}:{searchParams:Promise<{
   const work=await loadGuidedWorkSummary(supabase)
   const {record}=await searchParams
   const scoped=record?queue.questions.filter(question=>question.recordId===record):queue.questions
-  return <QuestionFlow initialQuestions={scoped} recordId={record} experience="check-in" otherWorkWaiting={deferred||work.missingReceipts||work.historicalReview||work.documentationLimitations}/>
+  const statementAccounts = await loadStatementAccountUse(supabase, true)
+  return <><StatementAccountUse accounts={statementAccounts}/><QuestionFlow initialQuestions={scoped} recordId={record} experience="check-in" otherWorkWaiting={deferred||work.missingReceipts||work.historicalReview||work.documentationLimitations}/></>
 }

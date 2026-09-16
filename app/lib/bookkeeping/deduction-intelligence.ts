@@ -97,7 +97,7 @@ export async function runDeductionIntelligenceForRecord(input: {
   }
   const factDerivedCustomerDecision = snapshot.currentDecision.provenance === 'user'
     && Boolean(existingDependencies?.length)
-  if (snapshot.currentDecision.provenance === 'user'
+  if ((snapshot.currentDecision.provenance === 'user' || snapshot.customerFactsAuthoritative)
     && !input.customerAnsweredFact && !factDerivedCustomerDecision) {
     return { outcome: 'customer_decision_preserved' as const }
   }

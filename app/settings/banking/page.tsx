@@ -1,3 +1,5 @@
+import { StatementAccountUse } from '../../components/StatementAccountUse'
+import { loadStatementAccountUse } from '../../lib/bookkeeping/statement-account-use'
 // app/settings/banking/page.tsx
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -21,6 +23,7 @@ export default async function BankingSettings() {
       .select('id,financial_account_id,designation,effective_at'),
   ])
 
+  const statementAccounts = await loadStatementAccountUse(supabase)
   return (
     <main className="app-page"><div className="page-container page-container-narrow space-y-8">
       <header className="space-y-1">
@@ -28,6 +31,7 @@ export default async function BankingSettings() {
         <p className="page-description">Connect your accounts and tell Betti how you use each one.</p>
       </header>
 
+      <StatementAccountUse accounts={statementAccounts}/>
       <div className="space-y-2">
         <BankConnect enabled={plaidLinkEnabled()} sandbox={plaidEnvironment() === 'sandbox'}
           connections={connections ?? []} accounts={accounts ?? []} accountUses={accountUses ?? []} />

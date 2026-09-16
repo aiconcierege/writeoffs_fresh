@@ -1,3 +1,4 @@
+import { isCategoryOnlyEnrichment } from './category-enrichment'
 import type {
   BookkeepingActor,
   BookkeepingDecisionInput,
@@ -267,7 +268,7 @@ export class CanonicalBookkeepingService {
         'The bookkeeping decision changed; reevaluate before saving.'
       )
     }
-    if (current.provenance === 'user') {
+    if (current.provenance === 'user' && !isCategoryOnlyEnrichment(current, input.proposal)) {
       throw new BookkeepingValidationError(
         'An automated decision cannot silently supersede a user decision.'
       )

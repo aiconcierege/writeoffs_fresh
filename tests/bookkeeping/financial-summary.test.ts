@@ -54,10 +54,10 @@ describe('canonical financial summary aggregation', () => {
     expect(result.completeness.unresolvedRecordCount).toBe(1)
   })
 
-  it('does not count a materially unresolved amount as an established business expense',()=>{
+  it('retains established allocations independently from open documentation flags',()=>{
     const result=summarize([record({materiallyUnresolved:true})])
-    expect(result.businessExpensesCents).toBe(0)
-    expect(result.completeness.unresolvedRecordCount).toBe(1)
+    expect(result.businessExpensesCents).toBe(10000)
+    expect(result.completeness.unresolvedRecordCount).toBe(0)
   })
   it('preserves signed income including negative adjustments', () => {
     const result = summarize([

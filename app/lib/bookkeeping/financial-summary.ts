@@ -1,3 +1,4 @@
+import { workingBusinessAllocations } from './working-books-policy'
 export type CanonicalSummaryAllocation = {
   id: string
   kind: 'business' | 'personal' | 'excluded'
@@ -135,7 +136,7 @@ export function aggregateCanonicalFinancialSummary(
     }
 
     const decision = currentDecision(record.decisions)
-    if (record.materiallyUnresolved || !decision || decision.treatment === 'unresolved') {
+    if (!decision || decision.treatment === 'unresolved') {
       unresolvedRecordCount += 1
       if (record.amountCents == null) unresolvedAmountsKnown = false
       else unresolvedSignedTotal = addCents(unresolvedSignedTotal, record.amountCents)
@@ -146,7 +147,7 @@ export function aggregateCanonicalFinancialSummary(
       continue
     }
 
-    for (const allocation of decision.allocations) {
+    for (const allocation of workingBusinessAllocations(decision)) {
       if (allocation.kind !== 'business') continue
       if (decision.bookkeepingNature === 'business_income') {
         incomeSigned = addCents(incomeSigned, allocation.amountCents)

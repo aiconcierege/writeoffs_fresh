@@ -39,6 +39,10 @@ export async function actOnCustomerQuestion(input: {
   if (!item || item.event.id !== input.expectedEventId) {
     throw new Error('This question changed. Please continue with the latest question.')
   }
+  const eligibility = await input.supabase.rpc('list_current_askable_bookkeeping_question_event_ids',
+    { p_as_of: new Date().toISOString() })
+  if (eligibility.error || !(eligibility.data ?? []).some((row: {event_id:string}) => row.event_id === item.event.id))
+    throw new Error('This question is not currently available. Please refresh your questions.')
   const projected = projectCustomerQuestion(item, {
     merchant: 'Transaction', amountCents: item.record.authoritativeAmountCents,
     currency: item.record.authoritativeCurrency, date: null,

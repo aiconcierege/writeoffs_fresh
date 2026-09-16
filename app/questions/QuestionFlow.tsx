@@ -47,6 +47,8 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
 
   async function reloadAuthoritativeQueue(){
     setQueueNeedsReload(true)
+    const reconciled = await fetch('/api/bookkeeping/questions/reconcile', { method: 'POST', signal: AbortSignal.timeout(15_000) })
+    if (!reconciled.ok) throw new Error('Questions could not be refreshed. Please try again.')
     const queueResponse=await fetch('/api/bookkeeping/questions',{cache:'no-store',signal:AbortSignal.timeout(15_000)})
     const queueResult=await queueResponse.json() as {questions?:CustomerQuestion[];error?:string}
     if(!queueResponse.ok||!queueResult.questions)throw new Error(queueResult.error||'Unable to load the next question.')

@@ -76,7 +76,7 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
     admin.from('bookkeeping_financial_sources')
       .select('financial_transaction_id').eq('business_id', businessId)
       .eq('bookkeeping_record_id', recordId).is('revoked_at', null).maybeSingle(),
-    admin.from('bookkeeping_decisions').select('id').eq('business_id', businessId)
+    admin.from('bookkeeping_decisions').select('id,provenance').eq('business_id', businessId)
       .eq('bookkeeping_record_id', recordId),
     admin.from('bookkeeping_review_events')
       .select('id,supersedes_event_id,event_type,reason').eq('business_id', businessId)
@@ -133,6 +133,8 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
     hasOpenConflictingEvidence: currentReviewEvents.some((event) =>
       event.reason === 'CONFLICTING_EVIDENCE' && event.event_type !== 'resolved'),
     decisionHistoryLength: decisionsResult.data?.length ?? 0,
+    customerFactsAuthoritative: currentDecision.provenance === 'user' || (Boolean(currentDecision.reason?.startsWith('Schedule C operating-expense classification:'))
+      && Boolean(decisionsResult.data?.some(row => row.provenance === 'user'))),
     currentDecision,
     movement: null,
     movementCandidates: [],
@@ -156,7 +158,7 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
   const transactions = (candidates ?? []) as Row[]
   const accountIds = [...new Set(transactions.map((candidate) => String(candidate.financial_account_id)))]
   const { data: accounts, error: accountsError } = await admin.from('financial_accounts')
-    .select('id,business_id,account_type,connection_status,archived_at')
+    .select('id,business_id,account_type,connection_status,archived_at,provider')
     .eq('business_id', businessId).in('id', accountIds)
   if (accountsError) throw new Error('BOOKKEEPING_SOURCE_UNAVAILABLE')
   const { data: accountUses, error: accountUsesError } = await admin.from('current_financial_account_use')
@@ -228,6 +230,7 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
     movement: compoundComponent ? null : movement,
     movementCandidates: compoundComponent ? [] : movements.filter((candidate) =>
       candidate.financialTransactionId !== transaction.id),
+    accountProvider: accountById.get(String(transaction.financial_account_id))?.provider ?? null,
     accountUse: (() => {
       const use = accountUseById.get(String(transaction.financial_account_id))
       return use && (use.designation === 'business_only' || use.designation === 'business_and_personal') ? {

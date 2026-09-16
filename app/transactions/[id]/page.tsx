@@ -1,3 +1,5 @@
+import { decisionProgress } from '../../lib/bookkeeping/decision-progress'
+import { SCHEDULE_C_OPERATING_CATEGORIES } from '../../lib/bookkeeping/operating-expense-classification'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createServerSupabase } from '../../../utils/supabase/server'
@@ -17,9 +19,16 @@ export default async function TransactionDetailPage({ params,searchParams }: { p
   const reviewContext=await searchParams
   const transaction = await getTransactionDetailReadModel({ supabase, userId: user.id, transactionId: id })
   if (!transaction) notFound()
-  const {data:work}=transaction.recordId?await supabase.from('customer_transaction_work').select('needs_fact,historical_documentation').eq('record_id',transaction.recordId).maybeSingle():{data:null}
-  const questionHref=transaction.recordId?`/check-in?record=${transaction.recordId}`:'/check-in'
+  const {data:work}=transaction.recordId?await supabase.from('customer_transaction_work').select('needs_fact,historical_documentation,account_id').eq('record_id',transaction.recordId).maybeSingle():{data:null}
   const receiptEligible = purchaseReceiptEligible(transaction)
+  const account = work?.account_id ? await supabase.from('financial_accounts').select('provider').eq('id',work.account_id).maybeSingle() : {data:null}
+  const accountUse = work?.account_id ? await supabase.from('current_financial_account_use').select('id').eq('financial_account_id',work.account_id).maybeSingle() : {data:null}
+  const progress = decisionProgress({ recordId:transaction.recordId ?? transaction.id,
+    treatment:transaction.treatment, nature:transaction.bookkeepingNature, category:transaction.category_key,
+    candidate:transaction.categoryCandidate, hasReceipt:transaction.has_receipt, receiptUnavailable:transaction.receiptLost,
+    needsFact:Boolean(work?.needs_fact), accountUseNeeded:account.data?.provider === 'statement' && !accountUse.data,
+    amountCents:transaction.amountCents,description:transaction.description ?? transaction.vendor })
+  const categoryLabel = (key:string) => SCHEDULE_C_OPERATING_CATEGORIES[key as keyof typeof SCHEDULE_C_OPERATING_CATEGORIES] ?? key.replaceAll('-', ' ')
   let canMarkLost = false
   if (receiptEligible && transaction.recordId) {
     const { data: business } = await supabase.from('businesses').select('id').eq('owner_user_id', user.id).single()
@@ -37,8 +46,9 @@ export default async function TransactionDetailPage({ params,searchParams }: { p
     <section className="grid gap-6 border-b border-slate-200 py-6 sm:grid-cols-2 sm:gap-8 sm:py-8">
       <div><h2 className="text-lg font-semibold text-slate-950">How Betti handled this</h2>
         <p className="mt-3"><span className="status-badge">{transaction.treatmentLabel}</span></p>
-        <p className="mt-2 text-sm leading-6 text-slate-600">{transaction.decisionReason ?? (transaction.sourceModel === 'canonical' ? 'WriteOffs is still working on this transaction.' : 'This is a historical transaction.')}</p>
-        {work?.needs_fact&&transaction.treatment!=='unresolved'&&<Link href={questionHref} className="inline-flex min-h-11 items-center font-semibold text-[#243186]">Answer Betti’s questions →</Link>}
+        <p className="mt-2 text-sm leading-6 text-slate-600">{progress.message}</p>
+        {(transaction.categoryKeys?.length || transaction.categoryCandidate) ? <div className="mt-4"><h3 className="text-sm font-semibold">{transaction.categoryKeys?.length ? 'Category' : 'Likely category'}</h3><p className="mt-1 text-sm">{(transaction.categoryKeys?.length ? transaction.categoryKeys : [transaction.categoryCandidate!]).map(categoryLabel).join(' · ')}</p></div> : null}
+        {progress.action && <Link href={progress.action.href} className="inline-flex min-h-11 items-center font-semibold text-[#243186]">{progress.action.label} →</Link>}
         {transaction.contractorName && <p className="mt-2 text-sm text-slate-600">Contractor: <span className="font-medium text-slate-900">{transaction.contractorName}</span></p>}
         {transaction.sourceModel==='canonical'&&transaction.currentDecisionId&&transaction.treatment==='personal'
           ?<CorrectionForm transactionId={transaction.id} currentDecisionId={transaction.currentDecisionId} totalCents={transaction.amountCents} restoreMode="personal"/>
@@ -47,8 +57,7 @@ export default async function TransactionDetailPage({ params,searchParams }: { p
           :transaction.sourceModel === 'canonical' && transaction.sourceKind !== 'manual' && transaction.bookkeepingNature === 'expense' && transaction.currentDecisionId
           ? <CorrectionForm transactionId={transaction.id} currentDecisionId={transaction.currentDecisionId} totalCents={transaction.amountCents}
               reviewContext={reviewContext.review&&reviewContext.snapshot&&reviewContext.event?{reviewPeriodId:reviewContext.review,reviewSnapshotId:reviewContext.snapshot,expectedReviewEventId:reviewContext.event}:undefined}/>
-          : transaction.sourceModel === 'canonical' && transaction.treatment === 'unresolved'
-            ? <Link href={questionHref} className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">Answer Betti’s question →</Link> : null}</div>
+          : null}</div>
       {(receiptEligible || transaction.has_receipt) && <div><h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{receiptEligible ? 'Receipt and documentation' : 'Supporting records'}</h2>
         <p className="mt-3 font-medium text-slate-950">{transaction.has_receipt ? 'Supporting receipt attached' : transaction.receiptLost ? 'Receipt reported unavailable' : 'No receipt attached'}</p>
         {work?.historical_documentation&&<p className="mt-2 text-sm leading-6 text-slate-600">This older meal is missing details about who was there or its business purpose. Keep any records you find; missing facts have not been assumed.</p>}

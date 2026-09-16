@@ -13,6 +13,8 @@ export type TransactionReadRow = {
   amountCents: number
   currency: string
   category_key: string | null
+  categoryCandidate?: string | null
+  categoryKeys?: string[]
   has_receipt: boolean
   receipt_waived: boolean
   treatmentLabel: string
@@ -79,7 +81,7 @@ export function customerDecisionExplanation(decision:Row|undefined){
   if(treatment==='business')return'WriteOffs found enough information to treat this as business.'
   if(treatment==='mixed_use')return'WriteOffs is using the business portion of this purchase.'
   if(treatment==='personal'||treatment==='excluded')return'This is not included in your business totals.'
-  return decision?'Betti needs one more detail before she can finish this.':null
+  return decision?'This activity still needs a bookkeeping decision.':null
 }
 
 export function projectCustomerTransactionHistory(history:Row[]):TransactionHistoryItem[]{
@@ -165,6 +167,8 @@ export async function listTransactionReadModel(input: {
   let decisions: Row[] = []
   let documentLinks: Row[] = []
   let invoiceLinks: Row[] = []
+  let categoryAssessments: Row[] = []
+  let allocationRows: Row[] = []
   if (recordIds.length) {
     const [sourceResult, decisionResult, documentResult, manualResult, invoiceResult] = await Promise.all([
       input.supabase.from('bookkeeping_financial_sources')
@@ -190,6 +194,16 @@ export async function listTransactionReadModel(input: {
         ?? invoiceResult.error?.message ?? 'unknown read error'
       throw new Error(`Could not assemble canonical transaction history: ${detail}`)
     }
+    const [assessments, allocations] = await Promise.all([
+      input.supabase.from('current_schedule_c_expense_assessments')
+        .select('bookkeeping_record_id,bookkeeping_decision_id,schedule_c_category_key,assessment_status')
+        .eq('business_id', businessId).in('bookkeeping_record_id', recordIds),
+      input.supabase.from('bookkeeping_allocations').select('bookkeeping_decision_id,allocation_kind,tax_category_key')
+        .eq('business_id', businessId).in('bookkeeping_decision_id', (decisionResult.data ?? []).map(row => row.id)),
+    ])
+    if (assessments.error || allocations.error) throw new Error('Could not load category evidence.')
+    categoryAssessments = assessments.data ?? []
+    allocationRows = allocations.data ?? []
     sources = (sourceResult.data ?? []) as Row[]
     sources.push(...resolution.compoundComponents
       .filter((component) => recordIds.includes(component.recordId))
@@ -303,6 +317,10 @@ export async function listTransactionReadModel(input: {
     const history = decisionHistory.get(recordId) ?? []
     const superseded = new Set(history.map((decision) => text(decision, 'supersedes_decision_id')).filter(Boolean))
     const current = history.find((decision) => !superseded.has(text(decision, 'id')))
+    const categoryKeys = [...new Set(allocationRows.filter(row => row.bookkeeping_decision_id === current?.id
+      && row.allocation_kind === 'business' && row.tax_category_key).map(row => String(row.tax_category_key)))]
+    const candidate = categoryAssessments.find(row => row.bookkeeping_record_id === recordId
+      && row.bookkeeping_decision_id === current?.id && row.assessment_status === 'ordinary')
     const amountCents = financial && !compoundComponent
       ? number(financial, 'amount_cents') : number(record, 'amount_cents')
     return [{
@@ -315,7 +333,8 @@ export async function listTransactionReadModel(input: {
       description: invoice ? text(invoice, 'description')
         : financial ? text(financial, 'original_description')
           : manual ? text(manual, 'description') : 'Recorded from a receipt', amount: amountCents / 100,
-      amountCents, currency: financial && !compoundComponent ? text(financial, 'currency') ?? 'USD' : text(record, 'currency') ?? 'USD', category_key: null,
+      amountCents, currency: financial && !compoundComponent ? text(financial, 'currency') ?? 'USD' : text(record, 'currency') ?? 'USD', category_key: categoryKeys.length === 1 ? categoryKeys[0] : null,
+      categoryKeys, categoryCandidate: categoryKeys.length ? null : text(candidate ?? {}, 'schedule_c_category_key'),
       has_receipt: documented.has(recordId), receipt_waived: false,
       treatmentLabel: customerTreatmentLabel(current), decisionReason: customerDecisionExplanation(current),
       decisionProvenance: current ? text(current, 'provenance') : null,
