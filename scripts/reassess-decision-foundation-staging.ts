@@ -24,8 +24,18 @@ async function main() {
  for(let batch=0;batch<40;batch++) {
   const result=await drainBookkeepingProcessingJobs({admin,batchSize:25}); completed+=result.completed;retried+=result.retried
   console.log(JSON.stringify({batch,...result}))
-  if(!result.claimed)break
+  if(!result.claimed) {
+   const remaining=await admin.from('bookkeeping_processing_jobs').select('id',{count:'exact',head:true})
+    .in('business_id',targets.map((target:{businessId:string})=>target.businessId)).in('state',['pending','retryable','processing'])
+   assert(!remaining.error,remaining.error?.code)
+   if(!remaining.count)break
+   await new Promise(resolve=>setTimeout(resolve,1000))
+  }
  }
+ const pending=await admin.from('bookkeeping_processing_jobs').select('id',{count:'exact',head:true})
+  .in('business_id',targets.map((target:{businessId:string})=>target.businessId)).in('state',['pending','retryable','processing'])
+ assert(!pending.error,pending.error?.code)
+ assert.equal(pending.count,0,'Target reassessment still has unfinished jobs; do not certify completion')
  const reports=[]
  for(const target of targets) {
   const repo=new SupabaseCanonicalReportingRepository(admin),canonical=await repo.canonical.loadRecords({businessId:target.businessId,periodStart:'2026-01-01',periodEnd:'2026-12-31'})

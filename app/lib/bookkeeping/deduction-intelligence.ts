@@ -95,7 +95,7 @@ export async function runDeductionIntelligenceForRecord(input: {
   if (existingDependencies?.some((dependency) => dependency.fact_event_id === fact.id)) {
     return { outcome: 'already_applied' as const }
   }
-  const factDerivedCustomerDecision = snapshot.currentDecision.provenance === 'user'
+  const factDerivedCustomerDecision = (snapshot.currentDecision.provenance === 'user' || snapshot.customerFactsAuthoritative)
     && Boolean(existingDependencies?.length)
   if ((snapshot.currentDecision.provenance === 'user' || snapshot.customerFactsAuthoritative)
     && !input.customerAnsweredFact && !factDerivedCustomerDecision) {

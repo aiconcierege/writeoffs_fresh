@@ -88,6 +88,18 @@ suite('deduction intelligence against local PostgreSQL',()=>{
   for(const record of [first,second]){const{data:allocations}=await owner.customer.from('bookkeeping_allocations').select('allocation_kind,amount_cents,bookkeeping_decision_id').eq('bookkeeping_record_id',record.id)
    const latest=(await owner.customer.from('bookkeeping_decisions').select('id,supersedes_decision_id').eq('bookkeeping_record_id',record.id)).data!;const superseded=new Set(latest.map(row=>row.supersedes_decision_id));const leaf=latest.find(row=>!superseded.has(row.id))!;
    expect(allocations?.filter(row=>row.bookkeeping_decision_id===leaf.id).map(row=>[row.allocation_kind,row.amount_cents])).toEqual(expect.arrayContaining([['business',-9800],['personal',-4200]]))}
+  // Safe category enrichment must preserve the approved percentage dependency,
+  // including when the latest decision no longer has direct user provenance.
+  for (const record of [first,second]) {
+    await evaluateBookkeepingProcessingJob(admin,{business_id:owner.businessId,bookkeeping_record_id:record.id,
+      processing_reason:'deterministic_evaluation',target_fingerprint:`bookkeeping-evaluator:v2:record:${record.id}`},
+      {allowAiShadow:false,now:new Date('2026-08-20T12:00:00Z')})
+    const enriched=await loadBookkeepingEvaluationSnapshot({admin,businessId:owner.businessId,recordId:record.id})
+    expect(enriched.currentDecision.allocations.find(a=>a.kind==='business')?.taxCategoryKey).toBe('utilities')
+    const dependency=await admin.from('bookkeeping_decision_deduction_fact_dependencies').select('fact_event_id')
+      .eq('bookkeeping_decision_id',enriched.currentDecision.id)
+    expect(dependency.data).toEqual([{fact_event_id:answered.data}])
+  }
   const{data:fact}=await owner.customer.from('current_deduction_business_facts').select('*').eq('business_id',owner.businessId).single()
   const corrected=await owner.customer.rpc('record_deduction_business_fact',{p_fact_type:fact!.fact_type,p_scope_kind:fact!.scope_kind,p_scope_key:fact!.scope_key,
    p_value:50,p_effective_on:'2026-08-24',p_expected_current_event_id:fact!.id,p_source:'correction',p_reason:'Customer corrected phone use.',p_request_key:crypto.randomUUID()})
