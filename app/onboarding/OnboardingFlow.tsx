@@ -134,7 +134,7 @@ export default function OnboardingFlow({ initialBusiness, joinedMonth, vehicles 
       const response = await fetch('/api/onboarding/complete', { method: 'POST' })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(body.error || 'A required answer still needs attention.')
-      router.push('/get-started')
+      router.push(business.onboarding_start_method==='connected_financial_accounts'?'/get-started':'/import')
       router.refresh()
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'We couldn’t complete setup.')
@@ -161,7 +161,7 @@ export default function OnboardingFlow({ initialBusiness, joinedMonth, vehicles 
           <div className="relative overflow-visible py-6 sm:py-10">
             {!editing && step === 'business' && <BettiIllustration state="welcome" decorative className="onboarding-betti-welcome" sizes="(max-width: 639px) 6rem, 8rem" />}
 
-            <div className="mt-4">{step==='historical_mileage'?<><h1 ref={headingRef} tabIndex={-1} className="text-2xl font-semibold tracking-tight sm:text-3xl">How many business miles have you driven so far this year?</h1><HistoricalMileage joinedMonth={joinedMonth} coverageStart={business.catch_up_start_date??undefined} vehicles={vehicles} expectedId={mileageRevision} onSaved={(answer,id)=>{setMileageRevision(id);update('historical_mileage_answer',answer);nextStep()}}/></>:<Step step={step} business={business} update={update} headingRef={headingRef} edit={setStep} joinedMonth={joinedMonth} agreed={catchUpAgreed} setAgreed={setCatchUpAgreed} serverQuote={activeQuote} />}</div>
+            <div className="mt-4">{step==='historical_mileage'?<><h1 ref={headingRef} tabIndex={-1} className="text-2xl font-semibold tracking-tight sm:text-3xl">Let’s catch up on your business driving</h1><HistoricalMileage joinedMonth={joinedMonth} coverageStart={business.catch_up_start_date??undefined} vehicles={vehicles} expectedId={mileageRevision} onSaved={(answer,id)=>{setMileageRevision(id);update('historical_mileage_answer',answer);nextStep()}}/></>:<Step step={step} business={business} update={update} headingRef={headingRef} edit={setStep} joinedMonth={joinedMonth} agreed={catchUpAgreed} setAgreed={setCatchUpAgreed} serverQuote={activeQuote} />}</div>
             {error && <div role="alert" aria-live="assertive" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>}
           </div>
           <div className="mt-6 flex gap-3 border-t border-slate-200 bg-[#fbfaf7]/95 py-4 sm:justify-between">

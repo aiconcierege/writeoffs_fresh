@@ -55,7 +55,7 @@ describe('canonical v1 onboarding UI', () => {
   })
 
   it('hands completion to the selected activity while keeping Home available', () => {
-    expect(flow).toContain("router.push('/get-started')")
+    expect(flow).toContain("router.push(business.onboarding_start_method==='connected_financial_accounts'?'/get-started':'/import')")
     expect(flow).toContain('Start using WriteOffs')
   })
 })

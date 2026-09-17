@@ -5,12 +5,11 @@ export type CustomerPrerequisiteState = {
   mfaFactorEnrolled: boolean
   membershipLifecycle: string | null
   onboardingComplete: boolean
-  getStartedComplete: boolean
+  getStartedComplete?: boolean // Legacy setup acknowledgement; never an access prerequisite.
 }
 
 const accountRoutes = ['/settings/security', '/settings/billing']
 const historicalRoutes = ['/membership/read-only','/transactions','/reports','/receipts','/mileage','/invoices','/money','/export','/settings']
-const getStartedSupportRoutes = ['/get-started', '/settings/banking', '/receipts', '/import']
 
 function matches(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`)
@@ -59,10 +58,6 @@ export function nextRequiredCustomerDestination(
     return '/onboarding'
   }
 
-  if (!state.getStartedComplete) {
-    if (allowed(pathname, [...getStartedSupportRoutes, ...accountRoutes])) return null
-    return '/get-started'
-  }
 
   return null
 }

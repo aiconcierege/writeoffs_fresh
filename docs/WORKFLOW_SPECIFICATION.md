@@ -517,3 +517,17 @@ Successful answers use result language. Deferral records an explicit unresolved 
 ### Next manual certification — recorded, not executed
 
 Create a separate fresh staging customer; initially do not connect Plaid. Upload the controlled multi-page checking and credit-card statements, with known dates and amounts. Let normal workers ingest them. Verify account use, categories, personal/mixed use, owner use, refunds, card payments, loan documents, money-in, receipts/matching, Reports and Tax-Time. Only after these document-based checks pass, connect Plaid for a separate ingestion/reconciliation test. Keep Rick’s existing customer as history/regression stress data; do not reset it or migrate its history into the new customer.
+
+## Manual/document customer access
+
+Authenticated bookkeeping access requires MFA, membership capability and completed
+product onboarding. Neither Plaid connectivity nor the optional get-started
+acknowledgement is an access prerequisite. Existing document customers with a null
+`business_customer_setup.completed_at` can use their books without a backfill.
+A document start choice leads to Send Betti documents; account connection remains
+an optional recommendation. Document rows appear immediately while uploading,
+then use backend-confirmed review/import/matching states.
+
+Mileage catch-up asks one required date range at a time, preserving recorded
+periods, exact mileage precision, rate boundaries and deferral. Betti calculates
+the deduction. Normal trip entry asks miles and date, not a rate or deduction.

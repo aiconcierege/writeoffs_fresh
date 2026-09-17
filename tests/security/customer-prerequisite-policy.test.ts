@@ -11,14 +11,14 @@ const complete: CustomerPrerequisiteState = {
 }
 
 describe('authenticated customer prerequisite policy', () => {
-  it('orders MFA, membership, onboarding, get started, then the requested product route', () => {
+  it('orders MFA, membership, onboarding, then the requested product route', () => {
     expect(nextRequiredCustomerDestination({ ...complete, mfaSatisfied: false, mfaFactorEnrolled: false }, '/home'))
       .toBe('/settings/security?enroll=required&next=%2Fhome')
     expect(nextRequiredCustomerDestination({ ...complete, mfaSatisfied: false }, '/transactions'))
       .toBe('/mfa/challenge?next=%2Ftransactions')
     expect(nextRequiredCustomerDestination({ ...complete, membershipLifecycle: null }, '/home')).toBe('/membership')
     expect(nextRequiredCustomerDestination({ ...complete, onboardingComplete: false }, '/home')).toBe('/onboarding')
-    expect(nextRequiredCustomerDestination({ ...complete, getStartedComplete: false }, '/home')).toBe('/get-started')
+    expect(nextRequiredCustomerDestination({ ...complete, getStartedComplete: false }, '/home')).toBeNull()
     expect(nextRequiredCustomerDestination(complete, '/reports')).toBeNull()
   })
 
@@ -28,7 +28,7 @@ describe('authenticated customer prerequisite policy', () => {
     expect(nextRequiredCustomerDestination({ ...complete, onboardingComplete: false }, '/onboarding')).toBeNull()
     expect(nextRequiredCustomerDestination({ ...complete, onboardingComplete: false }, '/reports')).toBe('/onboarding')
     expect(nextRequiredCustomerDestination({ ...complete, getStartedComplete: false }, '/receipts')).toBeNull()
-    expect(nextRequiredCustomerDestination({ ...complete, getStartedComplete: false }, '/home')).toBe('/get-started')
+    expect(nextRequiredCustomerDestination({ ...complete, getStartedComplete: false }, '/home')).toBeNull()
     expect(nextRequiredCustomerDestination({ ...complete, membershipLifecycle: null }, '/settings/security')).toBeNull()
   })
 
@@ -40,6 +40,8 @@ describe('authenticated customer prerequisite policy', () => {
     expect(nextRequiredCustomerDestination({ ...complete, mfaSatisfied: false }, '//evil.example'))
       .toBe('/mfa/challenge?next=%2Fhome')
   })
+
+  it.each(['/home','/transactions','/check-in','/receipts','/import','/reports','/mileage','/money','/invoices'])('admits an onboarded manual customer to %s without a setup acknowledgement',path=>{expect(nextRequiredCustomerDestination({...complete,getStartedComplete:false},path)).toBeNull()})
 
   it('re-evaluates prerequisites after explicit setup completion', () => {
     const flow = readFileSync('app/get-started/GetStartedFlow.tsx', 'utf8')
