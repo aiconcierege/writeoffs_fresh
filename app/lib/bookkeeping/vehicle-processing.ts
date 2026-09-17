@@ -7,10 +7,11 @@ import type { VehicleExpenseKind } from '../mileage/vehicle-tax'
 import {assessBusinessContext} from './business-context'
 import {applyAutomatedBookkeepingDecision} from './agent-resolution'
 import {SupabaseBookkeepingRepository} from './supabase-repository'
+import {receiptPurchaseEvidence} from './shared-evidence'
 
 const normalize=(value:string|null|undefined)=>(value??'').toLowerCase().replace(/[^a-z0-9]+/g,' ')
 export function vehicleExpenseKind(snapshot:BookkeepingEvaluationSnapshot):VehicleExpenseKind|null{
-  const text=normalize(`${snapshot.merchantName??''} ${snapshot.description??''} ${snapshot.personalFinanceCategory?.primary??''} ${snapshot.personalFinanceCategory?.detailed??''}`)
+  const text=normalize(`${snapshot.merchantName??''} ${snapshot.description??''} ${snapshot.personalFinanceCategory?.primary??''} ${snapshot.personalFinanceCategory?.detailed??''} ${receiptPurchaseEvidence(snapshot).map(item=>item.text).join(' ')}`)
   if(/\b(?:vehicle purchase|automobile purchase|bought (?:a )?(?:car|truck|van)|car down payment)\b/.test(text))return'purchase'
   if(/\b(?:vehicle improvement|engine replacement|transmission replacement)\b/.test(text))return'improvement'
   if(/\b(?:parking fee|parking garage|parking meter)\b/.test(text))return'parking'

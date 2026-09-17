@@ -4,6 +4,9 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { currentPlaidFinancialState, plaidFinancialTransactionIsCurrent } from '../plaid/current-sources'
 import { SupabaseBookkeepingRepository } from './supabase-repository'
 import { loadCurrentRecordConvergences } from './current-record-resolution'
+import { loadReceiptEvidence } from './receipt-evidence'
+import { buildSharedEvidence, type SharedBookkeepingEvidence } from './shared-evidence'
+import { deductionSignal } from './deduction-intelligence'
 import {
   BOOKKEEPING_EVALUATOR_VERSION,
   type BookkeepingEvaluationSnapshot,
@@ -79,8 +82,8 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
     admin.from('bookkeeping_decisions').select('id,provenance').eq('business_id', businessId)
       .eq('bookkeeping_record_id', recordId),
     admin.from('bookkeeping_review_events')
-      .select('id,supersedes_event_id,event_type,reason').eq('business_id', businessId)
-      .eq('bookkeeping_record_id', recordId),
+      .select('id,supersedes_event_id,event_type,reason,question_context,answer_payload,provenance').eq('business_id', businessId)
+      .in('bookkeeping_record_id', evidenceRecordIds),
     admin.from('bookkeeping_document_links').select('id,receipt_id').eq('business_id', businessId)
       .in('bookkeeping_record_id', evidenceRecordIds).is('revoked_at', null),
     admin.from('bookkeeping_receipt_meal_candidates').select('id,receipt_id')
@@ -143,7 +146,37 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
   } satisfies BookkeepingEvaluationSnapshot
   const financialTransactionId = sourceResult.data?.financial_transaction_id
     ?? compoundComponent?.financialTransactionId
-  if (!financialTransactionId || !base.occurredOn) return base
+  const receipts = await loadReceiptEvidence({ db: admin, businessId,
+    links: activeDocuments.map(link => ({ id: String(link.id), receipt_id: String(link.receipt_id) })),
+    hasFinancialSource: Boolean(financialTransactionId) })
+  const answers: SharedBookkeepingEvidence['observations'] = reviewEvents
+    .filter(event => event.event_type === 'answered' && event.provenance === 'user')
+    .map(event => ({ source: { kind: 'customer_answer', id: String(event.id), basis: 'customer_supplied',
+      provider: null, confidence: null }, fact: String(object(event.question_context).factType ?? event.reason),
+      value: event.answer_payload }))
+  const finish = async (snapshot: BookkeepingEvaluationSnapshot): Promise<BookkeepingEvaluationSnapshot> => {
+    const usable = receipts.filter(receipt => receipt.quality === 'usable'
+      && receipt.totalCents === Math.abs(snapshot.amountCents ?? 0) && receipt.date != null)
+    const enriched = { ...snapshot, merchantName: snapshot.merchantName
+      ?? (usable.length === 1 ? usable[0].merchant : null) }
+    const shared = { ...enriched, evidence: buildSharedEvidence(enriched, receipts, answers) }
+    const signal = deductionSignal(shared)
+    if (signal && signal.kind !== 'equipment') {
+      const { data: fact, error } = await admin.from('current_deduction_business_facts')
+        .select('id,fact_type,fact_value,scope_kind,scope_key').eq('business_id', businessId)
+        .eq('fact_type', signal.factType).eq('scope_kind', 'merchant').eq('scope_key', signal.scope).maybeSingle()
+      if (error) throw new Error('DEDUCTION_FACT_LOAD_FAILED')
+      if (fact) answers.push({ source: { kind: 'reusable_fact', id: fact.id, basis: 'customer_supplied',
+        provider: null, confidence: null }, fact: fact.fact_type, value: fact })
+    }
+    if (financialTransactionId) answers.push({ source: { kind: 'financial_transaction', id: String(financialTransactionId),
+      basis: 'observed', provider: snapshot.accountProvider ?? null, confidence: null },
+      fact: 'financial_source', value: { merchant: snapshot.merchantName, description: snapshot.description,
+        providerCategory: snapshot.personalFinanceCategory, account: snapshot.movement?.financialAccountId,
+        direction: (snapshot.amountCents ?? 0) < 0 ? 'outgoing' : 'incoming' } })
+    return { ...enriched, evidence: buildSharedEvidence(enriched, receipts, answers) }
+  }
+  if (!financialTransactionId || !base.occurredOn) return finish(base)
 
   const { data: transaction, error: transactionError } = await admin.from('financial_transactions')
     .select('id,business_id,financial_account_id,merchant_name,original_description,amount_cents,currency,transaction_date,pending,import_method,raw_payload')
@@ -219,7 +252,7 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
   })
   const movement = movements.find((candidate) =>
     candidate.financialTransactionId === transaction.id) ?? null
-  return {
+  return finish({
     ...base,
     amountCents: compoundComponent ? base.amountCents : Number(transaction.amount_cents),
     currency: compoundComponent ? base.currency : String(transaction.currency),
@@ -237,5 +270,5 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
         eventId: String(use.id), designation: use.designation, effectiveAt: String(use.effective_at),
       } : null
     })(),
-  }
+  })
 }

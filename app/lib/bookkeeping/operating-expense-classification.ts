@@ -1,8 +1,9 @@
 import { snapshotEconomicContext } from './evidence-aware-routing'
 import type { BookkeepingEvaluationSnapshot } from './deterministic-evaluator'
 import type { TaxRuleFacts } from './tax-rule-catalog'
+import { receiptPurchaseEvidence, receiptRestaurantEvidence, supportedMealPurpose } from './shared-evidence'
 
-export const OPERATING_EXPENSE_CLASSIFIER_VERSION = 'schedule-c-operating-expense:v2' as const
+export const OPERATING_EXPENSE_CLASSIFIER_VERSION = 'schedule-c-operating-expense:v3' as const
 
 export const SCHEDULE_C_OPERATING_CATEGORIES = {
   advertising: 'Advertising',
@@ -40,7 +41,7 @@ export type OperatingExpenseClassification = {
 
 const normalize = (value: string | null | undefined) =>
   (value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
-    .replace(/\b(flights|airlines|restaurants|meals|subscriptions)\b/g, word => word.slice(0, -1))
+    .replace(/\b(flights|airlines|restaurants|meals|subscriptions|services|licenses)\b/g, word => word.slice(0, -1))
 
 const patterns: Array<{ categoryKey: OperatingExpenseCategoryKey; nature: string; pattern: RegExp }> = [
   { categoryKey: 'car-truck', nature: 'vehicle_operating_expense', pattern: /\b(?:gasoline|vehicle fuel|auto insurance|car insurance|auto repair|car repair|oil change|vehicle maintenance|dmv registration|vehicle registration|car tires?|parking fee|road toll|vehicle lease payment|car lease payment)\b/ },
@@ -50,12 +51,12 @@ const patterns: Array<{ categoryKey: OperatingExpenseCategoryKey; nature: string
   { categoryKey: 'insurance', nature: 'business_insurance', pattern: /\b(?:business insurance|liability insurance|professional liability|errors and omissions|e o insurance|commercial insurance)\b/ },
   { categoryKey: 'interest', nature: 'business_interest', pattern: /\b(?:interest charge|finance charge|business loan interest)\b/ },
   { categoryKey: 'legal-professional', nature: 'legal_professional', pattern: /\b(?:attorney|law firm|legal service|accountant|accounting|bookkeep|tax prepar|professional service)\b/ },
-  { categoryKey: 'office-expense', nature: 'office_expense', pattern: /\b(?:office depot|office max|staples|printer ink|printer paper|copy paper|office paper|stationery|office expense)\b/ },
+  { categoryKey: 'office-expense', nature: 'office_expense', pattern: /\b(?:office depot|office max|staples|printer ink|printer paper|copy paper|office paper|office supplies|stationery|office expense)\b/ },
   { categoryKey: 'rent-other', nature: 'rent_other_business_property', pattern: /\b(?:office rent|studio rent|cowork|co work|wework|regus|equipment rental|equipment lease)\b/ },
   { categoryKey: 'repairs', nature: 'repairs_maintenance', pattern: /\b(?:repair|maintenance|handyman|janitorial|cleaning service|hvac service)\b/ },
   { categoryKey: 'supplies', nature: 'consumable_supplies', pattern: /\b(?:business supplies|shipping supplies|cleaning supplies)\b/ },
   { categoryKey: 'taxes-licenses', nature: 'taxes_licenses', pattern: /\b(?:business license|professional license|occupational license|permit fee|registration fee)\b/ },
-  { categoryKey: 'travel', nature: 'business_travel', pattern: /\b(?:hotel|motel|lodging|airline|airfare|flight|business travel)\b/ },
+  { categoryKey: 'travel', nature: 'business_travel', pattern: /\b(?:hotel|motel|lodging|airline|airfare|flight|business travel|rideshare|ride fare|trip fare)\b/ },
   { categoryKey: 'meals', nature: 'business_meal', pattern: /\b(?:restaurant|cafe|coffee|diner|grill|grille|steakhouse|sushi|meal)\b/ },
   { categoryKey: 'utilities', nature: 'utilities', pattern: /\b(?:electric|electricity|water utility|natural gas utility|internet|broadband|telephone|telecom|wireless|mobile service)\b/ },
   { categoryKey: 'software', nature: 'software_subscription', pattern: /\b(?:software|subscription|saas|adobe|microsoft 365|google workspace|dropbox|quickbooks|zoom|slack|github|canva)\b/ },
@@ -94,6 +95,8 @@ export function expenseMovementReason(snapshot: BookkeepingEvaluationSnapshot): 
 }
 
 export function classifyOperatingExpense(snapshot: BookkeepingEvaluationSnapshot): OperatingExpenseClassification {
+  const receiptEvidence = receiptPurchaseEvidence(snapshot)
+  const receiptMeal = snapshot.receiptMealSupported || receiptRestaurantEvidence(snapshot).length > 0
   // A customer's specific purchase correction outranks provider/merchant text.
   // A generic business-purpose answer alone does not erase purchase evidence.
   const correction = normalize(snapshot.currentDecision.businessPurpose)
@@ -101,7 +104,7 @@ export function classifyOperatingExpense(snapshot: BookkeepingEvaluationSnapshot
     && (patterns.some(({ pattern }) => pattern.test(correction))
       || specialPatterns.some(([pattern]) => pattern.test(correction)))
   const source = specificCorrection ? correction
-    : normalize(`${snapshot.merchantName ?? ''} ${snapshot.description ?? ''} ${plaidText(snapshot)} ${snapshot.currentDecision.businessPurpose ?? ''}`)
+    : normalize(`${snapshot.merchantName ?? ''} ${snapshot.description ?? ''} ${plaidText(snapshot)} ${snapshot.currentDecision.businessPurpose ?? ''} ${receiptEvidence.map(item => item.text).join(' ')}`)
   const baseFacts: TaxRuleFacts = {
     transactionNature: snapshot.currentDecision.bookkeepingNature === 'expense' ? 'expense' : null,
     businessPurpose: snapshot.currentDecision.businessPurpose ?? (snapshot.currentDecision.treatment === 'business'
@@ -124,15 +127,16 @@ export function classifyOperatingExpense(snapshot: BookkeepingEvaluationSnapshot
   const providerMeal = snapshot.personalFinanceCategory?.primary === 'FOOD_AND_DRINK'
   const established = [...new Set(snapshot.currentDecision.allocations
     .filter(a => a.kind === 'business' && a.taxCategoryKey).map(a => a.taxCategoryKey))]
-  if ((snapshot.receiptMealSupported || providerMeal) && established.some(key => key !== 'meals'))
+  if (!specificCorrection && (receiptMeal || providerMeal) && (established.some(key => key !== 'meals')
+    || patterns.some(item => item.categoryKey !== 'meals' && item.pattern.test(source))))
     return { version: OPERATING_EXPENSE_CLASSIFIER_VERSION, status: 'needs_facts', categoryKey: null,
       expenseNature: null, confidence: 0, reasonCode: 'CONFLICTING_CATEGORY_EVIDENCE',
       evidence: ['established_category', 'meal_evidence'], taxFacts: baseFacts }
-  if (snapshot.receiptMealSupported || providerMeal) {
+  if (!specificCorrection && (receiptMeal || providerMeal)) {
     return { version: OPERATING_EXPENSE_CLASSIFIER_VERSION, status: 'ordinary', categoryKey: 'meals',
-      expenseNature: 'business_meal', confidence: snapshot.receiptMealSupported ? 0.99 : 0.94, reasonCode: snapshot.receiptMealSupported ? 'RECEIPT_MEAL_EVIDENCE' : 'PROVIDER_MEAL_EVIDENCE',
-      evidence: [snapshot.receiptMealSupported ? 'receipt_meal' : 'plaid_category'], taxFacts: { ...baseFacts, expenseNature: 'business_meal',
-        mealBusinessContext: Boolean(snapshot.currentDecision.businessPurpose) } }
+      expenseNature: 'business_meal', confidence: receiptMeal ? 0.99 : 0.94, reasonCode: receiptMeal ? 'RECEIPT_MEAL_EVIDENCE' : 'PROVIDER_MEAL_EVIDENCE',
+      evidence: [receiptMeal ? 'receipt_meal' : 'plaid_category', ...receiptEvidence.map(item => `receipt_extraction:${item.source.id}`)], taxFacts: { ...baseFacts, expenseNature: 'business_meal',
+        mealBusinessContext: Boolean(supportedMealPurpose(snapshot)) } }
   }
   const matches = patterns.filter(({ pattern }) => pattern.test(source))
   if (!specificCorrection && snapshotEconomicContext(snapshot)?.context === 'telecom_service'
@@ -161,12 +165,13 @@ export function classifyOperatingExpense(snapshot: BookkeepingEvaluationSnapshot
     travelAwayFromHome: match.categoryKey === 'travel'
       ? Boolean(snapshot.currentDecision.businessPurpose && snapshot.currentDecision.businessPurpose.trim().length >= 12)
       : undefined,
-    mealBusinessContext: match.categoryKey === 'meals' ? Boolean(snapshot.currentDecision.businessPurpose) : undefined,
+    mealBusinessContext: match.categoryKey === 'meals' ? Boolean(supportedMealPurpose(snapshot)) : undefined,
   }
   return { version: OPERATING_EXPENSE_CLASSIFIER_VERSION, status: 'ordinary',
     categoryKey: match.categoryKey, expenseNature: match.nature, confidence: 0.94,
     reasonCode: `STRONG_${match.categoryKey.toUpperCase()}_EVIDENCE`,
     evidence: specificCorrection ? ['customer_description'] : ['merchant_or_description',
+      ...receiptEvidence.map(item => `receipt_extraction:${item.source.id}`),
       ...(snapshot.personalFinanceCategory ? ['plaid'] : []),
       ...(established.includes(match.categoryKey) ? ['established_category'] : [])], taxFacts }
 }

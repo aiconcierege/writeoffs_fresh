@@ -82,13 +82,17 @@ describe('customer-authored business context', () => {
 
   it('never overrides an explicit customer correction', () => {
     for (const treatment of ['business', 'personal', 'mixed_use'] as const) {
-      expect(evaluateDeterministicBookkeeping(snapshot({ currentDecision: { ...snapshot().currentDecision,
+      const result = evaluateDeterministicBookkeeping(snapshot({ currentDecision: { ...snapshot().currentDecision,
         treatment, provenance: 'user', allocations: treatment === 'mixed_use'
           ? [{ kind: 'business', amountCents: -5_000 }, { kind: 'personal', amountCents: -5_000 }]
           : [{ kind: treatment, amountCents: -10_000 }],
       }, accountUse: { eventId: 'account-use', designation: 'business_only',
         effectiveAt: '2026-09-01T00:00:00Z' }, customerProvidedReceipts: [{ receiptId: 'receipt',
-        documentLinkId: 'link', uploadEventId: 'upload' }] }))).toBeNull()
+        documentLinkId: 'link', uploadEventId: 'upload' }] }))
+      if (treatment === 'personal') expect(result).toBeNull()
+      else expect(result?.proposal).toMatchObject({ treatment, allocations: treatment === 'mixed_use'
+        ? [{ kind: 'business', amountCents: -5_000, taxCategoryKey: 'office-expense' }, { kind: 'personal', amountCents: -5_000 }]
+        : [{ kind: 'business', amountCents: -10_000, taxCategoryKey: 'office-expense' }] })
     }
   })
 

@@ -5,6 +5,7 @@ import type {
 import { hasStrongOrdinaryExpenseEvidence, snapshotEconomicContext } from './evidence-aware-routing'
 import { assessBusinessContext, businessContextAllocationDomain } from './business-context'
 import { classifyOperatingExpense, expenseMovementReason } from './operating-expense-classification'
+import type { SharedBookkeepingEvidence } from './shared-evidence'
 
 export const BOOKKEEPING_EVALUATOR_VERSION = 'v1' as const
 
@@ -26,6 +27,7 @@ export type MovementEvidence = {
 }
 
 export type BookkeepingEvaluationSnapshot = {
+  evidence?: SharedBookkeepingEvidence
   evaluatorVersion: typeof BOOKKEEPING_EVALUATOR_VERSION
   businessId: string
   recordId: string
@@ -154,6 +156,23 @@ export function evaluateDeterministicBookkeeping(
     || operatingClassification.status === 'ordinary')
   const businessContext = assessBusinessContext(snapshot)
 
+  const inferredBusinessContextDecision = snapshot.currentDecision.bookkeepingNature === 'expense'
+    && snapshot.currentDecision.treatment === 'business'
+    && /Customer (?:designated the payment account|deliberately provided the receipt)/.test(
+      snapshot.currentDecision.reason ?? '',
+    )
+  if (snapshot.currentDecision.provenance !== 'user' && !snapshot.customerFactsAuthoritative
+    && inferredBusinessContextDecision && businessContext.state !== 'established') {
+    const ruleKey = 'bookkeeping.business_context.withdrawn.v1' as const
+    return { ruleKey, proposal: {
+      bookkeepingNature: 'expense', treatment: 'unresolved', reviewStatus: 'needs_review',
+      confidence: 1, reason: 'The customer-authored business context used by the prior automation changed.',
+      businessPurpose: snapshot.currentDecision.businessPurpose, allocations: [],
+      basis: { evidenceSufficient: false, ruleKey, ruleAllowed: true,
+        businessPurposeSupported: false, mixedUseAllocationSupported: false },
+    } }
+  }
+
   // Classification is an automated reporting conclusion, not a customer
   // correction. Never alter the customer's nature, business-use choice, or
   // allocation amounts; only enrich an uncategorized current business portion.
@@ -186,21 +205,6 @@ export function evaluateDeterministicBookkeeping(
   }
 
   if (snapshot.currentDecision.provenance === 'user' || snapshot.customerFactsAuthoritative) return null
-  const inferredBusinessContextDecision = snapshot.currentDecision.bookkeepingNature === 'expense'
-    && snapshot.currentDecision.treatment === 'business'
-    && /Customer (?:designated the payment account|deliberately provided the receipt)/.test(
-      snapshot.currentDecision.reason ?? '',
-    )
-  if (inferredBusinessContextDecision && businessContext.state !== 'established') {
-    const ruleKey = 'bookkeeping.business_context.withdrawn.v1' as const
-    return { ruleKey, proposal: {
-      bookkeepingNature: 'expense', treatment: 'unresolved', reviewStatus: 'needs_review',
-      confidence: 1, reason: 'The customer-authored business context used by the prior automation changed.',
-      businessPurpose: snapshot.currentDecision.businessPurpose, allocations: [],
-      basis: { evidenceSufficient: false, ruleKey, ruleAllowed: true,
-        businessPurposeSupported: false, mixedUseAllocationSupported: false },
-    } }
-  }
   if (snapshot.currentDecision.treatment !== 'unresolved' || snapshot.hasOpenConflictingEvidence) return null
 
   // Structural money movement always outranks account or receipt business

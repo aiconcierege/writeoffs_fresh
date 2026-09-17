@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import type { BookkeepingEvaluationSnapshot } from './deterministic-evaluator'
 import { snapshotEconomicContext } from './evidence-aware-routing'
+import { receiptPurchaseEvidence } from './shared-evidence'
 
 export const BUSINESS_CONTEXT_VERSION = 'bookkeeping-business-context:v1' as const
 
@@ -14,11 +15,11 @@ export type BusinessContextAssessment = {
 }
 
 export function businessContextAllocationDomain(snapshot: BookkeepingEvaluationSnapshot) {
-  const source = `${snapshot.merchantName ?? ''} ${snapshot.description ?? ''}`.toLowerCase()
+  const source = `${snapshot.merchantName ?? ''} ${snapshot.description ?? ''} ${receiptPurchaseEvidence(snapshot).map(item => item.text).join(' ')}`.toLowerCase()
   const economic = snapshotEconomicContext(snapshot)
   if (economic?.context === 'telecom_service') return 'telecom' as const
   if (/\b(?:internet|broadband|fiber|comcast|xfinity|cox)\b/.test(source)) return 'internet' as const
-  if (/\b(?:vehicle|automobile|auto expense|car expense)\b/.test(source)) return 'vehicle' as const
+  if (/\b(?:vehicle|automobile|auto expense|car expense|gasoline)\b/.test(source)) return 'vehicle' as const
   return null
 }
 
@@ -37,6 +38,7 @@ export function assessBusinessContext(snapshot: BookkeepingEvaluationSnapshot): 
     decisionProvenance: snapshot.currentDecision.provenance,
     accountUse: snapshot.accountUse,
     references,
+    receiptSources: receiptPurchaseEvidence(snapshot).map(item => item.source),
     economic,
     conflict: snapshot.hasOpenConflictingEvidence,
   })).digest('hex')

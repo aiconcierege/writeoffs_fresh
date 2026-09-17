@@ -1,4 +1,5 @@
 import type { BookkeepingEvaluationSnapshot } from './deterministic-evaluator'
+import { receiptRestaurantEvidence, receiptPurchaseEvidence } from './shared-evidence'
 
 export const EVIDENCE_ROUTING_VERSION = 'bookkeeping-evidence-routing:v1' as const
 
@@ -87,9 +88,9 @@ export function snapshotEconomicContext(snapshot: BookkeepingEvaluationSnapshot)
   return economicContextSignal({
     amountCents: snapshot.amountCents,
     merchantName: snapshot.merchantName,
-    description: snapshot.description,
+    description: [snapshot.description, ...receiptPurchaseEvidence(snapshot).map(item => item.text)].filter(Boolean).join(' '),
     plaidPrimary: snapshot.personalFinanceCategory?.primary,
     plaidDetailed: snapshot.personalFinanceCategory?.detailed,
-    receiptMealSupported: snapshot.receiptMealSupported,
+    receiptMealSupported: snapshot.receiptMealSupported || receiptRestaurantEvidence(snapshot).length > 0,
   })
 }

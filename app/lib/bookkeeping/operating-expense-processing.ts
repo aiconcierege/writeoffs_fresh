@@ -4,6 +4,7 @@ import type { BookkeepingEvaluationSnapshot } from './deterministic-evaluator'
 import { classifyOperatingExpense } from './operating-expense-classification'
 import { evaluateAndAppendProductionTaxTreatment } from './tax-treatment-service'
 import { SupabaseBookkeepingRepository } from './supabase-repository'
+import { supportedMealPurpose } from './shared-evidence'
 
 export function operatingExpenseFingerprint(value: unknown): string {
   const stable = (item: unknown): unknown => Array.isArray(item) ? item.map(stable)
@@ -28,12 +29,13 @@ export async function processOperatingExpenseTreatment(input: {
     if (mealError) throw new Error('MEAL_FACT_LOAD_FAILED')
     mealFactId = mealFact?.id ?? null
     // Recognizing a meal never establishes its missing contemporaneous facts.
-    classification.taxFacts.mealBusinessContext = Boolean(mealFactId && snapshot.currentDecision.businessPurpose)
+    classification.taxFacts.mealBusinessContext = Boolean(mealFactId && supportedMealPurpose(snapshot))
   }
   const evidenceFingerprint = operatingExpenseFingerprint({ version: classification.version,
     decisionId: snapshot.currentDecision.id, recordId: snapshot.recordId,
     categoryKey: classification.categoryKey, reasonCode: classification.reasonCode,
-    taxFacts: classification.taxFacts, evidence: classification.evidence, mealFactId })
+    taxFacts: classification.taxFacts, evidence: classification.evidence, mealFactId,
+    sharedEvidence: snapshot.evidence?.fingerprint })
   const { data: currentAssessment, error: assessmentLoadError } = await admin
     .from('current_schedule_c_expense_assessments').select('id,evidence_fingerprint')
     .eq('business_id', snapshot.businessId).eq('bookkeeping_record_id', snapshot.recordId).maybeSingle()

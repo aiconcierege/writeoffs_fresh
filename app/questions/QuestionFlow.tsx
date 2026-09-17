@@ -6,10 +6,8 @@ import { safeReturnTo, returnLabel } from '../lib/navigation-context'
 import { useEffect, useRef, useState } from 'react'
 import { questionVersionKey, reconcileQuestionSession } from './question-session'
 import { BettiIllustration } from '../components/BettiIllustration'
-import {
-  parsePositiveDollarCents,
-  type CustomerQuestion,
-} from '../lib/bookkeeping/customer-questions'
+import { parsePositiveDollarCents } from '../lib/bookkeeping/question-input'
+import type { CustomerQuestion } from '../lib/bookkeeping/customer-questions'
 
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 const customerDate = new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})

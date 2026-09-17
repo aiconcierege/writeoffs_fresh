@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { BookkeepingEvaluationSnapshot } from './deterministic-evaluator'
 import { classifyOperatingExpense } from './operating-expense-classification'
 import { snapshotEconomicContext } from './evidence-aware-routing'
+import { receiptPurchaseEvidence } from './shared-evidence'
 
 export const DEDUCTION_INTELLIGENCE_VERSION = 'deduction-intelligence:v1'
 
@@ -16,7 +17,7 @@ export function deductionSignal(snapshot: BookkeepingEvaluationSnapshot) {
   if (routed?.context === 'telecom_service' && routed.confidence === 'strong') {
     return { kind: 'phone' as const, factType: 'phone_business_use_percentage', scope: routed.merchantScope }
   }
-  const source = `${snapshot.merchantName ?? ''} ${snapshot.description ?? ''}`.toLowerCase()
+  const source = `${snapshot.merchantName ?? ''} ${snapshot.description ?? ''} ${receiptPurchaseEvidence(snapshot).map(item => item.text).join(' ')}`.toLowerCase()
   const merchantScope = normalizedScope(snapshot.merchantName ?? snapshot.description ?? '')
   if (merchantScope && /\b(?:wireless|mobile|phone|verizon|at&t|t-mobile)\b/.test(source)) {
     const provider = ['verizon','at&t','t-mobile'].find((name) => source.includes(name)) ?? merchantScope

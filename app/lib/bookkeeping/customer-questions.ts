@@ -4,6 +4,8 @@ import { listCanonicalReviewQueue } from './review-queue'
 import { currentPlaidFinancialState, plaidFinancialTransactionIsCurrent } from '../plaid/current-sources'
 import { loadCurrentRecordConvergences } from './current-record-resolution'
 import { economicContextSignal, type EconomicContextSignal } from './evidence-aware-routing'
+import { loadReceiptEvidence } from './receipt-evidence'
+import { receiptRestaurantEvidence, receiptPurchaseEvidence, SHARED_EVIDENCE_VERSION } from './shared-evidence'
 
 export type CustomerQuestion = {
   id: string
@@ -70,13 +72,7 @@ export function customerQuestionHeadline(count: number) {
   return `${count} quick ${count === 1 ? 'question' : 'questions'} for you`
 }
 
-export function parsePositiveDollarCents(value: string) {
-  const trimmed = value.trim()
-  if (!/^\d+(?:\.\d{1,2})?$/.test(trimmed)) return null
-  const [dollars, cents = ''] = trimmed.split('.')
-  const result = Number(dollars) * 100 + Number(cents.padEnd(2, '0'))
-  return Number.isSafeInteger(result) && result > 0 ? result : null
-}
+export { parsePositiveDollarCents } from './question-input'
 
 export function projectCustomerQuestion(
   item: CanonicalWeeklyReviewItem,
@@ -229,12 +225,15 @@ async function buildCustomerQuestions(input: {
       input.supabase.from('bookkeeping_financial_sources')
         .select('bookkeeping_record_id,financial_transaction_id')
         .in('bookkeeping_record_id', recordIds).is('revoked_at', null),
-      input.supabase.from('bookkeeping_document_links').select('bookkeeping_record_id,receipt_id')
-        .eq('business_id', businessId).in('bookkeeping_record_id', recordIds).is('revoked_at', null),
+      input.supabase.from('bookkeeping_document_links').select('id,bookkeeping_record_id,receipt_id')
+        .eq('business_id', businessId).in('bookkeeping_record_id', [...new Set(recordIds.flatMap(id => resolution.evidenceRecordIds(id)))])
+        .is('revoked_at', null),
     ])
   if (recordError) throw new Error(`Unable to load question records: ${recordError.message}`)
   if (sourceError) throw new Error(`Unable to load question sources: ${sourceError.message}`)
   if (documentResult.error) throw new Error(`Unable to load question evidence: ${documentResult.error.message}`)
+  const receiptEvidence = await loadReceiptEvidence({ db: input.supabase, businessId,
+    links: documentResult.data ?? [], hasFinancialSource: false })
 
   const receiptIds=[...new Set((documentResult.data??[]).map((row)=>row.receipt_id))]
   const receiptResult=receiptIds.length?await input.supabase.from('receipts').select('id,storage_path,original_name')
@@ -243,7 +242,7 @@ async function buildCustomerQuestions(input: {
   const receiptById=new Map((receiptResult.data??[]).map((row)=>[row.id,row]))
   const evidenceByRecord=new Map<string,{receiptUrl:string;label:string}>()
   for(const link of documentResult.data??[]){const receipt=receiptById.get(link.receipt_id);if(!receipt)continue
-    evidenceByRecord.set(link.bookkeeping_record_id,{receiptUrl:`/api/receipts/${receipt.id}/view`,label:receipt.original_name??'Receipt'})}
+    evidenceByRecord.set(resolution.resolve(link.bookkeeping_record_id),{receiptUrl:`/api/receipts/${receipt.id}/view`,label:receipt.original_name??'Receipt'})}
 
   const currentSources = [
     ...(sources ?? []),
@@ -280,9 +279,17 @@ async function buildCustomerQuestions(input: {
     const record = recordById.get(item.record.id)
     const transactionId = sourceByRecord.get(item.record.id)
     const transaction = transactionId ? transactionById.get(transactionId) : null
+    const linkedReceiptIds = new Set((documentResult.data ?? [])
+      .filter(link => resolution.resolve(link.bookkeeping_record_id) === item.record.id).map(link => link.receipt_id))
+    const recordReceipts = receiptEvidence.filter(receipt => linkedReceiptIds.has(receipt.receiptId))
+      .map(receipt => ({ ...receipt, matchState: transactionId ? 'linked_to_financial_activity' as const : 'receipt_only' as const }))
+    const receiptMerchant = recordReceipts.filter(receipt => receipt.quality === 'usable'
+      && receipt.totalCents === Math.abs(transaction?.amount_cents ?? record?.amount_cents ?? item.record.authoritativeAmountCents ?? 0)
+      && receipt.date != null)
     if (transactionId && !plaidFinancialTransactionIsCurrent({ id: transactionId, state: plaidState })) return []
     const context: TransactionContext = {
-      merchant: transaction?.merchant_name || transaction?.original_description || 'Transaction',
+      merchant: transaction?.merchant_name || transaction?.original_description
+        || (receiptMerchant.length === 1 ? receiptMerchant[0].merchant : null) || 'Transaction',
       amountCents: transaction?.amount_cents ?? record?.amount_cents ??
         item.record.authoritativeAmountCents,
       currency: transaction?.currency ?? record?.currency ??
@@ -296,13 +303,16 @@ async function buildCustomerQuestions(input: {
     const category = providerEvidence.personal_finance_category
       && typeof providerEvidence.personal_finance_category === 'object'
       ? providerEvidence.personal_finance_category as Record<string, unknown> : {}
+    const receiptInput = { amountCents: context.amountCents,
+      evidence: { version: SHARED_EVIDENCE_VERSION, fingerprint: '', observations: [], receipts: recordReceipts } }
     const question = projectCustomerQuestion(item, context, economicContextSignal({
       amountCents: context.amountCents,
-      merchantName: transaction?.merchant_name,
-      description: transaction?.original_description,
+      merchantName: context.merchant,
+      description: [transaction?.original_description, ...receiptPurchaseEvidence(receiptInput).map(item => item.text)].filter(Boolean).join(' '),
       plaidPrimary: typeof category.primary === 'string' ? category.primary : null,
       plaidDetailed: typeof category.detailed === 'string' ? category.detailed : null,
-      receiptMealSupported: item.event.questionContext?.receiptMealCandidateId != null,
+      receiptMealSupported: item.event.questionContext?.receiptMealCandidateId != null
+        || receiptRestaurantEvidence(receiptInput).length > 0,
     }))
     return question ? [{ ...question, source: 'bookkeeping' as const,recordId:item.record.id,
       openedAt:item.event.createdAt,availableAt:item.event.deferredUntil,

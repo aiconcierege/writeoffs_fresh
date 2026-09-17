@@ -21,6 +21,8 @@ import { runDeductionIntelligenceForRecord } from './deduction-intelligence'
 import { assessBusinessContext, businessContextAllocationDomain } from './business-context'
 import { processOperatingExpenseTreatment } from './operating-expense-processing'
 import { processVehicleExpense } from './vehicle-processing'
+import { supportedMealPurpose } from './shared-evidence'
+import { classifyOperatingExpense } from './operating-expense-classification'
 
 type Row = Record<string, unknown>
 
@@ -52,10 +54,10 @@ function staleDecisionError(error: unknown) {
 }
 
 async function resolveCurrentQuestions(input: {
-  admin: SupabaseClient; businessId: string; recordId: string; reasons: string[]
+  admin: SupabaseClient; businessId: string; recordId: string; reasons: string[]; factTypes?: string[]
 }) {
   const { data, error } = await input.admin.from('bookkeeping_review_events')
-    .select('id,review_issue_id')
+    .select('id,review_issue_id,question_context')
     .eq('business_id', input.businessId).eq('bookkeeping_record_id', input.recordId)
     .in('reason', input.reasons).in('event_type', ['opened', 'reopened', 'skipped'])
   if (error) throw new Error('EVIDENCE_ROUTING_REVIEW_LOAD_FAILED')
@@ -67,6 +69,7 @@ async function resolveCurrentQuestions(input: {
   if (successorError) throw new Error('EVIDENCE_ROUTING_REVIEW_LOAD_FAILED')
   const superseded = new Set((successors ?? []).map((event) => event.supersedes_event_id))
   for (const event of data ?? []) {
+    if (input.factTypes && !input.factTypes.includes(event.question_context?.factType)) continue
     if (superseded.has(event.id)) continue
     const { error: insertError } = await input.admin.rpc('resolve_bookkeeping_review_issue', {
       p_business_id: input.businessId, p_review_issue_id: event.review_issue_id,
@@ -92,24 +95,38 @@ async function recordBusinessContextAssessment(admin: SupabaseClient,
   return { assessment, assessmentId: typeof data === 'string' ? data : null }
 }
 
+async function resolveQuestionsFromSupportedEvidence(admin: SupabaseClient,
+  snapshot: Awaited<ReturnType<typeof loadBookkeepingEvaluationSnapshot>>) {
+  if (snapshot.hasOpenConflictingEvidence) return
+  if (snapshot.currentDecision.bookkeepingNature != null) await resolveCurrentQuestions({ admin,
+    businessId: snapshot.businessId, recordId: snapshot.recordId, reasons: ['TRANSACTION_TYPE_UNCLEAR'] })
+  if (snapshot.currentDecision.treatment !== 'unresolved') await resolveCurrentQuestions({ admin,
+    businessId: snapshot.businessId, recordId: snapshot.recordId, reasons: ['BUSINESS_USE_UNCLEAR'] })
+  if (classifyOperatingExpense(snapshot).status === 'ordinary') await resolveCurrentQuestions({ admin,
+    businessId: snapshot.businessId, recordId: snapshot.recordId, reasons: ['BUSINESS_PURPOSE_NEEDED'],
+    factTypes: ['ordinary_expense_purpose'] })
+}
+
 async function openBusinessContextMealQuestion(input: { admin: SupabaseClient
   snapshot: Awaited<ReturnType<typeof loadBookkeepingEvaluationSnapshot>>; assessmentId: string | null }) {
   if (!input.assessmentId || input.snapshot.currentDecision.bookkeepingNature !== 'expense'
-    || input.snapshot.currentDecision.treatment !== 'business') return
+    || !['business', 'mixed_use'].includes(input.snapshot.currentDecision.treatment)) return
   const assessment = assessBusinessContext(input.snapshot)
   if (!['established', 'customer_authoritative'].includes(assessment.state) || assessment.economicContext !== 'restaurant_meal') return
   const { data: knownMeal, error: mealError } = await input.admin.from('current_bookkeeping_meal_substantiation_facts')
     .select('id').eq('business_id', input.snapshot.businessId).eq('bookkeeping_record_id', input.snapshot.recordId).maybeSingle()
   if (mealError) throw new Error('MEAL_FACT_LOAD_FAILED')
-  if (knownMeal) return
+  if (knownMeal && supportedMealPurpose(input.snapshot)) return
+  const factType = knownMeal ? 'receipt_meal_business_purpose' : 'meal_attendee_relationship'
   const repository = new SupabaseBookkeepingRepository(input.admin)
   await repository.openReviewIssue({ businessId: input.snapshot.businessId, recordId: input.snapshot.recordId,
     decisionId: input.snapshot.currentDecision.id, reason: 'BUSINESS_PURPOSE_NEEDED',
-    issueKey: `business-context-meal:${input.snapshot.recordId}:${input.assessmentId}`,
+    issueKey: `business-context-meal:${input.snapshot.recordId}:${factType}`,
     contextFingerprint: `${assessment.evidenceFingerprint}:meal-substantiation`,
     questionContext: { schemaVersion: 1, routingVersion: assessment.version,
-      reason: 'BUSINESS_PURPOSE_NEEDED', factType: 'meal_attendee_relationship',
-      businessContextAssessmentId: input.assessmentId, establishedFacts: ['purchase', 'meal', 'businessContext'] },
+      reason: 'BUSINESS_PURPOSE_NEEDED', factType,
+      businessContextAssessmentId: input.assessmentId, establishedFacts: ['purchase', 'meal', 'businessContext',
+        ...(supportedMealPurpose(input.snapshot) ? ['businessPurpose'] : [])] },
   })
 }
 
@@ -189,6 +206,7 @@ export async function evaluateBookkeepingProcessingJob(
     throw error
   })
   if (!snapshot) return { outcome: 'inactive' as const }
+  await resolveQuestionsFromSupportedEvidence(admin, snapshot)
   const { assessment: contextAssessment, assessmentId: contextAssessmentId } = await recordBusinessContextAssessment(admin, snapshot)
   if (contextAssessment.state === 'established'
     && snapshot.currentDecision.bookkeepingNature === 'expense') {
@@ -250,6 +268,7 @@ export async function evaluateBookkeepingProcessingJob(
       refreshed = await loadBookkeepingEvaluationSnapshot({ admin, businessId, recordId })
     }
     await ensureRemainingNatureQuestion(admin, refreshed)
+    await resolveQuestionsFromSupportedEvidence(admin, refreshed)
     const refreshedContext = await recordBusinessContextAssessment(admin, refreshed)
     await openBusinessContextMealQuestion({ admin, snapshot: refreshed,
       assessmentId: refreshedContext.assessmentId })
