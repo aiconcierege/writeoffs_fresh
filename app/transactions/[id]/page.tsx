@@ -1,3 +1,4 @@
+import { attachedReceiptLabel } from '../../lib/bookkeeping/receipt-status-label'
 import { specialNatureLabel } from '../../lib/bookkeeping/special-transactions'
 import { safeReturnTo, returnLabel, withReturnTo } from '../../lib/navigation-context'
 import { decisionProgress } from '../../lib/bookkeeping/decision-progress'
@@ -68,7 +69,7 @@ export default async function TransactionDetailPage({ params,searchParams }: { p
               reviewContext={reviewContext.review&&reviewContext.snapshot&&reviewContext.event?{reviewPeriodId:reviewContext.review,reviewSnapshotId:reviewContext.snapshot,expectedReviewEventId:reviewContext.event}:undefined}/>
           : null}</div>
       {(receiptEligible || transaction.has_receipt) && <div><h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{receiptEligible ? 'Receipt and documentation' : 'Supporting records'}</h2>
-        <p className="mt-3 font-medium text-slate-950">{transaction.has_receipt ? 'Supporting receipt attached' : transaction.receiptLost ? 'Receipt reported unavailable' : 'No receipt attached'}</p>
+        <p className="mt-3 font-medium text-slate-950">{transaction.has_receipt ? attachedReceiptLabel(transaction) : transaction.receiptLost ? 'Receipt reported unavailable' : 'No receipt attached'}</p>
         {work?.historical_documentation&&<p className="mt-2 text-sm leading-6 text-slate-600">This older meal is missing details about who was there or its business purpose. Keep any records you find; missing facts have not been assumed.</p>}
         {transaction.receiptLost && <p className="mt-2 text-sm leading-6 text-slate-600">The prior Receipt Lost history is preserved. You can still attach it later if you find it.</p>}
         {transaction.sourceModel === 'canonical' && transaction.recordId && <ReceiptActions transactionId={transaction.id} recordId={transaction.recordId} useRecordTarget={transaction.id === transaction.recordId} date={transaction.date} amount={transaction.amount} vendor={transaction.vendor}

@@ -18,13 +18,13 @@ describe('account-use route',()=>{
     expect((await POST(request({}),{params:Promise.resolve({id:accountId})})).status).toBe(401)
   })
 
-  it('passes only validated customer facts to the canonical RPC',async()=>{
+  it.each(['business_only','business_and_personal'])('passes the %s answer to the canonical RPC',async(designation)=>{
     const effectiveAt='2026-09-08T12:00:00.000Z'
-    const response=await POST(request({designation:'business_only',effectiveAt,requestId}),
+    const response=await POST(request({designation,effectiveAt,requestId}),
       {params:Promise.resolve({id:accountId})})
     expect(response.status).toBe(200)
     expect(rpc).toHaveBeenCalledWith('set_financial_account_use',{p_financial_account_id:accountId,
-      p_designation:'business_only',p_effective_at:effectiveAt,p_request_id:requestId})
+      p_designation:designation,p_effective_at:effectiveAt,p_request_id:requestId})
   })
 
   it.each(['personal','business','mixed',null])('rejects unsupported designation %s',async(designation)=>{

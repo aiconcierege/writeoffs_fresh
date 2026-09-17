@@ -34,6 +34,7 @@ export type TransactionReadRow = {
   receiptLost: boolean
   documentationPendingAcknowledged?: boolean
   sourceLabel: string | null
+  hasFinancialSource?: boolean
   sourceKind: string | null
   contractorName: string | null
 }
@@ -356,7 +357,7 @@ export async function listTransactionReadModel(input: {
       treatment: current ? text(current, 'treatment') : null,
       history: [...projectCustomerTransactionHistory(history),...documentLinks.filter((link) =>
         resolution.resolve(text(link, 'bookkeeping_record_id')!) === recordId).map(link=>({
-          id:`receipt:${text(link,'id')!}`,summary:'Receipt matched.',explanation:null,
+          id:`receipt:${text(link,'id')!}`,summary:financial?'Receipt attached to transaction.':'Receipt recorded.',explanation:null,
           createdAt:text(link,'linked_at')!,
         }))].sort((a,b)=>a.createdAt.localeCompare(b.createdAt)),
       evidenceLinks: documentLinks.filter((link) =>
@@ -369,7 +370,7 @@ export async function listTransactionReadModel(input: {
         ? [baseSourceLabel, `Invoice ${text(invoice, 'invoice_number')}`].filter(Boolean).join(' · ')
         : manual && !compoundComponent
           ? `Recorded · ${manualPaymentLabel(text(manual, 'payment_method'))}` : baseSourceLabel,
-      sourceKind,
+      hasFinancialSource: Boolean(financial), sourceKind,
       contractorName: contractorByRecord.get(recordId) ?? null,
     }]
   })

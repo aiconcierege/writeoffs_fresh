@@ -36,7 +36,7 @@ describe('authenticated visual alignment', () => {
   it('keeps transactions record-first and receipt state visible', () => {
     const transactions = source('app/transactions/TransactionReview.tsx')
     expect(transactions).toContain('review-transaction-row')
-    expect(transactions).toContain("row.has_receipt?'Receipt attached'")
+    expect(transactions).toContain('attachedReceiptLabel(row)')
     expect(transactions).toContain('truncate font-semibold')
   })
 })

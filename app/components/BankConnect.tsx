@@ -1,5 +1,7 @@
 'use client'
 
+import { persistAccountUse } from '../lib/bookkeeping/account-use-request'
+
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { usePlaidLink, type PlaidLinkOnExit, type PlaidLinkOnSuccessMetadata } from 'react-plaid-link'
@@ -135,12 +137,7 @@ export default function BankConnect(input: {
       [accountId]: { saving: true, message: 'Saving…', error: null },
     }))
     try {
-      const response = await fetch(`/api/bookkeeping/accounts/${accountId}/use`, {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ designation, effectiveAt: new Date().toISOString(), requestId: crypto.randomUUID() }),
-      })
-      const body = await response.json().catch(() => ({})) as { error?: string }
-      if (!response.ok) throw new Error(body.error || 'This account choice could not be saved.')
+      await persistAccountUse(accountId, { designation, effectiveAt: new Date().toISOString(), requestId: crypto.randomUUID() })
       setAccountUseById((current) => ({ ...current, [accountId]: designation }))
       setAccountUseState((current) => ({ ...current,
         [accountId]: { saving: false, message: 'Saved.', error: null },

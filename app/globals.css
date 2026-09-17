@@ -615,7 +615,7 @@ body { background: var(--canvas); color: var(--ink); }
  .home-betti-portrait { min-height: 24rem; }
  .home-betti-art { max-width: 21rem; max-height: 23rem; margin-right: -.5rem; }
  .home-follow-up { grid-template-columns: minmax(0,.9fr) minmax(18rem,1.1fr); align-items: center; padding: 1.5rem; }
- .home-add { grid-template-columns: minmax(13rem,.65fr) minmax(0,1.35fr); align-items: center; }
+ .home-add-action { min-height: 4.5rem; padding: 1rem; }
 }
 @media (min-width:900px){.home-add-list { grid-template-columns: repeat(4,minmax(0,1fr)); }}
 @media (max-width:639px){
@@ -711,6 +711,3 @@ body { background: var(--canvas); color: var(--ink); }
 .review-bulk-actions { position:sticky;top:4.25rem;z-index:10;padding:.75rem;background:#f4f7f3;border-block:1px solid #dce3de;margin:.5rem 0;box-shadow:0 4px 10px #17211d08; }
 .review-bulk-actions p { margin-bottom:.6rem;font-size:.875rem;line-height:1.5; }
 @media(max-width:639px) { .review-bulk-actions { position:sticky;top:3.75rem; }.review-row-select { scroll-margin-top:17rem; }.transaction-work-views a { padding:.5rem .6rem;font-size:.875rem; }.review-row-open { gap:.45rem; } }
-
-.home-add-documents { grid-column: 1 / -1; display: block; }
-.home-add-documents .document-intake { margin-top: .6rem; font-weight: 400; }

@@ -24,8 +24,7 @@ describe('customer account-use settings',()=>{
   })
 
   it('uses the canonical authenticated endpoint with loading, success, and error states',()=>{
-    expect(component).toContain('`/api/bookkeeping/accounts/${accountId}/use`')
-    expect(component).toContain("method: 'POST'")
+    expect(component).toContain('await persistAccountUse(accountId,')
     expect(component).toContain('requestId: crypto.randomUUID()')
     expect(component).toContain("message: 'Saving…'")
     expect(component).toContain("message: 'Saved.'")

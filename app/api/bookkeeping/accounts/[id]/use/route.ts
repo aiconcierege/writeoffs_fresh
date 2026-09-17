@@ -18,6 +18,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     p_financial_account_id: id, p_designation: body.designation,
     p_effective_at: body.effectiveAt, p_request_id: body.requestId,
   })
-  if (error) return NextResponse.json({ error: 'The account use could not be saved.' }, { status: 400 })
+  if (error) {
+    console.warn('Account-use save rejected', { requestId: body.requestId, code: error.code ?? 'unknown' })
+    return NextResponse.json({ error: 'The account use could not be saved.' }, { status: 400 })
+  }
   return NextResponse.json({ ok: true, eventId: data })
 }

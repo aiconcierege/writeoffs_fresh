@@ -44,14 +44,14 @@ describe('Home command center', () => {
   })
 
   it('offers compact Add something actions with mobile receipt capture priority', () => {
-    for (const label of ['Mileage', 'Money', 'Invoice']) {
+    for (const label of ['Send documents', 'Add mileage', 'Add money', 'Create invoice']) {
       expect(quickActions).toContain(label)
     }
     const upload = readFileSync('app/receipts/ReceiptUploadAction.tsx', 'utf8')
     expect(upload).toContain("label='Upload receipt'")
-    expect(quickActions).toContain('DocumentIntake')
-    expect(quickActions).toContain('Send Betti documents')
-    for (const copy of ['Add something','Tell Betti anytime','Send Betti documents']) expect(quickActions).toContain(copy)
+    expect(quickActions).not.toContain('DocumentIntake')
+    expect(quickActions).toContain('href="/import"')
+    for (const copy of ['Tell Betti anytime','Send documents']) expect(quickActions).toContain(copy)
     expect(quickActions).not.toContain('Quick actions')
     expect(styles).toContain('.home-add-list')
     expect(styles).toContain('@media (max-width:639px)')

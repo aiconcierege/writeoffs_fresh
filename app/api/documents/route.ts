@@ -1,3 +1,4 @@
+import {loadStatementAccountUse} from '../../lib/bookkeeping/statement-account-use'
 import {after,NextResponse} from 'next/server'
 import {createServerSupabase} from '../../../utils/supabase/server'
 import {requireCapability,membershipErrorResponse} from '../../lib/membership/entitlements'
@@ -11,7 +12,8 @@ export async function GET(request:Request){
  if(recordId){const links=await db.from('bookkeeping_supporting_documents').select('document_id').eq('bookkeeping_record_id',recordId);if(links.error)return NextResponse.json({error:'Documents could not be loaded.'},{status:400});query=query.in('id',(links.data??[]).map(l=>l.document_id))}
  const r=await query
  if(r.error)return NextResponse.json({error:'Documents could not be loaded.'},{status:503})
- return NextResponse.json({documents:r.data,processingPaused:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED==='false'})
+ const accountUseAccounts=recordId?[]:await loadStatementAccountUse(db,true)
+ return NextResponse.json({documents:r.data,accountUseAccounts,processingPaused:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED==='false'})
 }
 export async function POST(request:Request){
  const db=await createServerSupabase(),{data:{user}}=await db.auth.getUser();if(!user)return NextResponse.json({error:'unauthorized'},{status:401})

@@ -28,7 +28,7 @@ describe('customer route integrity', () => {
 
   it('keeps customer actions discoverable from implemented product surfaces', () => {
     const quickActions = read('app/home/HomeQuickActions.tsx')
-    expect(quickActions).toContain('DocumentIntake')
+    expect(quickActions).toContain('href="/import"')
     expect(quickActions).toContain('href="/mileage"')
     expect(quickActions).toContain('href="/invoices"')
     expect(read('app/get-started/page.tsx')).toContain('<GetStartedFlow')
