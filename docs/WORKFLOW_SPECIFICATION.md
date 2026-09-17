@@ -49,7 +49,7 @@ Historical cleanup finishes with a durable review state and immutable presented 
 
 ## 4. Onboarding and account context
 
-The authenticated prerequisite order remains email/session, mandatory MFA, membership, business onboarding, Get Started, then Home. The primary starting path is connected accounts; statements, CSV, and receipts remain valid alternatives.
+The authenticated prerequisite order is email/session, mandatory MFA, membership, minimum business onboarding, then Home. Connected accounts are recommended; statements and documents are first-class alternatives. Neither connection nor bookkeeping work blocks activation. The chosen ingestion direction is a preference, not a permanent customer mode.
 
 For each connected checking, savings, or credit account ask **How do you use this account?** with **Business only** or **Business and personal**. The answer is an append-only customer-authored account fact; absence means Unknown. Onboarding expectations, account type, institution, and transaction history never substitute for it.
 
@@ -60,9 +60,7 @@ For each connected checking, savings, or credit account ask **How do you use thi
 Check-in is continuous and event-driven. Do not ask for a weekly day or make cadence
 a setup prerequisite. Existing cadence history and period-based notification
 infrastructure remain compatible; new customers are not assigned an arbitrary day.
-Explicit Get Started completion replaces that old prerequisite and checks that every
-active connected account has a saved use designation. Existing completed customers
-remain complete.
+Get Started is an optional post-activation connection workflow. Its own completion checks connected-account use; it is not an application-access prerequisite. Existing completed customers remain complete.
 
 Onboarding asks only real-world facts needed for fit and service. It must not ask the
 customer to choose tax treatment, accounting classifications, deduction categories,
@@ -91,8 +89,7 @@ Do not ask Most/Some/None receipt availability questions. Offer “Upload receip
   attendees or business purpose.
 - Final confirmation groups business details, starting scope and business facts,
   with one Change action per group. Setup finishes at Home.
-- Small queues say “I have 3 questions for you” and “Answer Betti’s questions.” Large
-  queues use calm language without a giant count. Empty state: “Your books are current.”
+- Home uses the shared Betti work projection. It invites necessary customer action calmly and distinguishes processing, waiting, holds and deferrals. An empty action queue alone never establishes that the books are current.
 - Select the appropriate question within each record, then order records oldest
   first. Keep session survivors stable and append new discoveries. Submit/version
   checks, idempotency and authoritative reload remain intact.
@@ -103,7 +100,7 @@ Do not ask Most/Some/None receipt availability questions. Offer “Upload receip
 
 ### Historical mileage and shared report authority
 
-Catch-up may collect year-to-date business miles through the end of the month before
+Historical mileage and vehicle-method work are optional post-activation work under Mileage, never mandatory onboarding. Catch-up may collect year-to-date business miles through the end of the month before
 joining, based on the customer’s log or records. Rate changes require separate
 period totals. Deferral is a durable unresolved fact, never zero. A summary is not a
 fabricated trip. Vehicle association and established tax method remain required for
@@ -347,7 +344,7 @@ If the period has no mileage entries, ask **Did you drive for your business this
 
 ## 10. Home, navigation, and connected-account status
 
-Home answers: Is WriteOffs doing its job? Does WriteOffs need me? How is my business doing? It uses canonical potential-writeoff, documentation, review, question, membership-scoped financial, and provider-health read models. Its established composition is substantially aligned and protected from another wholesale dashboard redesign. Future work may refine truthful states, wording, responsiveness, and behavior while preserving a calm, result-oriented page focused on what WriteOffs accomplished, whether the customer needs to act, and a useful financial picture. Home remains the hub with a hamburger/global menu and must not become an accounting dashboard or wall of widgets; mobile is a primary composition.
+Home is Betti’s command center. The authoritative orchestration input is the read-only Betti work projection behind `/api/bookkeeping/work`; server rendering reuses its loader. Home must not independently count unresolved records as customer tasks. It presents canonical Betti/status, one primary next action where legitimate, restrained context, canonical working financial totals with period, balanced Tell Betti anytime actions, then restrained recent activity. Detailed documents remain on `/import`. Catch-up and Current coexist; processing-only states do not fabricate a Continue CTA. Whole-business current-through language requires projection support. This Phase 2 presentation preserves the existing Check-in and canonical ledger; guided sweeps and Check-in redesign are later work.
 
 Authenticated UX keeps complexity behind Betti. Each screen has one obvious focal point and primary action, uses plain-language real-world facts, and avoids accounting or tax terminology where possible. Mobile hierarchy and density are designed first: readable type, safe tap targets, compact records, no overlapping artwork, and no large card or headline that crowds out the customer’s next action. Betti appears only when she explains what she handled, what she still needs, or what the customer should do next.
 

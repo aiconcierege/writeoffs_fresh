@@ -11,7 +11,7 @@ describe('canonical v1 onboarding UI', () => {
       'Does your business buy parts or materials for customer jobs?',
       'Does your business keep a significant amount of products or merchandise in stock to sell later?',
       'How far back should Betti organize your books?',
-      'Let’s connect your business accounts',
+      'Give Betti your financial activity',
       'You’re ready to use WriteOffs.',
     ]) expect(flow).toContain(copy)
   })
@@ -54,8 +54,10 @@ describe('canonical v1 onboarding UI', () => {
     expect(flow).toContain('min-h-11')
   })
 
-  it('hands completion to the selected activity while keeping Home available', () => {
-    expect(flow).toContain("router.push(business.onboarding_start_method==='connected_financial_accounts'?'/get-started':'/import')")
+  it('enters Home for either activity preference without bookkeeping prerequisites', () => {
+    expect(flow).toContain("router.push('/home')")
     expect(flow).toContain('Start using WriteOffs')
+    expect(flow).not.toContain('HistoricalMileage')
+    expect(flow).not.toContain('historical_mileage')
   })
 })

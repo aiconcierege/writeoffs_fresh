@@ -9,7 +9,7 @@ function transactionStatus(row:TransactionReadRow){
  if(row.bookkeepingNature==='income')return'Income'
  if(row.treatment==='mixed_use')return'Business + personal'
  if(row.treatment==='business')return'Business'
- return'Still working on it'
+ return'Not yet organized'
 }
 
 export function deriveHomeRecentActivity(rows:TransactionReadRow[]):HomeRecentActivity{

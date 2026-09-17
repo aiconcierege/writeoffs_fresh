@@ -23,7 +23,6 @@ describe('canonical onboarding entry and existing-user compatibility', () => {
     expect(signup).not.toContain("fetch('/api/profile/init'")
     expect(signup).toContain('htmlFor="signup-email"')
     expect(signup).toContain('htmlFor="signup-password"')
-    expect(home).toContain('A few business details still need an update.')
-    expect(home).toContain('Continue setup')
+    expect(home).toContain("if(needsSetup)redirect('/onboarding')")
   })
 })

@@ -10,8 +10,8 @@ describe('continuous check-in compatibility',()=>{
     expect(source('app/weekly-review/[id]/page.tsx')).toContain("redirect('/check-in')")
     expect(source('app/weekly-review/[id]/page.tsx')).not.toContain('preparing the exact weekly summary')
   })
-  it('uses the current askable queue on Home',()=>{
-    expect(source('app/home/page.tsx')).toContain('getCurrentAskableQuestionQueue')
+  it('uses the shared work projection on Home',()=>{
+    expect(source('app/home/page.tsx')).toContain('loadBettiWork')
     expect(source('app/lib/home/betti-home.ts')).toContain("href: '/check-in'")
     expect(source('app/lib/home/betti-home.ts')).not.toContain('finish last week')
     expect(source('app/lib/home/betti-home.ts')).not.toContain('I’ll ask one thing at a time.')

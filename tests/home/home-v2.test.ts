@@ -26,13 +26,10 @@ describe('Home command center', () => {
     expect(bettiHero).not.toContain('/api/bookkeeping/reviews')
   })
 
-  it('projects Home language from the continuous queue, receipt, and documentation counts', () => {
-    expect(home).toContain('askableQuestionCount:questionQueue.count')
-    expect(home).toContain('receiptsProcessing:receiptWorkflow.processing')
-    expect(home).toContain('receiptsNeedHelp:receiptWorkflow.needsHelp')
-    expect(home).toContain('outstandingDocumentation:receiptWorkflow.outstandingDocumentation')
-    expect(home).not.toContain('Your books need your attention')
-    expect(home).not.toContain('I’ve done everything I can for now')
+  it('projects Home language exclusively from shared Betti work', () => {
+    expect(home).toContain('loadBettiWork')
+    expect(home).toContain('homeCommand(work,')
+    expect(home).not.toMatch(/askableQuestionCount|receiptWorkflow|HomeOperatingStatus/)
   })
 
   it('keeps financial presentation within membership scope', () => {
@@ -67,7 +64,7 @@ describe('Home command center', () => {
     expect(bettiHero.match(/<BettiIllustration/g)).toHaveLength(1)
     expect(home.indexOf('<HomeBettiHero')).toBeLessThan(home.indexOf('home-financial'))
     expect(home.indexOf('home-financial')).toBeLessThan(home.indexOf('<HomeRecentActivity'))
-    expect(home.indexOf('<HomeRecentActivity')).toBeLessThan(home.indexOf('<HomeQuickActions'))
+    expect(home.indexOf('<HomeQuickActions')).toBeLessThan(home.indexOf('<HomeRecentActivity'))
     expect(styles).toContain('.home-betti-hero')
     expect(styles).toContain('@media (max-width:340px)')
     expect(styles).toContain('.home-add-list { grid-template-columns: repeat(2,minmax(0,1fr))')

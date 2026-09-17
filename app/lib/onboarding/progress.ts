@@ -4,7 +4,7 @@ import {
 } from './validation'
 
 export const ONBOARDING_UI_STEPS = [
-  'business', 'eligibility', 'history', 'operations', 'catch_up', 'historical_mileage', 'starting_method', 'review',
+  'business', 'eligibility', 'history', 'operations', 'catch_up', 'starting_method', 'review',
 ] as const
 export type OnboardingUiStep = (typeof ONBOARDING_UI_STEPS)[number]
 
@@ -35,7 +35,8 @@ function oneOf(values: readonly string[], value: unknown) {
 }
 
 export function activeOnboardingSteps(business: OnboardingBusinessData,joinedMonth=new Date().toISOString().slice(0,7)): OnboardingUiStep[] {
-  return ONBOARDING_UI_STEPS.filter(step=>step!=='historical_mileage'||Boolean(business.catch_up_start_date&&business.catch_up_start_date.slice(0,7)<joinedMonth&&joinedMonth.slice(5)!=='01'))
+  void business; void joinedMonth
+  return [...ONBOARDING_UI_STEPS]
 }
 
 export function getFirstIncompleteOnboardingStep(business: OnboardingBusinessData, now = new Date(), joinedMonth=now.toISOString().slice(0,7)): OnboardingUiStep {
@@ -49,7 +50,7 @@ export function getFirstIncompleteOnboardingStep(business: OnboardingBusinessDat
     || business.v1_support_status !== 'eligible') return 'operations'
   if (!/^\d{4}-\d{2}-\d{2}$/.test(business.catch_up_start_date ?? '')
     || (business.catch_up_start_date ?? '') > now.toISOString().slice(0, 10)) return 'catch_up'
-  if (business.catch_up_start_date!.slice(0,7)<joinedMonth&&joinedMonth.slice(5)!=='01'&&!business.historical_mileage_answer)return 'historical_mileage'
+  void joinedMonth // Retained call signature; historical mileage is post-activation work.
   if (!oneOf(ONBOARDING_START_METHODS, business.onboarding_start_method)) return 'starting_method'
   return 'review'
 }

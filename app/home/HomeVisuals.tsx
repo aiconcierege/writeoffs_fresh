@@ -36,7 +36,7 @@ export function DocumentationStrip({ documented, undocumented, processing }: { d
 export function FinancialRelationship({ income, expenses, profit, business }: { income: number; expenses: number; profit: number; business: boolean }) {
   const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
   if (!business) return <div className="home-financial-expenses"><span>Business expenses</span><strong>{money.format(expenses / 100)}</strong><div className="home-financial-line"/></div>
-  return <dl className="home-financial-flow" aria-label="Year-to-date business summary">
+  return <dl className="home-financial-flow" aria-label="Working business summary">
     <div className="home-financial-node home-financial-income"><dt>Business income</dt><dd>{money.format(income / 100)}</dd></div>
     <div className="home-financial-node home-financial-spent"><dt>Business expenses</dt><dd>{money.format(expenses / 100)}</dd></div>
     <div className="home-financial-node home-financial-profit"><dt>Estimated profit</dt><dd>{money.format(profit / 100)}</dd></div>

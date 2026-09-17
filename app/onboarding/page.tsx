@@ -65,8 +65,7 @@ export default async function OnboardingPage({
   ]))
   const {data: membershipStart}=await supabase.from('business_memberships').select('created_at').eq('business_id',business.id).maybeSingle()
   const joinedMonth=(membershipStart?.created_at??new Date().toISOString()).slice(0,7)
-  const [{data:historicalMileage},{data:vehicles}]=await Promise.all([supabase.from('current_historical_mileage').select('id,answer').eq('business_id',business.id).eq('tax_year',Number(joinedMonth.slice(0,4))).order('tax_year',{ascending:false}).limit(1).maybeSingle(),supabase.from('business_vehicles').select('id,display_name').eq('business_id',business.id).is('archived_at',null)])
-  const onboardingBusiness = { ...business, historical_mileage_answer: historicalMileage?.answer, sensitive_fact_revisions: sensitiveFactRevisions } as OnboardingBusinessData
+  const onboardingBusiness = { ...business, sensitive_fact_revisions: sensitiveFactRevisions } as OnboardingBusinessData
 
   if (!editing && !onboardingNeedsFollowUp(onboardingBusiness)) redirect('/home')
 
@@ -76,8 +75,6 @@ export default async function OnboardingPage({
       initialBusiness={onboardingBusiness}
       joinedMonth={joinedMonth}
       editing={editing}
-      vehicles={vehicles??[]}
-      historicalMileageId={historicalMileage?.id}
     />
   )
 }

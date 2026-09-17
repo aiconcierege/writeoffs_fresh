@@ -1,0 +1,61 @@
+import type { BettiWorkProjection } from '../bookkeeping/betti-work'
+
+export type HomeCommand = {
+  state: 'welcome' | 'needs-customer' | 'working' | 'waiting' | 'caught-up' | 'attention' | 'held' | 'unavailable'
+  heading: string; supporting: string; context: string[]
+  action: { href: string; label: string } | null
+  alternative?: { href: string; label: string }
+  education?: string
+}
+const dateLabel = (day: string) => new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+  .format(new Date(`${day}T00:00:00Z`))
+
+/** Presentation only. All workload, readiness and action authority comes from Phase 1. */
+export function homeCommand(work: BettiWorkProjection, startMethod: string | null): HomeCommand {
+  const next = work.nextAction
+  const context: string[] = []
+  if (work.customer.sharedCount) context.push('One answer can help with earlier and current books.')
+  else {
+    if (work.progress.catchUp.customerActions) context.push(`Earlier books · ${work.progress.catchUp.customerActions} need you`)
+    if (work.progress.current.customerActions) context.push(`Current activity · ${work.progress.current.customerActions} need you`)
+  }
+  if (next?.type === 'provide_records') {
+    const documents = startMethod === 'statement_uploads' || startMethod === 'receipts'
+    return { state: 'welcome', heading: 'I’m ready to start your books.',
+      supporting: documents ? 'Send me your statements and the receipts you have. I’ll take it from there.'
+        : 'Connect your business accounts so I can keep up as new activity arrives. You can also send me statements.',
+      action: { href: documents ? '/import' : '/get-started', label: documents ? 'Send documents' : 'Connect accounts' },
+      alternative: { href: documents ? '/get-started' : '/import', label: documents ? 'Connect accounts for automatic updates' : 'Use statements instead' },
+      context: [], education: 'Give me your financial activity and the records you have. I’ll do the bookkeeping and ask only when I need a fact.' }
+  }
+  if (next?.type === 'recover_ingestion') return { state: 'attention', heading: 'I need your help with a document.',
+    supporting: 'I couldn’t finish organizing it. Your document is safe—let’s take a look.',
+    action: { href: next.href, label: 'View document' }, context }
+  if (next && work.customer.actionableCount > 0) {
+    const earlier = work.progress.catchUp.customerActions > 0 || (work.progress.catchUp.activity > 0 && work.readiness.catchUp === 'work_remaining')
+    const current = work.progress.current.activity > 0 || work.progress.current.customerActions > 0
+    const href = next.href.startsWith('/check-in') ? `${next.href}${next.href.includes('?') ? '&' : '?'}returnTo=%2Fhome` : next.href
+    return { state: 'needs-customer',
+      heading: earlier && current ? 'Earlier books. New activity. I’m on it.' : earlier ? 'I’m getting your earlier books caught up.' : 'I could use your help.',
+      supporting: earlier && current ? 'I’m getting your earlier books caught up and keeping up with new activity. I just need a few facts from you.'
+        : 'I’ve used the information you’ve given me. Let’s finish the things only you can tell me.',
+      action: { href, label: next.type === 'account_use' && !href.startsWith('/check-in') ? 'Tell Betti about your account' : 'Continue with Betti' }, context }
+  }
+  if (work.betti.genuinelyProcessing > 0) return { state: 'working', heading: 'I’m organizing the records you sent.',
+    supporting: 'You’re done for now. You can leave this page while I work.', action: null, context: ['I’ll ask when I need something from you.'] }
+  if (work.betti.failures.length || work.betti.missingJobs.length || work.betti.systemHeld.length) return {
+    state: 'held', heading: 'Your records are safe.', supporting: 'Some work needs another look before I can finish. There’s nothing you need to answer right now.', action: null, context: [] }
+  if (work.betti.queued || work.betti.retryScheduled) return { state: 'waiting', heading: 'Your records are received.',
+    supporting: work.betti.retryScheduled ? 'Some processing is waiting to try again. You’re done for now.' : 'They’re waiting to be organized. You’re done for now.', action: null, context: [] }
+  if (work.customer.deferredCount) return { state: 'waiting', heading: 'You’re done for now.',
+    supporting: 'The things you set aside are saved for later. Your available working numbers are below.', action: null, context: [] }
+  if (work.readiness.booksCurrentThrough) return { state: 'caught-up', heading: `Your books are current through ${dateLabel(work.readiness.booksCurrentThrough)}.`,
+    supporting: 'Keep sending me your records. I’ll ask when I need something.', action: null, context: [] }
+  if (work.readiness.knownAccountsOrganizedThrough) return { state: 'caught-up', heading: 'Your available records are organized.',
+    supporting: `Through ${dateLabel(work.readiness.knownAccountsOrganizedThrough)}, for the accounts and statement periods you’ve provided.`, action: null, context: [] }
+  return { state: 'caught-up', heading: 'You’re done for now.',
+    supporting: 'There’s nothing I need you to answer right now. Your working books reflect the records available so far.', action: null, context: [] }
+}
+
+export const unavailableHomeCommand: HomeCommand = { state: 'unavailable', heading: 'Your books are here.',
+  supporting: 'I couldn’t load my work summary just now. Refresh to try again.', action: null, context: [] }

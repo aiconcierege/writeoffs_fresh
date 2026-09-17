@@ -5,7 +5,7 @@ import { validateCompleteOnboarding } from '../../../lib/onboarding/validation'
 const BUSINESS_COMPLETION_FIELDS =
   'id, business_description, business_profile_context, schedule_c_eligibility, business_stage, business_start_month, uses_customer_job_materials, keeps_future_sale_merchandise, prior_materials_handling, catch_up_start_date, onboarding_start_method, v1_support_status, v1_support_reason, onboarding_state, onboarding_version, onboarding_completed_at'
 
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createServerSupabase()
   const {
     data: { user },
@@ -14,6 +14,10 @@ export async function POST() {
 
   if (authError || !user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
+  const body = await request.json().catch(() => null)
+  if (typeof body?.timezone !== 'string' || body.timezone.length > 100) {
+    return NextResponse.json({ error: 'Your timezone could not be confirmed. Please refresh and try again.' }, { status: 400 })
   }
 
   const { data: business, error: businessError } = await supabase
@@ -40,7 +44,7 @@ export async function POST() {
     )
   }
   const { data: completion, error: completionError } = await supabase
-    .rpc('complete_business_onboarding_v3', { p_business_id: business.id })
+    .rpc('complete_minimum_onboarding', { p_business_id: business.id, p_timezone: body.timezone })
   if (completionError) {
     const incomplete = completionError.message.includes('onboarding is incomplete')
     return NextResponse.json(

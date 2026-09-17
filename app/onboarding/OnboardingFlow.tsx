@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { validateOnboardingBusinessPatch } from '../lib/onboarding/validation'
 import {catchUpQuote, displayMonth, monthAt, monthIndex} from '../lib/onboarding/catch-up'
-import {HistoricalMileage} from './HistoricalMileage'
 import { BettiIllustration } from '../components/BettiIllustration'
 import {
   activeOnboardingSteps, getFirstIncompleteOnboardingStep,
@@ -14,15 +13,13 @@ import {
 const TITLES: Record<OnboardingUiStep, string> = {
   business: 'Your business', eligibility: 'Product fit', history: 'Business history',
   operations: 'How you work',
-  catch_up: 'Starting point', historical_mileage: 'Business mileage', starting_method: 'First activity', review: 'Review',
+  catch_up: 'Starting point', starting_method: 'First activity', review: 'Review',
 }
 const FIELD = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base text-slate-950 outline-none focus:border-[#243186] focus:ring-2 focus:ring-[#243186]/20'
 
-export default function OnboardingFlow({ initialBusiness, joinedMonth, vehicles = [], historicalMileageId, editing = false }: {
+export default function OnboardingFlow({ initialBusiness, joinedMonth, editing = false }: {
   initialBusiness: OnboardingBusinessData
   joinedMonth: string
-  vehicles?: Array<{id:string;display_name:string}>
-  historicalMileageId?: string
   editing?: boolean
 }) {
   const router = useRouter()
@@ -32,7 +29,6 @@ export default function OnboardingFlow({ initialBusiness, joinedMonth, vehicles 
   }))
   const [step, setStep] = useState<OnboardingUiStep>(() => getFirstIncompleteOnboardingStep(initialBusiness,new Date(),joinedMonth))
   const [saving, setSaving] = useState(false)
-  const [mileageRevision,setMileageRevision]=useState(historicalMileageId)
   const [catchUpAgreed,setCatchUpAgreed]=useState(false)
   const [serverQuote,setServerQuote]=useState<{startMonth:string;additionalMonths:number;totalCents:number;includedFrom:string}|null>(null)
   useEffect(()=>{
@@ -59,7 +55,7 @@ export default function OnboardingFlow({ initialBusiness, joinedMonth, vehicles 
     setBusiness((current) => ({ ...current, [field]: value }))
   }
 
-  async function save(stepToSave: Exclude<OnboardingUiStep, 'review' | 'historical_mileage'>, data: Record<string, unknown>) {
+  async function save(stepToSave: Exclude<OnboardingUiStep, 'review'>, data: Record<string, unknown>) {
     const checked = validateOnboardingBusinessPatch({ step: stepToSave, data })
     if (!checked.ok) throw new Error(checked.error)
     const fingerprint = `${stepToSave}:${JSON.stringify(data)}`
@@ -131,10 +127,10 @@ export default function OnboardingFlow({ initialBusiness, joinedMonth, vehicles 
   async function complete() {
     setSaving(true); setError(null)
     try {
-      const response = await fetch('/api/onboarding/complete', { method: 'POST' })
+      const response = await fetch('/api/onboarding/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }) })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(body.error || 'A required answer still needs attention.')
-      router.push(business.onboarding_start_method==='connected_financial_accounts'?'/get-started':'/import')
+      router.push('/home')
       router.refresh()
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'We couldn’t complete setup.')
@@ -157,16 +153,16 @@ export default function OnboardingFlow({ initialBusiness, joinedMonth, vehicles 
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={stepIndex + 1} aria-label="Onboarding progress"><div className="h-full rounded-full bg-[#00d0a6]" style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }} /></div>
       </div>
       <div className="onboarding-conversation">
-        <form aria-busy={saving} onSubmit={(event) => { event.preventDefault(); if(step==='historical_mileage')return; void (step === 'review' ? complete() : continueStep()) }}>
+        <form aria-busy={saving} onSubmit={(event) => { event.preventDefault(); void (step === 'review' ? complete() : continueStep()) }}>
           <div className="relative overflow-visible py-6 sm:py-10">
             {!editing && step === 'business' && <BettiIllustration state="welcome" decorative className="onboarding-betti-welcome" sizes="(max-width: 639px) 6rem, 8rem" />}
 
-            <div className="mt-4">{step==='historical_mileage'?<><h1 ref={headingRef} tabIndex={-1} className="text-2xl font-semibold tracking-tight sm:text-3xl">Let’s catch up on your business driving</h1><HistoricalMileage joinedMonth={joinedMonth} coverageStart={business.catch_up_start_date??undefined} vehicles={vehicles} expectedId={mileageRevision} onSaved={(answer,id)=>{setMileageRevision(id);update('historical_mileage_answer',answer);nextStep()}}/></>:<Step step={step} business={business} update={update} headingRef={headingRef} edit={setStep} joinedMonth={joinedMonth} agreed={catchUpAgreed} setAgreed={setCatchUpAgreed} serverQuote={activeQuote} />}</div>
+            <div className="mt-4"><Step step={step} business={business} update={update} headingRef={headingRef} edit={setStep} joinedMonth={joinedMonth} agreed={catchUpAgreed} setAgreed={setCatchUpAgreed} serverQuote={activeQuote} /></div>
             {error && <div role="alert" aria-live="assertive" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>}
           </div>
           <div className="mt-6 flex gap-3 border-t border-slate-200 bg-[#fbfaf7]/95 py-4 sm:justify-between">
             <button type="button" onClick={back} disabled={saving || stepIndex === 0} className="btn btn-secondary min-h-11 flex-1 disabled:opacity-40 sm:flex-none">Back</button>
-            {!blocked && step!=='historical_mileage' && <button type="submit" disabled={saving||(step==='catch_up'&&!activeQuote)} className="btn btn-primary min-h-11 flex-[2] px-5 disabled:opacity-60 sm:flex-none">{saving ? 'Saving…' : step === 'review' ? 'Start using WriteOffs' : 'Continue'}</button>}
+            {!blocked && <button type="submit" disabled={saving||(step==='catch_up'&&!activeQuote)} className="btn btn-primary min-h-11 flex-[2] px-5 disabled:opacity-60 sm:flex-none">{saving ? 'Saving…' : step === 'review' ? 'Start using WriteOffs' : 'Continue'}</button>}
           </div>
         </form>
       </div>
@@ -201,7 +197,7 @@ function Step({ step, business, update, headingRef, edit, joinedMonth, agreed, s
       {quote.additionalMonths>0&&<label className="mt-5 flex items-start gap-3 leading-6"><input type="checkbox" disabled={!serverQuote} checked={agreed} onChange={e=>setAgreed(e.target.checked)} className="mt-1 h-5 w-5 shrink-0"/><span>I agree to the one-time ${quote.totalCents/100} catch-up charge. Continue to secure checkout.</span></label>}</div>
     </div>
   }
-  if (step === 'starting_method') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>Let’s connect your business accounts</h1><p className="mt-4 leading-7 text-[#59665f]">WriteOffs works best when you connect the bank accounts and credit cards you use for your business.</p><Choices legend="How to get started"><Choice name="start" selected={business.onboarding_start_method === 'connected_financial_accounts'} onClick={() => update('onboarding_start_method', 'connected_financial_accounts')} label="Connect my accounts" detail="Recommended. Betti can keep your books up to date as new activity arrives."/><Choice name="start" selected={business.onboarding_start_method === 'statement_uploads' || business.onboarding_start_method === 'receipts'} onClick={() => update('onboarding_start_method', 'statement_uploads')} label="Send Betti documents" detail="Send receipts and statements. Betti will figure out where they belong."/></Choices></div>
+  if (step === 'starting_method') return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>Give Betti your financial activity</h1><p className="mt-4 leading-7 text-[#59665f]">Connecting your bank accounts and credit cards is the easiest way to keep Betti up to date. Statements and documents work too—you can use either or both.</p><Choices legend="How to get started"><Choice name="start" selected={business.onboarding_start_method === 'connected_financial_accounts'} onClick={() => update('onboarding_start_method', 'connected_financial_accounts')} label="Connect my accounts" detail="Recommended. Betti can keep your books up to date as new activity arrives."/><Choice name="start" selected={business.onboarding_start_method === 'statement_uploads' || business.onboarding_start_method === 'receipts'} onClick={() => update('onboarding_start_method', 'statement_uploads')} label="Send Betti documents" detail="Send receipts and statements. Betti will figure out where they belong."/></Choices></div>
   return <div><h1 ref={headingRef} tabIndex={-1} className={heading}>You’re ready to use WriteOffs.</h1><p className="mt-4 leading-7 text-[#59665f]">Betti has what she needs to start organizing your books. You can change these details later.</p>
     <div className="mt-9 space-y-8">{[
       {title:'Your business',target:'business',lines:[business.name || business.business_description || 'Your business',`${business.business_stage==='existing'?'Existing business':'New business'} · Started ${formatDate(business.business_start_month)}`]},

@@ -1,0 +1,43 @@
+/* Home only: the canonical Betti and one invitation anchor the composition. */
+.home-command-center .home-shell { max-width: 76rem; padding-top: 1.5rem; }
+.home-command-center .home-betti-hero { grid-template-columns: minmax(0, 1.65fr) minmax(15rem, 1fr); min-height: 22rem; padding: 2rem 2.5rem; }
+.home-command-center .home-betti-message { padding: 0; }
+.home-command-center .home-betti-message h1 { font-size: clamp(2.1rem, 3.4vw, 3.3rem); line-height: 1.08; max-width: 37rem; }
+.home-command-center .home-betti-thought { font-size: 1.05rem; max-width: 35rem; margin-top: 1rem; }
+.home-command-center .home-betti-portrait { min-height: 0; align-self: center; }
+.home-command-center .home-betti-art { width: auto; max-width: 100%; height: 20rem; max-height: 20rem; margin: 0; animation: none; }
+.home-command-center .home-betti-alternative { display: inline-flex; align-items: center; min-height: 44px; margin-top: .35rem; font-size: .9rem; color: #243186; text-decoration: underline; text-underline-offset: .2em; }
+.home-command-center .home-work-context { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; margin-top: 1rem; padding: 0; list-style: none; font-size: .85rem; color: #52645a; }
+.home-command-center .home-first-use { max-width: 52rem; margin: 1rem 0 0; color: #52645a; font-size: .95rem; line-height: 1.6; }
+.home-command-center .home-working-note { margin-top: 1rem; color: #59665f; font-size: .85rem; line-height: 1.5; }
+.home-command-center .home-business-snapshot { margin-top: 1.5rem; box-shadow: none; }
+.home-command-center .home-business-snapshot .home-section-heading > div > p:last-child { display: block; }
+.home-command-center .home-add { grid-template-columns: 1fr; }
+.home-command-center .home-mileage-summary { margin-top: .75rem; font-size: .9rem; color: #243186; }
+@media (min-width: 1000px) {
+  .home-command-center .home-add { grid-template-columns: minmax(11rem, .65fr) minmax(0, 2fr); align-items: center; }
+}
+@media (min-width: 640px) and (max-width: 899px) {
+  .home-command-center .home-betti-hero { padding: 1.75rem; grid-template-columns: minmax(0, 1.4fr) minmax(12rem, 1fr); }
+  .home-command-center .home-betti-art { height: 17rem; max-height: 17rem; }
+}
+@media (max-width: 639px) {
+  .home-command-center .home-shell { padding-top: .75rem; }
+  .home-command-center .home-betti-hero { padding: 1.1rem; grid-template-columns: minmax(0, 1fr) minmax(6.5rem, 34%); gap: .6rem .5rem; min-height: 0; }
+  .home-command-center .home-betti-message { display: contents; }
+  .home-command-center .home-betti-identity { grid-column: 1 / -1; grid-row: 1; font-size: .72rem; }
+  .home-command-center .home-betti-message h1 { grid-column: 1; grid-row: 2; align-self: center; margin: 0; font-size: clamp(1.65rem, 6.6vw, 1.9rem); line-height: 1.1; letter-spacing: -.04em; }
+  .home-command-center .home-betti-portrait { grid-column: 2; grid-row: 2; padding: 0; justify-items: center; align-self: center; }
+  .home-command-center .home-betti-art { width: auto; height: 10rem; max-width: 100%; max-height: 10rem; }
+  .home-command-center .home-betti-thought { grid-column: 1 / -1; grid-row: 3; max-width: none; margin: .15rem 0 0; font-size: .97rem; line-height: 1.5; }
+  .home-command-center .home-betti-action { grid-column: 1 / -1; grid-row: 4; margin-top: .4rem; }
+  .home-command-center .home-betti-action .btn { width: 100%; min-height: 48px; }
+  .home-command-center .home-betti-alternative { grid-column: 1 / -1; grid-row: 5; margin: 0; }
+  .home-command-center .home-work-context { grid-column: 1 / -1; grid-row: 6; margin: .25rem 0 0; gap: .35rem 1rem; font-size: .8rem; }
+  .home-command-center .home-first-use { font-size: .88rem; line-height: 1.5; }
+  .home-command-center .home-business-snapshot .home-section-heading { display: block; }
+  .home-command-center .home-business-snapshot .home-section-heading > a { display: inline-flex; align-items: center; min-height: 44px; margin-top: .3rem; }
+  .home-command-center .home-financial-node dt { font-size: .73rem; letter-spacing: 0; }
+  .home-command-center .home-financial-node dd { font-size: clamp(1.1rem, 4.3vw, 1.4rem); }
+  .home-command-center .home-add-action { min-height: 3.75rem; }
+}
