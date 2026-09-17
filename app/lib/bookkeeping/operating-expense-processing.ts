@@ -65,15 +65,25 @@ export async function processOperatingExpenseTreatment(input: {
   if ((classification.status === 'needs_facts'
     || (classification.categoryKey === 'travel' && !snapshot.currentDecision.businessPurpose))
 ) {
+    const factType = classification.categoryKey === 'travel' ? 'business_travel_details'
+      : classification.reasonCode === 'CONFLICTING_CATEGORY_EVIDENCE' ? 'category_conflict'
+        : 'ordinary_expense_purpose'
+    // A classifier failing to understand a saved answer is not a new missing
+    // customer fact. Keep the assessment unresolved; never manufacture certainty.
+    if (factType === 'ordinary_expense_purpose') {
+      const { data: supplied, error } = await admin.rpc('bookkeeping_has_current_expense_purpose_answer', {
+        p_business_id: snapshot.businessId, p_record_id: snapshot.recordId,
+      })
+      if (error) throw new Error('EXPENSE_PURPOSE_ANSWER_LOAD_FAILED')
+      if (supplied) return { outcome: 'needs_facts' as const, classification }
+    }
     await new SupabaseBookkeepingRepository(admin).openReviewIssue({
       businessId: snapshot.businessId, recordId: snapshot.recordId,
       decisionId: snapshot.currentDecision.id, reason: 'BUSINESS_PURPOSE_NEEDED',
       issueKey: `schedule-c-category:${snapshot.recordId}:${snapshot.currentDecision.id}`,
       contextFingerprint: `${evidenceFingerprint}:expense-purpose`,
       questionContext: { schemaVersion: 1, routingVersion: classification.version,
-        reason: 'BUSINESS_PURPOSE_NEEDED', factType: classification.categoryKey === 'travel'
-          ? 'business_travel_details' : classification.reasonCode === 'CONFLICTING_CATEGORY_EVIDENCE'
-            ? 'category_conflict' : 'ordinary_expense_purpose',
+        reason: 'BUSINESS_PURPOSE_NEEDED', factType,
         establishedFacts: ['purchase', 'businessContext'] },
     })
   }
