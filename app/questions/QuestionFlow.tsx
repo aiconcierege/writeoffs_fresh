@@ -1,4 +1,5 @@
 'use client'
+import type {BettiWorkProjection} from '../lib/bookkeeping/betti-work'
 import type {HomeCommand} from '../lib/home/command-center'
 
 import Link from 'next/link'
@@ -13,7 +14,7 @@ import type { CustomerQuestion } from '../lib/bookkeeping/customer-questions'
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 const customerDate = new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})
 
-export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete,experience='questions',ongoingFrom,otherWorkWaiting=false,returnTo:origin='/home',initialWorkMessage,initialActionCount,guided=false,onGuidedAnswer,onGuidedRefresh }: {guided?:boolean;onGuidedAnswer?:(deferred:boolean)=>Promise<void>;onGuidedRefresh?:()=>Promise<void>;initialWorkMessage?:HomeCommand;initialActionCount?:number;returnTo?:string;ongoingFrom?:string;otherWorkWaiting?:boolean; initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void;experience?:'questions'|'check-in' }) {
+export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete,experience='questions',ongoingFrom,otherWorkWaiting=false,returnTo:origin='/home',initialWorkMessage,initialActionCount,guided=false,onGuidedAnswer,onGuidedRefresh }: {guided?:boolean;onGuidedAnswer?:(deferred:boolean,message?:string,work?:BettiWorkProjection)=>Promise<void>;onGuidedRefresh?:()=>Promise<void>;initialWorkMessage?:HomeCommand;initialActionCount?:number;returnTo?:string;ongoingFrom?:string;otherWorkWaiting?:boolean; initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void;experience?:'questions'|'check-in' }) {
   const router=useRouter()
   const returnTo=safeReturnTo(origin,'/home')
   const [workMessage,setWorkMessage]=useState(initialWorkMessage)
@@ -74,16 +75,16 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
     try {
       const response = await fetch(`/api/bookkeeping/questions/${question.id}`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'if-match': question.version },
+        headers: { 'content-type': 'application/json', 'if-match': question.version, ...(guided?{'x-betti-guided':'1'}:{}) },
         body: JSON.stringify(command),
         signal:AbortSignal.timeout(15_000),
       })
-      const result = await response.json() as { error?: string }
+      const result = await response.json() as { error?: string;work?:BettiWorkProjection }
       if (!response.ok) {
         if(response.status===409){if(onGuidedRefresh)await onGuidedRefresh();else await reloadAuthoritativeQueue()}
         throw new Error(result.error || 'Unable to save that answer.')
       }
-      if(onGuidedAnswer){await onGuidedAnswer(command.action==='defer');return}
+      if(onGuidedAnswer){await onGuidedAnswer(command.action==='defer',undefined,result.work);return}
       if (command.action === 'defer') {deferredInThisSession.current.add(question.id);setDeferredCount(value=>value+1)}
       followUpRecord.current=command.action==='defer'?null:question.recordId??null
       completedVersions.current.add(questionVersionKey(question))
@@ -209,6 +210,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
         {shownGuidance && !showAmount && <p className="mt-2 text-muted">{shownGuidance}</p>}
         {showAmount && <p className="mt-2 text-muted">Enter the business dollars. I’ll handle the split.</p>}
 
+        {submitting&&<p role="status" className="text-sm text-muted">Saving your answer…</p>}
         <div className="mt-4 grid gap-2">
           {question.kind === 'business_use' && <>
             <Action onClick={() => submit({ action: 'business_use', use: 'business' })} busy={busy}>Yes, business</Action>
