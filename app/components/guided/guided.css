@@ -12,3 +12,4 @@
 @media(prefers-reduced-motion:reduce){.betti-work *{animation:none!important;transition:none!important}}
 /* Programmatic heading focus announces the next question; controls retain visible rings. */
 .betti-conversation-body h1[tabindex="-1"]:focus{outline:none}
+.betti-work .document-intake>button:first-of-type{background:#243186;color:#fff;border-color:#243186;width:100%;justify-content:center}
