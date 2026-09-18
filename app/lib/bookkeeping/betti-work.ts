@@ -172,7 +172,7 @@ export function projectBettiWork(input: {
       const action=actions.at(-1)!
       // Unmatched documents can still supply evidence for any receipt group.
       if(group.stage.startsWith('receipt_')){
-        const documentJobs=jobs.filter(j=>!j.recordIds.length&&['queued','processing','retry_scheduled'].includes(j.status))
+        const documentJobs=jobs.filter(j=>!j.recordIds.length)
         action.dependencies=[...new Set([...action.dependencies,...documentJobs.map(j=>j.id)])]
         if(action.dependencies.length)action.status='waiting'
       }

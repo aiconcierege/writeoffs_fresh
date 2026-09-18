@@ -306,4 +306,18 @@ describe('guided work from the same canonical projection',()=>{
   const c=guided();c.records[0].allocations=[{kind:'business',amountCents:-1000,category:'supplies'},{kind:'business',amountCents:-1299,category:'software'}];c.records[0].has_receipt=true
   expect(project(c).customer.actionableCount).toBe(0);expect(c.records[0].allocations).toHaveLength(2)
  })
+ it('does not turn a failed upload into a receipt-unavailable assertion or active processing',()=>{
+  const c=guided();reviewed(c,'personal_exception_sweep');reviewed(c,'mixed_use_sweep');reviewed(c,'receipt_upload_sweep');c.jobs=[{...job(null),state:'dead_letter'}]
+  const p=project(c);expect(p.nextAction?.type).toBe('recover_ingestion');expect(p.betti.genuinelyProcessing).toBe(0);expect(p.betti.waiting[0].type).toBe('receipt_availability')
+ })
+ it('preserves an existing canonical deferral when presenting the new guided workflow',()=>{
+  const c=guided();c.deferred=[{business_id:'a',id:'skip',issue_id:'q-old',record_id:'old',created_at:now,deferred_until:'2026-09-19T00:00:00Z'}]
+  const p=project(c);expect(p.customer.actionableCount).toBe(0);expect(p.customer.deferredCount).toBe(1)
+ })
+ it('does not ask again for an established mixed allocation',()=>{
+  const c=guided();c.records[0].treatment='mixed_use';c.records[0].has_receipt=true
+  c.records[0].allocations=[{kind:'business',amountCents:-1000,category:'software'},{kind:'personal',amountCents:-1299,category:null}]
+  expect(project(c).customer.actionableCount).toBe(0)
+ })
+
 })

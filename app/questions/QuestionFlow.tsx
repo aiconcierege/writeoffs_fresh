@@ -195,7 +195,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
       </header>}
       <section className={`question-conversation relative py-3 sm:py-6${embedded?' weekly-question-embedded':''}`}>
         <div className="question-identity">{!embedded&&<BettiIllustration state="question" className="question-betti" priority sizes="3rem" />}<span>Betti</span></div>
-        <h1 ref={heading} tabIndex={-1} className="text-[1.65rem] font-semibold leading-tight tracking-[-.035em] text-[#17211d] outline-none sm:text-3xl">
+        <h1 ref={heading} tabIndex={-1} aria-describedby={guided?'guided-transaction':undefined} className="text-[1.65rem] font-semibold leading-tight tracking-[-.035em] text-[#17211d] outline-none sm:text-3xl">
           {showAmount ? `How much of the ${amount??'total'} was for your business?` : shownPrompt}
         </h1>
         <div className="question-transaction-context my-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#59665f]">
@@ -218,7 +218,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
             <label htmlFor="purpose" className="sr-only">What was this purchase for?</label>
             <textarea id="purpose" value={purpose} onChange={(event) => { setPurpose(event.target.value); growResponse(event.currentTarget) }}
               maxLength={1000} rows={2} className="w-full rounded-lg border border-slate-300 p-3"
-              placeholder={question.prompt.toLowerCase().includes('meal')||question.kind==='business_purpose'&&question.evidence&&guided?'For example, lunch to discuss a client project':'For example, printer paper for customer projects'} />
+              placeholder={question.prompt.toLowerCase().includes('meal')?'For example, lunch to discuss a client project':guided?question.prompt.toLowerCase().includes('travel')?'Destination, dates, and business reason':'A short note in your own words':'For example, printer paper for customer projects'} />
             <Action onClick={() => submit({ action: 'business_purpose', businessPurpose: purpose })} busy={busy || !purpose.trim()}>Continue</Action>
             <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>I’m not sure</Action>
           </>}

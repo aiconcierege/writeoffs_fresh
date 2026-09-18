@@ -110,7 +110,7 @@ async function settled(context,page){
 await statement('mixed-use','August 1, 2026','August 31, 2026',[['08/03','ADOBE CREATIVE CLOUD',-20000],['08/12','OFFICE DEPOT',-10000],['08/14','GOOGLE WORKSPACE',-7500]])
 await statement('current-phone','September 1, 2026','September 30, 2026',[[new Date().toISOString().slice(5,10).replace('-','/'),'VERIZON WIRELESS',-14628]])
 const paper=createCanvas(800,650),pen=paper.getContext('2d');pen.fillStyle='white';pen.fillRect(0,0,800,650);pen.fillStyle='black';pen.font='32px Arial';['OFFICE DEPOT','Receipt 05/12/2026','Printer paper       $64.19','TOTAL               $64.19','VISA ending 1234','SYNTHETIC CERTIFICATION'].forEach((line,i)=>pen.fillText(line,40,80+i*85));await writeFile(`${dir}/office.png`,paper.toBuffer('image/png'))
-const results=[]
+const results=await readFile(`${dir}/browser/results.json`,'utf8').then(JSON.parse).catch(()=>[])
 async function screenshot(page,name){
  for(const width of [390,430,768,1280]){
   await page.setViewportSize({width,height:900});await page.screenshot({path:`${dir}/browser/${name}-${width}.png`,fullPage:true})
@@ -121,6 +121,8 @@ async function screenshot(page,name){
 async function cross(context,page){
  const w=await api(context,'/api/bookkeeping/work'),q=await api(context,'/api/bookkeeping/questions')
  assert.equal(q.count,w.customer.actionableCount)
+ await page.waitForFunction(count=>document.querySelector('[data-customer-action-count]')?.getAttribute('data-customer-action-count')===String(count),w.customer.actionableCount,{timeout:15000})
+ const ledger=await api(context,'/api/transactions/list?year=all');assert.equal(new Set(ledger.rows.map(r=>r.id)).size,ledger.rows.length)
  const home=await context.newPage();await home.goto(origin+'/home');const after=await api(context,'/api/bookkeeping/work')
  if(JSON.stringify(w.customer.actionable)===JSON.stringify(after.customer.actionable))assert.equal(await home.locator('[data-customer-action-count]').getAttribute('data-customer-action-count'),String(w.customer.actionableCount))
  const report=await api(context,'/api/reports/summary?start=2026-01-01&end='+new Date().toISOString().slice(0,10))
@@ -130,12 +132,13 @@ async function cross(context,page){
  for(const [selector,field]of[['income','businessIncomeCents'],['spent','businessExpensesCents'],['profit','businessProfitCents']])assert.equal(await home.locator(`.home-financial-${selector} dd`).innerText(),money(report[field]))
  await home.close();return{w,report}
 }
-async function clickSave(page,label){const response=page.waitForResponse(r=>r.request().method()==='POST'&&(r.url().includes('/api/bookkeeping/work/answer')||r.url().includes('/api/bookkeeping/questions/')&&!r.url().endsWith('/reconcile')||r.url().includes('/api/bookkeeping/accounts/')));await page.getByRole('button',{name:label,exact:true}).click();const r=await response;assert.equal(r.status(),200,await r.text());await page.waitForTimeout(500)}
+async function clickSave(page,label){const response=page.waitForResponse(r=>r.request().method()==='POST'&&(r.url().includes('/api/bookkeeping/work/answer')||r.url().includes('/api/bookkeeping/questions/')&&!r.url().endsWith('/reconcile')||r.url().includes('/api/bookkeeping/accounts/')));await page.getByRole('button',{name:label,exact:!['Business only','Business + personal'].includes(label)}).click();const r=await response;assert.equal(r.status(),200,await r.text());await page.waitForTimeout(500)}
 let diagnostic
 try{
  for(const f of fixtures){
   assert.equal((await admin.auth.admin.getUserById(f.userId)).data.user?.user_metadata.synthetic_guided_contract,true)
   console.log('Scenario '+f.scenario)
+  if(results.some(r=>r.scenario===f.scenario&&r.result==='PASS'))continue
   const{context,client}=await session(f,browser),page=await context.newPage();diagnostic=page
   const errors=[];page.on('pageerror',e=>errors.push(e.message));await onboard(f,page)
   if(['1','2'].includes(f.scenario)&&!f.authorized){
@@ -150,7 +153,7 @@ try{
    assert(!(await page.locator('main').innerText()).includes('getting your earlier books caught up'))
    await screenshot(page,'out-of-scope');results.push({scenario:'7',result:'PASS'});await context.close();continue
   }
-  const seen=new Set(),stages=[],answers=[];let didReceipt=false
+  const seen=new Set(),stages=[],answers=[];let didReceipt=f.receiptUploaded===true
   for(let turn=0;turn<35;turn++){
    await page.waitForTimeout(600)
    if(await page.getByRole('button',{name:'Keep going with Betti',exact:true}).count()){await screenshot(page,`session-completion-${f.scenario}`);await page.getByRole('button',{name:'Keep going with Betti',exact:true}).click()}
@@ -201,7 +204,7 @@ try{
   const final=await cross(context,page),history=await client.from('financial_account_use_events').select('id')
   assert(!history.error);assert.equal(history.data.length,f.scenario==='4'?0:1)
   assert.equal(final.w.customer.actionableCount,0,'Journey did not terminate')
-  if(f.scenario==='3')assert.equal(final.report.businessExpensesCents,13000)
+  if(f.scenario==='3'){assert.equal(final.report.businessExpensesCents,13000);assert.equal(final.report.ownerPersonalUseCents,24500)}
   if(f.scenario==='1'){assert.equal(final.report.businessExpensesCents,8718);assert(didReceipt);const links=await client.from('bookkeeping_document_links').select('id').is('revoked_at',null);assert(links.data.length>0,'Uploaded receipt did not match');results.push({scenario:'5',result:'PASS'})}
   if(f.scenario==='2'){assert(final.w.progress.catchUp.activity>0&&final.w.progress.current.activity>0);assert(final.w.customer.deferredCount>0)}
   if(f.scenario==='4')assert.equal(final.report.businessExpensesCents,954)

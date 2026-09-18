@@ -14,6 +14,9 @@ import {MerchantIdentity} from './MerchantIdentity'
 
 export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false}:{initialWork:BettiWorkProjection;returnTo?:string;recordId?:string;ordinary?:boolean}){
  const[work,setWork]=useState(initialWork),[handled,setHandled]=useState(0),[deferred,setDeferred]=useState(0),[paused,setPaused]=useState(false)
+ const[sessionReady,setSessionReady]=useState(false)
+ useEffect(()=>{try{const saved=JSON.parse(sessionStorage.getItem(`betti-visit:${initialWork.businessId}`)??'null');if(saved&&Date.now()-saved.at<7200000){setHandled(saved.handled??0);setDeferred(saved.deferred??0);setPaused(saved.paused===true)}}catch{/* Session progress is optional; canonical facts remain durable. */}setSessionReady(true)},[initialWork.businessId])
+ useEffect(()=>{if(!sessionReady)return;try{sessionStorage.setItem(`betti-visit:${initialWork.businessId}`,JSON.stringify({handled,deferred,paused,at:Date.now()}))}catch{/* Private browsing may disable session storage. */}},[handled,deferred,paused,sessionReady,initialWork.businessId])
  const[notice,setNotice]=useState(''),[error,setError]=useState(''),[saving,setSaving]=useState(false)
  const lock=useRef(false),heading=useRef<HTMLHeadingElement>(null),root=useRef<HTMLDivElement>(null)
  const refresh=useCallback(async()=>{
@@ -30,7 +33,7 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
   setNotice(isDeferred?'I saved this for later.':'Got it. I’ve saved what you told me.')
   // Explicit answer reconciliation, never a GET/render side effect.
   await fetch('/api/bookkeeping/questions/reconcile',{method:'POST'})
-  try{await refresh();setError('')}catch(e){setError(e instanceof Error?e.message:'Please refresh.')}
+  try{const next=await refresh();setError('');if(!isDeferred&&next.nextAction?.question&&action?.recordIds.some(id=>next.nextAction!.recordIds.includes(id)))setNotice('That helps. I have a follow-up about this purchase.')}catch(e){setError(e instanceof Error?e.message:'Please refresh.')}
   if(handled+deferred+1>=5)setPaused(true)
   requestAnimationFrame(()=>heading.current?.focus())
  }
@@ -39,17 +42,17 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
   try{await command();await resolved(isDeferred)}catch(e){setError(e instanceof Error?e.message:'Your answer could not be confirmed.');try{await refresh()}catch{/* Explicit reload remains available. */}}
   finally{lock.current=false;setSaving(false)}
  }
- const home=homeCommand(work,'statement_uploads'),waiting=work.betti.jobs.length>0
+ const home=homeCommand(work,'statement_uploads'),waiting=work.betti.genuinelyProcessing+work.betti.queued+work.betti.retryScheduled>0
  const progress=handled||deferred?`${handled} handled this visit${deferred?` · ${deferred} saved for later`:''}`:'One thing at a time'
  return <div ref={root} data-customer-action-count={work.customer.actionableCount} data-guided-action={paused?'session_complete':action?.type??work.readiness.phase}>
  <ConversationShell returnTo={returnTo} context={context} progress={progress} notice={notice} state={!action?waiting?'working':'caught-up':'question'}>
   {error&&<div className="betti-error" role="alert">{error}<button className="betti-defer" onClick={()=>void refresh().then(()=>setError('')).catch(()=>setError('Please try again in a moment.'))}>Refresh current work</button></div>}
-  {paused?<><h1 ref={heading} tabIndex={-1}>We’ve made good progress.</h1><p className="betti-explanation">You handled {handled} {handled===1?'thing':'things'} this visit.{deferred?` I saved ${deferred} for later.`:''} You can stop here or keep going.</p><div className="betti-continue"><Link className="btn btn-primary" href={returnTo}>Back to your books</Link><button className="betti-defer" onClick={()=>{setPaused(false);setHandled(0);setDeferred(0)}}>Keep going with Betti</button></div></>
+  {paused?<><h1 ref={heading} tabIndex={-1}>We’ve made good progress.</h1><p className="betti-explanation">You handled {handled} {handled===1?'thing':'things'} this visit.{deferred?` I saved ${deferred} for later.`:''} You can stop here or keep going.</p><div className="betti-continue"><Link className="btn btn-primary" href={returnTo}>Back to your books</Link>{action&&<button className="betti-defer" onClick={()=>{setPaused(false);setHandled(0);setDeferred(0)}}>Keep going with Betti</button>}</div></>
   :!action?<><h1 ref={heading} tabIndex={-1}>{waiting?'I’ve got it from here.':home.heading}</h1><p className="betti-explanation">{waiting?'I’m checking the records and facts you sent. I’ll ask when I need something from you.':home.supporting}</p>{waiting&&<p className="betti-processing" role="status"><span className="betti-processing-dot"/> {work.betti.genuinelyProcessing?'Organizing your records':'Waiting for assessment'}</p>}{home.alternative&&<Link className="btn btn-secondary" href={home.alternative.href}>{home.alternative.label}</Link>}<div className="betti-continue"><Link className="btn btn-primary" href={returnTo}>Back to your books</Link></div></>
   :action.type==='account_use'?<AccountStep key={action.id+action.version} action={action} busy={saving} perform={perform}/>
   :action.items?<SweepStep key={action.id+action.version} action={action} busy={saving} perform={perform} refresh={refresh}/>
-  :action.type==='special_transaction'&&!ordinary?<SpecialStep key={action.id+action.version} action={action} returnTo={returnTo} resolved={resolved}/>
-  :action.question?<><MerchantIdentity merchant={action.question.transaction.merchant} date={action.question.transaction.date} amountCents={action.question.transaction.amountCents}/><QuestionFlow key={action.question.id+action.question.version} initialQuestions={[action.question]} guided onGuidedAnswer={resolved} returnTo={returnTo}/></>
+  :(action.type==='special_transaction'||action.question?.kind==='transaction_type')&&!ordinary?<SpecialStep key={action.id+action.version} action={action} returnTo={returnTo} resolved={resolved}/>
+  :action.question?<><MerchantIdentity id="guided-transaction" merchant={action.question.transaction.merchant} date={action.question.transaction.date} amountCents={action.question.transaction.amountCents}/><QuestionFlow key={action.question.id+action.question.version} initialQuestions={[action.question]} guided onGuidedAnswer={resolved} returnTo={returnTo}/></>
   :<><h1>{action.type==='recover_ingestion'?'Let’s take another look at this document.':'Send me your financial activity.'}</h1><p className="betti-explanation">{action.type==='recover_ingestion'?'Your original is safe. Open the document to see what will help me read it.':'Connected accounts are the easiest way to keep up. Statements work too.'}</p><div className="betti-continue"><Link className="btn btn-primary" href={action.href}>{action.type==='recover_ingestion'?'View document':'Send documents'}</Link>{action.type==='provide_records'&&<Link className="betti-defer" href="/get-started">Connect accounts instead</Link>}</div></>}
  </ConversationShell></div>
 }
@@ -75,7 +78,7 @@ function SweepStep({action,busy,perform,refresh}:{action:WorkAction;busy:boolean
  }
  return <><h1>{title}</h1><p className="betti-explanation">{explanation}</p>{action.account&&<p className="betti-workstream">{action.account.name}{action.account.mask?` · ${action.account.mask}`:''} · {items.length} shown</p>}
  <div className="betti-batch" aria-label="Purchases in this review">{items.map(item=>{const answer=answers[item.recordId];return <div className="betti-batch-row" key={item.recordId}>
-  {personal||mixed&&!mixedAccount?<label className="betti-batch-label"><input type="checkbox" disabled={busy} checked={!!answer} aria-label={`${personal?'Personal':'Partly personal'}: ${item.merchant}`} onChange={e=>setAnswers(old=>{const next={...old};if(e.target.checked)next[item.recordId]={use:personal?'personal':'mixed'};else delete next[item.recordId];return next})}/><MerchantIdentity compact merchant={item.merchant} date={item.date} amountCents={item.amountCents}/></label>:<MerchantIdentity compact merchant={item.merchant} date={item.date} amountCents={item.amountCents}/>}
+  {personal||mixed&&!mixedAccount?<label className="betti-batch-label"><input type="checkbox" disabled={busy} checked={!!answer} aria-label={`${personal?'Personal':'Partly personal'}: ${item.merchant}, ${item.date}, ${(Math.abs(item.amountCents)/100).toFixed(2)} dollars`} onChange={e=>setAnswers(old=>{const next={...old};if(e.target.checked)next[item.recordId]={use:personal?'personal':'mixed'};else delete next[item.recordId];return next})}/><MerchantIdentity compact merchant={item.merchant} date={item.date} amountCents={item.amountCents}/></label>:<MerchantIdentity compact merchant={item.merchant} date={item.date} amountCents={item.amountCents}/>}
   {mixed&&mixedAccount&&<div className="betti-row-choices" role="group" aria-label={`Use of ${item.merchant}`}>{[['business','Business'],['personal','Personal'],['mixed','Partly personal']].map(([use,label])=><button key={use} disabled={busy} aria-pressed={answer?.use===use} onClick={()=>setAnswers(old=>({...old,[item.recordId]:{use}}))}>{label}</button>)}</div>}
   {answer?.use==='mixed'&&<label className="betti-business-dollars">Business dollars for {item.merchant}<input inputMode="decimal" value={answer.businessDollars??''} placeholder="0.00" disabled={busy} onChange={e=>setAnswers(old=>({...old,[item.recordId]:{use:'mixed',businessDollars:e.target.value}}))}/></label>}
  </div>})}</div>
@@ -87,5 +90,5 @@ function SweepStep({action,busy,perform,refresh}:{action:WorkAction;busy:boolean
 function SpecialStep({action,returnTo,resolved}:{action:WorkAction;returnTo:string;resolved:(deferred:boolean)=>Promise<void>}){
  const[work,setWork]=useState<SpecialWork|null>(null),[failed,setFailed]=useState(false)
  useEffect(()=>{let live=true;fetch(`/api/bookkeeping/records/${action.recordIds[0]}/special`,{cache:'no-store'}).then(async r=>{if(!r.ok)throw new Error();const data=await r.json();if(live)setWork(data.work)}).catch(()=>{if(live)setFailed(true)});return()=>{live=false}},[action])
- return <>{action.question&&<MerchantIdentity merchant={action.question.transaction.merchant} date={action.question.transaction.date} amountCents={action.question.transaction.amountCents}/>} {work?<SpecialTransactionFlow work={work} returnTo={returnTo} embedded onResolved={resolved}/>:<p role="status">{failed?'I couldn’t load this detail. Please refresh.':'Getting the payment details…'}</p>}</>
+ return <>{action.question&&<MerchantIdentity id="guided-transaction" merchant={action.question.transaction.merchant} date={action.question.transaction.date} amountCents={action.question.transaction.amountCents}/>} {work?work.kind?<SpecialTransactionFlow work={work} returnTo={returnTo} embedded onResolved={resolved}/>:action.question?<QuestionFlow key={action.question.id+action.question.version} initialQuestions={[action.question]} guided onGuidedAnswer={resolved} returnTo={returnTo}/>:<p>No customer question is available for this activity.</p>:<p role="status">{failed?'I couldn’t load this detail. Please refresh.':'Getting the payment details…'}</p>}</>
 }
