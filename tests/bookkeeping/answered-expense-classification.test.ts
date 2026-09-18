@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { answeredExpenseAllocations } from '../../app/lib/bookkeeping/answered-expense-classification'
+import { describe, expect, it, vi } from 'vitest'
+import { answeredExpenseAllocations, finishAnsweredExpense } from '../../app/lib/bookkeeping/answered-expense-classification'
 import type { BookkeepingEvaluationSnapshot } from '../../app/lib/bookkeeping/deterministic-evaluator'
 function snapshot(): BookkeepingEvaluationSnapshot {
   return { evaluatorVersion: 'v1', businessId: 'business', recordId: 'record', sourceKind: 'financial_transaction',
@@ -33,4 +33,16 @@ describe('bookkeeping completion within a customer answer', () => {
     source.merchantName = 'Laptop computer equipment'; source.description = 'Computer purchase'
     expect(answeredExpenseAllocations(source)).toBeNull()
   })
+})
+
+
+it.each(['personal','excluded','positive'])('does not load expense evidence for an already non-applicable committed answer: %s',async kind=>{
+ const source=snapshot(),decision=source.currentDecision
+ if(kind==='positive'){
+  decision.bookkeepingNature='business_income';decision.treatment='business'
+  decision.allocations=[{kind:'business',amountCents:210000,taxCategoryKey:null}]
+ }else decision.treatment=kind as 'personal'|'excluded'
+ const getUser=vi.fn(()=>{throw new Error('Unnecessary evidence lookup')})
+ await finishAnsweredExpense({supabase:{auth:{getUser}} as never,result:{decision}})
+ expect(getUser).not.toHaveBeenCalled()
 })

@@ -77,7 +77,15 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
   if(action.type==='account_use')await save(/Business only/)
   else if(action.type==='personal_exception_sweep')await save('Nothing here is personal')
   else if(action.type==='mixed_use_sweep')await save('Nothing is partly personal')
-  else if(action.type==='receipt_upload_sweep')await save('Continue with Betti')
+  else if(action.type==='receipt_upload_sweep'){
+   if(process.env.CERTIFICATION_RECEIPT_LATER==='true'&&action.workstream==='catch_up'){
+    const before=await client.rpc('read_betti_work_context',{p_business_id:businessId});assert(!before.error)
+    const receiptStates=state=>state.records.filter(r=>action.recordIds.includes(r.record_id)).map(r=>[r.record_id,r.receipt_state]).sort()
+    disposition='deferred';await save('I’ll send receipts later')
+    const after=await client.rpc('read_betti_work_context',{p_business_id:businessId});assert(!after.error)
+    assert.deepEqual(receiptStates(after.data),receiptStates(before.data),'Later changed documentation availability')
+   }else await save('Continue with Betti')
+  }
   else if(action.type==='receipt_availability')await save('That’s all the receipts I have')
   else if(merchant==='REFUND - OFFICE DEPOT'){
    if(await page.getByRole('button',{name:'Returned by the store',exact:true}).count())await save('Returned by the store')

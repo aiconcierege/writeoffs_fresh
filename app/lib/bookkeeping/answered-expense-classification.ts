@@ -28,6 +28,13 @@ export async function finishAnsweredExpense(input: { supabase: SupabaseClient; a
   const decision = input.result.decision
   if (!decision || typeof decision !== 'object' || !('id' in decision) || !('businessId' in decision)
     || !('bookkeepingRecordId' in decision)) return
+  // These are the same no-op cases as processOperatingExpenseTreatment. The
+  // canonical committed decision already reconciles allocations to the immutable
+  // amount, so loading its entire evidence graph cannot enrich an expense here.
+  if ('treatment' in decision && ['personal', 'excluded'].includes(String(decision.treatment))) return
+  if ('allocations' in decision && Array.isArray(decision.allocations) && decision.allocations.length
+    && decision.allocations.every(a => a && Number.isSafeInteger(a.amountCents))
+    && decision.allocations.reduce((sum, a) => sum + a.amountCents, 0) >= 0) return
   const { data: { user } } = await requestUser(input.supabase)
   if (!user) throw new Error('AUTH_REQUIRED')
   const businessId = String(decision.businessId), recordId = String(decision.bookkeepingRecordId)
