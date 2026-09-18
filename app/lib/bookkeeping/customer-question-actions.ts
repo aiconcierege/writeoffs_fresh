@@ -1,3 +1,5 @@
+import {workSnapshotReader,type WorkInputSnapshot} from './work-input-snapshot'
+import {timed} from '../performance/request-timing'
 import {requestUser} from '../performance/request-identity'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { CanonicalWeeklyReviewService } from './review-events'
@@ -32,16 +34,22 @@ export async function actOnCustomerQuestion(input: {
   issueId: string
   expectedEventId: string
   command: CustomerQuestionAction
+  validatedSnapshot?:WorkInputSnapshot
 }) {
   const { data: { user }, error } = await requestUser(input.supabase)
   if (error || !user) throw new Error('An authenticated user is required.')
-  const queue = await listCanonicalReviewQueue({ supabase: input.supabase, issueId: input.issueId })
+  // Snapshot is supplied only by the server eligibility loader. Canonical write
+  // RPCs still check the current event/decision/evidence under their existing lock.
+  const asOf=input.validatedSnapshot?.asOf??new Date().toISOString()
+  const reads=input.validatedSnapshot?workSnapshotReader(input.validatedSnapshot,input.validatedSnapshot.businessId,asOf):input.supabase
+  const queue = await timed('current_action_lookup',()=>listCanonicalReviewQueue({ supabase: reads, issueId: input.issueId,
+    businessId:input.validatedSnapshot?.businessId,asOf }))
   const item = queue.find(({ event }) => event.reviewIssueId === input.issueId)
   if (!item || item.event.id !== input.expectedEventId) {
     throw new Error('This question changed. Please continue with the latest question.')
   }
-  const eligibility = await input.supabase.rpc('list_current_askable_bookkeeping_question_event_ids',
-    { p_as_of: new Date().toISOString() })
+  const eligibility = await reads.rpc('list_current_askable_bookkeeping_question_event_ids',
+    { p_as_of: asOf })
   if (eligibility.error || !(eligibility.data ?? []).some((row: {event_id:string}) => row.event_id === item.event.id))
     throw new Error('This question is not currently available. Please refresh your questions.')
   const projected = projectCustomerQuestion(item, {

@@ -1,3 +1,4 @@
+import {guidedWorkProjection} from './guided-work-projection'
 import {requestUser} from '../performance/request-identity'
 import 'server-only'
 import {createServerSupabase} from '../../../utils/supabase/server'
@@ -37,7 +38,7 @@ export function guidedCommand<Rest extends unknown[]>(handler:(request:Request,.
    const work=await timed('next_projection',()=>loadBettiWork({db,businessId:membership.businessId!,scope:membership.plan??'expenses',
     continuityRecordId:record&&/^[0-9a-f-]{36}$/i.test(record)?record:undefined,
     processingEnabled:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'}))
-   return Response.json({...await response.clone().json(),work},{status:response.status,headers:{'Cache-Control':'private, no-store'}})
+   return Response.json({...await response.clone().json(),work:guidedWorkProjection(work)},{status:response.status,headers:{'Cache-Control':'private, no-store'}})
   }catch{
    // The client keeps its uncertain-response/refresh path. Never replay the command.
    return response

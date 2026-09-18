@@ -30,7 +30,7 @@ function start(initialWork=homeWorkFixture('processing')){
 it('automatically reads ready work after a short processing gap without a command or navigation',async()=>{
  const{ready,fetcher}=start();await vi.advanceTimersByTimeAsync(500)
  expect(fetcher).toHaveBeenCalledOnce();expect(hooks.setters[0]).toHaveBeenCalledWith(ready)
- expect(fetcher.mock.calls[0][0]).toBe('/api/bookkeeping/work?record=entry-record')
+ expect(fetcher.mock.calls[0][0]).toBe('/api/bookkeeping/work?view=guided&record=entry-record')
  expect(fetcher.mock.calls[0][1].method).toBeUndefined()
 })
 it('bounds automatic processing reads without limiting completed customer actions',async()=>{

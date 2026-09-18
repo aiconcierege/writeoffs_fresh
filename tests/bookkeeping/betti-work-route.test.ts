@@ -5,11 +5,13 @@ vi.mock('../../utils/supabase/server', () => ({ createServerSupabase: async () =
 }) }))
 vi.mock('../../app/lib/membership/entitlements', () => ({ loadCustomerEntitlements: mocks.membership }))
 vi.mock('../../app/lib/bookkeeping/customer-questions', () => ({ getCanonicalQuestionCandidates: mocks.queue }))
+import {WORK_INPUT_TABLES} from '../../app/lib/bookkeeping/work-input-snapshot'
 import { GET } from '../../app/api/bookkeeping/work/route'
 const business = '10000000-0000-4000-8000-000000000001'
 const snapshot = () => ({ business: { id: business, start: '2026-01-01', activation: '2026-09-01',
   activationEvidence: '2026-09-01T12:00:00Z', timezone: 'UTC', coverageStart: '2026-01-01', authorizedScope: {businessId:business,selectedStart:'2026-01-01',authorizedStart:'2026-01-01',includedStart:'2026-08-01',activation:'2026-09-01',historicalAuthorized:true,currentFrom:'2026-09-01',catchUp:{from:'2026-01-01',through:'2026-08-31'}} },
 records: [], accounts: [], jobs: [], documents: [], links: [], coverage: [], deferred: [], questionVersions: [] })
+const inputSnapshot=(context=snapshot(),asOf=new Date().toISOString())=>({version:1,businessId:business,asOf,context,reviews:[],askable:[],tables:Object.fromEntries(WORK_INPUT_TABLES.map(name=>[name,[]])),timings:{}})
 const request = () => new Request('https://writeoffs.example/api/bookkeeping/work')
 beforeEach(() => {
   vi.resetAllMocks()
@@ -17,10 +19,10 @@ beforeEach(() => {
   mocks.mfa.mockResolvedValue({ data: { currentLevel: 'aal2' } })
   mocks.membership.mockResolvedValue({ businessId: business, lifecycle: 'active', plan: 'business', capabilities: new Set(['autonomous_processing']) })
   mocks.queue.mockResolvedValue({ questions: [] })
-  mocks.rpc.mockImplementation(async (name: string, args: unknown) => {
-    expect(name).toBe('read_betti_work_context')
-    expect(args).toEqual({ p_business_id: business })
-    return { data: snapshot(), error: null }
+  mocks.rpc.mockImplementation(async (name: string, args: {p_business_id:string;p_as_of:string}) => {
+    expect(name).toBe('read_betti_work_inputs')
+    expect(args.p_business_id).toBe(business)
+    return { data: inputSnapshot(snapshot(),args.p_as_of), error: null }
   })
 })
 describe('authenticated Betti work GET boundary', () => {
@@ -29,8 +31,16 @@ describe('authenticated Betti work GET boundary', () => {
     expect(response.status).toBe(200)
     expect(response.headers.get('cache-control')).toBe('private, no-store')
     expect((await response.json()).nextAction.type).toBe('provide_records')
-    expect(mocks.rpc).toHaveBeenCalledTimes(2)
+    expect(mocks.rpc).toHaveBeenCalledTimes(1)
     expect(mocks.queue).toHaveBeenCalledWith(expect.objectContaining({ scope: 'business' }))
+  })
+  it('guided GET is a smaller representation of the same canonical next action and count',async()=>{
+    const full=await (await GET(request())).json()
+    const narrow=await (await GET(new Request('https://writeoffs.example/api/bookkeeping/work?view=guided'))).json()
+    expect(narrow.nextAction).toEqual(full.nextAction)
+    expect(narrow.customer.actionableCount).toBe(full.customer.actionableCount)
+    expect(narrow.customer).not.toHaveProperty('actionable')
+    expect(narrow.betti).not.toHaveProperty('jobs')
   })
   it('takes business ownership from membership, never a URL business ID', async () => {
     const response = await GET(new Request('https://writeoffs.example/api/bookkeeping/work?businessId=foreign&returnTo=https://evil.example'))
@@ -45,15 +55,14 @@ describe('authenticated Betti work GET boundary', () => {
     expect(mocks.rpc).not.toHaveBeenCalled()
   })
   it('rejects a foreign tenant returned by any adapter', async () => {
-    mocks.rpc.mockResolvedValue({ data: { ...snapshot(), jobs: [{ business_id: 'foreign' }] } })
+    mocks.rpc.mockImplementation(async (_name:string,args:{p_as_of:string})=>({data:inputSnapshot({...snapshot(),jobs:[{business_id:'foreign'}]} as ReturnType<typeof snapshot>,args.p_as_of)}))
     const response = await GET(request())
     expect(response.status).toBe(503)
     expect(await response.text()).not.toContain('foreign')
   })
-  it('retries a concurrent context change without issuing any command', async () => {
-    mocks.rpc.mockResolvedValueOnce({ data: snapshot() }).mockResolvedValueOnce({ data: { ...snapshot(), questionVersions: ['new'] } })
+  it('uses one atomic snapshot instead of joining independently timed context reads', async () => {
     expect((await GET(request())).status).toBe(200)
-    expect(mocks.rpc).toHaveBeenCalledTimes(4)
+    expect(mocks.rpc).toHaveBeenCalledTimes(1)
   })
   it('fails closed rather than report false zero counts when a read fails', async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { message: 'private diagnostic' } })
@@ -62,7 +71,7 @@ describe('authenticated Betti work GET boundary', () => {
     expect(await response.text()).not.toContain('private diagnostic')
   })
   it('does not silently count a potentially truncated canonical question queue', async () => {
-    mocks.rpc.mockResolvedValue({ data: { ...snapshot(), questionVersions: Array.from({ length: 1000 }, (_, i) => String(i)) } })
+    mocks.rpc.mockImplementation(async(_name:string,args:{p_as_of:string})=>({data:inputSnapshot({...snapshot(),questionVersions:Array.from({length:1000},(_,i)=>String(i))} as ReturnType<typeof snapshot>,args.p_as_of)}))
     expect((await GET(request())).status).toBe(503)
     expect(mocks.queue).not.toHaveBeenCalled()
   })

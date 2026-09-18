@@ -8,6 +8,7 @@ export async function listCanonicalReviewQueue(input: {
   supabase: SupabaseClient
   businessId?: string
   issueId?: string
+  asOf?: string
   resolution?:ReturnType<typeof loadCurrentRecordConvergences>
 }) {
   const repository = new SupabaseBookkeepingRepository(input.supabase)
@@ -19,7 +20,7 @@ export async function listCanonicalReviewQueue(input: {
   }
   if (!businessId) throw new Error('Business was not found for the authenticated user.')
   const [queue, resolution] = await Promise.all([
-    new CanonicalWeeklyReviewService(repository).listQueue(businessId,undefined,input.issueId),
+    new CanonicalWeeklyReviewService(repository).listQueue(businessId,input.asOf,input.issueId),
     input.resolution??loadCurrentRecordConvergences({ supabase: input.supabase, businessId }),
   ])
   return queue.filter(({ record }) => !resolution.isAbsorbed(record.id) && !resolution.isInactive(record.id))

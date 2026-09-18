@@ -1,4 +1,4 @@
-import type { BettiWorkProjection } from '../bookkeeping/betti-work'
+import type {GuidedWorkProjection} from '../bookkeeping/guided-work-projection'
 
 export type HomeCommand = {
   state: 'welcome' | 'needs-customer' | 'working' | 'waiting' | 'caught-up' | 'attention' | 'held' | 'unavailable'
@@ -11,7 +11,7 @@ const dateLabel = (day: string) => new Intl.DateTimeFormat('en-US', { month: 'lo
   .format(new Date(`${day}T00:00:00Z`))
 
 /** Presentation only. All workload, readiness and action authority comes from Phase 1. */
-export function homeCommand(work: BettiWorkProjection, startMethod: string | null): HomeCommand {
+export function homeCommand(work: GuidedWorkProjection, startMethod: string | null): HomeCommand {
   const next = work.nextAction
   const context: string[] = []
   if (work.customer.sharedCount) context.push('One answer can help you get caught up and keep up.')

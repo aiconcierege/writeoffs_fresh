@@ -27,7 +27,7 @@ try{
   }
   contexts.push(context)
  }
- async function read(context){const started=performance.now();try{const r=await context.request.get(origin+'/api/bookkeeping/work',{timeout:30000});const body=await r.body();return{ms:performance.now()-started,status:r.status(),bytes:body.length,serverTiming:r.headers()['server-timing']??null}}catch(error){return{ms:performance.now()-started,status:0,error:String(error)}}}
+ async function read(context){const started=performance.now();try{const r=await context.request.get(origin+'/api/bookkeeping/work',{timeout:30000});const body=await r.body();return{ms:performance.now()-started,status:r.status(),bytes:body.length,dbCalls:Number(r.headers()['x-betti-db-calls']??0)||null,serverTiming:r.headers()['server-timing']??null}}catch(error){return{ms:performance.now()-started,status:0,error:String(error)}}}
  for(let i=0;i<24;i++)results.reads.push({iteration:i,phase:i===0?'first-touch-not-proven-cold':'warm',...await read(contexts[0])})
  for(const route of ['/home','/check-in']){
   const page=await contexts[0].newPage()
@@ -37,15 +37,14 @@ try{
   await page.close()
  }
  // Bounded bursts, not a claim that these six tenants represent full production capacity.
- // 25/100/750 simultaneously active customers answering once per 30 s imply
- // ~0.83/3.33/25 commands per second. These probes expose obvious serialization only.
- if(process.argv.includes('--concurrency'))for(const stage of [{cohort:25,concurrency:2,requests:8},{cohort:100,concurrency:8,requests:24},{cohort:750,concurrency:25,requests:50}]){
+ // These are concurrent read counts, not customer capacity estimates.
+ if(process.argv.includes('--concurrency'))for(const stage of [{concurrency:1,requests:8},{concurrency:5,requests:20},{concurrency:10,requests:30},{concurrency:25,requests:50}]){
   let issued=0;const observations=[],started=performance.now()
   await Promise.all(Array.from({length:stage.concurrency},async()=>{while(issued<stage.requests){const index=issued++;observations.push(await read(contexts[index%contexts.length]))}}))
   const sorted=observations.map(r=>r.ms).sort((a,b)=>a-b),p95=sorted[Math.ceil(sorted.length*.95)-1]
   results.ramps.push({...stage,elapsedMs:performance.now()-started,observations})
-  if(observations.some(r=>r.status!==200)||p95>5000){results.errors.push({stage:stage.cohort,reason:'Stopped ramp: error or >5s p95'});break}
+  if(observations.some(r=>r.status!==200)||p95>5000){results.errors.push({stage:stage.concurrency,reason:'Stopped ramp: error or >5s p95'});break}
  }
 }finally{await writeFile(`${dir}/measurements.json`,JSON.stringify(results,null,2));await browser.close()}
 const summarize=rows=>{const values=rows.map(r=>r.ms).sort((a,b)=>a-b),q=p=>values[Math.max(0,Math.ceil(values.length*p)-1)];return{n:values.length,p50:q(.5),p75:q(.75),p95:q(.95),max:values.at(-1)}}
-console.log(JSON.stringify({projection:{...summarize(results.reads.filter(r=>r.phase==='warm')),failures:results.reads.filter(r=>r.status!==200).length},pages:['/home','/check-in'].map(route=>({route,...summarize(results.pages.filter(r=>r.route===route&&r.phase==='warm'))})),ramps:results.ramps.map(r=>({cohort:r.cohort,...summarize(r.observations),failures:r.observations.filter(o=>o.status!==200).length})),errors:results.errors},null,2))
+console.log(JSON.stringify({projection:{...summarize(results.reads.filter(r=>r.phase==='warm')),failures:results.reads.filter(r=>r.status!==200).length},pages:['/home','/check-in'].map(route=>({route,...summarize(results.pages.filter(r=>r.route===route&&r.phase==='warm'))})),ramps:results.ramps.map(r=>({concurrency:r.concurrency,...summarize(r.observations),failures:r.observations.filter(o=>o.status!==200).length})),errors:results.errors},null,2))

@@ -28,6 +28,7 @@ export function timedRoute<Args extends unknown[]>(handler: (...args: Args) => P
     const grouped = new Map<string, number>()
     for (const span of state.spans) grouped.set(span.name, (grouped.get(span.name) ?? 0) + span.duration)
     response.headers.set('Server-Timing', [`total;dur=${total.toFixed(1)}`, ...[...grouped].map(([name, duration]) => `${name};dur=${duration.toFixed(1)}`)].join(', '))
+    if (process.env.WRITEOFFS_ENVIRONMENT === 'staging') response.headers.set('X-Betti-DB-Calls',String(state.spans.filter(s=>s.name.startsWith('db_')).length))
     if (process.env.WRITEOFFS_ENVIRONMENT === 'staging')
       console.info(JSON.stringify({ event: 'guided_request_timing', totalMs: Math.round(total), queryCount: state.spans.filter(s => s.name.startsWith('db_')).length, spans: state.spans }))
     return response

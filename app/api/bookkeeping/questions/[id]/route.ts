@@ -1,6 +1,7 @@
 import {requestUser} from '../../../../lib/performance/request-identity'
 import {guidedCommand} from '../../../../lib/bookkeeping/guided-command-response'
-import { timedRoute } from '../../../../lib/performance/request-timing'
+import type {WorkInputSnapshot} from '../../../../lib/bookkeeping/work-input-snapshot'
+import { timed, timedRoute } from '../../../../lib/performance/request-timing'
 import { loadCurrentCustomerWork } from '../../../../lib/bookkeeping/customer-work'
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../../utils/supabase/server'
@@ -103,7 +104,8 @@ async function handlePOST(
     return NextResponse.json({ error: 'invalid question action' }, { status: 400 })
   }
   try {
-    const work = await loadCurrentCustomerWork({supabase})
+    let validatedSnapshot:WorkInputSnapshot|undefined
+    const work = await timed('command_eligibility',()=>loadCurrentCustomerWork({supabase,onSnapshot:value=>{validatedSnapshot=value}}))
     if (!work.questions.some(q=>q.id===id && q.version===expectedEventId)) {
       // An uncertain response may be retried after the fact already committed.
       // Existing deduction logic below verifies the exact answer and ownership.
@@ -225,8 +227,8 @@ async function handlePOST(
       } else throw new Error('That answer does not match this deduction question.')
       return NextResponse.json({ ok: true })
     }
-    const result = await actOnCustomerQuestion({ supabase, issueId: id, expectedEventId, command })
-    await finishAnsweredExpense({ supabase, result })
+    const result = await timed('answer_validation_and_commit',()=>actOnCustomerQuestion({ supabase, issueId: id, expectedEventId, command, validatedSnapshot }))
+    await timed('affected_expense_reassessment',()=>finishAnsweredExpense({ supabase, result }))
     return NextResponse.json({ ok: true })
   } catch (cause) {
     const message = cause instanceof Error ? cause.message

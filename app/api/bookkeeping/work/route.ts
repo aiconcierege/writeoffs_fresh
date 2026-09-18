@@ -1,3 +1,4 @@
+import {guidedWorkProjection} from '../../../lib/bookkeeping/guided-work-projection'
 import {requestUser} from '../../../lib/performance/request-identity'
 import { timedRoute } from '../../../lib/performance/request-timing'
 import { NextResponse } from 'next/server'
@@ -21,7 +22,7 @@ async function handleGET(request: Request) {
       return NextResponse.json({ error: 'Invalid context' }, { status: 400 })
     const projection = await loadBettiWork({ db, businessId: membership.businessId, scope: membership.plan ?? 'expenses',
       continuityRecordId: record ?? undefined, processingEnabled: process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED !== 'false' })
-    return NextResponse.json({ ...projection, actionsEnabled: membership.capabilities.has('autonomous_processing') },
+    return NextResponse.json({ ...(new URL(request.url).searchParams.get('view')==='guided'?guidedWorkProjection(projection):projection), actionsEnabled: membership.capabilities.has('autonomous_processing') },
       { headers: { 'Cache-Control': 'private, no-store' } })
   } catch {
     return NextResponse.json({ error: 'Betti’s work summary is temporarily unavailable. Please try again.' },

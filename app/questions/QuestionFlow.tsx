@@ -1,5 +1,5 @@
 'use client'
-import type {BettiWorkProjection} from '../lib/bookkeeping/betti-work'
+import type {GuidedWorkProjection} from '../lib/bookkeeping/guided-work-projection'
 import type {HomeCommand} from '../lib/home/command-center'
 
 import Link from 'next/link'
@@ -14,7 +14,7 @@ import type { CustomerQuestion } from '../lib/bookkeeping/customer-questions'
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 const customerDate = new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})
 
-export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete,experience='questions',ongoingFrom,otherWorkWaiting=false,returnTo:origin='/home',initialWorkMessage,initialActionCount,guided=false,onGuidedAnswer,onGuidedRefresh }: {guided?:boolean;onGuidedAnswer?:(deferred:boolean,message?:string,work?:BettiWorkProjection)=>Promise<void>;onGuidedRefresh?:()=>Promise<void>;initialWorkMessage?:HomeCommand;initialActionCount?:number;returnTo?:string;ongoingFrom?:string;otherWorkWaiting?:boolean; initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void;experience?:'questions'|'check-in' }) {
+export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete,experience='questions',ongoingFrom,otherWorkWaiting=false,returnTo:origin='/home',initialWorkMessage,initialActionCount,guided=false,onGuidedAnswer,onGuidedRefresh }: {guided?:boolean;onGuidedAnswer?:(deferred:boolean,message?:string,work?:GuidedWorkProjection)=>Promise<void>;onGuidedRefresh?:()=>Promise<void>;initialWorkMessage?:HomeCommand;initialActionCount?:number;returnTo?:string;ongoingFrom?:string;otherWorkWaiting?:boolean; initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void;experience?:'questions'|'check-in' }) {
   const router=useRouter()
   const returnTo=safeReturnTo(origin,'/home')
   const [workMessage,setWorkMessage]=useState(initialWorkMessage)
@@ -79,7 +79,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
         body: JSON.stringify(command),
         signal:AbortSignal.timeout(15_000),
       })
-      const result = await response.json() as { error?: string;work?:BettiWorkProjection }
+      const result = await response.json() as { error?: string;work?:GuidedWorkProjection }
       if (!response.ok) {
         if(response.status===409){if(onGuidedRefresh)await onGuidedRefresh();else await reloadAuthoritativeQueue()}
         throw new Error(result.error || 'Unable to save that answer.')

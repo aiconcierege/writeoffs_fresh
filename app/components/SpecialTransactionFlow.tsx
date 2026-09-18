@@ -1,12 +1,12 @@
 'use client'
-import type {BettiWorkProjection} from '../lib/bookkeeping/betti-work'
+import type {GuidedWorkProjection} from '../lib/bookkeeping/guided-work-projection'
 import Link from 'next/link'
 import {useRef,useState} from 'react'
 import {useRouter} from 'next/navigation'
 import type {SpecialWork} from '../lib/bookkeeping/special-transactions'
 import {DocumentIntake} from '../documents/DocumentIntake'
 import {returnLabel,safeReturnTo} from '../lib/navigation-context'
-export function SpecialTransactionFlow({work,returnTo:origin,embedded=false,onResolved,onRecoveryRefresh}:{work:SpecialWork;returnTo:string;embedded?:boolean;onResolved?:(deferred:boolean,message?:string,work?:BettiWorkProjection)=>Promise<void>;onRecoveryRefresh?:()=>Promise<void>}){
+export function SpecialTransactionFlow({work,returnTo:origin,embedded=false,onResolved,onRecoveryRefresh}:{work:SpecialWork;returnTo:string;embedded?:boolean;onResolved?:(deferred:boolean,message?:string,work?:GuidedWorkProjection)=>Promise<void>;onRecoveryRefresh?:()=>Promise<void>}){
  const router=useRouter(),lock=useRef(false),request=useRef<{signature:string;id:string}|null>(null)
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState(''),[business,setBusiness]=useState(''),[selected,setSelected]=useState(''),[deferred,setDeferred]=useState(false),[none,setNone]=useState(false),[finished,setFinished]=useState(false)
  const needsSupportingRecord=work.lastAction==='unsure'&&work.kind!=='loan'
