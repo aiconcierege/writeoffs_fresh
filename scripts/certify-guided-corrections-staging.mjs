@@ -142,6 +142,16 @@ async function clickSave(page,label){const response=page.waitForResponse(r=>r.re
 try {
  const f=fixtures[0];assert.equal((await admin.auth.admin.getUserById(f.userId)).data.user?.user_metadata.synthetic_guided_contract,true)
  const {context,client}=await session(f,browser),page=await context.newPage()
+ if(process.argv.includes('--finish-existing')){
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=500)errors.push('HTTP '+r.status()+' '+new URL(r.url()).pathname)})
+  await page.goto(origin+'/check-in');const final=await cross(context,page);assert.equal(final.w.customer.actionableCount,0)
+  assert.equal((await client.from('financial_account_use_events').select('id')).data.length,1)
+  await screenshot(page,'genuine-completion')
+  const ledger=await api(context,'/api/transactions/list?year=all');assert.equal(ledger.rows.length,24)
+  await page.goto(origin+'/transactions');assert(!(await page.locator('main').first().innerText()).includes('Financial activity'));await screenshot(page,'transactions-cleanup');assert.deepEqual(errors,[])
+  await writeFile(`${dir}/final-verification.json`,JSON.stringify({result:'PASS',finalActions:final.w.customer.actionableCount,deferred:final.w.customer.deferredCount,incomeCents:final.report.businessIncomeCents,expenseCents:final.report.businessExpensesCents,profitCents:final.report.businessProfitCents,rows:ledger.rows.length,browserErrors:errors},null,2))
+  await context.close();await browser.close();process.exit(0)
+ }
  console.log("Authenticated isolated customer");await onboard(f,page);console.log("Onboarding already complete or completed")
  if(!f.authorized){
   assert(!(await admin.from('business_customer_setup').update({grandfathered_start_date:'2026-01-01'}).eq('business_id',f.businessId)).error)
@@ -251,7 +261,7 @@ try {
   if(!process.argv.includes('--resume-existing'))assert(fifth,'The fifth-action continuation was not exercised')
   assert(later||confirmed||(process.argv.includes('--resume-existing')&&raw.data.guidedReviews.some(e=>['receipt_upload_sweep','receipt_availability'].includes(e.action))),'Receipt semantics were not exercised')
   assert.equal((await client.from('financial_account_use_events').select('id')).data.length,1)
-  await page.goto(origin+'/transactions');assert(!(await page.locator('main').innerText()).includes('Financial activity'))
+  await page.goto(origin+'/transactions');assert(!(await page.locator('main').first().innerText()).includes('Financial activity'))
   await screenshot(page,'transactions-cleanup');assert.deepEqual(errors,[])
   await writeFile(`${dir}/flow.json`,JSON.stringify({result:'PASS',steps,count,later,confirmed,processing,fifth,finalActions:final.w.customer.actionableCount,deferred:final.w.customer.deferredCount,incomeCents:final.report.businessIncomeCents,expenseCents:final.report.businessExpensesCents},null,2))
  }
