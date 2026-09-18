@@ -9,7 +9,6 @@ import {PDFDocument,StandardFonts} from 'pdf-lib'
 const origin=process.env.CERTIFICATION_ORIGIN??'https://writeoffs-fresh-staging.vercel.app'
 assert(/^https:\/\/writeoffs-fresh-staging(?:-[a-z0-9-]+)?\.vercel\.app$/.test(origin))
 const reportThrough=new Date().toISOString().slice(0,10)
-const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Phoenix',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
 const dir=process.env.CERTIFICATION_ARTIFACT_DIR??'/private/tmp/writeoffs-phase3',url=process.env.NEXT_PUBLIC_SUPABASE_URL
 assert(/^\/private\/tmp\/writeoffs-phase3(?:-[a-z0-9-]+)?$/.test(dir))
 assert(process.env.WRITEOFFS_ENVIRONMENT==='staging'&&new URL(url).hostname==='sgrqrrxrlglhjuetdtps.supabase.co')
@@ -99,67 +98,33 @@ async function cross(context,page){
 }
 async function clickSave(page,label){const response=page.waitForResponse(r=>r.request().method()==='POST'&&(r.url().includes('/api/bookkeeping/work/answer')||r.url().includes('/api/bookkeeping/questions/')&&!r.url().endsWith('/reconcile')||r.url().includes('/api/bookkeeping/accounts/')));await page.getByRole('button',{name:label,exact:!['Business only','Business + personal'].includes(label)}).click();const r=await response;assert.equal(r.status(),200,await r.text());await page.waitForTimeout(500)}
 
-const checks=await readFile(`${dir}/browser/followups.json`,'utf8').then(JSON.parse).catch(()=>[])
-for(let i=checks.length-1;i>=0;i--)if(checks[i].scenario==='6'&&!checks[i].loanDocumentRequest)checks.splice(i,1)
-const only=process.env.CERTIFICATION_FOLLOWUP_SCENARIO
-assert(!only||['2','6'].includes(only))
-async function accessibility(page){
- const issue=await page.locator('.betti-work').evaluate(root=>Array.from(root.querySelectorAll('button,input,textarea')).filter(el=>el.getBoundingClientRect().width>0).flatMap(el=>{
-  const name=el.getAttribute('aria-label')||el.getAttribute('aria-labelledby')||el.labels?.[0]?.textContent||el.textContent
-  return name?.trim()?[]:[el.tagName+' has no accessible name']
- }))
- assert.deepEqual(issue,[])
- await page.keyboard.press('Tab')
- assert(await page.evaluate(()=>document.activeElement?.tagName!=='BODY'))
- await page.emulateMedia({reducedMotion:'reduce'})
- assert(await page.locator('.betti-work').evaluate(root=>Array.from(root.querySelectorAll('*')).every(el=>getComputedStyle(el).animationName==='none')))
- await page.emulateMedia({reducedMotion:'no-preference'})
-}
-let diagnostic
+
+const f=fixtures.find(f=>f.scenario==='1')
+assert.equal((await admin.auth.admin.getUserById(f.userId)).data.user?.user_metadata.synthetic_guided_contract,true)
+const {context,client}=await session(f,browser),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message))
 try{
- for(const scenario of ['2','6']){
-  if(only&&only!==scenario||checks.some(c=>c.scenario===scenario))continue
-  const f=fixtures.find(f=>f.scenario===scenario)
-  assert.equal((await admin.auth.admin.getUserById(f.userId)).data.user?.user_metadata.synthetic_guided_contract,true)
-  const {context,client}=await session(f,browser),page=await context.newPage();diagnostic=page
-  const browserErrors=[];page.on('pageerror',e=>browserErrors.push(e.message))
-  const before=await api(context,'/api/reports/summary?start=2026-01-01&end='+reportThrough)
-  const file=scenario==='2'?'historical-phone-followup':'payment-followup'
-  await statement(file,scenario==='2'?'May 1, 2026':'September 1, 2026',scenario==='2'?'May 31, 2026':'September 30, 2026',scenario==='2'?[['05/19','VERIZON WIRELESS',-14628]]:[[today.slice(5,10).replace('-','/'),'CREDIT CARD PAYMENT',-128437],[today.slice(5,10).replace('-','/'),'LOAN PAYMENT EQUIPMENT',-45000]])
-  await upload(f,page,context,`${dir}/${file}.pdf`);await settled(context,page);await page.goto(origin+'/check-in')
-  const stages=[];let loanDocumentRequest=false
-  for(let turn=0;turn<25;turn++){
-   if(await page.getByRole('button',{name:'Keep going with Betti',exact:true}).count())await page.getByRole('button',{name:'Keep going with Betti',exact:true}).click()
-   const work=await api(context,'/api/bookkeeping/work'),a=work.nextAction
-   if(!a){if(work.betti.jobs.length){await settled(context,page);await page.reload();continue}break}
-   await page.waitForFunction(type=>document.querySelector('[data-guided-action]')?.getAttribute('data-guided-action')===type,a.type)
-   await page.locator('.betti-conversation-body h1').waitFor()
-   stages.push(a.type);await accessibility(page);await screenshot(page,`followup-${scenario}-${a.type}-${a.question?.kind??'batch'}-${a.workstream}`)
-   assert.notEqual(a.type,'account_use','Account fact was asked again for new activity')
-   if(a.type==='personal_exception_sweep')await clickSave(page,'Nothing here is personal')
-   else if(a.type==='mixed_use_sweep')await clickSave(page,'Nothing is partly personal')
-   else if(a.type==='receipt_upload_sweep')await clickSave(page,'Continue with Betti')
-   else if(a.type==='receipt_availability')await clickSave(page,'That’s all the receipts I have')
-   else if(a.question?.kind==='percentage'){await page.getByLabel('Business use percentage',{exact:true}).fill('80');await clickSave(page,'Continue')}
-   else{
-    const merchant=a.question?.transaction.merchant??a.transaction?.merchant??''
-    if(a.type==='special_transaction'&&merchant.includes('LOAN')){await page.getByRole('heading',{name:'Send me the loan statement.',exact:true}).waitFor();assert(await page.getByRole('button',{name:'Choose files',exact:true}).isVisible());loanDocumentRequest=true;await screenshot(page,'loan-document-request')}
-    const label=merchant.includes('CREDIT CARD')?'Credit card payment':await page.getByRole('button',{name:'Payment on a business loan',exact:true}).count()?'Payment on a business loan':'I’ll come back to this'
-    const response=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().endsWith('/special'))
-    await page.getByRole('button',{name:label,exact:true}).click();assert.equal((await response).status(),200)
-    await page.waitForTimeout(700)
-    if(label==='Credit card payment')assert((await page.locator('main').innerText()).includes('outside business income and expenses'))
-   }
-   await page.waitForTimeout(700)
+ const before=await api(context,'/api/reports/summary?start=2026-01-01&end='+reportThrough)
+ await statement('refund-followup','May 1, 2026','May 31, 2026',[['05/28','REFUND OFFICE DEPOT',3210]])
+ await upload(f,page,context,`${dir}/refund-followup.pdf`);await settled(context,page);await page.goto(origin+'/check-in')
+ const stages=[]
+ for(let turn=0;turn<12;turn++){
+  const work=await api(context,'/api/bookkeeping/work'),a=work.nextAction
+  if(!a){if(work.betti.jobs.length){await settled(context,page);await page.reload();continue}break}
+  await page.waitForFunction(type=>document.querySelector('[data-guided-action]')?.getAttribute('data-guided-action')===type,a.type)
+  await page.locator('.betti-conversation-body h1').waitFor();stages.push(a.type)
+  if(a.type!=='special_transaction'){await screenshot(page,'refund-money-source');await clickSave(page,'Refund or reimbursement');continue}
+  if(await page.getByRole('button',{name:'Returned by the store',exact:true}).count()){
+   await screenshot(page,'refund-nature');assert.equal(await page.getByRole('heading',{name:'Which purchase was returned?',exact:true}).count(),0)
+   const r=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().endsWith('/special'));await page.getByRole('button',{name:'Returned by the store',exact:true}).click();assert.equal((await r).status(),200)
+  }else{
+   await page.getByRole('heading',{name:'Which purchase was returned?',exact:true}).waitFor();await screenshot(page,'refund-purchase')
+   assert.equal(await page.getByRole('button',{name:'Returned by the store',exact:true}).count(),0,'Refund nature was re-asked')
+   await page.getByRole('radio').check();const r=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().endsWith('/special'));await page.getByRole('button',{name:'Yes, link this return',exact:true}).click();assert.equal((await r).status(),200)
   }
-  const after=await cross(context,page);assert.equal(after.w.customer.actionableCount,0)
-  assert.equal(after.report.businessExpensesCents-before.businessExpensesCents,scenario==='2'?11702:0)
-  const history=await client.from('financial_account_use_events').select('id');assert.equal(history.data.length,1)
-  await screenshot(page,`followup-completion-${scenario}`)
-  assert.deepEqual(browserErrors,[]);if(scenario==='6')assert(loanDocumentRequest,'Loan document follow-up never appeared')
-  checks.push({scenario,stages,loanDocumentRequest,expenseChange:after.report.businessExpensesCents-before.businessExpensesCents,accountFactAskedAgain:false,accessibility:'PASS'})
-  await context.close()
+  await page.waitForTimeout(1000)
  }
- await writeFile(`${dir}/browser/followups.json`,JSON.stringify(checks,null,2))
- console.log('Guided follow-up scenarios passed: '+checks.map(c=>c.scenario).join(', '))
-}catch(error){if(diagnostic){await diagnostic.screenshot({path:`${dir}/browser/followup-failure.png`,fullPage:true});await writeFile(`${dir}/browser/followup-failure.txt`,await diagnostic.locator('body').innerText())}throw error}finally{await browser.close()}
+ const final=await cross(context,page);assert.equal(final.w.customer.actionableCount,0);assert.equal(before.businessExpensesCents-final.report.businessExpensesCents,3210)
+ assert.equal(final.report.businessIncomeCents,before.businessIncomeCents);assert.deepEqual(errors,[])
+ const records=await client.from('customer_transaction_work').select('merchant,amount_cents,bookkeeping_nature,treatment');assert(records.data.some(r=>r.bookkeeping_nature==='refund'&&r.amount_cents===3210&&r.treatment!=='unresolved'))
+ await writeFile(`${dir}/browser/refund-followup.json`,JSON.stringify({result:'PASS',stages,expenseReductionCents:3210,incomeUnchanged:true,originalAndRefundRetained:true},null,2));console.log('Refund guided continuation and confirmed expense reversal passed')
+}catch(error){await page.screenshot({path:`${dir}/browser/refund-failure.png`,fullPage:true});await writeFile(`${dir}/browser/refund-failure.txt`,await page.locator('body').innerText());throw error}finally{await browser.close()}

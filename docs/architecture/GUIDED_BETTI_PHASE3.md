@@ -28,7 +28,13 @@ rejected. Optional shadow analysis is not a required processing dependency.
 Missing receipts remain separate from working expense inclusion.
 
 Individual and special-transaction controls reuse canonical existing question and
-correction commands. Evidence-specific prompts are not replaced by generic
+correction commands. Known unresolved refunds and loan payments project their
+existing supporting-evidence workflow even when no ordinary question row remains.
+They are not inferred from merchant text by this adapter. Existing seven-day
+special-event deferrals remain deferred, scoped to the current decision; completed
+non-P&L payments do not acquire new work. Deferral does not erase a prior refund
+relationship-type answer. An unsure payment answer leads to supporting evidence
+instead of re-showing the same classification choice. Evidence-specific prompts are not replaced by generic
 purchase questions. Equivalent answered-question protections remain in force.
 
 ## Durable snapshots and security

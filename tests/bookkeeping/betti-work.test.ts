@@ -272,7 +272,8 @@ describe('guided work from the same canonical projection',()=>{
  it('never puts transfers, loans, incoming funds or personal records in purchase sweeps',()=>{
   for(const [nature,amount,treatment] of [['transfer',-100,'unresolved'],['loan_principal_payment',-100,'unresolved'],['expense',100,'business'],['expense',-100,'personal']] as const){
    const c=guided();Object.assign(c.records[0],{bookkeeping_nature:nature,amount_cents:amount,treatment})
-   expect(project(c).customer.actionableCount).toBe(0)
+   expect(project(c).customer.actionable.every(a=>a.type==='special_transaction')).toBe(true)
+   expect(project(c).customer.actionableCount).toBe(nature==='loan_principal_payment'?1:0)
   }
  })
  it('excludes old evidence outside authorized scope even with prior review events',()=>{
@@ -320,4 +321,34 @@ describe('guided work from the same canonical projection',()=>{
   expect(project(c).customer.actionableCount).toBe(0)
  })
 
+})
+
+describe('existing special evidence workflows are not limited to question rows',()=>{
+ function special(nature='loan_principal_payment') {const c=context();c.records=[{...record(),bookkeeping_nature:nature,merchant:'Existing payment'}];return c}
+ it.each(['loan_principal_payment','refund'])('projects the existing %s evidence action without inventing a question or treatment',nature=>{
+  const c=special(nature),before=JSON.stringify(c),p=project(c)
+  expect(p.customer.actionableCount).toBe(1);expect(p.nextAction?.type).toBe('special_transaction');expect(p.nextAction?.question).toBeUndefined()
+  expect(p.nextAction?.transaction?.merchant).toBe('Existing payment');expect(p.betti.systemHeld).toHaveLength(0);expect(JSON.stringify(c)).toBe(before)
+  expect(project(c,[question(c.records[0])]).customer.actionableCount).toBe(1)
+ })
+ it('preserves the existing seven-day defer semantics and does not count it as answered',()=>{
+  const c=special();c.specialDeferrals=[{business_id:'a',id:'defer',record_id:'old',decision_id:'decision-old',created_at:now}]
+  expect(project(c).customer.deferredCount).toBe(1);expect(project(c).customer.actionableCount).toBe(0)
+  expect(projectBettiWork({businessId:'a',context:c,questions:[],asOf:'2026-09-25T12:00:00Z'}).customer.actionableCount).toBe(1)
+ })
+ it('waits on real processing and uses one account prerequisite',()=>{
+  const c=special();c.jobs=[job()];expect(project(c).customer.actionableCount).toBe(0);expect(project(c).betti.waiting).toHaveLength(1)
+  c.accounts=[{business_id:'a',id:'account',designation:null,use_version:null}]
+  expect(project(c).customer.actionableCount).toBe(1);expect(project(c).nextAction?.type).toBe('account_use')
+ })
+ it('excludes out-of-scope and resolved special activity',()=>{
+  const c=special();c.records[0].activity_date='2025-12-01';expect(project(c).customer.actionableCount).toBe(0)
+  c.records[0]=record();c.records[0].bookkeeping_nature='credit_card_payment';c.records[0].treatment='excluded'
+  expect(project(c).customer.actionableCount).toBe(0)
+ })
+ it('rejects foreign deferrals and ignores superseded decision deferrals',()=>{
+  const c=special();c.specialDeferrals=[{business_id:'foreign',id:'defer',record_id:'old',decision_id:'decision-old',created_at:now}]
+  expect(()=>project(c)).toThrow('tenant');c.specialDeferrals[0].business_id='a';c.specialDeferrals[0].decision_id='superseded'
+  expect(project(c).customer.actionableCount).toBe(1)
+ })
 })

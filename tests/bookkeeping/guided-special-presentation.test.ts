@@ -18,3 +18,5 @@ describe('one material special-transaction question at a time',()=>{
 })
 
 it('reuses the application main landmark without nesting another main',()=>{const html=renderToStaticMarkup(React.createElement('main',null,React.createElement(ConversationShell,null,React.createElement('h1',null,'One fact'))));expect(html.match(/<main/g)).toHaveLength(1)})
+
+it('an unsure payment answer advances to supporting evidence instead of repeating the same choice',()=>{const html=view({kind:'movement',nature:null,lastAction:'unsure'});expect(html).toContain('Send me a supporting record.');expect(html).not.toContain('What kind of payment was this?');expect(html).not.toContain('I’m not sure')})

@@ -6,7 +6,7 @@ export async function loadSpecialWork(db:SupabaseClient,recordId:string):Promise
  const {data:w,error}=await db.from('customer_transaction_work').select('*').eq('record_id',recordId).maybeSingle()
  if(error)throw new Error('Unable to load this activity.')
  if(!w||w.source_kind!=='financial_transaction')return null
- const {data:events,error:eventError}=await db.from('bookkeeping_special_events').select('action,decision_id').eq('bookkeeping_record_id',recordId).order('created_at',{ascending:false}).limit(1)
+ const {data:events,error:eventError}=await db.from('bookkeeping_special_events').select('action,decision_id').eq('bookkeeping_record_id',recordId).neq('action','defer').order('created_at',{ascending:false}).limit(1)
  if(eventError)throw new Error('Unable to load supporting facts.')
  const lastAction=events?.[0]?.action??null
  const kind=w.bookkeeping_nature==='refund'?'refund':w.bookkeeping_nature==='loan_principal_payment'?'loan':(w.bookkeeping_nature==='credit_card_payment'||(w.bookkeeping_nature==='transfer'&&w.treatment==='personal'))?'movement':w.treatment==='unresolved'&&((w.amount_cents<0&&/loan|payment|transfer/i.test(w.description??w.merchant??''))||(w.amount_cents>0&&/payment received.*thank you|credit.card payment/i.test(w.description??w.merchant??'')))?'movement':null

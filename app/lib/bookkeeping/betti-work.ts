@@ -4,7 +4,7 @@ import type { CustomerQuestion } from './customer-questions'
 import { purchaseReceiptEligible } from './receipt-eligibility'
 import {guidedStage,guidedItem,guidedDeferral,GUIDED_BATCH_LIMIT,type GuidedItem,type GuidedReview,type SweepType} from './guided-work'
 
-export const BETTI_WORK_VERSION = 'betti-work:v3-guided'
+export const BETTI_WORK_VERSION = 'betti-work:v3-guided-evidence'
 export type Workstream = 'catch_up' | 'current' | 'shared' | 'outside_scope' | 'unscoped'
 export type ActionType = 'provide_records' | 'account_use' | 'personal_exception_sweep' | 'mixed_use_sweep'
   | 'receipt_upload_sweep' | 'receipt_availability' | 'special_transaction' | 'material_question'
@@ -32,12 +32,14 @@ export type WorkContext = {
   documentRecords?: (Owned & {document_id:string;record_id:string})[]
   questionVersions?: string[]
   guidedReviews?:GuidedReview[]
+  specialDeferrals?:(Owned & {id:string;record_id:string;decision_id:string;created_at:string})[]
 }
 export type WorkAction = {
   id: string; version: string; type: ActionType; target: { kind: 'account' | 'record' | 'question' | 'document' | 'business'; id: string }
   workstream: Workstream; affects: ('catch_up' | 'current')[]; recordIds: string[]
   status: 'actionable' | 'deferred' | 'waiting'; availableAt: string | null
   href: string; question?: CustomerQuestion
+  transaction?:{merchant:string;date:string;amountCents:number}
   items?:GuidedItem[];account?:{id:string;name:string;mask:string|null;designation:string|null}
   priority: { score: number; reasons: string[]; unlocks: number; ageDays: number; continuity: boolean
     materiality: 'totals' | 'disclosable' | null; deadline: string | null }
@@ -90,11 +92,11 @@ export function projectBettiWork(input: {
 }) {
   const { context: c, asOf } = input
   if (c.business.id !== input.businessId || c.business.authorizedScope.businessId !== input.businessId) throw new Error('Projection business mismatch')
-  for (const rows of [c.records, c.accounts, c.jobs, c.documents, c.links, c.coverage, c.deferred, c.documentRecords??[],c.guidedReviews??[]]) {
+  for (const rows of [c.records, c.accounts, c.jobs, c.documents, c.links, c.coverage, c.deferred, c.documentRecords??[],c.guidedReviews??[],c.specialDeferrals??[]]) {
     if (rows.some(row => row.business_id !== input.businessId)) throw new Error('Projection tenant mismatch')
   }
   // A partial snapshot must not become a precise total or a false completion claim.
-  if (c.records.length > 5000 || c.jobs.length > 5000 || c.documents.length > 5000 || c.coverage.length > 5000
+  if ((c.specialDeferrals?.length??0)>5000 || c.records.length > 5000 || c.jobs.length > 5000 || c.documents.length > 5000 || c.coverage.length > 5000
     || c.deferred.length > 5000 || c.accounts.length > 500 || c.links.length > 10000 || (c.questionVersions?.length ?? 0) > 10000)
     throw new Error('Projection capacity exceeded')
   const records = [...new Map(c.records.map(r => [r.record_id, r])).values()]
@@ -182,6 +184,21 @@ export function projectBettiWork(input: {
     }
   }
   const unknownAccounts = new Set(c.accounts.filter(a => !a.designation).map(a => a.id))
+  // Known special natures have existing evidence workflows even without a question row.
+  // This is routing, not an inference about principal, interest or refund allocation.
+  const specialRecords=new Set(scoped.filter(r=>r.source_kind==='financial_transaction'&&r.treatment==='unresolved'
+    &&r.decision_id&&['refund','loan_principal_payment'].includes(r.bookkeeping_nature??'')).map(r=>r.record_id))
+  for(const r of scoped.filter(r=>specialRecords.has(r.record_id))){
+    if(r.account_id&&unknownAccounts.has(r.account_id))continue
+    const deferred=(c.specialDeferrals??[]).filter(d=>d.record_id===r.record_id&&d.decision_id===r.decision_id)
+      .sort((a,b)=>b.created_at.localeCompare(a.created_at))[0]
+    const until=deferred?new Date(Date.parse(deferred.created_at)+7*86400000).toISOString():null
+    add('special_transaction',`special:${r.record_id}:evidence`,{kind:'record',id:r.record_id},[r],
+      [r.decision_id,r.review_version,deferred?.id],`/check-in?record=${encodeURIComponent(r.record_id)}`,r.activity_date,
+      {transaction:{merchant:r.merchant??'Financial activity',date:r.activity_date,amountCents:r.amount_cents},
+       ...(until&&until>asOf?{status:'deferred' as const,availableAt:until}:{})})
+    actions.at(-1)!.priority.reasons.push('existing_supporting_evidence_workflow')
+  }
   for (const q of input.questions) {
     const r = q.recordId ? byId.get(q.recordId) : undefined
     if (r && !['catch_up','current'].includes(stream(r))) continue
@@ -190,7 +207,7 @@ export function projectBettiWork(input: {
       ? 'special_transaction' : 'material_question'
     const accountDependency = r?.account_id && unknownAccounts.has(r.account_id)
     if (accountDependency) continue // The one account fact replaces these repeated requests.
-    if(r&&stages.has(r.record_id))continue // One scoped guided action owns this dependency.
+    if(r&&(stages.has(r.record_id)||specialRecords.has(r.record_id)))continue // One scoped guided action owns this dependency.
     add(type, `${q.source ?? 'bookkeeping'}:${q.id}`, { kind: 'question', id: q.id }, r ? [r] : [],
       [q.version, q.contextFingerprint, q.kind, q.prompt, q.guidance, q.options], r ? `/check-in?record=${encodeURIComponent(r.record_id)}` : '/check-in', q.openedAt ?? asOf,
       { question: q,
@@ -208,7 +225,7 @@ export function projectBettiWork(input: {
     && !input.questions.some(q => q.version === d.id || q.id === d.issue_id))) {
     const r = d.record_id ? byId.get(d.record_id) : undefined
     if (r && !['catch_up','current'].includes(stream(r))) continue
-    if (r && (['personal', 'excluded'].includes(r.treatment ?? '')||stages.has(r.record_id))) continue
+    if (r && (['personal', 'excluded'].includes(r.treatment ?? '')||stages.has(r.record_id)||specialRecords.has(r.record_id))) continue
     add('material_question', `${d.source ?? 'bookkeeping'}:${d.issue_id}`, { kind: 'question', id: d.issue_id }, r ? [r] : [], d.id,
       r ? `/check-in?record=${encodeURIComponent(r.record_id)}` : '/check-in', d.created_at,
       { status: 'deferred', availableAt: d.deferred_until })
