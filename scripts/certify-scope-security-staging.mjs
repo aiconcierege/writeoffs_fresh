@@ -16,7 +16,7 @@ function totp(secret){const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',bits=[..
 async function session(f,browser){const cookies=new Map(),client=createServerClient(url,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,{cookies:{getAll:()=>[...cookies].map(([name,value])=>({name,value})),setAll:values=>values.forEach(({name,value})=>cookies.set(name,value))}});assert(!(await client.auth.signInWithPassword({email:f.email,password:f.password})).error);assert(!(await client.auth.mfa.challengeAndVerify({factorId:f.factorId,code:totp(f.totpSecret)})).error);const context=await browser.newContext({viewport:{width:1280,height:900},timezoneId:'America/Phoenix'});await context.addCookies([...cookies].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:true,sameSite:'Lax'})));const jar=await readFile(`${dir}/candidate-cookie.txt`,'utf8').catch(()=>'');for(const line of jar.split('\n')){if(!line.includes('\t'))continue;const parts=line.replace(/^#HttpOnly_/,'').split('\t');if(parts[0]===new URL(origin).hostname)await context.addCookies([{domain:parts[0],path:parts[2],secure:parts[3]==='TRUE',name:parts[5],value:parts[6],httpOnly:true,sameSite:'None'}])}return{context,client}}
 
 
-const fixtures=JSON.parse(await readFile(`${dir}/fixtures.json`,'utf8')),a=fixtures.find(f=>f.scenario==='A'),b=fixtures.find(f=>f.scenario==='B')
+const fixtures=JSON.parse(await readFile(`${dir}/fixtures.json`,'utf8')),a=fixtures.find(f=>f.scenario==='A'),b=fixtures.find(f=>f.scenario==='G')
 for(const f of[a,b])assert.equal((await admin.auth.admin.getUserById(f.userId)).data.user?.user_metadata.synthetic_scope_contract,true)
 const browser=await chromium.launch({headless:true})
 try{
@@ -29,7 +29,7 @@ try{
  const account=await admin.from('financial_accounts').select('id').eq('business_id',a.businessId).single();assert(account.data)
  const denied=await context.request.post(origin+`/api/bookkeeping/accounts/${account.data.id}/use`,{data:{designation:'business_only',effectiveAt:new Date().toISOString(),requestId:randomUUID()}});assert.equal(denied.status(),400)
  const old=await admin.from('bookkeeping_review_events').select('id,review_issue_id').eq('business_id',b.businessId).eq('event_type','opened').limit(1).maybeSingle()
- if(old.data){const r=await context.request.post(origin+`/api/bookkeeping/questions/${old.data.review_issue_id}`,{headers:{'if-match':old.data.id},data:{action:'business_use',use:'business'}});assert.equal(r.status(),409)}
+ assert(old.data,'Answered receipt must retain its prior review question');{const r=await context.request.post(origin+`/api/bookkeeping/questions/${old.data.review_issue_id}`,{headers:{'if-match':old.data.id},data:{action:'business_use',use:'business'}});assert.equal(r.status(),409)}
  for(const path of ['/home','/check-in','/transactions','/reports']){await page.goto(origin+path);assert.equal(new URL(page.url()).pathname,path)}
  for(const path of ['/api/bookkeeping/work','/api/bookkeeping/questions','/api/transactions/list?year=all','/api/reports/summary'])assert.equal((await context.request.get(origin+path)).status(),200)
  assert.deepEqual(await snapshot(),before,'GET/render or rejected actions changed canonical facts')
