@@ -24,7 +24,15 @@ export function guidedCommand<Rest extends unknown[]>(handler:(request:Request,.
    if(!deferred)await timed('question_reconciliation',async()=>{
     const result=await db.rpc('reconcile_current_betti_questions');if(result.error)throw new Error('Reconciliation unavailable')
    })
-   const record=request.headers.get('x-betti-record')
+   let record=request.headers.get('x-betti-record')
+   // Preserve the existing Check-in entry priority when returning its next read.
+   // This is only a priority hint: tenant/scope eligibility remains canonical.
+   if(!record){
+    try{
+     const source=new URL(request.headers.get('referer')??'')
+     if(source.origin===new URL(request.url).origin&&source.pathname==='/check-in')record=source.searchParams.get('record')
+    }catch{/* No trusted originating context. */}
+   }
    const work=await timed('next_projection',()=>loadBettiWork({db,businessId:membership.businessId!,scope:membership.plan??'expenses',
     continuityRecordId:record&&/^[0-9a-f-]{36}$/i.test(record)?record:undefined,
     processingEnabled:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'}))

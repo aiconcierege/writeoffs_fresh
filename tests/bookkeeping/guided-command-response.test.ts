@@ -43,3 +43,13 @@ it.each([{action:'defer'},{disposition:'deferred'}])('projects durable deferrals
  expect((await response.json()).work).toEqual({businessId:'owned',nextAction:null})
  expect(state.rpc).not.toHaveBeenCalled();expect(state.projection).toHaveBeenCalledOnce()
 })
+
+it.each([
+ ['https://staging.invalid/check-in?record=11111111-1111-4111-8111-111111111111','11111111-1111-4111-8111-111111111111'],
+ ['https://other.invalid/check-in?record=11111111-1111-4111-8111-111111111111',undefined],
+ ['https://staging.invalid/check-in?record=invalid',undefined],
+])('preserves only a valid same-origin conversation priority: %s',async(referer,expected)=>{
+ await guidedCommand(async()=>Response.json({ok:true}))(new Request('https://staging.invalid/answer',{method:'POST',headers:{'x-betti-guided':'1',referer}}))
+ expect(state.projection.mock.calls[0][0].continuityRecordId).toBe(expected)
+ expect(state.projection.mock.calls[0][0].businessId).toBe('owned')
+})
