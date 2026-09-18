@@ -7,8 +7,10 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
  const raw=await client.rpc('read_betti_work_context',{p_business_id:businessId});assert(!raw.error)
  const loan=raw.data.records.find(r=>r.merchant==='LOAN PAYMENT - EQUIPMENT FINANCE CO');assert(loan)
  const initialHome=await context.newPage();await initialHome.goto(origin+'/home');await screenshot(initialHome,'home-catch-up-status');await initialHome.close()
- const path='/api/bookkeeping/work?record='+loan.record_id
- await page.goto(origin+'/check-in?record='+loan.record_id+'&returnTo=%2Fhome')
+ const homeEntry=process.env.CERTIFICATION_HOME_ENTRY==='true'
+ const path='/api/bookkeeping/work'+(homeEntry?'':'?record='+loan.record_id)
+ if(homeEntry){await page.goto(origin+'/home');await page.getByRole('link',{name:'Continue with Betti',exact:true}).click()}
+ else await page.goto(origin+'/check-in?record='+loan.record_id+'&returnTo=%2Fhome')
  const navigation=[];page.on('framenavigated',frame=>{if(frame===page.mainFrame())navigation.push(frame.url())})
  const errors=[];page.on('pageerror',e=>errors.push(e.message))
  const steps=[],seen=new Set(),captures=new Set(),processingWaits=[];let persistenceMs=0,clickAt=0,expectedVersion=''
@@ -19,7 +21,7 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
  async function save(label,loseResponse=false){
   clickAt=Date.now()
   if(performanceMode)loseResponse=false
-  await page.evaluate(()=>{window.__bettiPerf={};document.addEventListener('click',()=>{window.__bettiPerf.click=performance.now();requestAnimationFrame(()=>{window.__bettiPerf.pending=performance.now()})},{once:true,capture:true})})
+  await page.evaluate(()=>{window.__bettiPerf={};document.addEventListener('click',event=>{const button=event.target.closest('button');window.__bettiPerf.click=performance.now();requestAnimationFrame(()=>{window.__bettiPerf.pending=performance.now();window.__bettiPerf.pendingVisible=Boolean(button?.disabled||[...document.querySelectorAll('[role="status"]')].some(node=>/saving/i.test(node.textContent)))})},{once:true,capture:true})})
   let resolveSaved
   const saved=new Promise(resolve=>{resolveSaved=resolve})
   const handler=async route=>{
@@ -40,6 +42,7 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
    await page.waitForFunction(version=>document.querySelector('[data-guided-action]')?.getAttribute('data-guided-version')!==version,expectedVersion,{timeout:60000})
    renderedMs=Date.now()-clickAt
    acknowledgmentMs=await page.evaluate(()=>window.__bettiPerf.pending-window.__bettiPerf.click)
+   if(performanceMode)assert(await page.evaluate(()=>window.__bettiPerf.pendingVisible),'No immediate pending acknowledgment')
   }finally{await page.unroute('**/api/bookkeeping/**',handler)}
  }
  try{for(let turn=0;turn<200;turn++){

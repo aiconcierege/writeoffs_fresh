@@ -235,18 +235,6 @@ async function buildCustomerQuestions(input: {
   if (recordError) throw new Error(`Unable to load question records: ${recordError.message}`)
   if (sourceError) throw new Error(`Unable to load question sources: ${sourceError.message}`)
   if (documentResult.error) throw new Error(`Unable to load question evidence: ${documentResult.error.message}`)
-  const receiptEvidence = await loadReceiptEvidence({ db: input.supabase, businessId,
-    links: documentResult.data ?? [], hasFinancialSource: false })
-
-  const receiptIds=[...new Set((documentResult.data??[]).map((row)=>row.receipt_id))]
-  const receiptResult=receiptIds.length?await input.supabase.from('receipts').select('id,storage_path,original_name')
-    .in('id',receiptIds):{data:[],error:null}
-  if(receiptResult.error)throw new Error(`Unable to load question evidence: ${receiptResult.error.message}`)
-  const receiptById=new Map((receiptResult.data??[]).map((row)=>[row.id,row]))
-  const evidenceByRecord=new Map<string,{receiptUrl:string;label:string}>()
-  for(const link of documentResult.data??[]){const receipt=receiptById.get(link.receipt_id);if(!receipt)continue
-    evidenceByRecord.set(resolution.resolve(link.bookkeeping_record_id),{receiptUrl:`/api/receipts/${receipt.id}/view`,label:receipt.original_name??'Receipt'})}
-
   const currentSources = [
     ...(sources ?? []),
     ...resolution.compoundComponents.filter((component) => recordIds.includes(component.recordId))
@@ -257,11 +245,23 @@ async function buildCustomerQuestions(input: {
   ]
 
   const transactionIds = currentSources.map((source) => source.financial_transaction_id)
-  const { data: transactions, error: transactionError } = transactionIds.length
-    ? await input.supabase.from('financial_transactions')
+  const receiptIds=[...new Set((documentResult.data??[]).map((row)=>row.receipt_id))]
+  // All four reads depend only on the source/link snapshot already loaded. Keep
+  // evidence semantics unchanged while avoiding serial transport round trips.
+  const [receiptEvidence,receiptResult,transactionResult,plaidState] = await Promise.all([
+    loadReceiptEvidence({ db: input.supabase, businessId, links: documentResult.data ?? [], hasFinancialSource: false }),
+    receiptIds.length?input.supabase.from('receipts').select('id,storage_path,original_name').in('id',receiptIds):Promise.resolve({data:[],error:null}),
+    transactionIds.length?input.supabase.from('financial_transactions')
       .select('id,merchant_name,original_description,amount_cents,currency,transaction_date,import_method,raw_payload')
-      .in('id', transactionIds)
-    : { data: [], error: null }
+      .in('id',transactionIds):Promise.resolve({data:[],error:null}),
+    currentPlaidFinancialState({supabase:input.supabase,businessId,candidateFinancialTransactionIds:transactionIds}),
+  ])
+  if(receiptResult.error)throw new Error(`Unable to load question evidence: ${receiptResult.error.message}`)
+  const receiptById=new Map((receiptResult.data??[]).map((row)=>[row.id,row]))
+  const evidenceByRecord=new Map<string,{receiptUrl:string;label:string}>()
+  for(const link of documentResult.data??[]){const receipt=receiptById.get(link.receipt_id);if(!receipt)continue
+    evidenceByRecord.set(resolution.resolve(link.bookkeeping_record_id),{receiptUrl:`/api/receipts/${receipt.id}/view`,label:receipt.original_name??'Receipt'})}
+  const {data:transactions,error:transactionError}=transactionResult
   if (transactionError) {
     throw new Error(`Unable to load question transactions: ${transactionError.message}`)
   }
@@ -273,10 +273,6 @@ async function buildCustomerQuestions(input: {
   const transactionById = new Map((transactions ?? []).map((transaction) => [
     transaction.id, transaction,
   ]))
-
-  const plaidState = await currentPlaidFinancialState({
-    supabase: input.supabase, businessId, candidateFinancialTransactionIds: transactionIds,
-  })
 
   const bookkeepingQuestions = currentQueue.flatMap((item) => {
     const record = recordById.get(item.record.id)
