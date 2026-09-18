@@ -13,10 +13,10 @@ import {ConversationShell,SelectionCard} from './ConversationShell'
 import {MerchantIdentity} from './MerchantIdentity'
 
 export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false}:{initialWork:BettiWorkProjection;returnTo?:string;recordId?:string;ordinary?:boolean}){
- const[work,setWork]=useState(initialWork),[handled,setHandled]=useState(0),[deferred,setDeferred]=useState(0),[paused,setPaused]=useState(false)
+ const[work,setWork]=useState(initialWork),[handled,setHandled]=useState(0),[deferred,setDeferred]=useState(0)
  const[sessionReady,setSessionReady]=useState(false)
- useEffect(()=>{try{const saved=JSON.parse(sessionStorage.getItem(`betti-visit:${initialWork.businessId}`)??'null');if(saved&&Date.now()-saved.at<7200000){setHandled(saved.handled??0);setDeferred(saved.deferred??0);setPaused(saved.paused===true)}}catch{/* Session progress is optional; canonical facts remain durable. */}setSessionReady(true)},[initialWork.businessId])
- useEffect(()=>{if(!sessionReady)return;try{sessionStorage.setItem(`betti-visit:${initialWork.businessId}`,JSON.stringify({handled,deferred,paused,at:Date.now()}))}catch{/* Private browsing may disable session storage. */}},[handled,deferred,paused,sessionReady,initialWork.businessId])
+ useEffect(()=>{try{const saved=JSON.parse(sessionStorage.getItem(`betti-visit:${initialWork.businessId}`)??'null');if(saved&&Date.now()-saved.at<7200000){setHandled(saved.handled??0);setDeferred(saved.deferred??0)}}catch{/* Session progress is optional; canonical facts remain durable. */}setSessionReady(true)},[initialWork.businessId])
+ useEffect(()=>{if(!sessionReady)return;try{sessionStorage.setItem(`betti-visit:${initialWork.businessId}`,JSON.stringify({handled,deferred,at:Date.now()}))}catch{/* Private browsing may disable session storage. */}},[handled,deferred,sessionReady,initialWork.businessId])
  const[notice,setNotice]=useState(''),[error,setError]=useState(''),[saving,setSaving]=useState(false)
  const lock=useRef(false),heading=useRef<HTMLHeadingElement>(null),root=useRef<HTMLDivElement>(null)
  const refresh=useCallback(async()=>{
@@ -26,7 +26,7 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
  },[recordId])
  useEffect(()=>{let alive=true;const read=async()=>{if(lock.current||document.visibilityState!=='visible')return;try{await refresh()}catch{if(alive)setError('I couldn’t check for updates. Refresh before answering.')}};const timer=setInterval(read,7000);window.addEventListener('focus',read);return()=>{alive=false;clearInterval(timer);window.removeEventListener('focus',read)}},[refresh])
  const action=work.customer.actionable.find(a=>!recordId||a.recordIds.includes(recordId))
- useEffect(()=>{const title=root.current?.querySelector('h1');if(title){title.tabIndex=-1;title.focus({preventScroll:true})}},[action?.id,paused])
+ useEffect(()=>{const title=root.current?.querySelector('h1');if(title){title.tabIndex=-1;title.focus({preventScroll:true})}},[action?.id])
  const context=action?.workstream==='catch_up'?'Getting your earlier books caught up':action?.workstream==='shared'?'Helping your earlier and current books':action?.workstream==='current'?'Keeping your books up to date':'Work with Betti'
  async function resolved(isDeferred:boolean,message?:string){
   if(isDeferred)setDeferred(n=>n+1);else setHandled(n=>n+1)
@@ -34,7 +34,6 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
   // Explicit answer reconciliation, never a GET/render side effect.
   await fetch('/api/bookkeeping/questions/reconcile',{method:'POST'})
   try{const next=await refresh();setError('');if(!isDeferred&&next.nextAction?.question&&action?.recordIds.some(id=>next.nextAction!.recordIds.includes(id)))setNotice('That helps. I have a follow-up about this purchase.')}catch(e){setError(e instanceof Error?e.message:'Please refresh.')}
-  if(handled+deferred+1>=5)setPaused(true)
   requestAnimationFrame(()=>heading.current?.focus())
  }
  async function perform(command:()=>Promise<void>,isDeferred=false){
@@ -44,11 +43,10 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
  }
  const home=homeCommand(work,'statement_uploads'),waiting=work.betti.genuinelyProcessing+work.betti.queued+work.betti.retryScheduled>0
  const progress=handled||deferred?`${handled} handled this visit${deferred?` · ${deferred} saved for later`:''}`:'One thing at a time'
- return <div ref={root} data-customer-action-count={work.customer.actionableCount} data-guided-action={paused?'session_complete':action?.type??work.readiness.phase}>
+ return <div ref={root} data-customer-action-count={work.customer.actionableCount} data-guided-action={action?.type??work.readiness.phase}>
  <ConversationShell returnTo={returnTo} context={context} progress={progress} notice={notice} state={!action?waiting?'working':'caught-up':'question'}>
   {error&&<div className="betti-error" role="alert">{error}<button className="betti-defer" onClick={()=>void refresh().then(()=>setError('')).catch(()=>setError('Please try again in a moment.'))}>Refresh current work</button></div>}
-  {paused?<><h1 ref={heading} tabIndex={-1}>We’ve made good progress.</h1><p className="betti-explanation">You handled {handled} {handled===1?'thing':'things'} this visit.{deferred?` I saved ${deferred} for later.`:''} You can stop here or keep going.</p><div className="betti-continue"><Link className="btn btn-primary" href={returnTo}>Back to your books</Link>{action&&<button className="betti-defer" onClick={()=>{setPaused(false);setHandled(0);setDeferred(0)}}>Keep going with Betti</button>}</div></>
-  :!action?<><h1 ref={heading} tabIndex={-1}>{waiting?'I’ve got it from here.':home.heading}</h1><p className="betti-explanation">{waiting?'I’m checking the records and facts you sent. I’ll ask when I need something from you.':home.supporting}</p>{waiting&&<p className="betti-processing" role="status"><span className="betti-processing-dot"/> {work.betti.genuinelyProcessing?'Organizing your records':'Waiting for assessment'}</p>}{home.alternative&&<Link className="btn btn-secondary" href={home.alternative.href}>{home.alternative.label}</Link>}<div className="betti-continue"><Link className="btn btn-primary" href={returnTo}>Back to your books</Link></div></>
+  {!action?<><h1 ref={heading} tabIndex={-1}>{waiting?'I’ve got it from here.':home.heading}</h1><p className="betti-explanation">{waiting?'I’m checking the records and facts you sent. I’ll ask when I need something from you.':home.supporting}</p>{waiting&&<p className="betti-processing" role="status"><span className="betti-processing-dot"/> {work.betti.genuinelyProcessing?'Organizing your records':'Waiting for assessment'}</p>}{home.alternative&&<Link className="btn btn-secondary" href={home.alternative.href}>{home.alternative.label}</Link>}<div className="betti-continue"><Link className="btn btn-primary" href={returnTo}>Back to your books</Link></div></>
   :action.type==='account_use'?<AccountStep key={action.id+action.version} action={action} busy={saving} perform={perform}/>
   :action.items?<SweepStep key={action.id+action.version} action={action} busy={saving} perform={perform} refresh={refresh}/>
   :(action.type==='special_transaction'||action.question?.kind==='transaction_type')&&(!ordinary||!action.question)?<SpecialStep key={action.id+action.version} action={action} returnTo={returnTo} resolved={resolved}/>
@@ -79,7 +77,7 @@ function SweepStep({action,busy,perform,refresh}:{action:WorkAction;busy:boolean
   },disposition==='deferred')
  }
  return <><h1>{title}</h1><p className="betti-explanation">{explanation}</p>{action.account&&<p className="betti-workstream">{action.account.name}{action.account.mask?` · ${action.account.mask}`:''} · {items.length} shown</p>}
- {receipt&&<DocumentIntake guided compact onUploadState={uploadState}/>}
+ {receipt&&<><DocumentIntake guided compact onUploadState={uploadState}/><button className="betti-defer" disabled={busy||uploading} onClick={()=>void save('deferred')}>I’ll send receipts later</button></>}
  {uploadReadError&&<div role="alert" className="betti-error">I couldn’t check the latest document status. Refresh before continuing.<button className="betti-defer" disabled={uploading} onClick={()=>void readAfterUpload()}>Refresh document status</button></div>}
  <div className="betti-batch" aria-label="Purchases in this review">{items.map(item=>{const answer=answers[item.recordId];return <div className="betti-batch-row" key={item.recordId}>
   {personal||mixed&&!mixedAccount?<label className="betti-batch-label"><input type="checkbox" disabled={busy} checked={!!answer} aria-label={`${personal?'Personal':'Partly personal'}: ${item.merchant}, ${item.date}, ${(Math.abs(item.amountCents)/100).toFixed(2)} dollars`} onChange={e=>setAnswers(old=>{const next={...old};if(e.target.checked)next[item.recordId]={use:personal?'personal':'mixed'};else delete next[item.recordId];return next})}/><MerchantIdentity compact merchant={item.merchant} date={item.date} amountCents={item.amountCents}/></label>:<MerchantIdentity compact merchant={item.merchant} date={item.date} amountCents={item.amountCents}/>}
@@ -89,7 +87,7 @@ function SweepStep({action,busy,perform,refresh}:{action:WorkAction;busy:boolean
 
  {availability&&<button className="betti-defer" onClick={()=>setShowUpload(value=>!value)}>I have another receipt to send</button>}{availability&&showUpload&&<DocumentIntake guided compact onUploadState={uploadState}/>}
  <div className="betti-continue"><button className={`btn ${receipt?'btn-secondary':'btn-primary'}`} disabled={busy||!valid||uploading||uploadReadError} onClick={()=>void save('completed')}>{busy?'Saving…':availability?'That’s all the receipts I have':personal?Object.keys(answers).length?'Save personal exceptions':'Nothing here is personal':mixed?mixedAccount?'Save these facts':Object.keys(answers).length?'Save business portions':'Nothing is partly personal': 'Continue with Betti'}</button></div>
- <button className="betti-defer" disabled={busy||uploading} onClick={()=>void save('deferred')}>I’ll come back to this</button></>
+ {!receipt&&<button className="betti-defer" disabled={busy||uploading} onClick={()=>void save('deferred')}>{availability?'I’ll send receipts later':'I’ll come back to this'}</button>}</>
 }
 function SpecialStep({action,returnTo,resolved}:{action:WorkAction;returnTo:string;resolved:(deferred:boolean,message?:string)=>Promise<void>}){
  const[work,setWork]=useState<SpecialWork|null>(null),[failed,setFailed]=useState(false)

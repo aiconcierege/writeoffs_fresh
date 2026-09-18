@@ -17,3 +17,7 @@
 .betti-special>label{border-radius:16px;padding:16px}
 .betti-special>.btn-primary{display:flex;width:100%;margin-top:18px}
 .betti-special>button:not(.btn-primary){display:block;min-height:44px;width:auto;margin:8px auto 0;padding:10px 4px;border:0;background:transparent;text-decoration:underline;text-underline-offset:4px;font-size:13px;color:#52675d}
+
+/* The approved question pose has no text/marks. Face the desktop conversation;
+   keep its original left-facing composition beside mobile text. */
+@media(min-width:640px){.betti-guide-engaged{transform:scaleX(-1)}}

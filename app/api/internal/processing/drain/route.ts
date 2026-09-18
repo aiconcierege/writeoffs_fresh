@@ -32,6 +32,8 @@ async function run(request: Request) {
     : { paused: true, claimed: 0, completed: 0, needsAttention: 0, failed: 0, retryScheduled: 0 }
   const scopeQueue=await createServerAdminSupabase().rpc('enqueue_authorized_scope_processing_batch',{p_limit:12})
   if(scopeQueue.error)throw new Error('SCOPE_REASSESSMENT_QUEUE_UNAVAILABLE')
+  const evidenceQueue=await createServerAdminSupabase().rpc('enqueue_economic_evidence_reassessment',{p_limit:12})
+  if(evidenceQueue.error)throw new Error('ECONOMIC_EVIDENCE_REASSESSMENT_QUEUE_UNAVAILABLE')
   const bookkeeping = await drainBookkeepingProcessingJobs({ batchSize: 12 })
   const weeklyReviews = await prepareWeeklyReviews({ limit: 12 })
   const shadow = expensiveProcessingEnabled

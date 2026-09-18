@@ -36,6 +36,8 @@ export function buildSharedEvidence(snapshot: BookkeepingEvaluationSnapshot, rec
   const source = (kind: EvidenceSource['kind'], id: string, basis: EvidenceSource['basis']): EvidenceSource =>
     ({ kind, id, basis, provider: null, confidence: null })
   const facts = [...observations,
+    ...(snapshot.financialOrigin ? [{ source: { ...source('financial_transaction', snapshot.financialOrigin.transactionId, 'observed'),
+      provider: snapshot.financialOrigin.kind }, fact: 'financial_origin', value: snapshot.financialOrigin }] : []),
     { source: source('record', snapshot.recordId, 'observed'), fact: 'financial_activity', value: {
       sourceKind: snapshot.sourceKind, amountCents: snapshot.amountCents, date: snapshot.occurredOn,
       currency: snapshot.currency, merchant: snapshot.merchantName, description: snapshot.description,

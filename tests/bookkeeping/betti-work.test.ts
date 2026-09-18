@@ -294,6 +294,21 @@ describe('guided work from the same canonical projection',()=>{
   const c=guided();reviewed(c,'personal_exception_sweep');reviewed(c,'mixed_use_sweep');reviewed(c,'receipt_upload_sweep');c.jobs=[job(null)]
   const p=project(c);expect(p.customer.actionableCount).toBe(0);expect(p.betti.waiting[0].type).toBe('receipt_availability');expect(p.readiness.doneForNow).toBe(false)
  })
+ it('receipt Later preserves the opportunity and working amount without asserting unavailable',()=>{
+  const c=guided();reviewed(c,'personal_exception_sweep');reviewed(c,'mixed_use_sweep')
+  const original=JSON.stringify(c.records)
+  c.guidedReviews!.push({business_id:'a',id:'later',action:'receipt_upload_sweep',disposition:'deferred',created_at:now,deferred_until:'2026-09-18T12:00:00Z',items:[{recordId:'old',accountUseVersion:'use1'}]})
+  const p=project(c);expect(p.customer.actionableCount).toBe(0);expect(p.customer.deferredCount).toBe(1)
+  expect(JSON.stringify(c.records)).toBe(original);expect(c.records[0].receipt_unavailable).toBeFalsy()
+  expect(projectBettiWork({businessId:'a',context:c,questions:[],asOf:'2026-09-19T12:00:00Z'}).nextAction?.type).toBe('receipt_upload_sweep')
+ })
+ it('receipt availability Later is not a completed assertion; new purchases are outside its snapshot',()=>{
+  const c=guided();reviewed(c,'personal_exception_sweep');reviewed(c,'mixed_use_sweep');reviewed(c,'receipt_upload_sweep')
+  c.guidedReviews!.push({business_id:'a',id:'later',action:'receipt_availability',disposition:'deferred',created_at:now,deferred_until:'2026-09-18T12:00:00Z',items:[{recordId:'old',accountUseVersion:'use1'}]})
+  c.records.push({...c.records[0],record_id:'new',transaction_id:'new-source',activity_date:'2026-09-16'})
+  const p=project(c);expect(p.customer.deferredCount).toBe(1);expect(p.customer.actionableCount).toBe(1)
+  expect(p.nextAction?.recordIds).toEqual(['new']);expect(c.records.every(r=>!r.receipt_unavailable)).toBe(true)
+ })
  it('keeps deferred review distinct from completed assertions',()=>{
   const c=guided();c.guidedReviews=[{business_id:'a',id:'defer',action:'personal_exception_sweep',disposition:'deferred',created_at:now,deferred_until:'2026-09-18T12:00:00Z',items:[{recordId:'old',accountUseVersion:'use1'}]}]
   const p=project(c);expect(p.customer.actionableCount).toBe(0);expect(p.customer.deferredCount).toBe(1)

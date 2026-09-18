@@ -252,8 +252,17 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
   })
   const movement = movements.find((candidate) =>
     candidate.financialTransactionId === transaction.id) ?? null
+  const raw = object(transaction.raw_payload)
+  const providerCategory = object(object(raw.provider_evidence).personal_finance_category)
+  const financialOrigin: BookkeepingEvaluationSnapshot['financialOrigin'] = transaction.import_method === 'statement'
+    && raw.source === 'statement' && typeof raw.statement_period_id === 'string'
+    ? { kind: 'statement', transactionId: String(transaction.id), evidenceId: raw.statement_period_id, confidence: null }
+    : transaction.import_method === 'provider' && raw.provider === 'plaid'
+      ? { kind: 'plaid', transactionId: String(transaction.id), evidenceId: String(transaction.id), confidence: text(providerCategory.confidence_level) }
+      : undefined
   return finish({
     ...base,
+    financialOrigin,
     amountCents: compoundComponent ? base.amountCents : Number(transaction.amount_cents),
     currency: compoundComponent ? base.currency : String(transaction.currency),
     occurredOn: compoundComponent ? base.occurredOn : String(transaction.transaction_date),

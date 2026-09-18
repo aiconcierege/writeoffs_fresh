@@ -194,11 +194,13 @@ export async function evaluateBookkeepingProcessingJob(
     && /^bookkeeping-evaluator:v[12]:record:/.test(String(job.target_fingerprint ?? ''))
   const businessContextJob = job.processing_reason === 'business_context_changed'
     && String(job.target_fingerprint ?? '').startsWith('bookkeeping-business-context:v1:')
+  const economicEvidenceJob = job.processing_reason === 'source_economic_evidence_v1'
+    && String(job.target_fingerprint ?? '').startsWith('source-economic:v1:record:')
   const aiShadowJob = job.processing_reason === 'ai_shadow_evaluation'
     && String(job.target_fingerprint ?? '').startsWith('bookkeeping-ai-shadow:v1:')
   const deductionJob = job.processing_reason === 'deduction_fact_changed'
     && String(job.target_fingerprint ?? '').startsWith('deduction-intelligence:v1:')
-  if (!deterministicJob && !businessContextJob && !aiShadowJob && !deductionJob) {
+  if (!deterministicJob && !businessContextJob && !aiShadowJob && !deductionJob && !economicEvidenceJob) {
     return { outcome: 'legacy_noop' as const }
   }
 

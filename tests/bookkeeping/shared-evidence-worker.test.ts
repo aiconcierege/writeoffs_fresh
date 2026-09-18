@@ -60,3 +60,14 @@ it('real worker consumes OCR, supersedes generic questions, asks only meal facts
   for (let i = 0; i < 3; i++) await evaluateBookkeepingProcessingJob(db, job, { allowAiShadow: false })
   expect(mocks.open).not.toHaveBeenCalled()
 })
+
+it('versioned economic-evidence upgrade jobs reach the same scope-checked snapshot loader',async()=>{
+ mocks.load.mockRejectedValue(new Error('SNAPSHOT_PROBE'))
+ const db={rpc:async()=>({data:{businessId:'tenant',authorizedStart:'2026-01-01'},error:null}),from:()=>({select:()=>({eq:()=>({eq:()=>({maybeSingle:async()=>({data:{occurred_on:'2026-05-19'},error:null})})})})})} as unknown as SupabaseClient
+ const job={business_id:'tenant',bookkeeping_record_id:'record',processing_reason:'source_economic_evidence_v1',target_fingerprint:'source-economic:v1:record:record:decision:decision'}
+ await expect(evaluateBookkeepingProcessingJob(db,job,{allowAiShadow:false})).rejects.toThrow('SNAPSHOT_PROBE')
+ expect(mocks.load).toHaveBeenCalledWith({admin:db,businessId:'tenant',recordId:'record'})
+ mocks.load.mockClear()
+ await expect(evaluateBookkeepingProcessingJob(db,{...job,target_fingerprint:'unrecognized'})).resolves.toEqual({outcome:'legacy_noop'})
+ expect(mocks.load).not.toHaveBeenCalled()
+})

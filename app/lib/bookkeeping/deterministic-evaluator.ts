@@ -6,6 +6,7 @@ import { hasStrongOrdinaryExpenseEvidence, snapshotEconomicContext } from './evi
 import { assessBusinessContext, businessContextAllocationDomain } from './business-context'
 import { classifyOperatingExpense, expenseMovementReason } from './operating-expense-classification'
 import type { SharedBookkeepingEvidence } from './shared-evidence'
+import { assessEconomicNature } from './economic-nature-evidence'
 
 export const BOOKKEEPING_EVALUATOR_VERSION = 'v1' as const
 
@@ -27,6 +28,7 @@ export type MovementEvidence = {
 }
 
 export type BookkeepingEvaluationSnapshot = {
+  financialOrigin?: { kind: 'statement' | 'plaid'; transactionId: string; evidenceId: string; confidence: string | null }
   evidence?: SharedBookkeepingEvidence
   evaluatorVersion: typeof BOOKKEEPING_EVALUATOR_VERSION
   businessId: string
@@ -72,6 +74,7 @@ export type DeterministicBookkeepingRuleKey =
   | 'bookkeeping.business_context.withdrawn.v1'
   | 'bookkeeping.schedule_c.operating_expense.v1'
   | 'bookkeeping.incoming_source.reset.v1'
+  | 'bookkeeping.source_economic_nature.v1'
 
 export type DeterministicEvaluation = {
   ruleKey: DeterministicBookkeepingRuleKey
@@ -236,6 +239,22 @@ export function evaluateDeterministicBookkeeping(
           reason: 'Matched an exact movement between connected accounts.' }) }
       }
     }
+  }
+
+  const natureEvidence = assessEconomicNature(snapshot)
+  if (natureEvidence) {
+    const ruleKey = 'bookkeeping.source_economic_nature.v1' as const
+    const income = natureEvidence.nature === 'business_income'
+    const needsEvidence = ['refund', 'loan_principal_payment'].includes(natureEvidence.nature)
+    return { ruleKey, proposal: {
+      bookkeepingNature: natureEvidence.nature, treatment: needsEvidence ? 'unresolved' : income ? 'business' : 'excluded',
+      reviewStatus: needsEvidence ? 'needs_review' : 'resolved', confidence: natureEvidence.confidence,
+      reason: `${natureEvidence.explanation} ${ruleKey}. Evidence ${natureEvidence.sourceId}; ${snapshot.evidence!.fingerprint}.`,
+      businessPurpose: null,
+      allocations: needsEvidence ? [] : [{ kind: income ? 'business' : 'excluded', amountCents: snapshot.amountCents! }],
+      basis: { evidenceSufficient: true, ruleKey, ruleAllowed: true,
+        businessPurposeSupported: false, mixedUseAllocationSupported: false },
+    } }
   }
 
   if (businessContext.state === 'established'

@@ -56,8 +56,9 @@ merchant identity, one dominant question and responsive answer controls. Local,
 reviewed merchant marks are used for a small strict allowlist. Unknown identities
 use a neutral storefront; no speculative image requests or category inference.
 
-A visit pauses after five handled/deferred actions. Deferrals are counted
-separately. Session storage remembers presentation progress for two hours; it is
+A visit continues while legitimate actions remain; there is no count-based pause.
+Deferrals are counted separately. Receipt Later preserves the scoped opportunity
+and does not assert unavailability. Session storage remembers presentation progress for two hours; it is
 not bookkeeping authority. Each explicit answer reconciles then reloads the work
 projection. Pending real work shows a waiting transition; failures and out-of-scope
 evidence retain distinct projections. Unrelated eligible work may proceed.
@@ -81,3 +82,35 @@ artifacts may be isolated with `CERTIFICATION_ARTIFACT_DIR` under
 
 No vehicle-method redesign, Reports calculation changes, broad ledger redesign,
 authoritative AI, or onboarding expansion is included.
+
+### Economic evidence and continuous guided work correction
+
+The evaluator consumes observed financial-origin evidence from the shared snapshot.
+Accepted statement imports and Plaid records can establish economic nature only
+when direction, account type, complete bank narrative/provider classification,
+and existing authority agree. Bare `PAYMENT`, `TRANSFER`, ACH deposits, payouts,
+Zelle names and invoice references remain insufficient. Customer-payment income
+also requires the customer's Business-only account fact. Transfer recognition
+establishes non-P&L treatment, not account ownership or completed reconciliation.
+Refund recognition does not establish the original purchase; loan recognition
+never establishes principal/interest amounts. Existing special workflows collect
+those remaining facts. Customer decisions, allocations, conflicting evidence and
+usable purchase receipts prevent this narrow financial-narrative inference.
+
+The trusted drain schedules bounded, versioned `source_economic_evidence_v1`
+reassessment jobs for active-scope unresolved financial records. Reads do not
+schedule work. Existing answers are not replaced, and no customer fixture is
+manually classified by the upgrade.
+
+Controlled certification exposed a pre-existing review-history constraint that
+rejected an evidence-only refresh with the same question context. The migration
+retains the context lookup index but removes its historical uniqueness: the RPC's
+advisory lock, same-current-version check, unique predecessor chain and event
+sequence validation govern idempotency. Answered, deferred and resolved issues
+remain closed. A rollback validation exercises same-context evidence refresh,
+identical retries, deferral and resolution before staging application.
+
+Receipt Later uses the existing scoped guided-review deferral. It creates no
+receipt-unavailable evidence and changes no expense decisions. The explicit
+availability confirmation remains a separate, versioned assertion. Session
+progress is informational; no action-count threshold interrupts continued work.
