@@ -112,6 +112,7 @@ async function settled(context,page){
 await statement('mixed-use','August 1, 2026','August 31, 2026',[['08/03','ADOBE CREATIVE CLOUD',-20000],['08/12','OFFICE DEPOT',-10000],['08/14','GOOGLE WORKSPACE',-7500]])
 await statement('current-phone','September 1, 2026','September 30, 2026',[[today.slice(5,10).replace('-','/'),'VERIZON WIRELESS',-14628]])
 const paper=createCanvas(800,650),pen=paper.getContext('2d');pen.fillStyle='white';pen.fillRect(0,0,800,650);pen.fillStyle='black';pen.font='32px Arial';['OFFICE DEPOT','Receipt 05/12/2026','Printer paper       $64.19','TOTAL               $64.19','VISA ending 1234','SYNTHETIC CERTIFICATION'].forEach((line,i)=>pen.fillText(line,40,80+i*85));await writeFile(`${dir}/office.png`,paper.toBuffer('image/png'))
+pen.fillStyle='white';pen.fillRect(0,0,800,650);pen.fillStyle='black';['OFFICE DEPOT','Receipt 08/12/2026','Printer paper       $100.00','TOTAL               $100.00','VISA ending 1234','SYNTHETIC CERTIFICATION'].forEach((line,i)=>pen.fillText(line,40,80+i*85));await writeFile(`${dir}/office-mixed.png`,paper.toBuffer('image/png'))
 const results=await readFile(`${dir}/browser/results.json`,'utf8').then(JSON.parse).catch(()=>[])
 async function screenshot(page,name){
  for(const width of [390,430,768,1280]){
@@ -182,6 +183,20 @@ try{
     continue
    }
    if(action.type==='receipt_upload_sweep'){
+    if(f.scenario==='3'&&!f.receiptUploaded){
+     let registered=false,failedRead=false
+     const observer=response=>{if(response.url()===origin+'/api/documents'&&response.request().method()==='POST')registered=true}
+     page.on('response',observer)
+     const fault=async route=>{if(registered&&!failedRead){failedRead=true;await route.fulfill({status:503,contentType:'application/json',body:'{"error":"Synthetic temporary read failure"}'})}else await route.continue()}
+     await page.route('**/api/bookkeeping/work',fault)
+     const response=page.waitForResponse(r=>r.url()===origin+'/api/documents'&&r.request().method()==='POST'),chooser=page.waitForEvent('filechooser')
+     await page.getByRole('button',{name:'Choose files',exact:true}).click();await(await chooser).setFiles(`${dir}/office-mixed.png`);assert.equal((await response).status(),200)
+     await page.getByRole('button',{name:'Refresh document status',exact:true}).waitFor({timeout:20000})
+     assert(await page.getByRole('button',{name:'Continue with Betti',exact:true}).isDisabled())
+     await screenshot(page,'receipt-status-recovery');await page.getByRole('button',{name:'Refresh document status',exact:true}).click()
+     assert(failedRead);page.off('response',observer);await page.unroute('**/api/bookkeeping/work',fault)
+     f.receiptUploaded=true;f.statusRecoveryCertified=true;await save();continue
+    }
     if(f.scenario==='1'&&!f.receiptUploaded){
      const registered=page.waitForResponse(r=>r.url()===origin+'/api/documents'&&r.request().method()==='POST'),chooser=page.waitForEvent('filechooser');await page.getByRole('button',{name:'Choose files',exact:true}).click();await(await chooser).setFiles(`${dir}/office.png`);assert.equal((await registered).status(),200);f.receiptUploaded=true;await save();await screenshot(page,'receipt-received');await page.waitForTimeout(1000);continue
     }

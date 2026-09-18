@@ -28,9 +28,9 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
  const action=work.customer.actionable.find(a=>!recordId||a.recordIds.includes(recordId))
  useEffect(()=>{const title=root.current?.querySelector('h1');if(title){title.tabIndex=-1;title.focus({preventScroll:true})}},[action?.id,paused])
  const context=action?.workstream==='catch_up'?'Getting your earlier books caught up':action?.workstream==='shared'?'Helping your earlier and current books':action?.workstream==='current'?'Keeping your books up to date':'Work with Betti'
- async function resolved(isDeferred:boolean){
+ async function resolved(isDeferred:boolean,message?:string){
   if(isDeferred)setDeferred(n=>n+1);else setHandled(n=>n+1)
-  setNotice(isDeferred?'I saved this for later.':'Got it. I’ve saved what you told me.')
+  setNotice(isDeferred?'I saved this for later.':message??'Got it. I’ve saved what you told me.')
   // Explicit answer reconciliation, never a GET/render side effect.
   await fetch('/api/bookkeeping/questions/reconcile',{method:'POST'})
   try{const next=await refresh();setError('');if(!isDeferred&&next.nextAction?.question&&action?.recordIds.some(id=>next.nextAction!.recordIds.includes(id)))setNotice('That helps. I have a follow-up about this purchase.')}catch(e){setError(e instanceof Error?e.message:'Please refresh.')}
@@ -61,7 +61,9 @@ function AccountStep({action,busy,perform}:{action:WorkAction;busy:boolean;perfo
  return <><MerchantIdentity merchant={account.name+(account.mask?` · ${account.mask}`:'')}/><h1>How did you use this account?</h1><p className="betti-explanation">Tell me once. I’ll use this for its activity in your books, and you can still change any individual purchase.</p><div className="betti-choices">{([['business_only','Business only','I use this account for my business.'],['business_and_personal','Business + personal','There’s personal activity in this account too.']] as const).map(([designation,label,description])=><SelectionCard key={designation} disabled={busy} onClick={()=>void perform(async()=>{if(request.current?.designation!==designation)request.current={designation,effectiveAt:new Date().toISOString(),requestId:crypto.randomUUID()};await persistAccountUse(account.id,request.current)})}><span>{label}<small>{description}</small></span></SelectionCard>)}</div>{busy&&<p role="status">Saving your account choice…</p>}</>
 }
 function SweepStep({action,busy,perform,refresh}:{action:WorkAction;busy:boolean;perform:(fn:()=>Promise<void>,deferred?:boolean)=>Promise<void>;refresh:()=>Promise<BettiWorkProjection>}){
- const[answers,setAnswers]=useState<Record<string,{use:string;businessDollars?:string}>>({}),[uploading,setUploading]=useState(false),[showUpload,setShowUpload]=useState(false),request=useRef<{signature:string;id:string}|null>(null)
+ const[answers,setAnswers]=useState<Record<string,{use:string;businessDollars?:string}>>({}),[uploading,setUploading]=useState(false),[showUpload,setShowUpload]=useState(false),[uploadReadError,setUploadReadError]=useState(false),request=useRef<{signature:string;id:string}|null>(null)
+ async function readAfterUpload(){setUploading(true);try{await refresh();setUploadReadError(false)}catch{setUploadReadError(true)}finally{setUploading(false)}}
+ function uploadState(value:boolean){setUploading(value);if(!value)void readAfterUpload()}
  const personal=action.type==='personal_exception_sweep',mixed=action.type==='mixed_use_sweep',mixedAccount=action.account?.designation==='business_and_personal'
  const receipt=action.type==='receipt_upload_sweep',availability=action.type==='receipt_availability',items=action.items!
  const title=personal?'Is anything here personal?':mixed?mixedAccount?'How were these purchases used?':'Is anything partly personal?':receipt?'Send me the receipts you have.':'Is that all the receipts you have?'
@@ -77,18 +79,19 @@ function SweepStep({action,busy,perform,refresh}:{action:WorkAction;busy:boolean
   },disposition==='deferred')
  }
  return <><h1>{title}</h1><p className="betti-explanation">{explanation}</p>{action.account&&<p className="betti-workstream">{action.account.name}{action.account.mask?` · ${action.account.mask}`:''} · {items.length} shown</p>}
- {receipt&&<DocumentIntake guided compact onUploadState={value=>{setUploading(value);if(!value)void refresh()}}/>}
+ {receipt&&<DocumentIntake guided compact onUploadState={uploadState}/>}
+ {uploadReadError&&<div role="alert" className="betti-error">I couldn’t check the latest document status. Refresh before continuing.<button className="betti-defer" disabled={uploading} onClick={()=>void readAfterUpload()}>Refresh document status</button></div>}
  <div className="betti-batch" aria-label="Purchases in this review">{items.map(item=>{const answer=answers[item.recordId];return <div className="betti-batch-row" key={item.recordId}>
   {personal||mixed&&!mixedAccount?<label className="betti-batch-label"><input type="checkbox" disabled={busy} checked={!!answer} aria-label={`${personal?'Personal':'Partly personal'}: ${item.merchant}, ${item.date}, ${(Math.abs(item.amountCents)/100).toFixed(2)} dollars`} onChange={e=>setAnswers(old=>{const next={...old};if(e.target.checked)next[item.recordId]={use:personal?'personal':'mixed'};else delete next[item.recordId];return next})}/><MerchantIdentity compact merchant={item.merchant} date={item.date} amountCents={item.amountCents}/></label>:<MerchantIdentity compact merchant={item.merchant} date={item.date} amountCents={item.amountCents}/>}
   {mixed&&mixedAccount&&<div className="betti-row-choices" role="group" aria-label={`Use of ${item.merchant}`}>{[['business','Business'],['personal','Personal'],['mixed','Partly personal']].map(([use,label])=><button key={use} disabled={busy} aria-pressed={answer?.use===use} onClick={()=>setAnswers(old=>({...old,[item.recordId]:{use}}))}>{label}</button>)}</div>}
   {answer?.use==='mixed'&&<label className="betti-business-dollars">Business dollars for {item.merchant}<input inputMode="decimal" value={answer.businessDollars??''} placeholder="0.00" disabled={busy} onChange={e=>setAnswers(old=>({...old,[item.recordId]:{use:'mixed',businessDollars:e.target.value}}))}/></label>}
  </div>})}</div>
 
- {availability&&<button className="betti-defer" onClick={()=>setShowUpload(value=>!value)}>I have another receipt to send</button>}{availability&&showUpload&&<DocumentIntake guided compact onUploadState={value=>{setUploading(value);if(!value)void refresh()}}/>}
- <div className="betti-continue"><button className={`btn ${receipt?'btn-secondary':'btn-primary'}`} disabled={busy||!valid||uploading} onClick={()=>void save('completed')}>{busy?'Saving…':availability?'That’s all the receipts I have':personal?Object.keys(answers).length?'Save personal exceptions':'Nothing here is personal':mixed?mixedAccount?'Save these facts':Object.keys(answers).length?'Save business portions':'Nothing is partly personal': 'Continue with Betti'}</button></div>
+ {availability&&<button className="betti-defer" onClick={()=>setShowUpload(value=>!value)}>I have another receipt to send</button>}{availability&&showUpload&&<DocumentIntake guided compact onUploadState={uploadState}/>}
+ <div className="betti-continue"><button className={`btn ${receipt?'btn-secondary':'btn-primary'}`} disabled={busy||!valid||uploading||uploadReadError} onClick={()=>void save('completed')}>{busy?'Saving…':availability?'That’s all the receipts I have':personal?Object.keys(answers).length?'Save personal exceptions':'Nothing here is personal':mixed?mixedAccount?'Save these facts':Object.keys(answers).length?'Save business portions':'Nothing is partly personal': 'Continue with Betti'}</button></div>
  <button className="betti-defer" disabled={busy||uploading} onClick={()=>void save('deferred')}>I’ll come back to this</button></>
 }
-function SpecialStep({action,returnTo,resolved}:{action:WorkAction;returnTo:string;resolved:(deferred:boolean)=>Promise<void>}){
+function SpecialStep({action,returnTo,resolved}:{action:WorkAction;returnTo:string;resolved:(deferred:boolean,message?:string)=>Promise<void>}){
  const[work,setWork]=useState<SpecialWork|null>(null),[failed,setFailed]=useState(false)
  useEffect(()=>{let live=true;fetch(`/api/bookkeeping/records/${action.recordIds[0]}/special`,{cache:'no-store'}).then(async r=>{if(!r.ok)throw new Error();const data=await r.json();if(live)setWork(data.work)}).catch(()=>{if(live)setFailed(true)});return()=>{live=false}},[action])
  return <>{action.question&&<MerchantIdentity id="guided-transaction" merchant={action.question.transaction.merchant} date={action.question.transaction.date} amountCents={action.question.transaction.amountCents}/>} {work?work.kind?<SpecialTransactionFlow work={work} returnTo={returnTo} embedded onResolved={resolved}/>:action.question?<QuestionFlow key={action.question.id+action.question.version} initialQuestions={[action.question]} guided onGuidedAnswer={resolved} returnTo={returnTo}/>:<p>No customer question is available for this activity.</p>:<p role="status">{failed?'I couldn’t load this detail. Please refresh.':'Getting the payment details…'}</p>}</>
