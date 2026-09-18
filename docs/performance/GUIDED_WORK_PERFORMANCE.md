@@ -554,3 +554,23 @@ authenticated read measurements are recorded separately in
 `/private/tmp/writeoffs-phase3-performance-public-reads/measurements.json`.
 This promotion makes the validated improvement available; it does not change the
 NOT MET performance acceptance result above.
+
+### Public staging alias verification and outliers
+
+After promotion, the unchanged baseline tenant was measured again through
+`writeoffs-fresh-staging.vercel.app`, with no concurrent synthetic load ramp.
+All projection requests succeeded and Home/Check-in loaded without test errors.
+These slower observations are retained; the candidate URL sample is not a guarantee
+of public-alias latency. No causal claim about alias routing or platform load is
+supported by this comparison alone.
+
+| Public-alias warm measurement | n | p50 ms | p75 ms | p95 ms | max ms |
+|---|---:|---:|---:|---:|---:|
+| Projection GET | 23 | 1,459 | 1,925 | 2,128 | 4,500 |
+| Home load | 7 | 2,262 | 2,329 | 2,386 | 2,386 |
+| Check-in load | 7 | 1,161 | 1,191 | 1,538 | 1,538 |
+
+Compared with the matched original projection median of 2,243 ms, this public-alias
+sample improves ~35%, versus ~59% in the final candidate sample. Both miss the
+projection targets. The 4.5-second outlier reinforces that latency variability
+remains unresolved. This report does not declare the performance phase accepted.
