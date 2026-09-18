@@ -51,4 +51,10 @@ describe('continuous Check in with Betti experience',()=>{
     expect(flow).toContain("experience!=='check-in'&&initialQuestions.length>0")
     expect(flow).not.toContain('setQuestions((value) => value.slice(1))\n      setPurpose')
   })
+  it('keeps an explicitly requested special-transaction correction separate from pending work',()=>{
+    expect(page).toContain("review==='1'&&record?record:next?.recordIds[0]")
+    expect(page).toContain('loadSpecialWork(db,specialRecord)')
+    expect(page).toContain('data-customer-action-count={queue.count}')
+  })
+
 })

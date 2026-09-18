@@ -11,13 +11,13 @@ import {QuestionFlow} from '../questions/QuestionFlow'
 import {WorkRefresh} from '../components/WorkRefresh'
 
 export const dynamic='force-dynamic'
-export default async function CheckInPage({searchParams}:{searchParams:Promise<{record?:string;returnTo?:string;ordinary?:string}>}){
+export default async function CheckInPage({searchParams}:{searchParams:Promise<{record?:string;returnTo?:string;ordinary?:string;review?:string}>}){
  const db=await createServerSupabase(),{data:{user}}=await db.auth.getUser()
  if(!user)redirect('/login')
  const membership=await loadCustomerEntitlements(db)
  if(membership.lifecycle==='none')redirect('/membership')
  if(membership.lifecycle==='expired_read_only')redirect('/membership/read-only')
- const {record,returnTo:origin,ordinary}=await searchParams,returnTo=safeReturnTo(origin,'/home')
+ const {record,returnTo:origin,ordinary,review}=await searchParams,returnTo=safeReturnTo(origin,'/home')
  const queue=await loadCurrentCustomerWork({supabase:db,scope:membership.plan??'expenses',recordId:record})
  const next=queue.actions[0]
  if(next?.type==='account_use'){
@@ -27,7 +27,9 @@ export default async function CheckInPage({searchParams}:{searchParams:Promise<{
    <Link className="btn btn-secondary" href={returnTo}>← {returnLabel(returnTo)}</Link>
    <StatementAccountUse key={next.version} conversational accounts={[{id:account.id,displayName:account.display_name,mask:account.mask_last_four,designation:null}]}/></main>
  }
- const specialRecord=next?.recordIds[0]
+ // Explicit customer-requested correction is not a pending Check-in task.
+ // The existing special-work reader still enforces active scope and ownership.
+ const specialRecord=review==='1'&&record?record:next?.recordIds[0]
  const special=specialRecord?await loadSpecialWork(db,specialRecord):null
  if(special?.kind&&!ordinary)return <main className="app-page" data-customer-action-count={queue.count}><SpecialTransactionFlow key={special.decisionId} work={special} returnTo={returnTo}/></main>
  return <div data-customer-action-count={queue.count}><QuestionFlow key={record??'betti'} returnTo={returnTo} initialQuestions={queue.questions}
