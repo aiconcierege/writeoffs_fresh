@@ -24,6 +24,8 @@ export function guidedItem(r:WorkRecord,c:WorkContext):GuidedItem{
   merchant:r.merchant??'Purchase',date:r.activity_date,amountCents:r.amount_cents,transactionId:r.transaction_id!}
 }
 export function guidedDeferral(r:WorkRecord,stage:SweepType,c:WorkContext,asOf:string){
+ const special=(c.specialDeferrals??[]).filter(d=>d.record_id===r.record_id&&d.decision_id===r.decision_id).sort((a,b)=>b.created_at.localeCompare(a.created_at))[0]
+ if(special){const until=new Date(Date.parse(special.created_at)+7*86400000).toISOString();if(until>asOf)return until}
  const existing=c.deferred.find(d=>d.record_id===r.record_id&&(!d.deferred_until||d.deferred_until>asOf))
  if(existing)return existing.deferred_until??'9999-01-01T00:00:00Z'
  return(c.guidedReviews??[]).filter(e=>e.action===stage&&e.disposition==='deferred'&&e.deferred_until&&e.deferred_until>asOf

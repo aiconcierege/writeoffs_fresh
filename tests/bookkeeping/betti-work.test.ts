@@ -352,3 +352,11 @@ describe('existing special evidence workflows are not limited to question rows',
   expect(project(c).customer.actionableCount).toBe(1)
  })
 })
+
+it('projects an existing special deferral before payment nature is known',()=>{const c=context();c.records=[record()];c.records[0].bookkeeping_nature=null;c.specialDeferrals=[{business_id:'a',id:'saved',record_id:'old',decision_id:'decision-old',created_at:now}];const p=project(c);expect(p.customer.actionableCount).toBe(0);expect(p.customer.deferredCount).toBe(1);expect(p.betti.systemHeld).toHaveLength(0)})
+it('does not bypass an existing special deferral through a purchase sweep',()=>{
+ const c=context();c.records=[{...record(),review_version:'review',transaction_id:'tx'}]
+ c.accounts=[{business_id:'a',id:'account',designation:'business_only',use_version:'use'}]
+ c.specialDeferrals=[{business_id:'a',id:'saved',record_id:'old',decision_id:'decision-old',created_at:now}]
+ const p=project(c);expect(p.customer.actionableCount).toBe(0);expect(p.customer.deferredCount).toBe(1)
+})

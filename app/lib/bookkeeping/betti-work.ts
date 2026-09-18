@@ -199,6 +199,17 @@ export function projectBettiWork(input: {
        ...(until&&until>asOf?{status:'deferred' as const,availableAt:until}:{})})
     actions.at(-1)!.priority.reasons.push('existing_supporting_evidence_workflow')
   }
+  const deferredSpecialRecords=new Set<string>()
+  for(const d of c.specialDeferrals??[]){
+    const r=byId.get(d.record_id),until=new Date(Date.parse(d.created_at)+7*86400000).toISOString()
+    if(!r||stages.has(r.record_id)||specialRecords.has(r.record_id)||deferredSpecialRecords.has(r.record_id)||r.decision_id!==d.decision_id
+      ||r.treatment!=='unresolved'||!['catch_up','current'].includes(stream(r))||until<=asOf)continue
+    if(r.account_id&&unknownAccounts.has(r.account_id))continue
+    deferredSpecialRecords.add(r.record_id)
+    add('special_transaction',`special:${r.record_id}:deferred`,{kind:'record',id:r.record_id},[r],[r.decision_id,d.id],
+      `/check-in?record=${encodeURIComponent(r.record_id)}`,d.created_at,{status:'deferred',availableAt:until,
+       transaction:{merchant:r.merchant??'Financial activity',date:r.activity_date,amountCents:r.amount_cents}})
+  }
   for (const q of input.questions) {
     const r = q.recordId ? byId.get(q.recordId) : undefined
     if (r && !['catch_up','current'].includes(stream(r))) continue
@@ -207,7 +218,7 @@ export function projectBettiWork(input: {
       ? 'special_transaction' : 'material_question'
     const accountDependency = r?.account_id && unknownAccounts.has(r.account_id)
     if (accountDependency) continue // The one account fact replaces these repeated requests.
-    if(r&&(stages.has(r.record_id)||specialRecords.has(r.record_id)))continue // One scoped guided action owns this dependency.
+    if(r&&(stages.has(r.record_id)||specialRecords.has(r.record_id)||deferredSpecialRecords.has(r.record_id)))continue // One scoped guided action owns this dependency.
     add(type, `${q.source ?? 'bookkeeping'}:${q.id}`, { kind: 'question', id: q.id }, r ? [r] : [],
       [q.version, q.contextFingerprint, q.kind, q.prompt, q.guidance, q.options], r ? `/check-in?record=${encodeURIComponent(r.record_id)}` : '/check-in', q.openedAt ?? asOf,
       { question: q,
@@ -225,7 +236,7 @@ export function projectBettiWork(input: {
     && !input.questions.some(q => q.version === d.id || q.id === d.issue_id))) {
     const r = d.record_id ? byId.get(d.record_id) : undefined
     if (r && !['catch_up','current'].includes(stream(r))) continue
-    if (r && (['personal', 'excluded'].includes(r.treatment ?? '')||stages.has(r.record_id)||specialRecords.has(r.record_id))) continue
+    if (r && (['personal', 'excluded'].includes(r.treatment ?? '')||stages.has(r.record_id)||specialRecords.has(r.record_id)||deferredSpecialRecords.has(r.record_id))) continue
     add('material_question', `${d.source ?? 'bookkeeping'}:${d.issue_id}`, { kind: 'question', id: d.issue_id }, r ? [r] : [], d.id,
       r ? `/check-in?record=${encodeURIComponent(r.record_id)}` : '/check-in', d.created_at,
       { status: 'deferred', availableAt: d.deferred_until })
