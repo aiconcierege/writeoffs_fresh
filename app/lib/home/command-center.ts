@@ -14,9 +14,9 @@ const dateLabel = (day: string) => new Intl.DateTimeFormat('en-US', { month: 'lo
 export function homeCommand(work: BettiWorkProjection, startMethod: string | null): HomeCommand {
   const next = work.nextAction
   const context: string[] = []
-  if (work.customer.sharedCount) context.push('One answer can help with earlier and current books.')
+  if (work.customer.sharedCount) context.push('One answer can help you get caught up and keep up.')
   else {
-    if (work.progress.catchUp.customerActions) context.push(`Earlier books · ${work.progress.catchUp.customerActions} need you`)
+    if (work.progress.catchUp.customerActions) context.push(`Getting caught up · ${work.progress.catchUp.customerActions} need you`)
     if (work.progress.current.customerActions) context.push(`Current activity · ${work.progress.current.customerActions} need you`)
   }
   if (next?.type === 'provide_records') {
@@ -39,8 +39,8 @@ export function homeCommand(work: BettiWorkProjection, startMethod: string | nul
     const current = work.progress.current.activity > 0 || work.progress.current.customerActions > 0
     const href = next.href.startsWith('/check-in') ? `${next.href}${next.href.includes('?') ? '&' : '?'}returnTo=%2Fhome` : next.href
     return { state: 'needs-customer',
-      heading: earlier && current ? 'Earlier books. New activity. I’m on it.' : earlier ? 'I’m getting your earlier books caught up.' : 'I could use your help.',
-      supporting: earlier && current ? 'I’m getting your earlier books caught up and keeping up with new activity. I just need a few facts from you.'
+      heading: earlier && current ? 'Getting caught up. Keeping up. I’m on it.' : earlier ? 'I’m getting your books caught up.' : 'I could use your help.',
+      supporting: earlier && current ? 'I’m getting your books caught up and keeping up with new activity. I just need a few facts from you.'
         : 'I’ve used the information you’ve given me. Let’s finish the things only you can tell me.',
       action: { href, label: next.type === 'account_use' && !href.startsWith('/check-in') ? 'Tell Betti about your account' : 'Continue with Betti' }, context }
   }

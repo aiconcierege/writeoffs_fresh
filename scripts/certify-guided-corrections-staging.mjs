@@ -129,19 +129,29 @@ async function cross(context,page){
  assert.equal(q.count,w.customer.actionableCount)
  await page.waitForFunction(count=>document.querySelector('[data-customer-action-count]')?.getAttribute('data-customer-action-count')===String(count),w.customer.actionableCount,{timeout:15000})
  const ledger=await api(context,'/api/transactions/list?year=all');assert.equal(new Set(ledger.rows.map(r=>r.id)).size,ledger.rows.length)
+ const beforeReport=await api(context,'/api/reports/summary?start=2026-01-01&end='+reportThrough)
  const home=await context.newPage();await home.goto(origin+'/home');const after=await api(context,'/api/bookkeeping/work')
  if(JSON.stringify(w.customer.actionable)===JSON.stringify(after.customer.actionable))assert.equal(await home.locator('[data-customer-action-count]').getAttribute('data-customer-action-count'),String(w.customer.actionableCount))
  const report=await api(context,'/api/reports/summary?start=2026-01-01&end='+reportThrough)
  assert.equal(report.categoryTotals.reduce((n,c)=>n+c.amountCents,0)+report.uncategorizedBusinessExpensesCents,report.businessExpensesCents)
  assert.equal(report.businessIncomeCents-report.businessExpensesCents,report.businessProfitCents)
  const money=c=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(c/100)
- for(const [selector,field]of[['income','businessIncomeCents'],['spent','businessExpensesCents'],['profit','businessProfitCents']])assert.equal(await home.locator(`.home-financial-${selector} dd`).innerText(),money(report[field]))
+ for(const [selector,field]of[['income','businessIncomeCents'],['spent','businessExpensesCents'],['profit','businessProfitCents']]){
+  // Workers may advance books between HTTP responses; compare only a stable financial snapshot.
+  if(beforeReport[field]===report[field])assert.equal(await home.locator(`.home-financial-${selector} dd`).innerText(),money(report[field]))
+ }
  await home.close();return{w,report}
 }
 async function clickSave(page,label){const response=page.waitForResponse(r=>r.request().method()==='POST'&&(r.url().includes('/api/bookkeeping/')&&!r.url().endsWith('/reconcile')));await page.getByRole('button',{name:label,exact:!['Business only','Business + personal'].includes(label)}).click();const r=await response;if(r.status()===409){const error=new Error('Canonical snapshot changed');error.staleSnapshot=true;throw error}assert.equal(r.status(),200,await r.text());await page.waitForTimeout(500)}
 try {
  const f=fixtures[0];assert.equal((await admin.auth.admin.getUserById(f.userId)).data.user?.user_metadata.synthetic_guided_contract,true)
  const {context,client}=await session(f,browser),page=await context.newPage()
+ if(process.argv.includes('--inspect-existing')){
+  const inspected=await api(context,'/api/bookkeeping/work')
+  await writeFile(`${dir}/inspection.json`,JSON.stringify(inspected,null,2))
+  console.log('Next action:',inspected.nextAction?.id,inspected.nextAction?.question?.transaction.merchant,inspected.nextAction?.transaction?.merchant)
+  await context.close();await browser.close();process.exit(0)
+ }
  if(process.argv.includes('--finish-existing')){
   const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=500)errors.push('HTTP '+r.status()+' '+new URL(r.url()).pathname)})
   await page.goto(origin+'/check-in');const final=await cross(context,page);assert.equal(final.w.customer.actionableCount,0)
@@ -159,6 +169,26 @@ try {
   f.authorized=true;await save()
  }
  await upload(f,page,context,'/private/tmp/writeoffs-unified-documents/checking.pdf')
+ if(process.argv.includes('--continuity')){
+  await statement('current-continuity','September 1, 2026','September 30, 2026',[[today.slice(5,10).replace('-','/'),'ACH DEPOSIT UNIDENTIFIED',97500]])
+  await upload(f,page,context,`${dir}/current-continuity.pdf`)
+  if(process.argv.includes('--continuity-followup')){
+   const day=today.slice(5,10).replace('-','/')
+   await statement('continuity-specials','September 1, 2026','September 30, 2026',[[day,'OFFICE DEPOT',-6419],[day,'REFUND - OFFICE DEPOT',3210],[day,'LOAN PAYMENT - EQUIPMENT FINANCE CO',-45000]])
+   await upload(f,page,context,`${dir}/continuity-specials.pdf`)
+  }
+  if(process.argv.includes('--prepare-only')){await context.close();await browser.close();process.exit(0)}
+  // Preparation only: avoid demanding a stable projection during initial worker churn.
+  for(let n=0;n<120;n++){
+   const jobs=await admin.from('bookkeeping_processing_jobs').select('state').eq('business_id',f.businessId).neq('state','completed')
+   assert(!jobs.error);if(!jobs.data.length)break
+   if(n%12===0)console.log('Initial synthetic jobs remaining:',jobs.data.length)
+   assert(n<119,'Initial workers did not settle');await page.waitForTimeout(5000)
+  }
+  const {certifyContinuity}=await import('./lib/certify-guided-continuity.mjs')
+  await certifyContinuity({page,context,client,api,screenshot,cross,origin,dir,businessId:f.businessId})
+  await context.close();await browser.close();process.exit(0)
+ }
  console.log('Waiting for canonical assessments');await settled(context,page);console.log('Assessments settled');await page.goto(origin+'/check-in')
  let w=await api(context,'/api/bookkeeping/work')
  if(w.nextAction?.type==='account_use'){await clickSave(page,'Business only');const pending=await api(context,'/api/bookkeeping/work');if(pending.betti.jobs.length){await page.reload();await screenshot(page,'processing-transition')}await settled(context,page);await page.reload()}

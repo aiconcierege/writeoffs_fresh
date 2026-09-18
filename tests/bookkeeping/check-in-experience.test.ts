@@ -27,12 +27,13 @@ describe('continuous Check in with Betti experience',()=>{
   })
 
   it('reloads safely when the answer version is stale',()=>{
-    expect(flow).toContain('if(response.status===409)await reloadAuthoritativeQueue()')
+    expect(flow).toContain('if(response.status===409){if(onGuidedRefresh)await onGuidedRefresh();else await reloadAuthoritativeQueue()}')
     expect(flow).toContain("'if-match': question.version")
   })
 
   it('bounds network waits and offers safe queue recovery',()=>{
     expect(flow).toContain('AbortSignal.timeout(15_000)')
+    expect(flow).toContain('if(uncertain&&onGuidedRefresh)await onGuidedRefresh()')
     expect(flow).toContain('Reload current question')
     expect(flow).toContain('await reloadAuthoritativeQueue()')
   })

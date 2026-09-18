@@ -5,7 +5,7 @@ import {useRouter} from 'next/navigation'
 import type {SpecialWork} from '../lib/bookkeeping/special-transactions'
 import {DocumentIntake} from '../documents/DocumentIntake'
 import {returnLabel,safeReturnTo} from '../lib/navigation-context'
-export function SpecialTransactionFlow({work,returnTo:origin,embedded=false,onResolved}:{work:SpecialWork;returnTo:string;embedded?:boolean;onResolved?:(deferred:boolean,message?:string)=>Promise<void>}){
+export function SpecialTransactionFlow({work,returnTo:origin,embedded=false,onResolved,onRecoveryRefresh}:{work:SpecialWork;returnTo:string;embedded?:boolean;onResolved?:(deferred:boolean,message?:string)=>Promise<void>;onRecoveryRefresh?:()=>Promise<void>}){
  const router=useRouter(),lock=useRef(false),request=useRef<{signature:string;id:string}|null>(null)
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState(''),[business,setBusiness]=useState(''),[selected,setSelected]=useState(''),[deferred,setDeferred]=useState(false),[none,setNone]=useState(false),[finished,setFinished]=useState(false)
  const needsSupportingRecord=work.lastAction==='unsure'&&work.kind!=='loan'
@@ -19,7 +19,7 @@ export function SpecialTransactionFlow({work,returnTo:origin,embedded=false,onRe
    if(onResolved){await onResolved(action==='defer',action==='unsure'?'A supporting record may help me understand this.':action==='card_payment'?'Got it. This is a credit card payment, outside business income and expenses.':action==='owner_use'?'Got it. This is money taken or used personally, outside business expenses.':action==='refund_link'?'Got it. I linked this return to its purchase.':undefined);return}
    if(action==='defer'||action==='unsure'){setDeferred(true);setMessage(action==='defer'?'I kept this on your list. Come back when you have the information.':'I recorded that you’re not sure. The activity remains unresolved; supporting records can help establish it.')}
    else{setMessage(action==='card_payment'?'Got it. This is a credit card payment, outside business income and expenses.':action==='owner_use'?'Got it. This is money taken or used personally, outside business expenses.':action==='refund_link'?'Got it. I linked this return to the purchase. Both records and their history are kept.':'Got it. I saved that fact.');if(['card_payment','owner_use','refund_link'].includes(action))setFinished(true);else router.refresh()}
-  }catch(e){setError(e instanceof Error?e.message:'Please try again.')}finally{lock.current=false;setBusy(false)}
+  }catch(e){setError(e instanceof Error?e.message:'Please try again.');if(onRecoveryRefresh)await onRecoveryRefresh()}finally{lock.current=false;setBusy(false)}
  }
  return <section className={embedded?"betti-special space-y-4":"mx-auto max-w-2xl space-y-4 py-5"} aria-label="Betti transaction question">
   {!embedded&&<><Link href={returnTo} className="inline-flex min-h-11 items-center font-semibold">← {returnLabel(returnTo)}</Link><p className="font-semibold">Betti</p></>}

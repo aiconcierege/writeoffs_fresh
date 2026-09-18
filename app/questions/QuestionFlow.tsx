@@ -13,7 +13,7 @@ import type { CustomerQuestion } from '../lib/bookkeeping/customer-questions'
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 const customerDate = new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})
 
-export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete,experience='questions',ongoingFrom,otherWorkWaiting=false,returnTo:origin='/home',initialWorkMessage,initialActionCount,guided=false,onGuidedAnswer }: {guided?:boolean;onGuidedAnswer?:(deferred:boolean)=>Promise<void>;initialWorkMessage?:HomeCommand;initialActionCount?:number;returnTo?:string;ongoingFrom?:string;otherWorkWaiting?:boolean; initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void;experience?:'questions'|'check-in' }) {
+export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete,experience='questions',ongoingFrom,otherWorkWaiting=false,returnTo:origin='/home',initialWorkMessage,initialActionCount,guided=false,onGuidedAnswer,onGuidedRefresh }: {guided?:boolean;onGuidedAnswer?:(deferred:boolean)=>Promise<void>;onGuidedRefresh?:()=>Promise<void>;initialWorkMessage?:HomeCommand;initialActionCount?:number;returnTo?:string;ongoingFrom?:string;otherWorkWaiting?:boolean; initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void;experience?:'questions'|'check-in' }) {
   const router=useRouter()
   const returnTo=safeReturnTo(origin,'/home')
   const [workMessage,setWorkMessage]=useState(initialWorkMessage)
@@ -80,7 +80,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
       })
       const result = await response.json() as { error?: string }
       if (!response.ok) {
-        if(response.status===409)await reloadAuthoritativeQueue()
+        if(response.status===409){if(onGuidedRefresh)await onGuidedRefresh();else await reloadAuthoritativeQueue()}
         throw new Error(result.error || 'Unable to save that answer.')
       }
       if(onGuidedAnswer){await onGuidedAnswer(command.action==='defer');return}
@@ -105,8 +105,10 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
     } catch (cause) {
       // A transport failure can happen after commit. Require an authoritative
       // reload before allowing another answer against an uncertain version.
-      if (!(cause instanceof Error) || cause.name === 'TimeoutError' || cause.name === 'TypeError' || cause.name === 'SyntaxError') setQueueNeedsReload(true)
+      const uncertain=!(cause instanceof Error)||['TimeoutError','TypeError','SyntaxError'].includes(cause.name)
+      if(uncertain)setQueueNeedsReload(true)
       setError(cause instanceof Error&&cause.name!=='TimeoutError' ? cause.message : 'That took too long. Your answer may have saved, so reload the current question before trying again.')
+      if(uncertain&&onGuidedRefresh)await onGuidedRefresh()
     } finally {
       submitLock.current = false
       setBusy(false)

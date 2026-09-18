@@ -19,6 +19,8 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
  useEffect(()=>{if(!sessionReady)return;try{sessionStorage.setItem(`betti-visit:${initialWork.businessId}`,JSON.stringify({handled,deferred,at:Date.now()}))}catch{/* Private browsing may disable session storage. */}},[handled,deferred,sessionReady,initialWork.businessId])
  const[notice,setNotice]=useState(''),[error,setError]=useState(''),[saving,setSaving]=useState(false)
  const backgroundRead=useRef<AbortController|null>(null),reconciling=useRef(false)
+ const automaticReads=useRef(0)
+ const[waitingPaused,setWaitingPaused]=useState(false)
  const lock=useRef(false),heading=useRef<HTMLHeadingElement>(null),root=useRef<HTMLDivElement>(null)
  const refresh=useCallback(async(signal?:AbortSignal)=>{
   const response=await fetch('/api/bookkeeping/work'+(recordId?`?record=${recordId}`:''),{cache:'no-store',signal:signal?AbortSignal.any([signal,AbortSignal.timeout(15000)]):AbortSignal.timeout(15000)})
@@ -35,22 +37,31 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
    catch{if(alive&&!controller.signal.aborted)setError(updateError)}
    finally{if(backgroundRead.current===controller)backgroundRead.current=null}
   }
-  const timer=setInterval(read,7000);window.addEventListener('focus',read)
+  // A short processing gap resumes automatically; long-running work does not poll forever.
+  const timer=setInterval(()=>{if(automaticReads.current<8){automaticReads.current++;void read();if(automaticReads.current===8)setWaitingPaused(true)}},7000);window.addEventListener('focus',read)
   return()=>{alive=false;backgroundRead.current?.abort();clearInterval(timer);window.removeEventListener('focus',read)}
  },[refresh])
- const action=work.customer.actionable.find(a=>!recordId||a.recordIds.includes(recordId))
+ // The entry record is a server-side priority hint, never a session boundary.
+ const action=work.nextAction
  useEffect(()=>{const title=root.current?.querySelector('h1');if(title){title.tabIndex=-1;title.focus({preventScroll:true})}},[action?.id])
- const context=action?.workstream==='catch_up'?'Getting your earlier books caught up':action?.workstream==='shared'?'Helping your earlier and current books':action?.workstream==='current'?'Keeping your books up to date':'Work with Betti'
+ const context=action?.workstream==='catch_up'?'Getting your books caught up':action?.workstream==='shared'?'Getting caught up and keeping up':action?.workstream==='current'?'Keeping your books up to date':'Work with Betti'
+ async function recover(){
+  backgroundRead.current?.abort();automaticReads.current=0;setWaitingPaused(false)
+  setNotice('I’m checking the latest state of your books.')
+  const alreadyReconciling=reconciling.current;reconciling.current=true
+  try{await refresh();setError('')}catch{setError('I couldn’t check for updates. Refresh before answering.')}finally{reconciling.current=alreadyReconciling}
+ }
  async function resolved(isDeferred:boolean,message?:string){
-  backgroundRead.current?.abort();reconciling.current=true
+  backgroundRead.current?.abort();reconciling.current=true;automaticReads.current=0;setWaitingPaused(false)
   try{
   if(isDeferred)setDeferred(n=>n+1);else setHandled(n=>n+1)
   setNotice(isDeferred?'I saved this for later.':message??'Got it. I’ve saved what you told me.')
   // Explicit answer reconciliation, never a GET/render side effect.
-  await fetch('/api/bookkeeping/questions/reconcile',{method:'POST'})
-  try{const next=await refresh();setError('');if(!isDeferred&&next.nextAction?.question&&action?.recordIds.some(id=>next.nextAction!.recordIds.includes(id)))setNotice('That helps. I have a follow-up about this purchase.')}catch(e){setError(e instanceof Error?e.message:'Please refresh.')}
+  const reconciliation=await fetch('/api/bookkeeping/questions/reconcile',{method:'POST',signal:AbortSignal.timeout(15000)})
+  if(!reconciliation.ok){await recover();return}
+  try{const next=await refresh();setError('');if(!isDeferred&&next.nextAction?.question&&action?.recordIds.some(id=>next.nextAction!.recordIds.includes(id)))setNotice('That helps. I have a follow-up about this purchase.')}catch{setError('I couldn’t check for updates. Refresh before answering.')}
   requestAnimationFrame(()=>heading.current?.focus())
-  }finally{reconciling.current=false}
+  }catch{await recover()}finally{reconciling.current=false}
  }
  async function perform(command:()=>Promise<void>,isDeferred=false){
   if(lock.current)return;lock.current=true;backgroundRead.current?.abort();setSaving(true);setError('')
@@ -62,11 +73,11 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
  return <div ref={root} data-customer-action-count={work.customer.actionableCount} data-guided-action={action?.type??work.readiness.phase} data-guided-version={action?.version}>
  <ConversationShell returnTo={returnTo} context={context} progress={progress} notice={notice} state={!action?waiting?'working':'caught-up':'question'}>
   {error&&<div className="betti-error" role="alert">{error}<button className="betti-defer" onClick={()=>void refresh().then(()=>setError('')).catch(()=>setError('Please try again in a moment.'))}>Refresh current work</button></div>}
-  {!action?<><h1 ref={heading} tabIndex={-1}>{waiting?'I’ve got it from here.':home.heading}</h1><p className="betti-explanation">{waiting?'I’m checking the records and facts you sent. I’ll ask when I need something from you.':work.customer.deferredCount?'The things you set aside are saved for later. Come back when you’re ready.':home.supporting}</p>{waiting&&<p className="betti-processing" role="status"><span className="betti-processing-dot"/> {work.betti.genuinelyProcessing?'Organizing your records':'Waiting for assessment'}</p>}{home.alternative&&<Link className="btn btn-secondary" href={home.alternative.href}>{home.alternative.label}</Link>}<div className="betti-continue"><Link className="btn btn-primary" href={returnTo}>Back to your books</Link></div></>
+  {!action?<><h1 ref={heading} tabIndex={-1}>{waiting?'I’m updating your books.':home.heading}</h1><p className="betti-explanation">{waiting?waitingPaused?'This is taking a little longer. You can return to your books or check again.':'I’m checking the records and facts you sent. I’ll continue here when the next step is ready. You can also return to your books.':home.state==='waiting'&&work.customer.deferredCount?'I’ve saved the things you want to come back to. You’re all set for now.':home.supporting}</p>{waiting&&<p className="betti-processing" role="status"><span className="betti-processing-dot"/> {work.betti.genuinelyProcessing?'Organizing your records':'Waiting for assessment'}</p>}{waiting&&waitingPaused&&<button className="betti-defer" onClick={()=>{automaticReads.current=0;setWaitingPaused(false);void refresh().catch(()=>setError('I couldn’t refresh your work. Please try again.'))}}>Check for the next step</button>}{home.alternative&&<Link className="btn btn-secondary" href={home.alternative.href}>{home.alternative.label}</Link>}<div className="betti-continue"><Link className="btn btn-primary" href={returnTo}>Back to your books</Link></div></>
   :action.type==='account_use'?<AccountStep key={action.id+action.version} action={action} busy={saving} perform={perform}/>
   :action.items?<SweepStep key={action.id+action.version} action={action} busy={saving} perform={perform} refresh={refresh}/>
-  :(action.type==='special_transaction'||action.question?.kind==='transaction_type')&&(!ordinary||!action.question)?<SpecialStep key={action.id+action.version} action={action} returnTo={returnTo} resolved={resolved}/>
-  :action.question?<><MerchantIdentity id="guided-transaction" merchant={action.question.transaction.merchant} date={action.question.transaction.date} amountCents={action.question.transaction.amountCents}/><QuestionFlow key={action.question.id+action.question.version} initialQuestions={[action.question]} guided onGuidedAnswer={resolved} returnTo={returnTo}/></>
+  :(action.type==='special_transaction'||action.question?.kind==='transaction_type')&&(!ordinary||!action.recordIds.includes(recordId??'')||!action.question)?<SpecialStep key={action.id+action.version} action={action} returnTo={returnTo} resolved={resolved} recover={recover}/>
+  :action.question?<><MerchantIdentity id="guided-transaction" merchant={action.question.transaction.merchant} date={action.question.transaction.date} amountCents={action.question.transaction.amountCents}/><QuestionFlow key={action.question.id+action.question.version} initialQuestions={[action.question]} guided onGuidedAnswer={resolved} onGuidedRefresh={recover} returnTo={returnTo}/></>
   :<><h1>{action.type==='recover_ingestion'?'Let’s take another look at this document.':'Send me your financial activity.'}</h1><p className="betti-explanation">{action.type==='recover_ingestion'?'Your original is safe. Open the document to see what will help me read it.':'Connected accounts are the easiest way to keep up. Statements work too.'}</p><div className="betti-continue"><Link className="btn btn-primary" href={action.href}>{action.type==='recover_ingestion'?'View document':'Send documents'}</Link>{action.type==='provide_records'&&<Link className="betti-defer" href="/get-started">Connect accounts instead</Link>}</div></>}
  </ConversationShell></div>
 }
@@ -105,9 +116,9 @@ function SweepStep({action,busy,perform,refresh}:{action:WorkAction;busy:boolean
  <div className="betti-continue"><button className={`btn ${receipt?'btn-secondary':'btn-primary'}`} disabled={busy||!valid||uploading||uploadReadError} onClick={()=>void save('completed')}>{busy?'Saving…':availability?'That’s all the receipts I have':personal?Object.keys(answers).length?'Save personal exceptions':'Nothing here is personal':mixed?mixedAccount?'Save these facts':Object.keys(answers).length?'Save business portions':'Nothing is partly personal': 'Continue with Betti'}</button></div>
  {!receipt&&<button className="betti-defer" disabled={busy||uploading} onClick={()=>void save('deferred')}>{availability?'I’ll send receipts later':'I’ll come back to this'}</button>}</>
 }
-function SpecialStep({action,returnTo,resolved}:{action:WorkAction;returnTo:string;resolved:(deferred:boolean,message?:string)=>Promise<void>}){
+function SpecialStep({action,returnTo,resolved,recover}:{action:WorkAction;returnTo:string;resolved:(deferred:boolean,message?:string)=>Promise<void>;recover:()=>Promise<void>}){
  const[work,setWork]=useState<SpecialWork|null>(null),[failed,setFailed]=useState(false)
  useEffect(()=>{let live=true;fetch(`/api/bookkeeping/records/${action.recordIds[0]}/special`,{cache:'no-store'}).then(async r=>{if(!r.ok)throw new Error();const data=await r.json();if(live)setWork(data.work)}).catch(()=>{if(live)setFailed(true)});return()=>{live=false}},[action])
  const transaction=action.question?.transaction??action.transaction
- return <>{transaction&&<MerchantIdentity id="guided-transaction" merchant={transaction.merchant} date={transaction.date} amountCents={transaction.amountCents}/>} {work?work.kind?<SpecialTransactionFlow work={work} returnTo={returnTo} embedded onResolved={resolved}/>:action.question?<QuestionFlow key={action.question.id+action.question.version} initialQuestions={[action.question]} guided onGuidedAnswer={resolved} returnTo={returnTo}/>:<p>No customer question is available for this activity.</p>:<p role="status">{failed?'I couldn’t load this detail. Please refresh.':'Getting the payment details…'}</p>}</>
+ return <>{transaction&&<MerchantIdentity id="guided-transaction" merchant={transaction.merchant} date={transaction.date} amountCents={transaction.amountCents}/>} {work?work.kind?<SpecialTransactionFlow work={work} returnTo={returnTo} embedded onResolved={resolved} onRecoveryRefresh={recover}/>:action.question?<QuestionFlow key={action.question.id+action.question.version} initialQuestions={[action.question]} guided onGuidedAnswer={resolved} onGuidedRefresh={recover} returnTo={returnTo}/>:<p>No customer question is available for this activity.</p>:<p role="status">{failed?'I couldn’t load this detail. Please refresh.':'Getting the payment details…'}</p>}</>
 }
