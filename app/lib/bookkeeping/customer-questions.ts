@@ -329,7 +329,7 @@ async function buildCustomerQuestions(input: {
  * Authoritative server-side projection of questions the customer can answer now.
  * It is continuous across dates and deliberately has no Weekly Review period input.
  */
-export async function getCurrentAskableQuestionQueue(input: {
+export async function getCanonicalQuestionCandidates(input: {
   supabase: SupabaseClient
   scope?: 'expenses' | 'business'
   asOf?: string
@@ -339,6 +339,13 @@ export async function getCurrentAskableQuestionQueue(input: {
   const questions=await buildCustomerQuestions({...input,asOf})
   const opened=questions.map(question=>question.openedAt).filter((value):value is string=>Boolean(value)).sort()
   return {asOf,count:questions.length,oldestOutstandingAt:opened[0]??null,questions}
+}
+
+export async function getCurrentAskableQuestionQueue(input: {
+  supabase:SupabaseClient; scope?:'expenses'|'business'; asOf?:string; includeNonConversational?:boolean
+}):Promise<CurrentAskableQuestionQueue> {
+  const { loadCurrentCustomerWork } = await import('./customer-work')
+  return loadCurrentCustomerWork(input)
 }
 
 /** Compatibility contract for existing Weekly Review and /questions consumers. */

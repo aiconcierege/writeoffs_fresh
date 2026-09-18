@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { activityWorkstream, projectBettiWork, sourceCoverageGaps, type WorkContext, type WorkRecord } from '../../app/lib/bookkeeping/betti-work'
+import {homeCommand} from '../../app/lib/home/command-center'
 import type { CustomerQuestion } from '../../app/lib/bookkeeping/customer-questions'
 
 const now = '2026-09-17T12:00:00Z'
 function context(): WorkContext {
   return { business: { id: 'a', start: '2026-01-01', activation: '2026-09-01', activationEvidence: '2026-09-01T12:00:00Z',
-    timezone: 'America/Phoenix', coverageStart: '2026-01-01' }, records: [], accounts: [], jobs: [], documents: [], links: [], coverage: [], deferred: [] }
+    timezone: 'America/Phoenix', coverageStart: '2026-01-01', authorizedScope: { businessId: 'a', selectedStart: '2026-01-01', authorizedStart: '2026-01-01', includedStart: '2026-08-01', activation: '2026-09-01', historicalAuthorized: true, currentFrom: '2026-09-01', catchUp: {from:'2026-01-01',through:'2026-08-31'} } }, records: [], accounts: [], jobs: [], documents: [], links: [], coverage: [], deferred: [] }
 }
 function record(id = 'old', date = '2026-05-03'): WorkRecord {
   return { business_id: 'a', record_id: id, activity_date: date, account_id: 'account', decision_id: 'decision-' + id,
@@ -102,7 +103,7 @@ describe('read-only Betti work projection', () => {
   it('12: no customer actions can coexist with real document processing', () => {
     const c = context(); c.jobs = [job(null)]
     const p = project(c)
-    expect(p.readiness.doneForNow).toBe(true)
+    expect(p.readiness.doneForNow).toBe(false)
     expect(p.betti.genuinelyProcessing).toBe(1)
     expect(p.betti.jobs[0].workstream).toBe('unscoped')
   })
@@ -130,10 +131,10 @@ describe('read-only Betti work projection', () => {
     expect(p.readiness.booksCurrentThrough).toBeNull()
   })
   it('16: scope expansion includes only newly in-scope work, preserving established decisions', () => {
-    const c = context(); c.business.start = '2026-05-01'
+    const c = context(); c.business.start = c.business.authorizedScope.authorizedStart = '2026-05-01'
     c.records = [organized(record()), record('earlier', '2026-02-01')]
     const before = project(c, [question(c.records[1])])
-    c.business.start = '2026-01-01'
+    c.business.start = c.business.authorizedScope.authorizedStart = '2026-01-01'
     const after = project(c, [question(c.records[1])])
     expect(before.customer.actionableCount).toBe(0)
     expect(after.customer.actionableCount).toBe(1)
@@ -168,7 +169,7 @@ describe('read-only Betti work projection', () => {
   })
   it('unknown activation and pre-start records do not invent stream membership', () => {
     const c = context(); expect(activityWorkstream('2025-12-31', c.business)).toBe('outside_scope')
-    c.business.activation = null; expect(activityWorkstream('2026-05-01', c.business)).toBe('unscoped')
+    c.business.activation = null; c.business.authorizedScope.activation = null; c.business.authorizedScope.catchUp = null; c.business.authorizedScope.currentFrom = null; expect(activityWorkstream('2026-05-01', c.business)).toBe('unscoped')
   })
   it('account leverage and age can outweigh current preference', () => {
     const c = context(); c.records = [record(), record('new', '2026-09-15')]
@@ -183,7 +184,7 @@ describe('read-only Betti work projection', () => {
       { from: '2026-06-01', through: '2026-06-30' }, { from: '2026-09-01', through: '2026-09-17' }])
   })
   it('can certify organized activity through a date within known accounts only', () => {
-    const c = context(); c.business.start = '2026-09-01'
+    const c = context(); c.business.start = c.business.authorizedScope.authorizedStart = '2026-09-01'
     c.accounts = [{ business_id: 'a', id: 'account', use_version: 'use', designation: 'business_only' }]
     c.records = [organized(record('new', '2026-09-15'))]
     c.coverage = [{ business_id: 'a', id: 'p', account_id: 'account', document_id: 'd', period_start: '2026-09-01',
@@ -206,4 +207,34 @@ describe('read-only Betti work projection', () => {
     c.records[0] = organized(c.records[0])
     expect(project(c, []).customer.actionableCount).toBe(0)
   })
+  it('no catch-up authorization: older evidence, jobs and questions stay outside active books',()=>{
+    const c=context();c.business.authorizedScope={businessId:'a',selectedStart:'2026-08-01',authorizedStart:'2026-08-01',includedStart:'2026-08-01',activation:'2026-09-17',historicalAuthorized:false,currentFrom:'2026-08-01',catchUp:null}
+    c.records=[record()];c.jobs=[job()];c.accounts=[{business_id:'a',id:'account',designation:null,use_version:null}]
+    const p=project(c,c.records.map(question))
+    expect(p.scope.catchUp).toBeNull();expect(p.progress.catchUp.activity).toBe(0)
+    expect(p.progress.outsideScopeActivity).toBe(1);expect(p.customer.actionableCount).toBe(0)
+    expect(p.betti.jobs).toHaveLength(0);expect(p.readiness.phase).toBe('outside_scope')
+    expect(homeCommand(p,'statement_uploads').heading).toContain('before your books begin')
+  })
+  it('mixed-date source is partitioned per activity; August is Current without purchased Catch-up',()=>{
+    const c=context();c.business.authorizedScope={businessId:'a',selectedStart:'2026-08-01',authorizedStart:'2026-08-01',includedStart:'2026-08-01',activation:'2026-09-17',historicalAuthorized:false,currentFrom:'2026-08-01',catchUp:null}
+    c.records=[record('july','2026-07-31'),record('august','2026-08-01')]
+    const p=project(c,c.records.map(question));expect(p.customer.actionableCount).toBe(1)
+    expect(p.nextAction?.recordIds).toEqual(['august']);expect(p.nextAction?.workstream).toBe('current')
+    expect(p.progress.catchUp.activity).toBe(0)
+  })
+  it('account prerequisite consumes all related questions once and saved evidence removes it',()=>{
+    const c=context();c.records=[record(),record('recent','2026-09-15')];c.accounts=[{business_id:'a',id:'account',designation:null,use_version:null}]
+    const qs=c.records.map(r=>({...question(r),kind:'factual_choice' as const}))
+    const before=project(c,qs);expect(before.customer.actionableCount).toBe(1)
+    c.accounts[0].designation='business_only';c.accounts[0].use_version='saved-event';c.records=c.records.map(organized)
+    const after=project(c);expect(after.customer.actionableCount).toBe(0)
+    expect(after.progress.catchUp.organized).toBe(1);expect(after.progress.current.organized).toBe(1)
+  })
+  it('received and unassessed cannot be projected as settled',()=>{
+    const c=context();c.records=[record()];c.jobs=[{...job(),state:'pending'}]
+    const p=project(c);expect(p.readiness.doneForNow).toBe(false);expect(p.readiness.phase).toBe('received')
+    expect(homeCommand(p,'statement_uploads').supporting).not.toContain('done for now')
+  })
+
 })

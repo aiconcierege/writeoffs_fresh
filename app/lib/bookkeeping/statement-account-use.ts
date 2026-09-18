@@ -9,8 +9,11 @@ export async function loadStatementAccountUse(supabase: SupabaseClient, unknownO
     supabase.from('current_financial_account_use').select('financial_account_id,designation'),
   ])
   if (accounts.error || uses.error) throw new Error('Statement account choices could not be loaded.')
+  const active = unknownOnly ? await supabase.from('customer_transaction_work').select('account_id').not('account_id','is',null) : null
+  if(active?.error)throw new Error('Active accounts could not be loaded.')
+  const activeIds=new Set((active?.data??[]).map(row=>row.account_id))
   const byAccount = new Map((uses.data ?? []).map(row => [row.financial_account_id, row.designation]))
   return (accounts.data ?? []).map(row => ({ id: row.id, displayName: row.display_name,
     mask: row.mask_last_four, designation: byAccount.get(row.id) ?? null }))
-    .filter(row => !unknownOnly || !row.designation)
+    .filter(row => !unknownOnly || (!row.designation && activeIds.has(row.id)))
 }

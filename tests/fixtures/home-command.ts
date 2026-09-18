@@ -3,7 +3,7 @@ import type { CustomerQuestion } from '../../app/lib/bookkeeping/customer-questi
 export const homeStates = ['new', 'processing', 'catch-up', 'concurrent', 'current', 'waiting', 'organized', 'recovery', 'held', 'deferred'] as const
 export function homeWorkFixture(state: typeof homeStates[number]) {
   const c: WorkContext = { business: { id: 'synthetic-home', start: '2026-01-01', activation: '2026-09-01',
-    activationEvidence: '2026-09-01T00:00:00Z', timezone: 'America/Phoenix', coverageStart: '2026-01-01' },
+    activationEvidence: '2026-09-01T00:00:00Z', timezone: 'America/Phoenix', coverageStart: '2026-01-01', authorizedScope: { businessId: 'synthetic-home', selectedStart: '2026-01-01', authorizedStart: '2026-01-01', includedStart: '2026-08-01', activation: '2026-09-01', historicalAuthorized: true, currentFrom: '2026-09-01', catchUp: {from:'2026-01-01',through:'2026-08-31'} } },
     records: [], accounts: [], jobs: [], documents: [], links: [], coverage: [], deferred: [] }
   const r = (id: string, date: string): WorkRecord => ({ business_id: c.business.id, record_id: id,
     activity_date: date, decision_id: 'decision-' + id, account_id: null, source_kind: 'manual',

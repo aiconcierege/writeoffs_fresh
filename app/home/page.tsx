@@ -1,3 +1,4 @@
+import {WorkRefresh} from '../components/WorkRefresh'
 import './command-center.css'
 import {loadBettiWork} from '../lib/bookkeeping/betti-work-loader'
 import {homeCommand,unavailableHomeCommand} from '../lib/home/command-center'
@@ -32,7 +33,7 @@ export default async function HomePage(){
  ])
  const betti=work?homeCommand(work,businessResult.data?.onboarding_start_method??null):unavailableHomeCommand
  const dateLabel=(day:string)=>new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}).format(new Date(`${day}T00:00:00Z`))
- return <main className="home-page home-command-center"><div className="home-shell">
+ return <main className="home-page home-command-center" data-customer-action-count={work?.customer.actionableCount}><WorkRefresh active={Boolean(work?.betti.jobs.length)}/><div className="home-shell">
   <HomeBettiHero projection={betti}/>
   {betti.education&&<p className="home-first-use">{betti.education}</p>}
 

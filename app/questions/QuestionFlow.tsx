@@ -1,4 +1,5 @@
 'use client'
+import type {HomeCommand} from '../lib/home/command-center'
 
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
@@ -12,9 +13,11 @@ import type { CustomerQuestion } from '../lib/bookkeeping/customer-questions'
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 const customerDate = new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})
 
-export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete,experience='questions',ongoingFrom,otherWorkWaiting=false,returnTo:origin='/home' }: {returnTo?:string;ongoingFrom?:string;otherWorkWaiting?:boolean; initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void;experience?:'questions'|'check-in' }) {
+export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete,experience='questions',ongoingFrom,otherWorkWaiting=false,returnTo:origin='/home',initialWorkMessage,initialActionCount }: {initialWorkMessage?:HomeCommand;initialActionCount?:number;returnTo?:string;ongoingFrom?:string;otherWorkWaiting?:boolean; initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void;experience?:'questions'|'check-in' }) {
   const router=useRouter()
   const returnTo=safeReturnTo(origin,'/home')
+  const [workMessage,setWorkMessage]=useState(initialWorkMessage)
+  const [actionCount,setActionCount]=useState(initialActionCount)
   const [success,setSuccess]=useState('Your answer is saved.')
   const [questions, setQuestions] = useState(initialQuestions)
   const [deferredCount,setDeferredCount]=useState(0)
@@ -53,8 +56,10 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
     const reconciled = await fetch('/api/bookkeeping/questions/reconcile', { method: 'POST', signal: AbortSignal.timeout(15_000) })
     if (!reconciled.ok) throw new Error('Questions could not be refreshed. Please try again.')
     const queueResponse=await fetch('/api/bookkeeping/questions',{cache:'no-store',signal:AbortSignal.timeout(15_000)})
-    const queueResult=await queueResponse.json() as {questions?:CustomerQuestion[];error?:string}
+    const queueResult=await queueResponse.json() as {questions?:CustomerQuestion[];error?:string;home?:HomeCommand;count?:number;actions?:{type:string;href:string}[]}
     if(!queueResponse.ok||!queueResult.questions)throw new Error(queueResult.error||'Unable to load the next question.')
+    setWorkMessage(queueResult.home);setActionCount(queueResult.count)
+    if(queueResult.actions?.[0]?.type==='account_use')router.refresh()
     const followUp=followUpRecord.current
     setQuestions(previous => reconcileQuestionSession(previous, currentQuestions(queueResult.questions!), completedVersions.current,followUp))
     followUpRecord.current=null
@@ -132,17 +137,42 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
 
   useEffect(()=>{if(!question&&!queueNeedsReload&&embedded)onComplete?.({unresolvedCount:unresolvedKept})},[question,queueNeedsReload,embedded,onComplete,unresolvedKept])
 
+  useEffect(()=>{
+    if(experience!=='check-in')return
+    let live=true
+    const refresh=async()=>{
+      if(document.visibilityState!=='visible'||submitLock.current)return
+      try{
+        const response=await fetch('/api/bookkeeping/questions',{cache:'no-store'})
+        if(!response.ok)return
+        const result=await response.json()
+        if(!live||submitLock.current||!Array.isArray(result.questions))return
+        setWorkMessage(result.home);setActionCount(result.count)
+        setQuestions(previous=>reconcileQuestionSession(previous,currentQuestions(result.questions),completedVersions.current))
+        if(result.actions?.[0]?.type==='account_use')router.refresh()
+      }catch{/* Keep the last known state; submission still revalidates authority. */}
+    }
+    window.addEventListener('focus',refresh)
+    const timer=setInterval(refresh,15000)
+    return()=>{live=false;window.removeEventListener('focus',refresh);clearInterval(timer)}
+    // Session refs preserve completed/deferred identity across background reads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[experience,recordId])
+
   if (!question && queueNeedsReload) return <div role="alert" className="app-page"><p>{error || 'Loading the next question…'}</p><button type="button" disabled={submitting} onClick={()=>void retryQueue()} className="btn btn-secondary">Reload current question</button></div>
 
   if (!question) {
     if(embedded)return <div className="weekly-question-complete" role="status"><strong>{unresolvedKept>0?'We can keep going.':'That’s everything I needed.'}</strong><p>{unresolvedKept>0?`I kept ${unresolvedKept} ${unresolvedKept===1?'item':'items'} on your list for more information.`:'I’ve saved your answers with this week’s records.'}</p></div>
     return (
-      <main className="app-page -mx-4 -mb-10 sm:-mx-6 lg:-mx-8"><section className="question-caught-up mx-auto flex min-h-[64vh] max-w-2xl flex-col items-center justify-center px-6 py-10 text-center sm:py-16">
+      <main data-current-action-count={actionCount} className="app-page -mx-4 -mb-10 sm:-mx-6 lg:-mx-8"><section className="question-caught-up mx-auto flex min-h-[64vh] max-w-2xl flex-col items-center justify-center px-6 py-10 text-center sm:py-16">
           <BettiIllustration state="caught-up" className="question-betti-caught" priority sizes="(max-width: 639px) 13rem, 18rem" />
           {experience==='check-in'&&<p className="home-kicker">Check in with Betti</p>}
-          <h1 ref={heading} tabIndex={-1} className="mt-2 text-3xl font-semibold tracking-[-.045em] text-[#17211d] sm:text-4xl">{deferredCount>0?'Your progress is saved.':answered>0?'Got it.':otherWorkWaiting?'You’re ready for the next step.':experience==='check-in'?'Your books are current.':'You’re all caught up.'}</h1>
-          <p className="mt-4 text-[#59665f]">{deferredCount>0?'I kept the deferred items on your list. You can come back when you have the facts.':answered>0?success:otherWorkWaiting?'Other work remains in your books. Betti will guide you to the next step.':experience==='check-in'?`I don’t need anything from you right now. I’ll keep working in the background.`:'WriteOffs will keep working in the background.'}</p>
-          <Link href={returnTo} className="btn btn-primary mt-8">{returnLabel(returnTo)}</Link>
+          <h1 ref={heading} tabIndex={-1} className="mt-2 text-3xl font-semibold tracking-[-.045em] text-[#17211d] sm:text-4xl">{deferredCount>0?'Your progress is saved.':answered>0?'Got it.':workMessage?.heading??(otherWorkWaiting?'You’re ready for the next step.':'Nothing to answer right now.')}</h1>
+          <p className="mt-4 text-[#59665f]">{deferredCount>0?'I kept the deferred items on your list. You can come back when you have the facts.':answered>0?success:otherWorkWaiting?'Other work remains in your books. Betti will guide you to the next step.':workMessage?'': 'There are no questions available right now.'}</p>
+          {workMessage&&<p className="mt-4 text-slate-600">{workMessage.supporting}</p>}
+          {workMessage?.action&&<Link className="btn btn-primary mt-4" href={workMessage.action.href}>{workMessage.action.label}</Link>}
+          {workMessage?.alternative&&<Link className="mt-4 underline" href={workMessage.alternative.href}>{workMessage.alternative.label}</Link>}
+          <Link href={returnTo} className="btn btn-secondary mt-8">{returnLabel(returnTo)}</Link>
         </section>
       </main>
     )

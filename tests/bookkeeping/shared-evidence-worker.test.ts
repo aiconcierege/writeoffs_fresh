@@ -31,6 +31,7 @@ it('real worker consumes OCR, supersedes generic questions, asks only meal facts
   mocks.apply.mockImplementation(async ({ proposal }) => { s.currentDecision = { ...s.currentDecision, ...proposal, id: 'enriched' }; return s.currentDecision })
   let mealFact = false, resolved = false
   const rpc = vi.fn(async (name: string) => {
+    if (name === 'read_authorized_bookkeeping_scope') return {data:{businessId:'tenant',authorizedStart:'2026-01-01'},error:null}
     if (name === 'resolve_bookkeeping_review_issue') resolved = true
     return { data: name === 'record_bookkeeping_business_context_assessment' ? 'assessment' : true, error: null }
   })
@@ -39,7 +40,7 @@ it('real worker consumes OCR, supersedes generic questions, asks only meal facts
     const result = () => ({ data: table === 'bookkeeping_review_events' ? successorQuery ? [] : resolved ? [] : [{ id: 'generic', review_issue_id: 'old', question_context: { factType: 'ordinary_expense_purpose' } }]
       : table === 'current_bookkeeping_meal_substantiation_facts' ? mealFact ? { id: 'meal-fact' } : null : [], error: null })
     const q = { select: () => q, eq: () => q, in: (field: string) => { if (field === 'supersedes_event_id') successorQuery = true; return q },
-      maybeSingle: async () => ({ data: table === 'current_bookkeeping_meal_substantiation_facts' ? mealFact ? { id: 'meal-fact' } : null : null, error: null }),
+      maybeSingle: async () => ({ data: table === 'bookkeeping_records'?{occurred_on:'2026-09-08'}:table === 'current_bookkeeping_meal_substantiation_facts' ? mealFact ? { id: 'meal-fact' } : null : null, error: null }),
       insert: async () => ({ error: null }), then: (resolve: (x: unknown) => unknown) => Promise.resolve(result()).then(resolve) }
     return q
   } } as unknown as SupabaseClient

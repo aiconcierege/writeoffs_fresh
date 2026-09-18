@@ -528,3 +528,14 @@ then use backend-confirmed review/import/matching states.
 Mileage catch-up asks one required date range at a time, preserving recorded
 periods, exact mileage precision, rate boundaries and deferral. Betti calculates
 the deduction. Normal trip entry asks miles and date, not a rate or deduction.
+
+
+### Authorized scope and shared customer work
+
+The selected bookkeeping start activates only dates permitted by canonical commercial coverage. Uploading documents or receiving provider history never expands that scope. Earlier evidence is retained outside active books, questions, sweeps, matching and working reports.
+
+No historical cleanup means no Catch-up workstream. For example, a September activation with an August 1 selected start uses August onward as Current; a May statement is out-of-scope evidence. Catch-up requires an explicitly selected earlier start permitted by paid or grandfathered coverage, earlier than the normal current/previous-month included period. Its interval ends the day before activation. Activity dates determine membership, never upload dates or age alone.
+
+Home, Check-in and the question API consume the same read-only Betti work projection. A shared account prerequisite counts once. Pending processing suppresses dependent questions without blocking unrelated work. Received/unassessed, processing, action required, deferred, held and settled states remain distinct. Reading never repairs or creates bookkeeping facts.
+
+Scope expansion schedules bounded, resumable reassessment only for the newly authorized interval. Working reports and the active transaction ledger use the same scope boundary while retaining immutable original source records.

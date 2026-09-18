@@ -1,7 +1,7 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createHash } from 'node:crypto'
-import { getCurrentAskableQuestionQueue } from './customer-questions'
+import { getCanonicalQuestionCandidates } from './customer-questions'
 import { projectBettiWork, type WorkContext } from './betti-work'
 
 /** Authenticated client only. The RPC checks owner + AAL2; no service-role bypass.
@@ -25,7 +25,7 @@ export async function loadBettiWork(input: {
     // A future batched adapter can raise this guard without changing semantics.
     if (before.records.length >= 1000 || before.links.length >= 1000 || (before.questionVersions?.length ?? 0) >= 1000)
       throw new Error('Projection question adapter capacity exceeded')
-    const queue = await getCurrentAskableQuestionQueue({ supabase: input.db, scope: input.scope, asOf })
+    const queue = await getCanonicalQuestionCandidates({ supabase: input.db, scope: input.scope, asOf })
     const after = await read()
     if (digest(before) !== digest(after)) continue
     return projectBettiWork({ businessId: input.businessId, context: after, questions: queue.questions,

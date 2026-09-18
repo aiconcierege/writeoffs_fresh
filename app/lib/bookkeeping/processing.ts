@@ -1,3 +1,4 @@
+import {loadAuthorizedScope,activityIsActive} from './authorized-scope'
 import 'server-only'
 
 import { createHash, randomUUID } from 'node:crypto'
@@ -200,6 +201,11 @@ export async function evaluateBookkeepingProcessingJob(
   if (!deterministicJob && !businessContextJob && !aiShadowJob && !deductionJob) {
     return { outcome: 'legacy_noop' as const }
   }
+
+  const scope = await loadAuthorizedScope(admin, businessId)
+  const retained = await admin.from('bookkeeping_records').select('occurred_on').eq('business_id',businessId).eq('id',recordId).maybeSingle()
+  if(retained.error || !retained.data)throw new Error('BOOKKEEPING_RECORD_UNAVAILABLE')
+  if(!activityIsActive(retained.data.occurred_on,scope))return {outcome:'outside_scope' as const}
 
   const snapshot = await loadBookkeepingEvaluationSnapshot({ admin, businessId, recordId }).catch((error) => {
     if (error instanceof Error && error.message === 'BOOKKEEPING_RECORD_INACTIVE') return null

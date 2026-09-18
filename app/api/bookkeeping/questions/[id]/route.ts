@@ -1,3 +1,4 @@
+import { loadCurrentCustomerWork } from '../../../../lib/bookkeeping/customer-work'
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../../utils/supabase/server'
 import {
@@ -99,6 +100,17 @@ export async function POST(
     return NextResponse.json({ error: 'invalid question action' }, { status: 400 })
   }
   try {
+    const work = await loadCurrentCustomerWork({supabase})
+    if (!work.questions.some(q=>q.id===id && q.version===expectedEventId)) {
+      // An uncertain response may be retried after the fact already committed.
+      // Existing deduction logic below verifies the exact answer and ownership.
+      const replay=command.action==='deduction_fact'
+        ?await supabase.from('current_deduction_attentions').select('*').eq('attention_id',id).maybeSingle():null
+      if(!replay?.data || replay.data.event_type!=='answered' || replay.data.supersedes_event_id!==expectedEventId
+        || command.action!=='deduction_fact' || replay.data.answer_value!==command.value)
+        return NextResponse.json({error:'This question is no longer actionable. Reload the current work.'},{status:409})
+    }
+
     if (command.action === 'defer') {
       const [{ data: contractorPayment }, { data: contractorW9 }] = await Promise.all([
         supabase.from('current_contractor_payments').select('id').eq('id', id).maybeSingle(),

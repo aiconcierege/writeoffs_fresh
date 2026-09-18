@@ -12,8 +12,12 @@ export async function GET(request:Request){
  if(recordId){const links=await db.from('bookkeeping_supporting_documents').select('document_id').eq('bookkeeping_record_id',recordId);if(links.error)return NextResponse.json({error:'Documents could not be loaded.'},{status:400});query=query.in('id',(links.data??[]).map(l=>l.document_id))}
  const r=await query
  if(r.error)return NextResponse.json({error:'Documents could not be loaded.'},{status:503})
+ const scopeRows=await db.from('customer_document_scope').select('id,active_transaction_count,outside_scope_transaction_count').in('id',(r.data??[]).map(d=>d.id))
+ if(scopeRows.error)return NextResponse.json({error:'Document scope could not be loaded.'},{status:503})
+ const scopeById=new Map((scopeRows.data??[]).map(row=>[row.id,row]))
+ const documents=(r.data??[]).map(d=>({...d,...scopeById.get(d.id)}))
  const accountUseAccounts=recordId?[]:await loadStatementAccountUse(db,true)
- return NextResponse.json({documents:r.data,accountUseAccounts,processingPaused:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED==='false'})
+ return NextResponse.json({documents,accountUseAccounts,processingPaused:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED==='false'})
 }
 export async function POST(request:Request){
  const db=await createServerSupabase(),{data:{user}}=await db.auth.getUser();if(!user)return NextResponse.json({error:'unauthorized'},{status:401})

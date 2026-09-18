@@ -4,11 +4,11 @@ vi.mock('../../utils/supabase/server', () => ({ createServerSupabase: async () =
   auth: { getUser: mocks.getUser, mfa: { getAuthenticatorAssuranceLevel: mocks.mfa } }, rpc: mocks.rpc,
 }) }))
 vi.mock('../../app/lib/membership/entitlements', () => ({ loadCustomerEntitlements: mocks.membership }))
-vi.mock('../../app/lib/bookkeeping/customer-questions', () => ({ getCurrentAskableQuestionQueue: mocks.queue }))
+vi.mock('../../app/lib/bookkeeping/customer-questions', () => ({ getCanonicalQuestionCandidates: mocks.queue }))
 import { GET } from '../../app/api/bookkeeping/work/route'
 const business = '10000000-0000-4000-8000-000000000001'
 const snapshot = () => ({ business: { id: business, start: '2026-01-01', activation: '2026-09-01',
-  activationEvidence: '2026-09-01T12:00:00Z', timezone: 'UTC', coverageStart: '2026-01-01' },
+  activationEvidence: '2026-09-01T12:00:00Z', timezone: 'UTC', coverageStart: '2026-01-01', authorizedScope: {businessId:business,selectedStart:'2026-01-01',authorizedStart:'2026-01-01',includedStart:'2026-08-01',activation:'2026-09-01',historicalAuthorized:true,currentFrom:'2026-09-01',catchUp:{from:'2026-01-01',through:'2026-08-31'}} },
 records: [], accounts: [], jobs: [], documents: [], links: [], coverage: [], deferred: [], questionVersions: [] })
 const request = () => new Request('https://writeoffs.example/api/bookkeeping/work')
 beforeEach(() => {

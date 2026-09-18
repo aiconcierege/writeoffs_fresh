@@ -38,7 +38,7 @@ export function StatementAccountUse({ accounts, conversational=false, onSaved }:
   if (!accounts.length) return null
   return <section aria-labelledby="statement-account-use" className="mx-auto max-w-3xl space-y-5 px-4 py-6">
     <h2 id="statement-account-use" className="text-xl font-semibold">{conversational?'Before I finish this, how did you use this account?':'How did you use these accounts?'}</h2>
-    <p className="text-sm text-slate-600">Tell Betti once for each statement account. This applies to the activity you sent from that account. You can change it in Bank connections.</p>
+    <p className="text-sm text-slate-600">Tell Betti once for each account. This applies to its activity in your bookkeeping scope. You can change it in Bank connections.</p>
     {!interactive && <p role="status">Preparing your account choices…</p>}
     <noscript>Please enable JavaScript to save your account choice.</noscript>
     {accounts.map(account => {

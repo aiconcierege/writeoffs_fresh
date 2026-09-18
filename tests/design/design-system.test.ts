@@ -37,7 +37,7 @@ describe('WriteOffs product design system', () => {
     expect(read('app/transactions/TransactionReview.tsx')).toContain('No purchases in this view right now.')
     expect(read('app/receipts/page_inner.tsx')).toContain('Upload one and WriteOffs will take it from there.')
     expect(read('app/invoices/InvoicesClient.tsx')).toContain('Create one when you need to bill a customer.')
-    expect(read('app/questions/QuestionFlow.tsx')).toContain('You’re all caught up.')
+    expect(read('app/questions/QuestionFlow.tsx')).toContain('Nothing to answer right now.')
     expect(read('app/error.tsx')).not.toContain('style={{')
     expect(read('app/questions/loading.tsx')).toContain('skeleton')
   })

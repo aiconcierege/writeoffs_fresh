@@ -1,3 +1,4 @@
+vi.mock('../../app/lib/bookkeeping/authorized-scope',()=>({loadAuthorizedScope:async()=>({authorizedStart:'2025-01-01'})}))
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({ vehicles: vi.fn(), records: vi.fn(), owner: vi.fn() }))
 vi.mock('../../app/lib/bookkeeping/reporting-repository', () => ({ SupabaseCanonicalReportingRepository: class {

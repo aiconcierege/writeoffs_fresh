@@ -15,7 +15,7 @@ vi.mock('../../utils/supabase/server', () => ({
     })),
   })),
 }))
-vi.mock('../../app/lib/bookkeeping/customer-questions', () => ({ getCurrentAskableQuestionQueue }))
+vi.mock('../../app/lib/bookkeeping/customer-work', () => ({ loadCurrentCustomerWork:getCurrentAskableQuestionQueue }))
 vi.mock('../../app/lib/bookkeeping/customer-question-actions', () => ({ actOnCustomerQuestion }))
 vi.mock('../../app/lib/membership/entitlements',()=>({loadCustomerEntitlements:vi.fn(async()=>({plan:'business'}))}))
 
@@ -35,7 +35,7 @@ describe('customer question API', () => {
     getUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     getCurrentAskableQuestionQueue.mockResolvedValue({
       asOf:'2026-09-08T12:00:00.000Z',count:1,oldestOutstandingAt:'2026-09-07T12:00:00.000Z',
-      questions:[{ id: issueId }],
+      questions:[{ id: issueId, version:eventId }],
     })
     actOnCustomerQuestion.mockResolvedValue({})
   })
@@ -83,7 +83,7 @@ describe('customer question API', () => {
   it('returns the tenant-scoped actionable count', async () => {
     const route = await import('../../app/api/bookkeeping/questions/route')
     const response = await route.GET()
-    expect(await response.json()).toEqual({asOf:'2026-09-08T12:00:00.000Z',questions:[{id:issueId}],count:1,
+    expect(await response.json()).toEqual({asOf:'2026-09-08T12:00:00.000Z',questions:[{id:issueId,version:eventId}],count:1,
       oldestOutstandingAt:'2026-09-07T12:00:00.000Z'})
   })
 
@@ -133,4 +133,18 @@ describe('customer question API', () => {
       error: 'We couldn’t save that answer. Please check it and try again.',
     })
   })
+  it('rejects an out-of-scope or prerequisite-blocked question before any answer mutation',async()=>{
+    getCurrentAskableQuestionQueue.mockResolvedValue({questions:[],count:0})
+    const route=await import('../../app/api/bookkeeping/questions/[id]/route')
+    const response=await route.POST(new Request('http://local',{method:'POST',headers:{'content-type':'application/json','if-match':eventId},body:JSON.stringify({action:'business_use',use:'business'})}),{params:Promise.resolve({id:issueId})})
+    expect(response.status).toBe(409);expect(actOnCustomerQuestion).not.toHaveBeenCalled();expect(rpc).not.toHaveBeenCalled()
+  })
+  it('allows an identical committed deduction retry after the question leaves the active projection',async()=>{
+    getCurrentAskableQuestionQueue.mockResolvedValue({questions:[],count:0})
+    maybeSingle.mockResolvedValue({data:{id:issueId,attention_id:issueId,event_type:'answered',supersedes_event_id:eventId,answer_value:80,fact_type:'phone_business_use_percentage',bookkeeping_record_id:'record',business_id:'owned-business'}})
+    const route=await import('../../app/api/bookkeeping/questions/[id]/route')
+    const response=await route.POST(new Request('http://local',{method:'POST',headers:{'content-type':'application/json','if-match':eventId},body:JSON.stringify({action:'deduction_fact',value:80})}),{params:Promise.resolve({id:issueId})})
+    expect(response.status).toBe(200);expect(rpc).not.toHaveBeenCalledWith('answer_deduction_attention',expect.anything())
+  })
+
 })

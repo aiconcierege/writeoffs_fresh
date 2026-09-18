@@ -7,7 +7,7 @@ import { GET } from '../../app/api/documents/route'
 beforeEach(()=>{
  vi.clearAllMocks();m.auth.mockResolvedValue({data:{user:{id:'owner'}}})
  m.load.mockResolvedValue([{id:'manual-account',displayName:'Statement account',mask:null,designation:null}])
- m.from.mockImplementation((table:string)=>table==='bookkeeping_supporting_documents'
+ m.from.mockImplementation((table:string)=>table==='customer_document_scope'?{select:()=>({in:async()=>({data:[{id:'statement',active_transaction_count:24,outside_scope_transaction_count:0}],error:null})})}:table==='bookkeeping_supporting_documents'
   ?{select:()=>({eq:async()=>({data:[],error:null})})}
   :{select:()=>({order:()=>({limit:()=>({data:[{id:'statement',state:'completed',transaction_count:24}],error:null,in:async()=>({data:[],error:null})})})})})
 })

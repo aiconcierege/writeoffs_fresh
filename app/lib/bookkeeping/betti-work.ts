@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto'
+import type { AuthorizedBookkeepingScope } from './authorized-scope'
 import type { CustomerQuestion } from './customer-questions'
 import { purchaseReceiptEligible } from './receipt-eligibility'
 
-export const BETTI_WORK_VERSION = 'betti-work:v1'
+export const BETTI_WORK_VERSION = 'betti-work:v2-scope'
 export type Workstream = 'catch_up' | 'current' | 'shared' | 'outside_scope' | 'unscoped'
 export type ActionType = 'provide_records' | 'account_use' | 'personal_exception_sweep' | 'mixed_use_sweep'
   | 'receipt_upload_sweep' | 'receipt_availability' | 'special_transaction' | 'material_question'
@@ -16,7 +17,7 @@ export type WorkRecord = Owned & {
 }
 export type WorkContext = {
   business: { id: string; start: string | null; activation: string | null; activationEvidence: string | null
-    timezone: string; coverageStart: string | null }
+    timezone: string; coverageStart: string | null; authorizedScope: AuthorizedBookkeepingScope }
   records: WorkRecord[]
   accounts: (Owned & { id: string; provider?: string; use_version: string | null; designation: string | null })[]
   jobs: (Owned & { id: string; record_id: string | null; document_id: string | null; receipt_id: string | null
@@ -26,13 +27,14 @@ export type WorkContext = {
   coverage: (Owned & { id: string; account_id: string; document_id: string; period_start: string | null
     period_end: string | null; validation_status: string; ambiguous_row_count: number })[]
   deferred: (Owned & { id: string; issue_id: string; record_id: string | null; deferred_until: string | null; created_at: string; source?: string })[]
+  documentRecords?: (Owned & {document_id:string;record_id:string})[]
   questionVersions?: string[]
 }
 export type WorkAction = {
   id: string; version: string; type: ActionType; target: { kind: 'account' | 'record' | 'question' | 'document' | 'business'; id: string }
   workstream: Workstream; affects: ('catch_up' | 'current')[]; recordIds: string[]
   status: 'actionable' | 'deferred' | 'waiting'; availableAt: string | null
-  href: string; question?: Pick<CustomerQuestion, 'id' | 'version' | 'source' | 'prompt' | 'contextFingerprint'>
+  href: string; question?: CustomerQuestion
   priority: { score: number; reasons: string[]; unlocks: number; ageDays: number; continuity: boolean
     materiality: 'totals' | 'disclosable' | null; deadline: string | null }
   dependencies: string[]
@@ -59,9 +61,12 @@ export function sourceCoverageGaps(start: string, through: string, periods: { fr
 
 /** Scope is fixed at activation. It deliberately does not use the rolling question-age policy. */
 export function activityWorkstream(date: string | null, scope: WorkContext['business']): Workstream {
-  if (!date || !scope.start || !scope.activation) return 'unscoped'
-  if (date < scope.start) return 'outside_scope'
-  return date < scope.activation ? 'catch_up' : 'current'
+  const authorized=scope.authorizedScope
+  if (!date || !authorized?.authorizedStart) return 'unscoped'
+  if (date < authorized.authorizedStart) return 'outside_scope'
+  if (!authorized.currentFrom) return 'unscoped'
+  if (authorized.catchUp && date >= authorized.catchUp.from && date <= authorized.catchUp.through) return 'catch_up'
+  return 'current'
 }
 
 /** Read existing decisions/allocations only. This neither classifies nor changes P&L policy. */
@@ -80,8 +85,8 @@ export function projectBettiWork(input: {
   continuityRecordId?: string; processingEnabled?: boolean
 }) {
   const { context: c, asOf } = input
-  if (c.business.id !== input.businessId) throw new Error('Projection business mismatch')
-  for (const rows of [c.records, c.accounts, c.jobs, c.documents, c.links, c.coverage, c.deferred]) {
+  if (c.business.id !== input.businessId || c.business.authorizedScope.businessId !== input.businessId) throw new Error('Projection business mismatch')
+  for (const rows of [c.records, c.accounts, c.jobs, c.documents, c.links, c.coverage, c.deferred, c.documentRecords??[]]) {
     if (rows.some(row => row.business_id !== input.businessId)) throw new Error('Projection tenant mismatch')
   }
   // A partial snapshot must not become a precise total or a false completion claim.
@@ -92,7 +97,7 @@ export function projectBettiWork(input: {
   const byId = new Map(records.map(r => [r.record_id, r]))
   if (input.questions.some(q => q.recordId && !byId.has(q.recordId))) throw new Error('Question record unavailable')
   const stream = (r: WorkRecord) => activityWorkstream(r.activity_date, c.business)
-  const scoped = records.filter(r => stream(r) !== 'outside_scope')
+  const scoped = records.filter(r => ['catch_up','current'].includes(stream(r)))
   const scopeVersion = fingerprint([BETTI_WORK_VERSION, c.business])
   const streams = (rs: WorkRecord[]): ('catch_up' | 'current')[] =>
     ['catch_up', 'current'].filter(s => rs.some(r => stream(r) === s)) as ('catch_up' | 'current')[]
@@ -100,9 +105,10 @@ export function projectBettiWork(input: {
     const values = streams(rs)
     return values.length === 2 ? 'shared' : values[0] ?? (rs.length && rs.every(r => stream(r) === 'outside_scope') ? 'outside_scope' : 'unscoped')
   }
-  const jobs = c.jobs.map(j => {
-    const recordIds = j.record_id ? [j.record_id] : c.links.filter(l => l.receipt_id === j.receipt_id
-      || c.documents.some(d => d.id === j.document_id && d.receipt_id === l.receipt_id)).map(l => l.record_id)
+  const allJobs = c.jobs.map(j => {
+    const recordIds = j.record_id ? [j.record_id] : [...new Set([
+      ...c.links.filter(l => l.receipt_id === j.receipt_id || c.documents.some(d => d.id === j.document_id && d.receipt_id === l.receipt_id)).map(l => l.record_id),
+      ...(c.documentRecords??[]).filter(l=>l.document_id===j.document_id).map(l=>l.record_id)])]
     const rs = recordIds.flatMap(id => byId.has(id) ? [byId.get(id)!] : [])
     const status = j.state === 'processing' && (!j.lease_expires_at || j.lease_expires_at <= asOf) ? 'stale_lease'
       : ['dead_letter', 'unreadable', 'needs_attention'].includes(j.state) ? 'failed_recoverable'
@@ -114,6 +120,7 @@ export function projectBettiWork(input: {
       documentId: j.document_id, recordIds, workstream: contextOf(rs), status,
       availableAt: j.available_at, leaseExpiresAt: j.lease_expires_at }
   })
+  const jobs=allJobs.filter(j=>j.workstream!=='outside_scope')
   const activeJobIds = (id: string) => jobs.filter(j => j.recordIds.includes(id)).map(j => j.id)
   const actions: WorkAction[] = []
   const add = (type: ActionType, id: string, target: WorkAction['target'], rs: WorkRecord[], evidence: unknown,
@@ -142,21 +149,20 @@ export function projectBettiWork(input: {
     const rs = scoped.filter(r => r.account_id === account.id)
     if (!rs.length) continue
     add('account_use', `account:${account.id}:use`, { kind: 'account', id: account.id }, rs,
-      account.use_version, account.provider && account.provider !== 'statement' ? '/settings/banking'
-        : `/check-in?record=${encodeURIComponent(rs[0].record_id)}`, c.business.activationEvidence ?? asOf)
+      account.use_version, `/check-in?record=${encodeURIComponent(rs[0].record_id)}`, c.business.activationEvidence ?? asOf)
   }
   const unknownAccounts = new Set(c.accounts.filter(a => !a.designation).map(a => a.id))
   for (const q of input.questions) {
     const r = q.recordId ? byId.get(q.recordId) : undefined
-    if (r && stream(r) === 'outside_scope') continue
-    if (!r && activityWorkstream(q.transaction.date, c.business) === 'outside_scope') continue
+    if (r && !['catch_up','current'].includes(stream(r))) continue
+    if (!r && q.transaction.date && !['catch_up','current'].includes(activityWorkstream(q.transaction.date, c.business))) continue
     const type = r && ['refund', 'loan_principal_payment', 'credit_card_payment'].includes(r.bookkeeping_nature ?? '')
       ? 'special_transaction' : 'material_question'
-    const accountDependency = r?.account_id && unknownAccounts.has(r.account_id) && q.kind === 'business_use'
+    const accountDependency = r?.account_id && unknownAccounts.has(r.account_id)
     if (accountDependency) continue // The one account fact replaces these repeated requests.
     add(type, `${q.source ?? 'bookkeeping'}:${q.id}`, { kind: 'question', id: q.id }, r ? [r] : [],
       [q.version, q.contextFingerprint, q.kind, q.prompt, q.guidance, q.options], r ? `/check-in?record=${encodeURIComponent(r.record_id)}` : '/check-in', q.openedAt ?? asOf,
-      { question: { id: q.id, version: q.version, source: q.source, prompt: q.prompt, contextFingerprint: q.contextFingerprint },
+      { question: q,
         ...(!r && q.transaction.date ? { workstream: activityWorkstream(q.transaction.date, c.business),
           affects: ['catch_up', 'current'].filter(s => s === activityWorkstream(q.transaction.date, c.business)) as ('catch_up' | 'current')[] } : {}),
         ...(q.availableAt && q.availableAt > asOf ? { status: 'deferred' as const, availableAt: q.availableAt } : {}) })
@@ -170,7 +176,7 @@ export function projectBettiWork(input: {
   for (const d of c.deferred.filter(d => (!d.deferred_until || d.deferred_until > asOf)
     && !input.questions.some(q => q.version === d.id || q.id === d.issue_id))) {
     const r = d.record_id ? byId.get(d.record_id) : undefined
-    if (r && stream(r) === 'outside_scope') continue
+    if (r && !['catch_up','current'].includes(stream(r))) continue
     if (r && ['personal', 'excluded'].includes(r.treatment ?? '')) continue
     add('material_question', `${d.source ?? 'bookkeeping'}:${d.issue_id}`, { kind: 'question', id: d.issue_id }, r ? [r] : [], d.id,
       r ? `/check-in?record=${encodeURIComponent(r.record_id)}` : '/check-in', d.created_at,
@@ -209,27 +215,28 @@ export function projectBettiWork(input: {
     sourceId: p.id, source: 'statement' as const, validated: p.validation_status === 'validated' && p.ambiguous_row_count === 0 }))
   // Statements prove individual account periods, not completeness of the customer's source universe.
   const today = asOf.slice(0, 10)
-  const coverageGaps = c.business.start ? c.accounts.flatMap(a =>
-    sourceCoverageGaps(c.business.start!, today, coverage.filter(p => p.accountId === a.id))
+  const coverageGaps = c.business.authorizedScope.authorizedStart ? c.accounts.flatMap(a =>
+    sourceCoverageGaps(c.business.authorizedScope.authorizedStart!, today, coverage.filter(p => p.accountId === a.id))
       .map(gap => ({ accountId: a.id, ...gap, reason: 'source_coverage_unconfirmed' as const }))) : []
-  const knownAccountsThrough = c.business.start && c.accounts.length ? c.accounts.map(a => {
-    const gaps = sourceCoverageGaps(c.business.start!, today, coverage.filter(p => p.accountId === a.id))
+  const knownAccountsThrough = c.business.authorizedScope.authorizedStart && c.accounts.length ? c.accounts.map(a => {
+    const gaps = sourceCoverageGaps(c.business.authorizedScope.authorizedStart!, today, coverage.filter(p => p.accountId === a.id))
     return gaps.length ? previousDay(gaps[0].from) : today
   }).sort()[0] : null
-  const organizedThrough = knownAccountsThrough && c.business.start && knownAccountsThrough >= c.business.start
+  const organizedThrough = knownAccountsThrough && c.business.authorizedScope.authorizedStart && knownAccountsThrough >= c.business.authorizedScope.authorizedStart
     && scoped.every(r => r.activity_date > knownAccountsThrough || workingOrganized(r))
     && !jobs.length && !deduplicated.length && !c.documents.some(d => d.has_job === false)
     ? knownAccountsThrough : null
   return { version: BETTI_WORK_VERSION, businessId: input.businessId, asOf, scopeVersion,
-    scope: { bookkeepingStart: c.business.start, liveActivation: c.business.activation,
+    scope: { bookkeepingStart: c.business.authorizedScope.authorizedStart, liveActivation: c.business.activation,
       activationSource: 'onboarding_completed_at' as const, activationDateConvention: 'UTC' as const, timezone: c.business.timezone,
       commercialCoverageStart: c.business.coverageStart,
-      catchUp: c.business.start && c.business.activation && c.business.start < c.business.activation
-        ? { from: c.business.start, through: previousDay(c.business.activation) } : null,
-      current: c.business.activation ? { from: c.business.activation } : null,
+      historicalAuthorized: c.business.authorizedScope.historicalAuthorized,
+      includedStart: c.business.authorizedScope.includedStart,
+      catchUp: c.business.authorizedScope.catchUp,
+      current: c.business.authorizedScope.currentFrom ? {from:c.business.authorizedScope.currentFrom} : null,
       knownSourceCoverage: coverage, coverageGaps, sourceUniverseConfirmed: false,
       questionAgePolicy: 'unchanged_canonical_policy' as const },
-    betti: { jobs, waiting, systemHeld,
+    betti: { jobs, outsideScopeJobs:allJobs.filter(j=>j.workstream==='outside_scope'), waiting, systemHeld,
       missingJobs: c.documents.filter(d => d.has_job === false).map(d => ({ documentId: d.id, reason: 'no_job_recorded' as const })),
       genuinelyProcessing: jobs.filter(j => j.status === 'processing').length,
       queued: jobs.filter(j => j.status === 'queued').length, retryScheduled: jobs.filter(j => j.status === 'retry_scheduled').length,
@@ -240,8 +247,12 @@ export function projectBettiWork(input: {
       unscopedActivity: records.filter(r => stream(r) === 'unscoped').length,
       outsideScopeActivity: records.filter(r => stream(r) === 'outside_scope').length, completedCustomerActions: null,
       organizedMeaning: 'working_treatment_established_not_tax_documentation_complete' as const },
-    readiness: { doneForNow: actionable.length === 0,
-      catchUp: !c.business.start || !c.business.activation ? 'scope_unknown' : catchUp.activity === 0 ? 'coverage_unconfirmed'
+    readiness: { doneForNow: actionable.length === 0 && jobs.length === 0 && systemHeld.length === 0 && !c.documents.some(d=>d.has_job===false),
+      phase: actionable.length ? 'customer_action' : jobs.some(j=>j.status==='processing') ? 'processing'
+        : jobs.some(j=>['queued','retry_scheduled'].includes(j.status)) || c.documents.some(d=>d.has_job===false) ? 'received'
+        : jobs.length || systemHeld.length ? 'blocked' : records.length && !scoped.length ? 'outside_scope'
+        : deferred.length ? 'deferred' : scoped.length ? 'settled' : 'no_records',
+      catchUp: !c.business.authorizedScope.historicalAuthorized ? 'not_requested' : !c.business.authorizedScope.authorizedStart || !c.business.activation ? 'scope_unknown' : catchUp.activity === 0 ? 'coverage_unconfirmed'
         : catchUp.organized < catchUp.activity || deduplicated.some(a => a.affects.includes('catch_up'))
           || jobs.some(j => ['catch_up', 'shared', 'unscoped'].includes(j.workstream))
           || c.documents.some(d => d.has_job === false) ? 'work_remaining' : 'available_activity_organized',

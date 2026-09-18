@@ -155,7 +155,7 @@ export async function listTransactionReadModel(input: {
   const recordRows: Row[] = []
   const pageSize = 1000
   for (let from = 0; ; from += pageSize) {
-    let recordQuery = input.supabase.from('bookkeeping_records')
+    let recordQuery = input.supabase.from('active_bookkeeping_records')
       .select('id,source_kind,amount_cents,currency,occurred_on').eq('business_id', businessId)
       .order('occurred_on', { ascending: false }).order('id', { ascending: false })
       .range(from, from + pageSize - 1)
@@ -375,7 +375,7 @@ export async function listTransactionReadModel(input: {
     }]
   })
 
-  let legacyQuery = input.supabase.from('transactions')
+  let legacyQuery = input.supabase.from('active_legacy_transactions')
     .select('id,date,vendor,description,amount,amount_cents,currency,category_key,receipt_waived,created_from_receipt_id,canonical_financial_transaction_id')
     .eq('user_id', input.userId).is('canonical_financial_transaction_id', null)
     .order('date', { ascending: false }).limit(limit)

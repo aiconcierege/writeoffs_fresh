@@ -21,7 +21,7 @@ export class SupabaseCanonicalReportingRepository {
   async loadLegacyRecords(input: { userId: string; periodStart: string; periodEnd: string }): Promise<LegacyReportingRecord[]> {
     const rows: Row[] = []
     for (let from = 0; ; from += 1000) {
-      const { data, error } = await this.supabase.from('transactions')
+      const { data, error } = await this.supabase.from('active_legacy_transactions')
         .select('id,date,vendor,description,amount,amount_cents,currency,category_key,receipt_waived,created_from_receipt_id')
         .eq('user_id', input.userId).is('canonical_financial_transaction_id', null)
         .gte('date', input.periodStart).lte('date', input.periodEnd)

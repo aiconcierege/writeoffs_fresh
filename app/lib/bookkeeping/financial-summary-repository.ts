@@ -61,7 +61,7 @@ implements CanonicalFinancialSummaryRepository {
   async loadRecords(input: { businessId: string; periodStart: string; periodEnd: string }) {
     const rows: Row[] = []
     for (let from = 0; ; from += 1000) {
-      const { data, error } = await this.supabase.from('bookkeeping_records')
+      const { data, error } = await this.supabase.from('active_bookkeeping_records')
         .select('id,source_kind,amount_cents,currency,occurred_on')
         .eq('business_id', input.businessId).order('id').range(from, from + 999)
       if (error) throw new Error(`Unable to load canonical summary records: ${error.message}`)

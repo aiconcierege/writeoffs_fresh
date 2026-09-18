@@ -12,7 +12,7 @@ describe('customer question UI contract', () => {
       'No, all business', 'Yes, partly personal', 'How much of the',
       'Business amount', 'Enter the business dollars. I’ll handle the split.',
       'What did you buy?', 'I have the receipt, but I can’t tell what this was for.',
-      'You’re all caught up.', 'returnLabel(returnTo)',
+      'Nothing to answer right now.', 'returnLabel(returnTo)',
     ]) expect(flow).toContain(copy)
     expect(flow).not.toContain('Personal amount')
     expect(flow).not.toContain('About how much was personal?')

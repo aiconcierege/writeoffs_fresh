@@ -1,3 +1,4 @@
+import {loadAuthorizedScope} from './authorized-scope'
 import {loadHistoricalMileage,historicalMileageNeedsFacts} from '../mileage/historical-repository'
 import {includeCanonicalVehicleExpenses} from './report-vehicle-expenses'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -18,15 +19,18 @@ export async function getAuthenticatedCanonicalReport(input: {
   const repository = new SupabaseCanonicalReportingRepository(input.supabase)
   const businessId = await repository.findBusinessIdForUser(user.id)
   if (!businessId) throw new Error('Business was not found for the authenticated user.')
+  const scope=await loadAuthorizedScope(input.supabase,businessId)
+  if(!scope.authorizedStart)throw new Error('Bookkeeping scope unavailable.')
+  const activePeriodStart=input.periodStart>scope.authorizedStart?input.periodStart:scope.authorizedStart
   const [canonical, legacy, questions, categoryLabels, businessMilesMilli, contractorSummaries,vehicleReports,historicalMileage] = await Promise.all([
-    repository.canonical.loadRecords({ businessId, periodStart: input.periodStart, periodEnd: input.periodEnd }),
-    repository.loadLegacyRecords({ userId: user.id, periodStart: input.periodStart, periodEnd: input.periodEnd }),
+    repository.canonical.loadRecords({ businessId, periodStart: activePeriodStart, periodEnd: input.periodEnd }),
+    repository.loadLegacyRecords({ userId: user.id, periodStart: activePeriodStart, periodEnd: input.periodEnd }),
     listCustomerQuestions({ supabase: input.supabase, includeNonConversational: true }),
     repository.loadCategoryLabels(),
-    loadMileageTotal(input.supabase, { businessId, start: input.periodStart, end: input.periodEnd }),
+    loadMileageTotal(input.supabase, { businessId, start: activePeriodStart, end: input.periodEnd }),
     listContractorSummaries({ supabase: input.supabase, businessId,
       taxYear: Number(input.periodEnd.slice(0, 4)) }),
-    loadVehicleTaxYearReports(input.supabase,{businessId,taxYear:Number(input.periodEnd.slice(0,4)),periodStart:input.periodStart,periodEnd:input.periodEnd}),
+    loadVehicleTaxYearReports(input.supabase,{businessId,taxYear:Number(input.periodEnd.slice(0,4)),periodStart:activePeriodStart,periodEnd:input.periodEnd}),
     loadHistoricalMileage(input.supabase,businessId,Number(input.periodEnd.slice(0,4))),
   ])
   const report = buildCanonicalReport({ canonicalRecords: canonical.records, legacyRecords: legacy,

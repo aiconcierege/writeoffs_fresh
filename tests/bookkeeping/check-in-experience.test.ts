@@ -7,7 +7,7 @@ const policy=readFileSync('app/lib/route-policy.ts','utf8')
 
 describe('continuous Check in with Betti experience',()=>{
   it('loads the authoritative queue without a Weekly Review period or date range',()=>{
-    expect(page).toContain('getCurrentAskableQuestionQueue')
+    expect(page).toContain('loadCurrentCustomerWork')
     expect(page).toContain('experience="check-in"')
     expect(page).not.toMatch(/weekly|periodStart|periodEnd|reviewId/i)
   })
@@ -42,8 +42,8 @@ describe('continuous Check in with Betti experience',()=>{
     expect(flow).toContain('question-identity')
     expect(flow).toContain('More waiting')
     expect(flow).not.toContain('Question {answered + 1} of {total}</p>{!embedded&&<Link')
-    expect(flow).toContain('Your books are current.')
-    expect(flow).toContain('I don’t need anything from you right now.')
+    expect(flow).toContain('workMessage?.heading')
+    expect(flow).not.toContain('I’ll keep working in the background.')
   })
 
   it('retains newly returned questions and dependent follow-ups instead of slicing an old list',()=>{
