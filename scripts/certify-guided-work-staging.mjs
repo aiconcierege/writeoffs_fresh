@@ -9,6 +9,7 @@ import {PDFDocument,StandardFonts} from 'pdf-lib'
 import {createCanvas} from '@napi-rs/canvas'
 const origin=process.env.CERTIFICATION_ORIGIN??'https://writeoffs-fresh-staging.vercel.app'
 assert(/^https:\/\/writeoffs-fresh-staging(?:-[a-z0-9-]+)?\.vercel\.app$/.test(origin))
+const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Phoenix',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
 const dir=process.env.CERTIFICATION_ARTIFACT_DIR??'/private/tmp/writeoffs-phase3',url=process.env.NEXT_PUBLIC_SUPABASE_URL
 assert(/^\/private\/tmp\/writeoffs-phase3(?:-[a-z0-9-]+)?$/.test(dir))
 assert(process.env.WRITEOFFS_ENVIRONMENT==='staging'&&new URL(url).hostname==='sgrqrrxrlglhjuetdtps.supabase.co')
@@ -48,7 +49,7 @@ async function statement(name,from,through,rows){
 await statement('august','August 1, 2026','August 31, 2026',[['08/03','ADOBE CREATIVE CLOUD',-2299],['08/12','OFFICE DEPOT',-6419]])
 await statement('mixed','July 1, 2026','August 31, 2026',[['07/10','ADOBE CREATIVE CLOUD',-2299],['08/14','GOOGLE WORKSPACE',-1800]])
 await statement('may-small','May 1, 2026','May 31, 2026',[['05/03','ADOBE CREATIVE CLOUD',-2299],['05/12','OFFICE DEPOT',-6419]])
-await statement('september','September 1, 2026','September 30, 2026',[[new Date().toISOString().slice(5,10).replace('-','/'),'GOOGLE WORKSPACE',-1800],[new Date().toISOString().slice(5,10).replace('-','/'),'OFFICE DEPOT',-6419]])
+await statement('september','September 1, 2026','September 30, 2026',[[today.slice(5,10).replace('-','/'),'GOOGLE WORKSPACE',-1800],[today.slice(5,10).replace('-','/'),'OFFICE DEPOT',-6419]])
 const canvas=createCanvas(760,900),ink=canvas.getContext('2d');ink.fillStyle='white';ink.fillRect(0,0,760,900);ink.fillStyle='black';ink.font='bold 36px Arial'
 ink.fillText("McDonald's Restaurant",35,90);ink.font='28px Arial'
 ;['09/08/2026 08:30 AM','Sausage McMuffin       $4.00','Hash Brown             $2.54','Medium Coffee          $3.00','TOTAL                  $9.54','VISA ending 1234','SYNTHETIC TEST RECEIPT'].forEach((line,i)=>ink.fillText(line,35,170+i*85))
@@ -109,7 +110,7 @@ async function settled(context,page){
  assert.fail('Normal workers did not settle: '+JSON.stringify(w.betti.jobs))
 }
 await statement('mixed-use','August 1, 2026','August 31, 2026',[['08/03','ADOBE CREATIVE CLOUD',-20000],['08/12','OFFICE DEPOT',-10000],['08/14','GOOGLE WORKSPACE',-7500]])
-await statement('current-phone','September 1, 2026','September 30, 2026',[[new Date().toISOString().slice(5,10).replace('-','/'),'VERIZON WIRELESS',-14628]])
+await statement('current-phone','September 1, 2026','September 30, 2026',[[today.slice(5,10).replace('-','/'),'VERIZON WIRELESS',-14628]])
 const paper=createCanvas(800,650),pen=paper.getContext('2d');pen.fillStyle='white';pen.fillRect(0,0,800,650);pen.fillStyle='black';pen.font='32px Arial';['OFFICE DEPOT','Receipt 05/12/2026','Printer paper       $64.19','TOTAL               $64.19','VISA ending 1234','SYNTHETIC CERTIFICATION'].forEach((line,i)=>pen.fillText(line,40,80+i*85));await writeFile(`${dir}/office.png`,paper.toBuffer('image/png'))
 const results=await readFile(`${dir}/browser/results.json`,'utf8').then(JSON.parse).catch(()=>[])
 async function screenshot(page,name){
@@ -126,7 +127,7 @@ async function cross(context,page){
  const ledger=await api(context,'/api/transactions/list?year=all');assert.equal(new Set(ledger.rows.map(r=>r.id)).size,ledger.rows.length)
  const home=await context.newPage();await home.goto(origin+'/home');const after=await api(context,'/api/bookkeeping/work')
  if(JSON.stringify(w.customer.actionable)===JSON.stringify(after.customer.actionable))assert.equal(await home.locator('[data-customer-action-count]').getAttribute('data-customer-action-count'),String(w.customer.actionableCount))
- const report=await api(context,'/api/reports/summary?start=2026-01-01&end='+new Date().toISOString().slice(0,10))
+ const report=await api(context,'/api/reports/summary?start=2026-01-01&end='+today)
  assert.equal(report.categoryTotals.reduce((n,c)=>n+c.amountCents,0)+report.uncategorizedBusinessExpensesCents,report.businessExpensesCents)
  assert.equal(report.businessIncomeCents-report.businessExpensesCents,report.businessProfitCents)
  const money=c=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(c/100)
