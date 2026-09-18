@@ -25,4 +25,4 @@ async function handleGET(_request:Request,{params}:{params:Promise<{id:string}>}
 
 export const GET = timedRoute(handleGET)
 
-export const POST = timedRoute(guidedCommand(handlePOST))
+export const POST = timedRoute(guidedCommand(handlePOST,{deferralField:'action'}))

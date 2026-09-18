@@ -8,13 +8,14 @@ import {timed} from '../performance/request-timing'
 /** Optional continuation of an explicit, successfully persisted command. Never a GET
  * side effect, optimistic answer, or cross-request cache. Projection failure must not
  * turn a committed answer into an apparent failed write. */
-export function guidedCommand<Rest extends unknown[]>(handler:(request:Request,...rest:Rest)=>Promise<Response>){
+export function guidedCommand<Rest extends unknown[]>(handler:(request:Request,...rest:Rest)=>Promise<Response>,options:{deferralField?:'action'|'disposition'}={}){
  return async(request:Request,...rest:Rest):Promise<Response>=>{
-  const body=request.headers.get('x-betti-guided')==='1'?await request.clone().json().catch(()=>null):null
-  const deferred=body?.action==='defer'||body?.disposition==='deferred'
+  const requestBody=request.headers.get('x-betti-guided')==='1'?request.clone():null
   const response=await timed('canonical_command',()=>handler(request,...rest))
   if(!response.ok||request.headers.get('x-betti-guided')!=='1')return response
   try{
+   const body=await requestBody?.json().catch(()=>null)
+   const deferred=options.deferralField==='action'?body?.action==='defer':options.deferralField==='disposition'?body?.disposition==='deferred':false
    const db=await createServerSupabase()
    const [{data:{user}}, {data:assurance}, membership]=await Promise.all([
     requestUser(db),db.auth.mfa.getAuthenticatorAssuranceLevel(),loadCustomerEntitlements(db),

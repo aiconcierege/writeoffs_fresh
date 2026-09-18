@@ -265,4 +265,4 @@ function nextHomeOfficeQuestion(factType: string, value: string | number | boole
   return null
 }
 
-export const POST = timedRoute(guidedCommand(handlePOST))
+export const POST = timedRoute(guidedCommand(handlePOST,{deferralField:'action'}))

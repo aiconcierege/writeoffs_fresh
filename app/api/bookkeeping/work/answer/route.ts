@@ -30,4 +30,4 @@ async function handlePOST(request:Request){
  }catch{return NextResponse.json({error:'I couldn’t confirm that answer. Please refresh and try again.'},{status:503})}
 }
 
-export const POST = timedRoute(guidedCommand(handlePOST))
+export const POST = timedRoute(guidedCommand(handlePOST,{deferralField:'disposition'}))

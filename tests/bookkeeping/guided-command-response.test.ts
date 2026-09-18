@@ -39,7 +39,7 @@ it('never trusts a client business identifier or exposes a different business pr
 
 it.each([{action:'defer'},{disposition:'deferred'}])('projects durable deferrals without unrelated question generation: %j',async body=>{
  const request=new Request('https://staging.invalid/answer',{method:'POST',headers:{'x-betti-guided':'1','content-type':'application/json'},body:JSON.stringify(body)})
- const response=await guidedCommand(async()=>Response.json({ok:true}))(request)
+ const response=await guidedCommand(async()=>Response.json({ok:true}),{deferralField:'action' in body?'action':'disposition'})(request)
  expect((await response.json()).work).toEqual({businessId:'owned',nextAction:null})
  expect(state.rpc).not.toHaveBeenCalled();expect(state.projection).toHaveBeenCalledOnce()
 })
@@ -52,4 +52,11 @@ it.each([
  await guidedCommand(async()=>Response.json({ok:true}))(new Request('https://staging.invalid/answer',{method:'POST',headers:{'x-betti-guided':'1',referer}}))
  expect(state.projection.mock.calls[0][0].continuityRecordId).toBe(expected)
  expect(state.projection.mock.calls[0][0].businessId).toBe('owned')
+})
+
+
+it.each([undefined,'action'] as const)('an unrelated request field cannot skip required reconciliation (%s)',async deferralField=>{
+ const request=new Request('https://staging.invalid/answer',{method:'POST',headers:{'x-betti-guided':'1'},body:JSON.stringify({action:'card_payment',disposition:'deferred'})})
+ await guidedCommand(async()=>Response.json({ok:true}),{deferralField})(request)
+ expect(state.rpc).toHaveBeenCalledWith('reconcile_current_betti_questions')
 })
