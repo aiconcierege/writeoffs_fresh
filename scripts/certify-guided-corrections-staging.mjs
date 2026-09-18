@@ -149,6 +149,20 @@ try {
  if(process.argv.includes('--inspect-existing')){
   const inspected=await api(context,'/api/bookkeeping/work')
   await writeFile(`${dir}/inspection.json`,JSON.stringify(inspected,null,2))
+  if(process.argv.includes('--verify-economic')){
+   const raw=await client.rpc('read_betti_work_context',{p_business_id:f.businessId});assert(!raw.error)
+   const rows=raw.data.records,find=merchant=>rows.find(r=>r.merchant===merchant)
+   assert.equal(find('ACH CREDIT - CLIENT PAYMENT').bookkeeping_nature,'business_income')
+   for(const merchant of ['TRANSFER FROM SAVINGS 1111','TRANSFER TO SAVINGS 1111','ACH PAYMENT - BUSINESS CREDIT CARD 3333'])assert.equal(find(merchant).treatment,'excluded')
+   const loans=rows.filter(r=>r.merchant==='LOAN PAYMENT - EQUIPMENT FINANCE CO');assert.equal(loans.length,2,'Expected both synthetic loan payments')
+   for(const loan of loans){assert.equal(loan.treatment,'unresolved');assert(!loan.allocations.some(a=>a.kind==='business'))}
+   const refunds=rows.filter(r=>r.merchant==='REFUND - OFFICE DEPOT');assert.equal(refunds.length,2,'Expected both synthetic linked refunds')
+   for(const refund of refunds){assert.equal(refund.bookkeeping_nature,'refund');assert.equal(refund.treatment,'business');assert.equal(refund.allocations.filter(a=>a.kind==='business').reduce((sum,a)=>sum+a.amountCents,0),3210)}
+   const software=rows.filter(r=>/ADOBE|GOOGLE.*WORKSPACE/i.test(r.merchant));assert.equal(software.length,2,'Expected both synthetic software purchases')
+   for(const expense of software){assert.equal(expense.treatment,'business');assert.equal(expense.has_receipt,false);assert(expense.allocations.some(a=>a.kind==='business'&&a.category))}
+   const ledger=await api(context,'/api/transactions/list?year=all');assert.equal(ledger.rows.length,28)
+   await writeFile(`${dir}/economic-regression.json`,JSON.stringify({result:'PASS',rows:28,clientPaymentIncome:true,transfersExcluded:true,creditCardPaymentExcluded:true,loanPrincipalNotExpensed:true,linkedRefundsReverseExpenses:true,missingReceiptExpensesPreserved:true},null,2))
+  }
   console.log('Next action:',inspected.nextAction?.id,inspected.nextAction?.question?.transaction.merchant,inspected.nextAction?.transaction?.merchant)
   await context.close();await browser.close();process.exit(0)
  }

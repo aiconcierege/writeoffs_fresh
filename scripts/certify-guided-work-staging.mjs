@@ -139,7 +139,7 @@ async function cross(context,page){
  for(const [selector,field]of[['income','businessIncomeCents'],['spent','businessExpensesCents'],['profit','businessProfitCents']])assert.equal(await home.locator(`.home-financial-${selector} dd`).innerText(),money(report[field]))
  await home.close();return{w,report}
 }
-async function clickSave(page,label){const response=page.waitForResponse(r=>r.request().method()==='POST'&&(r.url().includes('/api/bookkeeping/work/answer')||r.url().includes('/api/bookkeeping/questions/')&&!r.url().endsWith('/reconcile')||r.url().includes('/api/bookkeeping/accounts/')));await page.getByRole('button',{name:label,exact:!['Business only','Business + personal'].includes(label)}).click();const r=await response;assert.equal(r.status(),200,await r.text());await page.waitForTimeout(500)}
+async function clickSave(page,label){const [r]=await Promise.all([page.waitForResponse(r=>r.request().method()==='POST'&&(r.url().includes('/api/bookkeeping/work/answer')||r.url().includes('/api/bookkeeping/questions/')&&!r.url().endsWith('/reconcile')||r.url().includes('/api/bookkeeping/accounts/'))),page.getByRole('button',{name:label,exact:!['Business only','Business + personal'].includes(label)}).click()]);assert.equal(r.status(),200,await r.text());await page.waitForTimeout(500)}
 let diagnostic
 try{
  for(const f of fixtures){
