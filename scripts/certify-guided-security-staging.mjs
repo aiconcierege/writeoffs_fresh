@@ -32,6 +32,8 @@ try{
  const direct=await other.client.rpc('answer_betti_guided_work',{p_request:randomUUID(),p_action:assertion.action,p_disposition:'completed',p_items:assertion.items,p_answers:assertion.answers});assert(direct.error)
  assert.deepEqual((await other.client.from('betti_guided_assertions').select('id').eq('business_id',a.businessId)).data,[])
  assert((await other.client.rpc('read_betti_work_context',{p_business_id:a.businessId})).error)
+ const directView=await own.client.from('customer_transaction_work').select('record_id,business_id');assert(!directView.error&&directView.data.length);assert(directView.data.every(r=>r.business_id===a.businessId))
+ const foreignView=await other.client.from('customer_transaction_work').select('record_id').eq('business_id',a.businessId);assert(!foreignView.error);assert.deepEqual(foreignView.data,[])
  for(const path of['/home','/check-in','/transactions','/reports']){await page.goto(origin+path);assert.equal(new URL(page.url()).pathname,path)}
  for(const path of['/api/bookkeeping/work','/api/bookkeeping/questions','/api/transactions/list?year=all','/api/reports/summary'])assert.equal((await own.context.request.get(origin+path)).status(),200)
  const low=createClient(url,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,{auth:{persistSession:false}})
@@ -53,7 +55,7 @@ try{
   await context.close()
  }
  await writeFile(`${dir}/browser/cross-surfaces.json`,JSON.stringify(surfaces,null,2))
- await writeFile(`${dir}/browser/security.json`,JSON.stringify({tenantIsolation:true,directRpcTenantIsolation:true,mfaEnforced:true,immutableSnapshotRetry:true,changedRetryRejected:true,staleSnapshotRejected:true,readOnlyRender:true},null,2))
+ await writeFile(`${dir}/browser/security.json`,JSON.stringify({tenantIsolation:true,directViewTenantIsolation:true,directRpcTenantIsolation:true,mfaEnforced:true,immutableSnapshotRetry:true,changedRetryRejected:true,staleSnapshotRejected:true,readOnlyRender:true},null,2))
  console.log('Guided snapshot security/idempotency/read-only certification passed')
  await own.context.close();await other.context.close()
 }finally{await browser.close()}

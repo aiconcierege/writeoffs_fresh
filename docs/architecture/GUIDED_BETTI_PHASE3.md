@@ -127,3 +127,10 @@ from replacing current work or leaving a recovered read failure permanently on
 screen. Mutation versions and canonical stale-write checks remain authoritative.
 The real browser runner can inject a transient read failure and verify recovery
 without changing customer assertions (`--refresh-recovery`).
+
+Money-source question generators now converge on the same current canonical fact.
+Equivalent historical issues remain append-only, but one resolved/deferred fact
+cannot re-enter work through another generator's issue key. The eligibility view
+bindings are rebuilt explicitly: PostgreSQL otherwise retains the old function
+OID after a rename. Direct authenticated ledger/special-workflow reads and RLS are
+covered in live staging certification; the obsolete helper remains inaccessible.
