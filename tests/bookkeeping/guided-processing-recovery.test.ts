@@ -20,12 +20,12 @@ beforeEach(()=>{
  vi.stubGlobal('sessionStorage',{getItem:()=>null,setItem:vi.fn()})
 })
 afterEach(()=>{cleanup.forEach(fn=>fn());cleanup=[];vi.useRealTimers();vi.unstubAllGlobals()})
-function start(){
+function start(initialWork=homeWorkFixture('processing')){
  const ready=homeWorkFixture('concurrent'),fetcher=vi.fn().mockResolvedValue({ok:true,json:async()=>ready})
  vi.stubGlobal('fetch',fetcher)
- GuidedWork({initialWork:homeWorkFixture('processing'),recordId:'entry-record'})
+ const view=GuidedWork({initialWork,recordId:'entry-record'})
  cleanup=hooks.effects.flatMap(effect=>{const dispose=effect();return typeof dispose==='function'?[dispose]:[]})
- return{ready,fetcher}
+ return{ready,fetcher,view}
 }
 it('automatically reads ready work after a short processing gap without a command or navigation',async()=>{
  const{ready,fetcher}=start();await vi.advanceTimersByTimeAsync(500)
@@ -34,8 +34,8 @@ it('automatically reads ready work after a short processing gap without a comman
  expect(fetcher.mock.calls[0][1].method).toBeUndefined()
 })
 it('bounds automatic processing reads without limiting completed customer actions',async()=>{
- const{fetcher}=start();await vi.advanceTimersByTimeAsync(120000)
- expect(fetcher).toHaveBeenCalledTimes(8)
+ const{fetcher}=start();await vi.advanceTimersByTimeAsync(240000)
+ expect(fetcher).toHaveBeenCalledTimes(12)
 })
 it('stops background reads when the customer leaves',async()=>{
  const{fetcher}=start();cleanup.forEach(fn=>fn());cleanup=[]
@@ -46,5 +46,16 @@ it('does not spend projection reads while the customer is considering ready work
  const fetcher=vi.fn();vi.stubGlobal('fetch',fetcher)
  GuidedWork({initialWork:homeWorkFixture('concurrent')})
  cleanup=hooks.effects.flatMap(effect=>{const dispose=effect();return typeof dispose==='function'?[dispose]:[]})
- await vi.advanceTimersByTimeAsync(120000);expect(fetcher).not.toHaveBeenCalled()
+ await vi.advanceTimersByTimeAsync(240000);expect(fetcher).not.toHaveBeenCalled()
+})
+
+
+it('refreshes a ready batch while real worker activity can change its version',async()=>{
+ const ready=homeWorkFixture('concurrent')
+ const{fetcher,view}=start({...homeWorkFixture('processing'),nextAction:ready.nextAction})
+ expect(view.props['data-guided-action']).toBe(ready.nextAction?.type)
+ await vi.advanceTimersByTimeAsync(500)
+ expect(fetcher).toHaveBeenCalledOnce()
+ await vi.advanceTimersByTimeAsync(240000)
+ expect(fetcher).toHaveBeenCalledTimes(12)
 })

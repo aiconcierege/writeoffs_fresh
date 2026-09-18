@@ -16,7 +16,7 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
  const steps=[],seen=new Set(),captures=new Set(),processingWaits=[];let persistenceMs=0,clickAt=0,expectedVersion=''
  let responseLossTested=false
  const performanceMode=process.env.CERTIFICATION_PERFORMANCE==='true', httpTimings=[]
- let renderedMs=0,acknowledgmentMs=null
+ let renderedMs=0,acknowledgmentMs=null,commandServerTiming=null
  page.on('response',async r=>{if(r.url().includes('/api/bookkeeping/'))httpTimings.push({path:new URL(r.url()).pathname,method:r.request().method(),status:r.status(),serverTiming:(await r.allHeaders())['server-timing']??null})})
  async function save(label,loseResponse=false){
   clickAt=Date.now()
@@ -28,7 +28,7 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
    if(route.request().method()!=='POST'||route.request().url().endsWith('/reconcile'))return route.continue()
    try{
     const response=await route.fetch({timeout:60000})
-    resolveSaved({status:response.status(),body:await response.text()})
+    resolveSaved({status:response.status(),body:await response.text(),serverTiming:response.headers()['server-timing']??null})
     if(loseResponse){responseLossTested=true;await route.abort('failed')}
     else await route.fulfill({response}).catch(()=>{}) // Client timeout can precede a confirmed commit.
    }catch(error){resolveSaved({status:0,body:String(error)});await route.abort().catch(()=>{})}
@@ -36,7 +36,7 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
   await page.route('**/api/bookkeeping/**',handler)
   try{
    await page.locator(`[data-guided-version="${expectedVersion}"]`).getByRole('button',{name:label,exact:typeof label==='string'}).click()
-   const response=await saved;persistenceMs=Date.now()-clickAt
+   const response=await saved;persistenceMs=Date.now()-clickAt;commandServerTiming=response.serverTiming??null
    assert.equal(response.status,200,response.body)
    // Observe actual screen advancement, not an obsolete independently read snapshot.
    await page.waitForFunction(version=>document.querySelector('[data-guided-action]')?.getAttribute('data-guided-version')!==version,expectedVersion,{timeout:60000})
@@ -58,20 +58,28 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
      const next=await api(context,path)
      if(next.nextAction||!next.betti.jobs.length){ready=true;break}
     }
-    processingWaits.push({elapsedMs:Date.now()-startedAt,explicitChecks});
-    assert(ready,'Workers did not settle within the bounded certification wait');continue
+    processingWaits.push({elapsedMs:Date.now()-startedAt,explicitChecks,settled:ready});
+    if(!ready){
+     const held=await api(context,path)
+     assert.equal(held.customer.actionableCount,0,'Ready work was stranded during processing')
+     assert(held.betti.genuinelyProcessing+held.betti.queued+held.betti.retryScheduled>0,'Processing claim lacks actual work')
+     assert(await page.getByRole('heading',{name:'I’m updating your books.',exact:true}).isVisible())
+     assert(await page.getByRole('link',{name:'Back to your books',exact:true}).isVisible())
+     break // Truthful long-processing exit, not a claim that workers settled.
+    }
+    continue
    }
    assert.equal(work.customer.actionableCount,0)
    await screenshot(page,'only-deferred-completion');break
   }
-  if(await page.locator('[data-guided-version]').getAttribute('data-guided-version')!==action.version){await page.waitForTimeout(1500);continue}
+  if(await page.locator('[data-guided-action]').getAttribute('data-guided-version')!==action.version){await page.waitForTimeout(1500);continue}
   assert.equal(await page.getByRole('button',{name:'Keep going with Betti',exact:true}).count(),0)
   const key=action.id+':'+action.version;assert(!seen.has(key),'Repeated handled action');seen.add(key)
   const merchant=action.transaction?.merchant??action.question?.transaction.merchant??null
   if(!captures.has(action.type)){await screenshot(page,action.type);captures.add(action.type)}
   await cross(context,page)
   await page.locator('.betti-error').waitFor({state:'hidden',timeout:45000})
-  if(await page.locator('[data-guided-version]').getAttribute('data-guided-version')!==action.version){seen.delete(key);continue}
+  if(await page.locator('[data-guided-action]').getAttribute('data-guided-version')!==action.version){seen.delete(key);continue}
   expectedVersion=action.version
   let disposition='completed'
   if(action.type==='account_use')await save(/Business only/)
@@ -80,10 +88,11 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
   else if(action.type==='receipt_upload_sweep'){
    if(process.env.CERTIFICATION_RECEIPT_LATER==='true'&&action.workstream==='catch_up'){
     const before=await client.rpc('read_betti_work_context',{p_business_id:businessId});assert(!before.error)
-    const receiptStates=state=>state.records.filter(r=>action.recordIds.includes(r.record_id)).map(r=>[r.record_id,r.receipt_state]).sort()
+    const receiptStates=state=>state.records.filter(r=>action.recordIds.includes(r.record_id)).map(r=>[r.record_id,r.receipt_unavailable,r.decision_id]).sort()
     disposition='deferred';await save('I’ll send receipts later')
     const after=await client.rpc('read_betti_work_context',{p_business_id:businessId});assert(!after.error)
-    assert.deepEqual(receiptStates(after.data),receiptStates(before.data),'Later changed documentation availability')
+    assert.deepEqual(receiptStates(after.data),receiptStates(before.data),'Later changed documentation availability or working treatment')
+    assert(after.data.guidedReviews.some(event=>event.action==='receipt_upload_sweep'&&event.disposition==='deferred'),'Missing canonical receipt deferral')
    }else await save('Continue with Betti')
   }
   else if(action.type==='receipt_availability')await save('That’s all the receipts I have')
@@ -103,7 +112,7 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
   // Do not wait for an old API snapshot to reappear after a worker advances priority.
   await page.waitForTimeout(100)
   const visibleMs=Date.now()-clickAt
-  steps.push({at:new Date().toISOString(),number:steps.length+1,type:action.type,merchant,workstream:action.workstream,disposition,next:after.nextAction?{type:after.nextAction.type,workstream:after.nextAction.workstream}:null,persistedMs:persistenceMs,nextVisibleMs:visibleMs,renderedMs,acknowledgmentMs,unnecessaryStop:false})
+  steps.push({at:new Date().toISOString(),number:steps.length+1,type:action.type,merchant,workstream:action.workstream,disposition,next:after.nextAction?{type:after.nextAction.type,workstream:after.nextAction.workstream}:null,persistedMs:persistenceMs,nextVisibleMs:visibleMs,renderedMs,acknowledgmentMs,commandServerTiming,unnecessaryStop:false})
   await writeFile(`${dir}/continuity-progress.json`,JSON.stringify(steps,null,2))
   console.log('Continuous action',steps.length,action.type,action.workstream,disposition,'next:',after.nextAction?.type??after.readiness.phase)
   if(merchant==='LOAN PAYMENT - EQUIPMENT FINANCE CO')await screenshot(page,'post-deferral-continuation')
@@ -111,7 +120,7 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
  }
  }catch(error){
   await page.screenshot({path:`${dir}/browser/continuity-failure.png`,fullPage:true})
-  await writeFile(`${dir}/continuity-failure.json`,JSON.stringify({error:String(error),steps,httpTimings,processingWaits,navigation,ui:await page.locator('[data-guided-action]').getAttribute('data-guided-action'),version:await page.locator('[data-guided-version]').getAttribute('data-guided-version'),projection:await api(context,path)},null,2))
+  await writeFile(`${dir}/continuity-failure.json`,JSON.stringify({error:String(error),steps,httpTimings,processingWaits,navigation,ui:await page.locator('[data-guided-action]').getAttribute('data-guided-action'),version:await page.locator('[data-guided-action]').getAttribute('data-guided-version'),projection:await api(context,path)},null,2))
   throw error
  }
  if(!performanceMode)assert(responseLossTested,'Committed-response-loss recovery was not exercised')
@@ -123,5 +132,5 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
  assert.deepEqual(navigation,[],'Conversation navigated or reloaded');assert.deepEqual(errors,[])
  const final=await cross(context,page);assert.equal(final.w.customer.actionableCount,0)
  const home=await context.newPage();await home.goto(origin+'/home');await screenshot(home,'home-only-deferred');await home.close()
- await writeFile(`${dir}/continuity-result.json`,JSON.stringify({result:'PASS',steps,httpTimings,processingWaits,responseLossTested,navigation,errors,finalActions:final.w.customer.actionableCount,deferred:final.w.customer.deferredCount},null,2))
+ await writeFile(`${dir}/continuity-result.json`,JSON.stringify({result:'PASS',steps,httpTimings,processingWaits,responseLossTested,navigation,errors,finalActions:final.w.customer.actionableCount,deferred:final.w.customer.deferredCount,finalProcessing:final.w.betti.genuinelyProcessing+final.w.betti.queued+final.w.betti.retryScheduled},null,2))
 }

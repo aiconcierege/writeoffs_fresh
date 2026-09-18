@@ -21,7 +21,9 @@ function totp(secret){const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',bits=[..
 async function session(f,browser){const cookies=new Map(),client=createServerClient(url,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,{cookies:{getAll:()=>[...cookies].map(([name,value])=>({name,value})),setAll:values=>values.forEach(({name,value})=>cookies.set(name,value))}});assert(!(await client.auth.signInWithPassword({email:f.email,password:f.password})).error);assert(!(await client.auth.mfa.challengeAndVerify({factorId:f.factorId,code:totp(f.totpSecret)})).error);const context=await browser.newContext({viewport:{width:1280,height:900},timezoneId:'America/Phoenix'});await context.addCookies([...cookies].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:true,sameSite:'Lax'})));const jar=await readFile(`${dir}/candidate-cookie.txt`,'utf8').catch(()=>'');for(const line of jar.split('\n')){if(!line.includes('\t'))continue;const parts=line.replace(/^#HttpOnly_/,'').split('\t');if(parts[0]===new URL(origin).hostname)await context.addCookies([{domain:parts[0],path:parts[2],secure:parts[3]==='TRUE',name:parts[5],value:parts[6],httpOnly:true,sameSite:'None'}])}return{context,client}}
 
 let fixtures=await readFile(`${dir}/fixtures.json`,'utf8').then(JSON.parse).catch(()=>[])
-for(const scenario of ['1','2','3','4','6','7']){
+const selectedScenarios=(process.env.CERTIFICATION_SCENARIOS??'1,2,3,4,6,7').split(',')
+assert(selectedScenarios.length&&selectedScenarios.every(s=>['1','2','3','4','6','7'].includes(s)))
+for(const scenario of selectedScenarios){
  if(fixtures.some(f=>f.scenario===scenario))continue
  const nonce=randomUUID(),email=`guided-contract-${nonce}@staging.writeoffs.invalid`,password=`Proof-${nonce}!`
  const made=await admin.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{synthetic_guided_contract:true}});assert(!made.error&&made.data.user)
@@ -141,6 +143,7 @@ async function clickSave(page,label){const response=page.waitForResponse(r=>r.re
 let diagnostic
 try{
  for(const f of fixtures){
+  if(!selectedScenarios.includes(f.scenario))continue
   assert.equal((await admin.auth.admin.getUserById(f.userId)).data.user?.user_metadata.synthetic_guided_contract,true)
   console.log('Scenario '+f.scenario)
   if(results.some(r=>r.scenario===f.scenario&&r.result==='PASS'))continue

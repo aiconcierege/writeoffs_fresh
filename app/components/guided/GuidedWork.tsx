@@ -27,7 +27,7 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
   if(!response.ok)throw new Error('I couldn’t refresh your work. Please try again.')
   const updated=await response.json() as BettiWorkProjection;if(signal?.aborted)throw new DOMException('Superseded read','AbortError');setWork(updated);return updated
  },[recordId])
- const needsProcessingRead=(!work.nextAction&&work.betti.genuinelyProcessing+work.betti.queued+work.betti.retryScheduled>0)||error==='I couldn’t check for updates. Refresh before answering.'
+ const needsProcessingRead=work.betti.genuinelyProcessing+work.betti.queued+work.betti.retryScheduled>0||error==='I couldn’t check for updates. Refresh before answering.'
  useEffect(()=>{
   let alive=true
   const updateError='I couldn’t check for updates. Refresh before answering.'
@@ -38,9 +38,10 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
    catch{if(alive&&!controller.signal.aborted)setError(updateError)}
    finally{if(backgroundRead.current===controller)backgroundRead.current=null}
   }
-  // Read quickly during a real transition, then back off. No idle polling while
-  // the customer is reading an actionable question; focus still checks freshness.
-  const delays=[500,1000,2000,4000,7000,10000,15000,20000]
+  // Read quickly during real processing, then back off. A ready batch can still
+  // change while other records settle: keep it visible, but refresh its version.
+  // Once processing settles there is no idle polling; focus checks freshness.
+  const delays=[500,1000,2000,4000,7000,10000,15000,20000,25000,30000,30000,30000]
   let timer:ReturnType<typeof setTimeout>|undefined
   const schedule=()=>{
    if(!alive||!needsProcessingRead)return
