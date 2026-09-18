@@ -11,7 +11,12 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
  const path='/api/bookkeeping/work'+(homeEntry?'':'?record='+loan.record_id)
  if(homeEntry){await page.goto(origin+'/home');await page.getByRole('link',{name:'Continue with Betti',exact:true}).click()}
  else await page.goto(origin+'/check-in?record='+loan.record_id+'&returnTo=%2Fhome')
- const navigation=[];page.on('framenavigated',frame=>{if(frame===page.mainFrame())navigation.push(frame.url())})
+ const entryUrl=page.url(),documentTimeOrigin=await page.evaluate(()=>performance.timeOrigin)
+ const navigation=[],historyEvents=[]
+ // Next hydration replaces same-URL history, which Playwright also emits as
+ // framenavigated. A document request, changed route or time origin is a real exit.
+ page.on('framenavigated',frame=>{if(frame===page.mainFrame()){historyEvents.push(frame.url());if(frame.url()!==entryUrl)navigation.push(frame.url())}})
+ page.on('request',request=>{if(request.isNavigationRequest()&&request.frame()===page.mainFrame())navigation.push(request.url())})
  const errors=[];page.on('pageerror',e=>errors.push(e.message))
  let commandMetrics={}
  const steps=[],seen=new Set(),captures=new Set(),processingWaits=[];let persistenceMs=0,clickAt=0,expectedVersion=''
@@ -100,8 +105,8 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
   else if(merchant==='REFUND - OFFICE DEPOT'){
    if(await page.getByRole('button',{name:'Returned by the store',exact:true}).count())await save('Returned by the store')
    else{await page.getByRole('radio',{name:/OFFICE DEPOT/}).check();await save('Yes, link this return')}
-  }else if(['ZELLE FROM JANE MORRIS - INV 1041','ACH DEPOSIT UNIDENTIFIED'].includes(merchant)){
-   // Explicit synthetic-customer facts: these two deposits paid for client work.
+  }else if(['ZELLE FROM JANE MORRIS - INV 1041','ACH DEPOSIT UNIDENTIFIED'].includes(merchant)||/^PERF INCOMING \d{2}$/.test(merchant??'')){
+   // Explicit synthetic-customer facts: these controlled deposits paid for client work.
    await save('Payment from a customer')
   }else if(action.question?.kind==='percentage'){
    await page.getByLabel('Business use percentage',{exact:true}).fill('80');await save('Continue')
@@ -121,17 +126,22 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
  }
  }catch(error){
   await page.screenshot({path:`${dir}/browser/continuity-failure.png`,fullPage:true})
-  await writeFile(`${dir}/continuity-failure.json`,JSON.stringify({error:String(error),steps,httpTimings,processingWaits,navigation,ui:await page.locator('[data-guided-action]').getAttribute('data-guided-action'),version:await page.locator('[data-guided-action]').getAttribute('data-guided-version'),projection:await api(context,path)},null,2))
+  await writeFile(`${dir}/continuity-failure.json`,JSON.stringify({error:String(error).split('Call log:')[0],steps,httpTimings,processingWaits,navigation,ui:await page.locator('[data-guided-action]').getAttribute('data-guided-action'),version:await page.locator('[data-guided-action]').getAttribute('data-guided-version'),projection:await api(context,path)},null,2))
   throw error
  }
  if(!performanceMode)assert(responseLossTested,'Committed-response-loss recovery was not exercised')
  assert(steps.length>=10,'Fewer than ten actions exercised')
  assert(steps.some(s=>s.workstream==='current'),'Current work was not exercised')
- assert(steps.some(s=>s.merchant==='LOAN PAYMENT - EQUIPMENT FINANCE CO'&&s.disposition==='deferred'))
- assert(steps.some(s=>s.merchant==='REFUND - OFFICE DEPOT'&&s.disposition==='completed'))
- assert(steps.some(s=>s.type==='receipt_availability'))
- assert.deepEqual(navigation,[],'Conversation navigated or reloaded');assert.deepEqual(errors,[])
+ if(process.env.CERTIFICATION_ORDINARY_CONTINUITY==='true'){
+  assert(steps.length>=20,'Fewer than twenty uninterrupted ordinary actions')
+  assert(steps.every(s=>s.type==='material_question'&&s.disposition==='completed'&&/^PERF INCOMING \d{2}$/.test(s.merchant??'')))
+ }else{
+  assert(steps.some(s=>s.merchant==='LOAN PAYMENT - EQUIPMENT FINANCE CO'&&s.disposition==='deferred'))
+  assert(steps.some(s=>s.merchant==='REFUND - OFFICE DEPOT'&&s.disposition==='completed'))
+  assert(steps.some(s=>s.type==='receipt_availability'))
+ }
+ assert.deepEqual(navigation,[],'Conversation navigated or reloaded');assert.equal(await page.evaluate(()=>performance.timeOrigin),documentTimeOrigin,'Conversation document changed');assert.deepEqual(errors,[])
  const final=await cross(context,page);assert.equal(final.w.customer.actionableCount,0)
  const home=await context.newPage();await home.goto(origin+'/home');await screenshot(home,'home-only-deferred');await home.close()
- await writeFile(`${dir}/continuity-result.json`,JSON.stringify({result:'PASS',steps,httpTimings,processingWaits,responseLossTested,navigation,errors,finalActions:final.w.customer.actionableCount,deferred:final.w.customer.deferredCount,finalProcessing:final.w.betti.genuinelyProcessing+final.w.betti.queued+final.w.betti.retryScheduled},null,2))
+ await writeFile(`${dir}/continuity-result.json`,JSON.stringify({result:'PASS',steps,httpTimings,processingWaits,responseLossTested,navigation,historyEvents,documentUnchanged:true,errors,finalActions:final.w.customer.actionableCount,deferred:final.w.customer.deferredCount,finalProcessing:final.w.betti.genuinelyProcessing+final.w.betti.queued+final.w.betti.retryScheduled},null,2))
 }

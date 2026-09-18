@@ -125,9 +125,20 @@ async function screenshot(page,name){
  await page.setViewportSize({width:1280,height:900})
 }
 async function cross(context,page){
- const w=await api(context,'/api/bookkeeping/work'),q=await api(context,'/api/bookkeeping/questions')
- assert.equal(q.count,w.customer.actionableCount)
- await page.waitForFunction(count=>document.querySelector('[data-customer-action-count]')?.getAttribute('data-customer-action-count')===String(count),w.customer.actionableCount,{timeout:15000})
+ // Workers can settle more records between these independent reads. Compare a
+ // stable bracket and allow the existing bounded processing refresh to catch up;
+ // never reload the conversation or assert against a superseded count.
+ let w,agreed=false
+ for(let attempt=0;attempt<10;attempt++){
+  w=await api(context,'/api/bookkeeping/work')
+  const q=await api(context,'/api/bookkeeping/questions')
+  const displayed=await page.locator('[data-customer-action-count]').getAttribute('data-customer-action-count')
+  const after=await api(context,'/api/bookkeeping/work')
+  if(JSON.stringify(w.customer.actionable)===JSON.stringify(after.customer.actionable)
+   &&q.count===w.customer.actionableCount&&displayed===String(w.customer.actionableCount)){agreed=true;break}
+  await page.waitForTimeout(5000)
+ }
+ assert(agreed,'Home/Check-in canonical counts did not converge within bounded processing refresh')
  const ledger=await api(context,'/api/transactions/list?year=all');assert.equal(new Set(ledger.rows.map(r=>r.id)).size,ledger.rows.length)
  const beforeReport=await api(context,'/api/reports/summary?start=2026-01-01&end='+reportThrough)
  const home=await context.newPage();await home.goto(origin+'/home');const after=await api(context,'/api/bookkeeping/work')
@@ -160,8 +171,8 @@ try {
    for(const refund of refunds){assert.equal(refund.bookkeeping_nature,'refund');assert.equal(refund.treatment,'business');assert.equal(refund.allocations.filter(a=>a.kind==='business').reduce((sum,a)=>sum+a.amountCents,0),3210)}
    const software=rows.filter(r=>/ADOBE|GOOGLE.*WORKSPACE/i.test(r.merchant));assert.equal(software.length,2,'Expected both synthetic software purchases')
    for(const expense of software){assert.equal(expense.treatment,'business');assert.equal(expense.has_receipt,false);assert(expense.allocations.some(a=>a.kind==='business'&&a.category))}
-   const ledger=await api(context,'/api/transactions/list?year=all');assert.equal(ledger.rows.length,28)
-   await writeFile(`${dir}/economic-regression.json`,JSON.stringify({result:'PASS',rows:28,clientPaymentIncome:true,transfersExcluded:true,creditCardPaymentExcluded:true,loanPrincipalNotExpensed:true,linkedRefundsReverseExpenses:true,missingReceiptExpensesPreserved:true},null,2))
+   const ledger=await api(context,'/api/transactions/list?year=all');assert.equal(ledger.rows.length,28+Number(process.env.CERTIFICATION_EXTRA_INCOME_SAMPLES??0))
+   await writeFile(`${dir}/economic-regression.json`,JSON.stringify({result:'PASS',rows:ledger.rows.length,clientPaymentIncome:true,transfersExcluded:true,creditCardPaymentExcluded:true,loanPrincipalNotExpensed:true,linkedRefundsReverseExpenses:true,missingReceiptExpensesPreserved:true},null,2))
   }
   console.log('Next action:',inspected.nextAction?.id,inspected.nextAction?.question?.transaction.merchant,inspected.nextAction?.transaction?.merchant)
   await context.close();await browser.close();process.exit(0)
@@ -190,6 +201,16 @@ try {
    const day=today.slice(5,10).replace('-','/')
    await statement('continuity-specials','September 1, 2026','September 30, 2026',[[day,'OFFICE DEPOT',-6419],[day,'REFUND - OFFICE DEPOT',3210],[day,'LOAN PAYMENT - EQUIPMENT FINANCE CO',-45000]])
    await upload(f,page,context,`${dir}/continuity-specials.pdf`)
+  }
+  const extraSamples=Number(process.env.CERTIFICATION_EXTRA_INCOME_SAMPLES??0)
+  assert(Number.isInteger(extraSamples)&&extraSamples>=0&&extraSamples<=20)
+  if(extraSamples){
+   const day=today.slice(5,10).replace('-','/')
+   const offset=Number(process.env.CERTIFICATION_EXTRA_INCOME_OFFSET??0)
+   assert(offset===0||offset===20)
+   const name='performance-incoming-samples'+(offset?`-${offset}`:'')
+   await statement(name,'September 1, 2026','September 30, 2026',Array.from({length:extraSamples},(_,i)=>[day,`PERF INCOMING ${String(i+1+offset).padStart(2,'0')}`,10000+(i+offset)*101]))
+   await upload(f,page,context,`${dir}/${name}.pdf`)
   }
   if(process.argv.includes('--prepare-only')){await context.close();await browser.close();process.exit(0)}
   // Preparation only: avoid demanding a stable projection during initial worker churn.

@@ -193,13 +193,14 @@ try{
      const observer=response=>{if(response.url()===origin+'/api/documents'&&response.request().method()==='POST')registered=true}
      page.on('response',observer)
      const fault=async route=>{if(registered&&!failedRead){failedRead=true;await route.fulfill({status:503,contentType:'application/json',body:'{"error":"Synthetic temporary read failure"}'})}else await route.continue()}
-     await page.route('**/api/bookkeeping/work',fault)
+     const workReads=/\/api\/bookkeeping\/work(?:\?.*)?$/
+     await page.route(workReads,fault)
      const response=page.waitForResponse(r=>r.url()===origin+'/api/documents'&&r.request().method()==='POST'),chooser=page.waitForEvent('filechooser')
      await page.getByRole('button',{name:'Choose files',exact:true}).click();await(await chooser).setFiles(`${dir}/office-mixed.png`);assert.equal((await response).status(),200)
      await page.getByRole('button',{name:'Refresh document status',exact:true}).waitFor({timeout:20000})
      assert(await page.getByRole('button',{name:'Continue with Betti',exact:true}).isDisabled())
      await screenshot(page,'receipt-status-recovery');await page.getByRole('button',{name:'Refresh document status',exact:true}).click()
-     assert(failedRead);page.off('response',observer);await page.unroute('**/api/bookkeeping/work',fault)
+     assert(failedRead);page.off('response',observer);await page.unroute(workReads,fault)
      f.receiptUploaded=true;f.statusRecoveryCertified=true;await save();continue
     }
     if(f.scenario==='1'&&!f.receiptUploaded){
@@ -237,4 +238,4 @@ try{
  }
  results.push({scenario:'8',result:'PASS',evidence:'Post-answer processing screenshots and cross-surface checks'})
  await writeFile(`${dir}/browser/results.json`,JSON.stringify(results,null,2))
-}catch(e){if(diagnostic){await diagnostic.screenshot({path:`${dir}/browser/failure.png`,fullPage:true});await writeFile(`${dir}/browser/failure.txt`,await diagnostic.locator('body').innerText())}throw e}finally{await browser.close()}
+}catch(e){if(diagnostic){await diagnostic.screenshot({path:`${dir}/browser/failure.png`,fullPage:true});await writeFile(`${dir}/browser/failure.txt`,await diagnostic.locator('body').innerText())}throw new Error(e instanceof Error?e.message.split('Call log:')[0]:'Certification failed')}finally{await browser.close()}

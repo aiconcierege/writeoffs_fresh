@@ -27,12 +27,12 @@ try{
   }
   contexts.push(context)
  }
- async function read(context){const started=performance.now();try{const r=await context.request.get(origin+'/api/bookkeeping/work',{timeout:30000});const body=await r.body();return{ms:performance.now()-started,status:r.status(),bytes:body.length,dbCalls:Number(r.headers()['x-betti-db-calls']??0)||null,proxyMs:Number(r.headers()['x-betti-proxy-ms']??0)||null,proxyCalls:Number(r.headers()['x-betti-proxy-calls']??0)||null,serverTiming:r.headers()['server-timing']??null}}catch(error){return{ms:performance.now()-started,status:0,error:String(error)}}}
+ async function read(context){const started=performance.now();try{const r=await context.request.get(origin+'/api/bookkeeping/work',{timeout:30000});const body=await r.body();return{ms:performance.now()-started,status:r.status(),bytes:body.length,dbCalls:Number(r.headers()['x-betti-db-calls']??0)||null,proxyMs:Number(r.headers()['x-betti-proxy-ms']??0)||null,proxyCalls:Number(r.headers()['x-betti-proxy-calls']??0)||null,proxyTransportMs:Number(r.headers()['x-betti-proxy-transport-ms']??0)||null,vercelId:r.headers()['x-vercel-id']??null,serverTiming:r.headers()['server-timing']??null}}catch(error){return{ms:performance.now()-started,status:0,error:String(error).split('Call log:')[0]}}}
  for(let i=0;i<24;i++)results.reads.push({iteration:i,phase:i===0?'first-touch-not-proven-cold':'warm',...await read(contexts[0])})
  for(const route of ['/home','/check-in']){
   const page=await contexts[0].newPage()
   for(let i=0;i<8;i++){
-   const started=performance.now();try{await page.goto(origin+route,{waitUntil:'domcontentloaded'});await page.locator('[data-customer-action-count]').waitFor();results.pages.push({route,iteration:i,ms:performance.now()-started,phase:i===0?'first-touch':'warm'})}catch(error){results.errors.push({route,error:String(error)});break}
+   const started=performance.now();try{await page.goto(origin+route,{waitUntil:'domcontentloaded'});await page.locator('[data-customer-action-count]').waitFor();results.pages.push({route,iteration:i,ms:performance.now()-started,phase:i===0?'first-touch':'warm'})}catch(error){results.errors.push({route,error:String(error).split('Call log:')[0]});break}
   }
   await page.close()
  }
