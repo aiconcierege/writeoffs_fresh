@@ -18,7 +18,18 @@ function redirectWithRefreshedAuthCookies(url: URL, response: NextResponse) {
   return redirectResponse
 }
 
-export async function proxy(req: NextRequest) {
+export async function proxy(req:NextRequest){
+  const timing={started:performance.now(),calls:0,transportMs:0}
+  const response=await runProxy(req,timing)
+  if(process.env.WRITEOFFS_ENVIRONMENT==='staging'){
+    response.headers.set('X-Betti-Proxy-Ms',(performance.now()-timing.started).toFixed(1))
+    response.headers.set('X-Betti-Proxy-Calls',String(timing.calls))
+    response.headers.set('X-Betti-Proxy-Transport-Ms',timing.transportMs.toFixed(1))
+  }
+  return response
+}
+
+async function runProxy(req: NextRequest,timing:{started:number;calls:number;transportMs:number}) {
   const url = req.nextUrl
   const pathname = url.pathname
   const res = NextResponse.next()
@@ -28,6 +39,10 @@ export async function proxy(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global:{fetch:async(input,init)=>{
+        const start=performance.now();timing.calls++
+        try{return await fetch(input,init)}finally{timing.transportMs+=performance.now()-start}
+      }},
       cookies: {
         get: (name: string) => req.cookies.get(name)?.value,
         set: (name: string, value: string, options: any) => {

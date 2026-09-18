@@ -13,6 +13,7 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
  else await page.goto(origin+'/check-in?record='+loan.record_id+'&returnTo=%2Fhome')
  const navigation=[];page.on('framenavigated',frame=>{if(frame===page.mainFrame())navigation.push(frame.url())})
  const errors=[];page.on('pageerror',e=>errors.push(e.message))
+ let commandMetrics={}
  const steps=[],seen=new Set(),captures=new Set(),processingWaits=[];let persistenceMs=0,clickAt=0,expectedVersion=''
  let responseLossTested=false
  const performanceMode=process.env.CERTIFICATION_PERFORMANCE==='true', httpTimings=[]
@@ -28,7 +29,7 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
    if(route.request().method()!=='POST'||route.request().url().endsWith('/reconcile'))return route.continue()
    try{
     const response=await route.fetch({timeout:60000})
-    resolveSaved({status:response.status(),body:await response.text(),serverTiming:response.headers()['server-timing']??null})
+    resolveSaved({status:response.status(),body:await response.text(),serverTiming:response.headers()['server-timing']??null,dbCalls:Number(response.headers()['x-betti-db-calls']??0)||null,proxyMs:Number(response.headers()['x-betti-proxy-ms']??0)||null,proxyCalls:Number(response.headers()['x-betti-proxy-calls']??0)||null})
     if(loseResponse){responseLossTested=true;await route.abort('failed')}
     else await route.fulfill({response}).catch(()=>{}) // Client timeout can precede a confirmed commit.
    }catch(error){resolveSaved({status:0,body:String(error)});await route.abort().catch(()=>{})}
@@ -36,7 +37,7 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
   await page.route('**/api/bookkeeping/**',handler)
   try{
    await page.locator(`[data-guided-version="${expectedVersion}"]`).getByRole('button',{name:label,exact:typeof label==='string'}).click()
-   const response=await saved;persistenceMs=Date.now()-clickAt;commandServerTiming=response.serverTiming??null
+   const response=await saved;persistenceMs=Date.now()-clickAt;commandServerTiming=response.serverTiming??null;commandMetrics={dbCalls:response.dbCalls,proxyMs:response.proxyMs,proxyCalls:response.proxyCalls}
    assert.equal(response.status,200,response.body)
    // Observe actual screen advancement, not an obsolete independently read snapshot.
    await page.waitForFunction(version=>document.querySelector('[data-guided-action]')?.getAttribute('data-guided-version')!==version,expectedVersion,{timeout:60000})
@@ -112,7 +113,7 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
   // Do not wait for an old API snapshot to reappear after a worker advances priority.
   await page.waitForTimeout(100)
   const visibleMs=Date.now()-clickAt
-  steps.push({at:new Date().toISOString(),number:steps.length+1,type:action.type,merchant,workstream:action.workstream,disposition,next:after.nextAction?{type:after.nextAction.type,workstream:after.nextAction.workstream}:null,persistedMs:persistenceMs,nextVisibleMs:visibleMs,renderedMs,acknowledgmentMs,commandServerTiming,unnecessaryStop:false})
+  steps.push({at:new Date().toISOString(),number:steps.length+1,type:action.type,merchant,workstream:action.workstream,disposition,next:after.nextAction?{type:after.nextAction.type,workstream:after.nextAction.workstream}:null,persistedMs:persistenceMs,nextVisibleMs:visibleMs,renderedMs,acknowledgmentMs,commandServerTiming,commandMetrics,unnecessaryStop:false})
   await writeFile(`${dir}/continuity-progress.json`,JSON.stringify(steps,null,2))
   console.log('Continuous action',steps.length,action.type,action.workstream,disposition,'next:',after.nextAction?.type??after.readiness.phase)
   if(merchant==='LOAN PAYMENT - EQUIPMENT FINANCE CO')await screenshot(page,'post-deferral-continuation')
