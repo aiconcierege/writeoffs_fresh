@@ -34,8 +34,26 @@ try{
  assert((await other.client.rpc('read_betti_work_context',{p_business_id:a.businessId})).error)
  for(const path of['/home','/check-in','/transactions','/reports']){await page.goto(origin+path);assert.equal(new URL(page.url()).pathname,path)}
  for(const path of['/api/bookkeeping/work','/api/bookkeeping/questions','/api/transactions/list?year=all','/api/reports/summary'])assert.equal((await own.context.request.get(origin+path)).status(),200)
+ const low=createClient(url,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,{auth:{persistSession:false}})
+ assert(!(await low.auth.signInWithPassword({email:a.email,password:a.password})).error)
+ const noMfa=await low.rpc('answer_betti_guided_work',{p_request:randomUUID(),p_action:assertion.action,p_disposition:'completed',p_items:assertion.items,p_answers:assertion.answers});assert(noMfa.error,'Mutation accepted without MFA')
  assert.deepEqual(await snapshot(),before,'Read/replay/rejected request mutated canonical facts')
- await writeFile(`${dir}/browser/security.json`,JSON.stringify({tenantIsolation:true,directRpcTenantIsolation:true,immutableSnapshotRetry:true,changedRetryRejected:true,staleSnapshotRejected:true,readOnlyRender:true},null,2))
+ const surfaces=[]
+ for(const f of fixtures){
+  const {context}=await session(f,browser),screen=await context.newPage()
+  const get=async path=>{const r=await context.request.get(origin+path);assert.equal(r.status(),200);return r.json()}
+  const work=await get('/api/bookkeeping/work'),questions=await get('/api/bookkeeping/questions')
+  assert.equal(questions.count,work.customer.actionableCount)
+  for(const path of ['/home','/check-in']){await screen.goto(origin+path);assert.equal(await screen.locator('[data-customer-action-count]').getAttribute('data-customer-action-count'),String(questions.count))}
+  const ledger=await get('/api/transactions/list?year=all'),report=await get('/api/reports/summary?start=2026-01-01&end='+new Date().toISOString().slice(0,10))
+  assert.equal(new Set(ledger.rows.map(row=>row.id)).size,ledger.rows.length)
+  assert.equal(report.categoryTotals.reduce((sum,row)=>sum+row.amountCents,0)+report.uncategorizedBusinessExpensesCents,report.businessExpensesCents)
+  if(f.scenario==='7'){assert.equal(ledger.rows.length,0);assert.equal(work.scope.catchUp,null);assert.equal(work.progress.outsideScopeActivity,24);assert.equal(questions.count,0);assert.equal(report.businessExpensesCents,0);assert.equal(report.businessIncomeCents,0);assert.equal(report.businessProfitCents,0)}
+  surfaces.push({scenario:f.scenario,actions:questions.count,activeLedgerRows:ledger.rows.length,expenses:report.businessExpensesCents,scope:work.scope.catchUp?'Catch-up + Current':'Current only'})
+  await context.close()
+ }
+ await writeFile(`${dir}/browser/cross-surfaces.json`,JSON.stringify(surfaces,null,2))
+ await writeFile(`${dir}/browser/security.json`,JSON.stringify({tenantIsolation:true,directRpcTenantIsolation:true,mfaEnforced:true,immutableSnapshotRetry:true,changedRetryRejected:true,staleSnapshotRejected:true,readOnlyRender:true},null,2))
  console.log('Guided snapshot security/idempotency/read-only certification passed')
  await own.context.close();await other.context.close()
 }finally{await browser.close()}

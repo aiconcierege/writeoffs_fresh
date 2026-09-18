@@ -9,6 +9,7 @@ import {PDFDocument,StandardFonts} from 'pdf-lib'
 import {createCanvas} from '@napi-rs/canvas'
 const origin=process.env.CERTIFICATION_ORIGIN??'https://writeoffs-fresh-staging.vercel.app'
 assert(/^https:\/\/writeoffs-fresh-staging(?:-[a-z0-9-]+)?\.vercel\.app$/.test(origin))
+const reportThrough=new Date().toISOString().slice(0,10)
 const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Phoenix',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
 const dir=process.env.CERTIFICATION_ARTIFACT_DIR??'/private/tmp/writeoffs-phase3',url=process.env.NEXT_PUBLIC_SUPABASE_URL
 assert(/^\/private\/tmp\/writeoffs-phase3(?:-[a-z0-9-]+)?$/.test(dir))
@@ -109,6 +110,7 @@ async function settled(context,page){
  for(let n=0;n<100;n++){w=await api(context,'/api/bookkeeping/work');if(w.betti.jobs.length===0)return w;await page.waitForTimeout(2000)}
  assert.fail('Normal workers did not settle: '+JSON.stringify(w.betti.jobs))
 }
+await statement('current-boundary','September 1, 2026','September 30, 2026',[[reportThrough.slice(5,10).replace('-','/'),'GOOGLE WORKSPACE',-1800],[reportThrough.slice(5,10).replace('-','/'),'OFFICE DEPOT',-6419]])
 await statement('mixed-use','August 1, 2026','August 31, 2026',[['08/03','ADOBE CREATIVE CLOUD',-20000],['08/12','OFFICE DEPOT',-10000],['08/14','GOOGLE WORKSPACE',-7500]])
 await statement('current-phone','September 1, 2026','September 30, 2026',[[today.slice(5,10).replace('-','/'),'VERIZON WIRELESS',-14628]])
 const paper=createCanvas(800,650),pen=paper.getContext('2d');pen.fillStyle='white';pen.fillRect(0,0,800,650);pen.fillStyle='black';pen.font='32px Arial';['OFFICE DEPOT','Receipt 05/12/2026','Printer paper       $64.19','TOTAL               $64.19','VISA ending 1234','SYNTHETIC CERTIFICATION'].forEach((line,i)=>pen.fillText(line,40,80+i*85));await writeFile(`${dir}/office.png`,paper.toBuffer('image/png'))
@@ -116,7 +118,7 @@ pen.fillStyle='white';pen.fillRect(0,0,800,650);pen.fillStyle='black';['OFFICE D
 const results=await readFile(`${dir}/browser/results.json`,'utf8').then(JSON.parse).catch(()=>[])
 async function screenshot(page,name){
  for(const width of [390,430,768,1280]){
-  await page.setViewportSize({width,height:900});await page.screenshot({path:`${dir}/browser/${name}-${width}.png`,fullPage:true})
+  await page.setViewportSize({width,height:900});await page.screenshot({path:`${dir}/browser/${name}-${width}.png`,fullPage:true,animations:'disabled'})
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Horizontal overflow '+name+' '+width)
  }
  await page.setViewportSize({width:1280,height:900})
@@ -128,7 +130,7 @@ async function cross(context,page){
  const ledger=await api(context,'/api/transactions/list?year=all');assert.equal(new Set(ledger.rows.map(r=>r.id)).size,ledger.rows.length)
  const home=await context.newPage();await home.goto(origin+'/home');const after=await api(context,'/api/bookkeeping/work')
  if(JSON.stringify(w.customer.actionable)===JSON.stringify(after.customer.actionable))assert.equal(await home.locator('[data-customer-action-count]').getAttribute('data-customer-action-count'),String(w.customer.actionableCount))
- const report=await api(context,'/api/reports/summary?start=2026-01-01&end='+today)
+ const report=await api(context,'/api/reports/summary?start=2026-01-01&end='+reportThrough)
  assert.equal(report.categoryTotals.reduce((n,c)=>n+c.amountCents,0)+report.uncategorizedBusinessExpensesCents,report.businessExpensesCents)
  assert.equal(report.businessIncomeCents-report.businessExpensesCents,report.businessProfitCents)
  const money=c=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(c/100)
@@ -148,7 +150,7 @@ try{
    assert(!(await admin.from('business_customer_setup').update({grandfathered_start_date:'2026-01-01'}).eq('business_id',f.businessId)).error)
    const r=await context.request.post(origin+'/api/onboarding/catch-up',{data:{startMonth:'2026-01',agreed:true,expectedTotalCents:0}});assert.equal(r.status(),200);f.authorized=true;await save()
   }
-  const files=f.scenario==='7'?['/private/tmp/writeoffs-unified-documents/checking.pdf']:f.scenario==='4'?[`${dir}/food.png`]:f.scenario==='3'?[`${dir}/mixed-use.pdf`]:f.scenario==='6'?[`${dir}/current-phone.pdf`]:f.scenario==='2'?[`${dir}/may-small.pdf`,`${dir}/september.pdf`]:[`${dir}/may-small.pdf`]
+  const files=f.scenario==='7'?['/private/tmp/writeoffs-unified-documents/checking.pdf']:f.scenario==='4'?[`${dir}/food.png`]:f.scenario==='3'?[`${dir}/mixed-use.pdf`]:f.scenario==='6'?[`${dir}/current-phone.pdf`]:f.scenario==='2'?[`${dir}/may-small.pdf`,`${dir}/september.pdf`,`${dir}/current-boundary.pdf`]:[`${dir}/may-small.pdf`]
   for(const file of files)await upload(f,page,context,file)
   await settled(context,page);await page.goto(origin+'/check-in')
   if(f.scenario==='7'){
@@ -212,7 +214,7 @@ try{
     if(q.kind==='business_use')await clickSave(page,'Yes, business')
     else if(q.kind==='meal_relationship'){await page.getByLabel('Who was the meal with?',{exact:true}).fill('Alex Jones, client');await clickSave(page,'Continue')}
     else if(q.kind==='business_purpose'){await page.getByLabel('What was this purchase for?',{exact:true}).fill('Discussed the client design project with Alex Jones');await clickSave(page,'Continue')}
-    else if(q.kind==='percentage'){await page.locator('input[inputmode="decimal"]').fill('80');await clickSave(page,'Continue')}
+    else if(q.kind==='percentage'){await page.getByLabel('Business use percentage',{exact:true}).fill('80');await clickSave(page,'Continue')}
     else assert.fail('Unexpected factual control '+q.kind)
     continue
    }

@@ -3,6 +3,7 @@ import {createRequire} from 'node:module'
 const {renderToStaticMarkup}=createRequire(import.meta.url)('react-dom/server') as {renderToStaticMarkup:(node:React.ReactNode)=>string}
 import {describe,it,expect,vi} from 'vitest'
 import {SpecialTransactionFlow} from '../../app/components/SpecialTransactionFlow'
+import {ConversationShell} from '../../app/components/guided/ConversationShell'
 import type {SpecialWork} from '../../app/lib/bookkeeping/special-transactions'
 vi.stubGlobal('React',React)
 vi.mock('next/navigation',()=>({useRouter:()=>({refresh:vi.fn()})}))
@@ -15,3 +16,5 @@ describe('one material special-transaction question at a time',()=>{
  it('requests reimbursement evidence without pretending it is a merchant return',()=>{const html=view({lastAction:'reimbursement'});expect(html).toContain('Send me the reimbursement records.');expect(html).not.toContain('Which purchase was returned?');expect(html).toContain('data-guided-upload="true"')})
  it('uses contextual unified upload for a loan instead of purchase receipts',()=>{const html=view({kind:'loan',nature:'loan_principal_payment'});expect(html).toContain('Send me the loan statement.');expect(html).toContain('data-guided-upload="true"');expect(html).not.toContain('Which purchase was returned?')})
 })
+
+it('reuses the application main landmark without nesting another main',()=>{const html=renderToStaticMarkup(React.createElement('main',null,React.createElement(ConversationShell,null,React.createElement('h1',null,'One fact'))));expect(html.match(/<main/g)).toHaveLength(1)})

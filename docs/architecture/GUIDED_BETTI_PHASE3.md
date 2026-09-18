@@ -66,7 +66,9 @@ evidence retain distinct projections. Unrelated eligible work may proceed.
 - `scripts/certify-guided-security-staging.mjs`: actual tenant/RLS, retry/staleness
   and read-only rendering assertions.
 
-Synthetic current dates use the business timezone, not the UTC calendar date.
+Individual-question dates use the business timezone. Workstream-boundary fixtures
+use the existing canonical UTC activation date; report comparisons use the same
+period as Home. These conventions are not changed by Phase 3.
 Private credentials and screenshots stay outside the repository. Certification
 artifacts may be isolated with `CERTIFICATION_ARTIFACT_DIR` under
 `/private/tmp/writeoffs-phase3-*`.

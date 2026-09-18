@@ -8,6 +8,7 @@ import {chromium} from '@playwright/test'
 import {PDFDocument,StandardFonts} from 'pdf-lib'
 const origin=process.env.CERTIFICATION_ORIGIN??'https://writeoffs-fresh-staging.vercel.app'
 assert(/^https:\/\/writeoffs-fresh-staging(?:-[a-z0-9-]+)?\.vercel\.app$/.test(origin))
+const reportThrough=new Date().toISOString().slice(0,10)
 const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Phoenix',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
 const dir=process.env.CERTIFICATION_ARTIFACT_DIR??'/private/tmp/writeoffs-phase3',url=process.env.NEXT_PUBLIC_SUPABASE_URL
 assert(/^\/private\/tmp\/writeoffs-phase3(?:-[a-z0-9-]+)?$/.test(dir))
@@ -19,7 +20,10 @@ function totp(secret){const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',bits=[..
 async function session(f,browser){const cookies=new Map(),client=createServerClient(url,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,{cookies:{getAll:()=>[...cookies].map(([name,value])=>({name,value})),setAll:values=>values.forEach(({name,value})=>cookies.set(name,value))}});assert(!(await client.auth.signInWithPassword({email:f.email,password:f.password})).error);assert(!(await client.auth.mfa.challengeAndVerify({factorId:f.factorId,code:totp(f.totpSecret)})).error);const context=await browser.newContext({viewport:{width:1280,height:900},timezoneId:'America/Phoenix'});await context.addCookies([...cookies].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:true,sameSite:'Lax'})));const jar=await readFile(`${dir}/candidate-cookie.txt`,'utf8').catch(()=>'');for(const line of jar.split('\n')){if(!line.includes('\t'))continue;const parts=line.replace(/^#HttpOnly_/,'').split('\t');if(parts[0]===new URL(origin).hostname)await context.addCookies([{domain:parts[0],path:parts[2],secure:parts[3]==='TRUE',name:parts[5],value:parts[6],httpOnly:true,sameSite:'None'}])}return{context,client}}
 
 
-const fixtures=JSON.parse(await readFile(`${dir}/fixtures.json`,'utf8')),save=()=>writeFile(`${dir}/fixtures.json`,JSON.stringify(fixtures),{mode:0o600})
+const fixtures=JSON.parse(await readFile(`${dir}/fixtures.json`,'utf8'))
+const followupDocuments=await readFile(`${dir}/followup-documents.json`,'utf8').then(JSON.parse).catch(()=>({}))
+for(const f of fixtures)f.documents={...f.documents,...followupDocuments[f.scenario]}
+const save=()=>writeFile(`${dir}/followup-documents.json`,JSON.stringify(Object.fromEntries(fixtures.map(f=>[f.scenario,f.documents??{}]))),{mode:0o600})
 const browser=await chromium.launch({headless:true})
 async function statement(name,from,through,rows){
  const pdf=await PDFDocument.create(),font=await pdf.embedFont(StandardFonts.Helvetica)
@@ -74,7 +78,7 @@ async function settled(context,page){
 }
 async function screenshot(page,name){
  for(const width of [390,430,768,1280]){
-  await page.setViewportSize({width,height:900});await page.screenshot({path:`${dir}/browser/${name}-${width}.png`,fullPage:true})
+  await page.setViewportSize({width,height:900});await page.screenshot({path:`${dir}/browser/${name}-${width}.png`,fullPage:true,animations:'disabled'})
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Horizontal overflow '+name+' '+width)
  }
  await page.setViewportSize({width:1280,height:900})
@@ -86,7 +90,7 @@ async function cross(context,page){
  const ledger=await api(context,'/api/transactions/list?year=all');assert.equal(new Set(ledger.rows.map(r=>r.id)).size,ledger.rows.length)
  const home=await context.newPage();await home.goto(origin+'/home');const after=await api(context,'/api/bookkeeping/work')
  if(JSON.stringify(w.customer.actionable)===JSON.stringify(after.customer.actionable))assert.equal(await home.locator('[data-customer-action-count]').getAttribute('data-customer-action-count'),String(w.customer.actionableCount))
- const report=await api(context,'/api/reports/summary?start=2026-01-01&end='+today)
+ const report=await api(context,'/api/reports/summary?start=2026-01-01&end='+reportThrough)
  assert.equal(report.categoryTotals.reduce((n,c)=>n+c.amountCents,0)+report.uncategorizedBusinessExpensesCents,report.businessExpensesCents)
  assert.equal(report.businessIncomeCents-report.businessExpensesCents,report.businessProfitCents)
  const money=c=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(c/100)
@@ -95,7 +99,9 @@ async function cross(context,page){
 }
 async function clickSave(page,label){const response=page.waitForResponse(r=>r.request().method()==='POST'&&(r.url().includes('/api/bookkeeping/work/answer')||r.url().includes('/api/bookkeeping/questions/')&&!r.url().endsWith('/reconcile')||r.url().includes('/api/bookkeeping/accounts/')));await page.getByRole('button',{name:label,exact:!['Business only','Business + personal'].includes(label)}).click();const r=await response;assert.equal(r.status(),200,await r.text());await page.waitForTimeout(500)}
 
-const checks=[]
+const checks=await readFile(`${dir}/browser/followups.json`,'utf8').then(JSON.parse).catch(()=>[])
+const only=process.env.CERTIFICATION_FOLLOWUP_SCENARIO
+assert(!only||['2','6'].includes(only))
 async function accessibility(page){
  const issue=await page.locator('.betti-work').evaluate(root=>Array.from(root.querySelectorAll('button,input,textarea')).filter(el=>el.getBoundingClientRect().width>0).flatMap(el=>{
   const name=el.getAttribute('aria-label')||el.getAttribute('aria-labelledby')||el.labels?.[0]?.textContent||el.textContent
@@ -111,10 +117,12 @@ async function accessibility(page){
 let diagnostic
 try{
  for(const scenario of ['2','6']){
+  if(only&&only!==scenario||checks.some(c=>c.scenario===scenario))continue
   const f=fixtures.find(f=>f.scenario===scenario)
   assert.equal((await admin.auth.admin.getUserById(f.userId)).data.user?.user_metadata.synthetic_guided_contract,true)
   const {context,client}=await session(f,browser),page=await context.newPage();diagnostic=page
-  const before=await api(context,'/api/reports/summary?start=2026-01-01&end='+today)
+  const browserErrors=[];page.on('pageerror',e=>browserErrors.push(e.message))
+  const before=await api(context,'/api/reports/summary?start=2026-01-01&end='+reportThrough)
   const file=scenario==='2'?'historical-phone-followup':'payment-followup'
   await statement(file,scenario==='2'?'May 1, 2026':'September 1, 2026',scenario==='2'?'May 31, 2026':'September 30, 2026',scenario==='2'?[['05/19','VERIZON WIRELESS',-14628]]:[[today.slice(5,10).replace('-','/'),'CREDIT CARD PAYMENT',-128437],[today.slice(5,10).replace('-','/'),'LOAN PAYMENT EQUIPMENT',-45000]])
   await upload(f,page,context,`${dir}/${file}.pdf`);await settled(context,page);await page.goto(origin+'/check-in')
@@ -124,13 +132,14 @@ try{
    const work=await api(context,'/api/bookkeeping/work'),a=work.nextAction
    if(!a){if(work.betti.jobs.length){await settled(context,page);await page.reload();continue}break}
    await page.waitForFunction(type=>document.querySelector('[data-guided-action]')?.getAttribute('data-guided-action')===type,a.type)
+   await page.locator('.betti-conversation-body h1').waitFor()
    stages.push(a.type);await accessibility(page);await screenshot(page,`followup-${scenario}-${a.type}-${a.question?.kind??'batch'}-${a.workstream}`)
    assert.notEqual(a.type,'account_use','Account fact was asked again for new activity')
    if(a.type==='personal_exception_sweep')await clickSave(page,'Nothing here is personal')
    else if(a.type==='mixed_use_sweep')await clickSave(page,'Nothing is partly personal')
    else if(a.type==='receipt_upload_sweep')await clickSave(page,'Continue with Betti')
    else if(a.type==='receipt_availability')await clickSave(page,'That’s all the receipts I have')
-   else if(a.question?.kind==='percentage'){await page.locator('input[inputmode="decimal"]').fill('80');await clickSave(page,'Continue')}
+   else if(a.question?.kind==='percentage'){await page.getByLabel('Business use percentage',{exact:true}).fill('80');await clickSave(page,'Continue')}
    else{
     const merchant=a.question?.transaction.merchant??''
     const label=merchant.includes('CREDIT CARD')?'Credit card payment':await page.getByRole('button',{name:'Payment on a business loan',exact:true}).count()?'Payment on a business loan':'I’ll come back to this'
@@ -145,9 +154,10 @@ try{
   assert.equal(after.report.businessExpensesCents-before.businessExpensesCents,scenario==='2'?11702:0)
   const history=await client.from('financial_account_use_events').select('id');assert.equal(history.data.length,1)
   await screenshot(page,`followup-completion-${scenario}`)
+  assert.deepEqual(browserErrors,[])
   checks.push({scenario,stages,expenseChange:after.report.businessExpensesCents-before.businessExpensesCents,accountFactAskedAgain:false,accessibility:'PASS'})
   await context.close()
  }
  await writeFile(`${dir}/browser/followups.json`,JSON.stringify(checks,null,2))
- console.log('Historical context, special payment, loan, shared-fact reuse and accessibility passed')
+ console.log('Guided follow-up scenarios passed: '+checks.map(c=>c.scenario).join(', '))
 }catch(error){if(diagnostic){await diagnostic.screenshot({path:`${dir}/browser/followup-failure.png`,fullPage:true});await writeFile(`${dir}/browser/followup-failure.txt`,await diagnostic.locator('body').innerText())}throw error}finally{await browser.close()}
