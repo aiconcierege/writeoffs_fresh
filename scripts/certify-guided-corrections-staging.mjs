@@ -104,10 +104,11 @@ async function upload(f,page,context,file){
 }
 async function settled(context,page){
  let w
- const initial=await api(context,'/api/bookkeeping/work')
+ const initial=await api(context,'/api/bookkeeping/work');console.log('Observed pending work:',initial.betti.jobs.length)
  if(process.argv.includes('--verify-only')){assert.equal(initial.betti.jobs.length,0);return initial}
- const scheduled=await admin.rpc('enqueue_authorized_scope_processing_batch',{p_limit:12,p_business_id:initial.businessId});assert(!scheduled.error)
- for(let n=0;n<100;n++){w=await api(context,'/api/bookkeeping/work');if(w.betti.jobs.length===0)return w;await page.waitForTimeout(2000)}
+ if(!process.argv.includes('--baseline')){const upgrade=await admin.rpc('enqueue_economic_evidence_reassessment',{p_limit:100,p_business_id:initial.businessId});assert(!upgrade.error);console.log('Versioned jobs scheduled:',upgrade.data)}
+ const scheduled=await admin.rpc('enqueue_authorized_scope_processing_batch',{p_limit:12,p_business_id:initial.businessId});assert(!scheduled.error);console.log('Scope jobs scheduled:',scheduled.data)
+ for(let n=0;n<100;n++){w=await api(context,'/api/bookkeeping/work');if(w.betti.jobs.length===0)return w;if(n%10===0)console.log('Pending jobs:',w.betti.jobs.length);await page.waitForTimeout(2000)}
  assert.fail('Normal workers did not settle: '+JSON.stringify(w.betti.jobs))
 }
 await statement('current-boundary','September 1, 2026','September 30, 2026',[[reportThrough.slice(5,10).replace('-','/'),'GOOGLE WORKSPACE',-1800],[reportThrough.slice(5,10).replace('-','/'),'OFFICE DEPOT',-6419]])
@@ -117,7 +118,7 @@ const paper=createCanvas(800,650),pen=paper.getContext('2d');pen.fillStyle='whit
 pen.fillStyle='white';pen.fillRect(0,0,800,650);pen.fillStyle='black';['OFFICE DEPOT','Receipt 08/12/2026','Printer paper       $100.00','TOTAL               $100.00','VISA ending 1234','SYNTHETIC CERTIFICATION'].forEach((line,i)=>pen.fillText(line,40,80+i*85));await writeFile(`${dir}/office-mixed.png`,paper.toBuffer('image/png'))
 async function screenshot(page,name){
  for(const width of [390,430,768,1280]){
-  await page.setViewportSize({width,height:900});await page.screenshot({path:`${dir}/browser/${name}-${width}.png`,fullPage:true,animations:'disabled'})
+  await page.setViewportSize({width,height:900});await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:`${dir}/browser/${name}-${width}.png`,fullPage:true,animations:'disabled'})
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Horizontal overflow '+name+' '+width)
  }
  await page.setViewportSize({width:1280,height:900})
@@ -140,16 +141,16 @@ async function clickSave(page,label){const response=page.waitForResponse(r=>r.re
 try {
  const f=fixtures[0];assert.equal((await admin.auth.admin.getUserById(f.userId)).data.user?.user_metadata.synthetic_guided_contract,true)
  const {context,client}=await session(f,browser),page=await context.newPage()
- await onboard(f,page)
+ console.log("Authenticated isolated customer");await onboard(f,page);console.log("Onboarding already complete or completed")
  if(!f.authorized){
   assert(!(await admin.from('business_customer_setup').update({grandfathered_start_date:'2026-01-01'}).eq('business_id',f.businessId)).error)
   assert.equal((await context.request.post(origin+'/api/onboarding/catch-up',{data:{startMonth:'2026-01',agreed:true,expectedTotalCents:0}})).status(),200)
   f.authorized=true;await save()
  }
  await upload(f,page,context,'/private/tmp/writeoffs-unified-documents/checking.pdf')
- await settled(context,page);await page.goto(origin+'/check-in')
+ console.log('Waiting for canonical assessments');await settled(context,page);console.log('Assessments settled');await page.goto(origin+'/check-in')
  let w=await api(context,'/api/bookkeeping/work')
- if(w.nextAction?.type==='account_use'){await clickSave(page,'Business only');await settled(context,page);await page.reload()}
+ if(w.nextAction?.type==='account_use'){await clickSave(page,'Business only');const pending=await api(context,'/api/bookkeeping/work');if(pending.betti.jobs.length){await page.reload();await screenshot(page,'processing-transition')}await settled(context,page);await page.reload()}
  w=await api(context,'/api/bookkeeping/work')
  const ledger=await api(context,'/api/transactions/list?year=all');assert.equal(ledger.rows.length,24)
  const raw=await client.rpc('read_betti_work_context',{p_business_id:f.businessId});assert(!raw.error)
@@ -157,7 +158,7 @@ try {
  const questions=await api(context,'/api/bookkeeping/questions')
  const name=process.argv.includes('--baseline')?'baseline':'after'
  await writeFile(`${dir}/${name}.json`,JSON.stringify({work:w,ledger,context:raw.data,report,questions},null,2),{mode:0o600})
- await page.reload();await cross(context,page);await screenshot(page,name)
+ await page.reload();await screenshot(page,name+'-before-cross');console.log('Guided page:',new URL(page.url()).pathname);await cross(context,page);await screenshot(page,name)
  console.log(name+': '+ledger.rows.length+' transactions; '+w.customer.actionableCount+' customer actions')
  if(process.argv.includes('--flow')){
   const rows=raw.data.records,find=text=>rows.find(r=>r.merchant===text)
@@ -166,17 +167,31 @@ try {
   for(const merchant of ['TRANSFER FROM SAVINGS 1111','TRANSFER TO SAVINGS 1111','ACH PAYMENT - BUSINESS CREDIT CARD 3333'])assert.equal(find(merchant).treatment,'excluded')
   assert.equal(find('LOAN PAYMENT - EQUIPMENT FINANCE CO').treatment,'unresolved')
   assert.equal(find('REFUND - OFFICE DEPOT').treatment,'unresolved')
-  const errors=[];page.on('pageerror',e=>errors.push(e.message))
-  const seen=new Set(),steps=[];let count=0,later=false,confirmed=false,processing=false,fifth=false
+  if(process.argv.includes('--refresh-recovery')){
+   const before=await client.rpc('read_betti_work_context',{p_business_id:f.businessId});assert(!before.error)
+   let injected=false
+   await page.route('**/api/bookkeeping/work*',async route=>{if(!injected){injected=true;await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Synthetic transient read failure'})})}else await route.continue()})
+   await page.evaluate(()=>window.dispatchEvent(new Event('focus')))
+   await page.locator('.betti-error').waitFor({state:'visible'})
+   await page.evaluate(()=>window.dispatchEvent(new Event('focus')))
+   await page.locator('.betti-error').waitFor({state:'hidden',timeout:45000})
+   await page.unroute('**/api/bookkeeping/work*');assert(injected)
+   const after=await client.rpc('read_betti_work_context',{p_business_id:f.businessId});assert(!after.error)
+   assert.deepEqual(after.data.guidedReviews,before.data.guidedReviews,'Read recovery changed customer assertions')
+   console.log('Transient read recovery: PASS without customer mutation')
+  }
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=500)errors.push('HTTP '+r.status()+' '+new URL(r.url()).pathname)})
+  const seen=new Set(),captures=new Set(),steps=[];let count=0,later=false,confirmed=false,processing=false,fifth=false
   for(let turn=0;turn<70;turn++){
    const state=await api(context,'/api/bookkeeping/work'),action=state.nextAction
+   assert.equal(await page.locator('.betti-error').count(),0,'Guided work displayed a refresh/save error')
    assert.equal(await page.getByRole('button',{name:'Keep going with Betti',exact:true}).count(),0,'Artificial session interruption returned')
    if(!action){
     if(state.betti.jobs.length){await page.reload();await screenshot(page,'processing-transition');processing=true;await settled(context,page);await page.reload();continue}
     await page.reload();await screenshot(page,'genuine-completion');break
    }
-   if(await page.locator('[data-guided-action]').getAttribute('data-guided-action')!==action.type){await page.reload();continue}
-   await cross(context,page)
+   if(await page.locator('[data-guided-action]').getAttribute('data-guided-action')!==action.type||await page.locator('[data-guided-version]').getAttribute('data-guided-version')!==action.version){await page.reload();continue}
+   if(count===0||count===5||action.items)await cross(context,page)
    if(count===5&&!fifth){await screenshot(page,'uninterrupted-after-fifth');fifth=true}
    const key=action.id+':'+action.version;assert(!seen.has(key),'A handled/deferred action looped');seen.add(key)
    if(action.type==='personal_exception_sweep'){await screenshot(page,'personal-exceptions');await clickSave(page,'Nothing here is personal')}
@@ -207,15 +222,24 @@ try {
    }else if(action.question?.kind==='percentage'){
     await screenshot(page,'individual-merchant-question');await page.getByLabel('Business use percentage',{exact:true}).fill('80');await clickSave(page,'Continue')
     const pending=await api(context,'/api/bookkeeping/work')
-    if(pending.betti.jobs.some(j=>j.record_id===action.recordIds[0])){
+    if(pending.betti.jobs.some(j=>j.recordIds.includes(action.recordIds[0]))){
      await page.goto(origin+'/check-in?record='+action.recordIds[0]);await screenshot(page,'processing-transition');processing=true
-     await settled(context,page);await page.goto(origin+'/check-in')
+     console.log('Waiting for canonical assessments');await settled(context,page);console.log('Assessments settled');await page.goto(origin+'/check-in')
     }
+   }else if(process.argv.includes('--receipts-complete')&&action.transaction?.merchant==='REFUND - OFFICE DEPOT'){
+    const before=await api(context,'/api/reports/summary?start=2026-01-01&end='+reportThrough)
+    await clickSave(page,'Returned by the store')
+    await page.getByRole('radio',{name:/OFFICE DEPOT/}).check()
+    await clickSave(page,'Yes, link this return')
+    const linked=await api(context,'/api/reports/summary?start=2026-01-01&end='+reportThrough)
+    assert.equal(linked.businessIncomeCents,before.businessIncomeCents)
+    assert.equal(linked.businessExpensesCents,before.businessExpensesCents-3210)
+    assert.equal((await api(context,'/api/transactions/list?year=all')).rows.length,24)
    }else{
-    await screenshot(page,action.type==='special_transaction'?'special-evidence-question':'individual-question')
+    const capture=action.type==='special_transaction'?'special-evidence-question':'individual-question';if(!captures.has(capture)){await screenshot(page,capture);captures.add(capture)}
     await page.getByRole('button',{name:/come back to this/i}).waitFor();await clickSave(page,await page.getByRole('button',{name:/come back to this/i}).innerText())
    }
-   steps.push({type:action.type,merchant:action.question?.transaction.merchant??action.transaction?.merchant??null});count++
+   steps.push({type:action.type,merchant:action.question?.transaction.merchant??action.transaction?.merchant??null});count++;console.log('Guided action completed:',count,action.type)
    await page.waitForTimeout(700)
   }
   const final=await cross(context,page);assert.equal(final.w.customer.actionableCount,0)

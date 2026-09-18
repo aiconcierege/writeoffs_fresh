@@ -28,6 +28,14 @@ describe('provenance-aware source economic nature',()=>{
  it('E: a checking debit explicitly paying a card balance is excluded without a paired card side',()=>expect(evaluateDeterministicBookkeeping(fixture('ACH PAYMENT - BUSINESS CREDIT CARD 3333',-128437))?.proposal).toMatchObject({bookkeepingNature:'credit_card_payment',treatment:'excluded'}))
  it('F: refund nature does not fabricate the original purchase, income, or reversal allocation',()=>expect(evaluateDeterministicBookkeeping(fixture('REFUND - OFFICE DEPOT',3210))?.proposal).toMatchObject({bookkeepingNature:'refund',treatment:'unresolved',allocations:[]}))
  it('G: loan narrative requests evidence without establishing principal/interest or a deduction',()=>expect(evaluateDeterministicBookkeeping(fixture('LOAN PAYMENT - EQUIPMENT FINANCE CO',-45000))?.proposal).toMatchObject({bookkeepingNature:'loan_principal_payment',treatment:'unresolved',allocations:[]}))
+ it.each([['REFUND - OFFICE DEPOT',3210],['LOAN PAYMENT - EQUIPMENT FINANCE CO',-45000]] as const)('unresolved special evidence does not create an equivalent decision on retry: %s',(description,amount)=>{
+  const s=fixture(description,amount),first=evaluateDeterministicBookkeeping(s)!
+  const current={...s.currentDecision,...first.proposal,id:'new-decision',provenance:'automation' as const}
+  const next={...s,currentDecision:current};next.evidence=buildSharedEvidence(next,[])
+  const repeated=evaluateDeterministicBookkeeping(next)!
+  expect(decisionMatchesProposal(current,repeated.proposal)).toBe(true)
+  expect(repeated.proposal.allocations).toEqual([])
+ })
  it.each(['pending','stale','missing-source','wrong-source','customer','conflict','mixed-account','missing-account','direction','provider-conflict','receipt-only'] as const)('fails closed for %s',condition=>{
   const s=fixture()
   if(condition==='pending')s.movement!.pending=true

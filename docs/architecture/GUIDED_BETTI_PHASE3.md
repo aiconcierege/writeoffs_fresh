@@ -114,3 +114,16 @@ Receipt Later uses the existing scoped guided-review deferral. It creates no
 receipt-unavailable evidence and changes no expense decisions. The explicit
 availability confirmation remains a separate, versioned assertion. Session
 progress is informational; no action-count threshold interrupts continued work.
+
+The real global scheduler check also caught repeated commercial-scope evaluation
+for every historical record. A follow-up migration materializes eligible records
+and evaluates the canonical scope authority once per business. The staging batch
+then scheduled 12 records in 987 ms instead of timing out.
+
+Background guided-work reads are single-flight and abort when an answer or its
+reconciliation takes ownership. A successful later read clears only a background
+refresh error, never an unconfirmed save error. This prevents a slow obsolete poll
+from replacing current work or leaving a recovered read failure permanently on
+screen. Mutation versions and canonical stale-write checks remain authoritative.
+The real browser runner can inject a transient read failure and verify recovery
+without changing customer assertions (`--refresh-recovery`).

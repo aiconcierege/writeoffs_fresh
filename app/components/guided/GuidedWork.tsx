@@ -18,32 +18,48 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
  useEffect(()=>{try{const saved=JSON.parse(sessionStorage.getItem(`betti-visit:${initialWork.businessId}`)??'null');if(saved&&Date.now()-saved.at<7200000){setHandled(saved.handled??0);setDeferred(saved.deferred??0)}}catch{/* Session progress is optional; canonical facts remain durable. */}setSessionReady(true)},[initialWork.businessId])
  useEffect(()=>{if(!sessionReady)return;try{sessionStorage.setItem(`betti-visit:${initialWork.businessId}`,JSON.stringify({handled,deferred,at:Date.now()}))}catch{/* Private browsing may disable session storage. */}},[handled,deferred,sessionReady,initialWork.businessId])
  const[notice,setNotice]=useState(''),[error,setError]=useState(''),[saving,setSaving]=useState(false)
+ const backgroundRead=useRef<AbortController|null>(null),reconciling=useRef(false)
  const lock=useRef(false),heading=useRef<HTMLHeadingElement>(null),root=useRef<HTMLDivElement>(null)
- const refresh=useCallback(async()=>{
-  const response=await fetch('/api/bookkeeping/work'+(recordId?`?record=${recordId}`:''),{cache:'no-store',signal:AbortSignal.timeout(15000)})
+ const refresh=useCallback(async(signal?:AbortSignal)=>{
+  const response=await fetch('/api/bookkeeping/work'+(recordId?`?record=${recordId}`:''),{cache:'no-store',signal:signal?AbortSignal.any([signal,AbortSignal.timeout(15000)]):AbortSignal.timeout(15000)})
   if(!response.ok)throw new Error('I couldn’t refresh your work. Please try again.')
-  const updated=await response.json() as BettiWorkProjection;setWork(updated);return updated
+  const updated=await response.json() as BettiWorkProjection;if(signal?.aborted)throw new DOMException('Superseded read','AbortError');setWork(updated);return updated
  },[recordId])
- useEffect(()=>{let alive=true;const read=async()=>{if(lock.current||document.visibilityState!=='visible')return;try{await refresh()}catch{if(alive)setError('I couldn’t check for updates. Refresh before answering.')}};const timer=setInterval(read,7000);window.addEventListener('focus',read);return()=>{alive=false;clearInterval(timer);window.removeEventListener('focus',read)}},[refresh])
+ useEffect(()=>{
+  let alive=true
+  const updateError='I couldn’t check for updates. Refresh before answering.'
+  const read=async()=>{
+   if(lock.current||reconciling.current||backgroundRead.current||document.visibilityState!=='visible')return
+   const controller=new AbortController();backgroundRead.current=controller
+   try{await refresh(controller.signal);if(alive&&!controller.signal.aborted)setError(current=>current===updateError?'':current)}
+   catch{if(alive&&!controller.signal.aborted)setError(updateError)}
+   finally{if(backgroundRead.current===controller)backgroundRead.current=null}
+  }
+  const timer=setInterval(read,7000);window.addEventListener('focus',read)
+  return()=>{alive=false;backgroundRead.current?.abort();clearInterval(timer);window.removeEventListener('focus',read)}
+ },[refresh])
  const action=work.customer.actionable.find(a=>!recordId||a.recordIds.includes(recordId))
  useEffect(()=>{const title=root.current?.querySelector('h1');if(title){title.tabIndex=-1;title.focus({preventScroll:true})}},[action?.id])
  const context=action?.workstream==='catch_up'?'Getting your earlier books caught up':action?.workstream==='shared'?'Helping your earlier and current books':action?.workstream==='current'?'Keeping your books up to date':'Work with Betti'
  async function resolved(isDeferred:boolean,message?:string){
+  backgroundRead.current?.abort();reconciling.current=true
+  try{
   if(isDeferred)setDeferred(n=>n+1);else setHandled(n=>n+1)
   setNotice(isDeferred?'I saved this for later.':message??'Got it. I’ve saved what you told me.')
   // Explicit answer reconciliation, never a GET/render side effect.
   await fetch('/api/bookkeeping/questions/reconcile',{method:'POST'})
   try{const next=await refresh();setError('');if(!isDeferred&&next.nextAction?.question&&action?.recordIds.some(id=>next.nextAction!.recordIds.includes(id)))setNotice('That helps. I have a follow-up about this purchase.')}catch(e){setError(e instanceof Error?e.message:'Please refresh.')}
   requestAnimationFrame(()=>heading.current?.focus())
+  }finally{reconciling.current=false}
  }
  async function perform(command:()=>Promise<void>,isDeferred=false){
-  if(lock.current)return;lock.current=true;setSaving(true);setError('')
+  if(lock.current)return;lock.current=true;backgroundRead.current?.abort();setSaving(true);setError('')
   try{await command();await resolved(isDeferred)}catch(e){setError(e instanceof Error?e.message:'Your answer could not be confirmed.');try{await refresh()}catch{/* Explicit reload remains available. */}}
   finally{lock.current=false;setSaving(false)}
  }
  const home=homeCommand(work,'statement_uploads'),waiting=work.betti.genuinelyProcessing+work.betti.queued+work.betti.retryScheduled>0
  const progress=handled||deferred?`${handled} handled this visit${deferred?` · ${deferred} saved for later`:''}`:'One thing at a time'
- return <div ref={root} data-customer-action-count={work.customer.actionableCount} data-guided-action={action?.type??work.readiness.phase}>
+ return <div ref={root} data-customer-action-count={work.customer.actionableCount} data-guided-action={action?.type??work.readiness.phase} data-guided-version={action?.version}>
  <ConversationShell returnTo={returnTo} context={context} progress={progress} notice={notice} state={!action?waiting?'working':'caught-up':'question'}>
   {error&&<div className="betti-error" role="alert">{error}<button className="betti-defer" onClick={()=>void refresh().then(()=>setError('')).catch(()=>setError('Please try again in a moment.'))}>Refresh current work</button></div>}
   {!action?<><h1 ref={heading} tabIndex={-1}>{waiting?'I’ve got it from here.':home.heading}</h1><p className="betti-explanation">{waiting?'I’m checking the records and facts you sent. I’ll ask when I need something from you.':home.supporting}</p>{waiting&&<p className="betti-processing" role="status"><span className="betti-processing-dot"/> {work.betti.genuinelyProcessing?'Organizing your records':'Waiting for assessment'}</p>}{home.alternative&&<Link className="btn btn-secondary" href={home.alternative.href}>{home.alternative.label}</Link>}<div className="betti-continue"><Link className="btn btn-primary" href={returnTo}>Back to your books</Link></div></>
