@@ -238,3 +238,72 @@ describe('read-only Betti work projection', () => {
   })
 
 })
+
+describe('guided work from the same canonical projection',()=>{
+ function guided(designation='business_only'){
+  const c=context();c.accounts=[{business_id:'a',id:'account',use_version:'use1',designation,display_name:'Checking'}]
+  c.records=[{...organized(record()),merchant:'Software service',transaction_id:'financial1',review_version:'evidence1',customer_authored:false}]
+  c.guidedReviews=[];return c
+ }
+ function reviewed(c:WorkContext,action:'personal_exception_sweep'|'mixed_use_sweep'|'receipt_upload_sweep'){
+  c.guidedReviews!.push({business_id:'a',id:action,action,disposition:'completed',created_at:now,deferred_until:null,items:c.records.map(r=>({recordId:r.record_id,accountUseVersion:'use1'}))})
+ }
+ it('replaces repeated questions with one visible business-only exception group',()=>{
+  const c=guided();const p=project(c,[question(c.records[0])])
+  expect(p.customer.actionableCount).toBe(1);expect(p.nextAction?.type).toBe('personal_exception_sweep')
+  expect(p.nextAction?.items?.[0].merchant).toBe('Software service');expect(p.nextAction?.question).toBeUndefined()
+ })
+ it('advances personal then mixed exceptions then receipts without inventing decisions',()=>{
+  const c=guided(),original=JSON.stringify(c.records)
+  reviewed(c,'personal_exception_sweep');expect(project(c).nextAction?.type).toBe('mixed_use_sweep')
+  reviewed(c,'mixed_use_sweep');expect(project(c).nextAction?.type).toBe('receipt_upload_sweep')
+  reviewed(c,'receipt_upload_sweep');expect(project(c).nextAction?.type).toBe('receipt_availability')
+  expect(JSON.stringify(c.records)).toBe(original)
+ })
+ it('does not re-review customer-authored facts',()=>{
+  const c=guided();c.records[0].customer_authored=true;c.records[0].has_receipt=true
+  expect(project(c).customer.actionableCount).toBe(0)
+ })
+ it('groups unresolved mixed-account purchases without establishing business use',()=>{
+  const c=guided('business_and_personal');c.records[0].treatment='unresolved';c.records[0].allocations=[]
+  const p=project(c,[question(c.records[0])]);expect(p.nextAction?.type).toBe('mixed_use_sweep')
+  expect(p.progress.catchUp.organized).toBe(0);expect(c.records[0].treatment).toBe('unresolved')
+ })
+ it('never puts transfers, loans, incoming funds or personal records in purchase sweeps',()=>{
+  for(const [nature,amount,treatment] of [['transfer',-100,'unresolved'],['loan_principal_payment',-100,'unresolved'],['expense',100,'business'],['expense',-100,'personal']] as const){
+   const c=guided();Object.assign(c.records[0],{bookkeeping_nature:nature,amount_cents:amount,treatment})
+   expect(project(c).customer.actionableCount).toBe(0)
+  }
+ })
+ it('excludes old evidence outside authorized scope even with prior review events',()=>{
+  const c=guided();c.business.authorizedScope.authorizedStart='2026-08-01';c.business.authorizedScope.catchUp=null;c.business.authorizedScope.historicalAuthorized=false
+  expect(project(c).customer.actionableCount).toBe(0);expect(project(c).readiness.catchUp).toBe('not_requested')
+ })
+ it('bounds each visible group and does not include future/unseen purchases in its snapshot',()=>{
+  const c=guided();c.records=Array.from({length:10},(_,i)=>({...c.records[0],record_id:`r${i}`,decision_id:`d${i}`}))
+  const p=project(c);expect(p.customer.actionableCount).toBe(2);expect(p.customer.actionable.map(a=>a.items!.length).sort()).toEqual([2,8])
+  const first=p.nextAction!;c.records.push({...c.records[0],record_id:'later'})
+  expect(first.items).toHaveLength(first.recordIds.length);expect(first.recordIds).not.toContain('later')
+ })
+ it('a processing record waits without blocking another ready purchase in the same account',()=>{
+  const c=guided();c.records.push({...c.records[0],record_id:'ready'});c.jobs=[job()]
+  const p=project(c);expect(p.nextAction?.recordIds).toEqual(['ready']);expect(p.betti.waiting[0].recordIds).toEqual(['old'])
+ })
+ it('waits for unmatched document processing before receipt-unavailable confirmation',()=>{
+  const c=guided();reviewed(c,'personal_exception_sweep');reviewed(c,'mixed_use_sweep');reviewed(c,'receipt_upload_sweep');c.jobs=[job(null)]
+  const p=project(c);expect(p.customer.actionableCount).toBe(0);expect(p.betti.waiting[0].type).toBe('receipt_availability');expect(p.readiness.doneForNow).toBe(false)
+ })
+ it('keeps deferred review distinct from completed assertions',()=>{
+  const c=guided();c.guidedReviews=[{business_id:'a',id:'defer',action:'personal_exception_sweep',disposition:'deferred',created_at:now,deferred_until:'2026-09-18T12:00:00Z',items:[{recordId:'old',accountUseVersion:'use1'}]}]
+  const p=project(c);expect(p.customer.actionableCount).toBe(0);expect(p.customer.deferredCount).toBe(1)
+ })
+ it('invalidates snapshot identity on evidence changes and rejects foreign review facts',()=>{
+  const c=guided(),before=project(c).nextAction!.version;c.records[0].review_version='evidence2'
+  expect(project(c).nextAction!.version).not.toBe(before)
+  reviewed(c,'personal_exception_sweep');c.guidedReviews![0].business_id='foreign';expect(()=>project(c)).toThrow('tenant')
+ })
+ it('preserves multiple established categories rather than flattening a split in a sweep',()=>{
+  const c=guided();c.records[0].allocations=[{kind:'business',amountCents:-1000,category:'supplies'},{kind:'business',amountCents:-1299,category:'software'}];c.records[0].has_receipt=true
+  expect(project(c).customer.actionableCount).toBe(0);expect(c.records[0].allocations).toHaveLength(2)
+ })
+})

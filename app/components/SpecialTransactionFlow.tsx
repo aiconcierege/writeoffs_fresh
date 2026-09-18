@@ -5,7 +5,7 @@ import {useRouter} from 'next/navigation'
 import type {SpecialWork} from '../lib/bookkeeping/special-transactions'
 import {DocumentIntake} from '../documents/DocumentIntake'
 import {returnLabel,safeReturnTo} from '../lib/navigation-context'
-export function SpecialTransactionFlow({work,returnTo:origin}:{work:SpecialWork;returnTo:string}){
+export function SpecialTransactionFlow({work,returnTo:origin,embedded=false,onResolved}:{work:SpecialWork;returnTo:string;embedded?:boolean;onResolved?:(deferred:boolean)=>Promise<void>}){
  const router=useRouter(),lock=useRef(false),request=useRef<{signature:string;id:string}|null>(null)
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState(''),[business,setBusiness]=useState(''),[selected,setSelected]=useState(''),[deferred,setDeferred]=useState(false),[none,setNone]=useState(false),[finished,setFinished]=useState(false)
  const returnTo=safeReturnTo(origin,'/home'),money=(c:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Math.abs(c)/100)
@@ -14,12 +14,13 @@ export function SpecialTransactionFlow({work,returnTo:origin}:{work:SpecialWork;
   const signature=JSON.stringify({expected:work.decisionId,action,original,businessCents})
   if(request.current?.signature!==signature)request.current={signature,id:crypto.randomUUID()}
   try{const r=await fetch(`/api/bookkeeping/records/${work.recordId}/special`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({expected:work.decisionId,requestId:request.current.id,action,original,businessCents})});const data=await r.json();if(!r.ok)throw new Error(data.error??'Please try again.')
+   if(onResolved){await onResolved(action==='defer'||action==='unsure');return}
    if(action==='defer'||action==='unsure'){setDeferred(true);setMessage(action==='defer'?'I kept this on your list. Come back when you have the information.':'I recorded that you’re not sure. The activity remains unresolved; supporting records can help establish it.')}
    else{setMessage(action==='card_payment'?'Got it. This is a credit card payment, outside business income and expenses.':action==='owner_use'?'Got it. This is money taken or used personally, outside business expenses.':action==='refund_link'?'Got it. I linked this return to the purchase. Both records and their history are kept.':'Got it. I saved that fact.');if(['card_payment','owner_use','refund_link'].includes(action))setFinished(true);else router.refresh()}
   }catch(e){setError(e instanceof Error?e.message:'Please try again.')}finally{lock.current=false;setBusy(false)}
  }
- return <section className="mx-auto max-w-2xl space-y-4 py-5" aria-label="Betti transaction question">
-  <Link href={returnTo} className="inline-flex min-h-11 items-center font-semibold">← {returnLabel(returnTo)}</Link><p className="font-semibold">Betti</p>
+ return <section className={embedded?"betti-special space-y-4":"mx-auto max-w-2xl space-y-4 py-5"} aria-label="Betti transaction question">
+  {!embedded&&<><Link href={returnTo} className="inline-flex min-h-11 items-center font-semibold">← {returnLabel(returnTo)}</Link><p className="font-semibold">Betti</p></>}
   {message&&<p role="status">{message}</p>}
   {!deferred&&!finished&&<>
   {work.kind==='movement'&&<><h1 className="text-2xl font-semibold">What kind of payment was this?</h1><div className="grid gap-3">{[['card_payment','Credit card payment'],...(work.amountCents<0?[['loan_payment','Payment on a business loan'],['owner_use','Money I took or used personally']]:[])].map(([action,label])=><button className="btn btn-secondary" disabled={busy} key={action} onClick={()=>void answer(action)}>{label}</button>)}<Link className="btn btn-secondary" href={`/check-in?record=${work.recordId}&ordinary=1&returnTo=${encodeURIComponent(returnTo)}`}>Something else</Link></div></>}
@@ -35,6 +36,6 @@ export function SpecialTransactionFlow({work,returnTo:origin}:{work:SpecialWork;
   {!work.linked&&<button className="min-h-11 underline" disabled={busy} onClick={()=>void answer('defer')}>I’ll come back to this</button>}
   </>}
   {error&&<p role="alert" className="text-red-700">{error}</p>}
-  <Link href={returnTo} className="btn btn-secondary">{returnLabel(returnTo)}</Link>
+  {!embedded&&<Link href={returnTo} className="btn btn-secondary">{returnLabel(returnTo)}</Link>}
  </section>
 }

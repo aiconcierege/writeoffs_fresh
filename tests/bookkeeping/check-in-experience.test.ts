@@ -8,7 +8,7 @@ const policy=readFileSync('app/lib/route-policy.ts','utf8')
 describe('continuous Check in with Betti experience',()=>{
   it('loads the authoritative queue without a Weekly Review period or date range',()=>{
     expect(page).toContain('loadCurrentCustomerWork')
-    expect(page).toContain('experience="check-in"')
+    expect(page).toContain('<GuidedWork initialWork={queue.work}')
     expect(page).not.toMatch(/weekly|periodStart|periodEnd|reviewId/i)
   })
 
@@ -52,9 +52,9 @@ describe('continuous Check in with Betti experience',()=>{
     expect(flow).not.toContain('setQuestions((value) => value.slice(1))\n      setPurpose')
   })
   it('keeps an explicitly requested special-transaction correction separate from pending work',()=>{
-    expect(page).toContain("review==='1'&&record?record:next?.recordIds[0]")
-    expect(page).toContain('loadSpecialWork(db,specialRecord)')
-    expect(page).toContain('data-customer-action-count={queue.count}')
+    expect(page).toContain("review==='1'&&record")
+    expect(page).toContain('loadSpecialWork(db,record)')
+    expect(page).toContain('initialWork={queue.work}')
   })
 
 })

@@ -2,14 +2,16 @@ import { createHash } from 'node:crypto'
 import type { AuthorizedBookkeepingScope } from './authorized-scope'
 import type { CustomerQuestion } from './customer-questions'
 import { purchaseReceiptEligible } from './receipt-eligibility'
+import {guidedStage,guidedItem,guidedDeferral,GUIDED_BATCH_LIMIT,type GuidedItem,type GuidedReview,type SweepType} from './guided-work'
 
-export const BETTI_WORK_VERSION = 'betti-work:v2-scope'
+export const BETTI_WORK_VERSION = 'betti-work:v3-guided'
 export type Workstream = 'catch_up' | 'current' | 'shared' | 'outside_scope' | 'unscoped'
 export type ActionType = 'provide_records' | 'account_use' | 'personal_exception_sweep' | 'mixed_use_sweep'
   | 'receipt_upload_sweep' | 'receipt_availability' | 'special_transaction' | 'material_question'
   | 'review_summary' | 'recover_ingestion'
 type Owned = { business_id: string }
 export type WorkRecord = Owned & {
+  merchant?:string;transaction_id?:string;review_version?:string;customer_authored?:boolean
   record_id: string; activity_date: string; account_id: string | null; decision_id: string | null
   treatment: string | null; bookkeeping_nature: string | null; amount_cents: number
   source_kind: string; has_receipt: boolean; receipt_unavailable: boolean
@@ -19,7 +21,7 @@ export type WorkContext = {
   business: { id: string; start: string | null; activation: string | null; activationEvidence: string | null
     timezone: string; coverageStart: string | null; authorizedScope: AuthorizedBookkeepingScope }
   records: WorkRecord[]
-  accounts: (Owned & { id: string; provider?: string; use_version: string | null; designation: string | null })[]
+  accounts: (Owned & { id: string; provider?: string;display_name?:string;mask?:string|null; use_version: string | null; designation: string | null })[]
   jobs: (Owned & { id: string; record_id: string | null; document_id: string | null; receipt_id: string | null
     state: string; kind: string; available_at: string; lease_expires_at: string | null; updated_at: string })[]
   documents: (Owned & { id: string; receipt_id: string | null; created_at: string; has_job?: boolean })[]
@@ -29,12 +31,14 @@ export type WorkContext = {
   deferred: (Owned & { id: string; issue_id: string; record_id: string | null; deferred_until: string | null; created_at: string; source?: string })[]
   documentRecords?: (Owned & {document_id:string;record_id:string})[]
   questionVersions?: string[]
+  guidedReviews?:GuidedReview[]
 }
 export type WorkAction = {
   id: string; version: string; type: ActionType; target: { kind: 'account' | 'record' | 'question' | 'document' | 'business'; id: string }
   workstream: Workstream; affects: ('catch_up' | 'current')[]; recordIds: string[]
   status: 'actionable' | 'deferred' | 'waiting'; availableAt: string | null
   href: string; question?: CustomerQuestion
+  items?:GuidedItem[];account?:{id:string;name:string;mask:string|null;designation:string|null}
   priority: { score: number; reasons: string[]; unlocks: number; ageDays: number; continuity: boolean
     materiality: 'totals' | 'disclosable' | null; deadline: string | null }
   dependencies: string[]
@@ -86,7 +90,7 @@ export function projectBettiWork(input: {
 }) {
   const { context: c, asOf } = input
   if (c.business.id !== input.businessId || c.business.authorizedScope.businessId !== input.businessId) throw new Error('Projection business mismatch')
-  for (const rows of [c.records, c.accounts, c.jobs, c.documents, c.links, c.coverage, c.deferred, c.documentRecords??[]]) {
+  for (const rows of [c.records, c.accounts, c.jobs, c.documents, c.links, c.coverage, c.deferred, c.documentRecords??[],c.guidedReviews??[]]) {
     if (rows.some(row => row.business_id !== input.businessId)) throw new Error('Projection tenant mismatch')
   }
   // A partial snapshot must not become a precise total or a false completion claim.
@@ -149,7 +153,33 @@ export function projectBettiWork(input: {
     const rs = scoped.filter(r => r.account_id === account.id)
     if (!rs.length) continue
     add('account_use', `account:${account.id}:use`, { kind: 'account', id: account.id }, rs,
-      account.use_version, `/check-in?record=${encodeURIComponent(rs[0].record_id)}`, c.business.activationEvidence ?? asOf)
+      account.use_version, '/check-in', c.business.activationEvidence ?? asOf,
+      {account:{id:account.id,name:account.display_name??'Your account',mask:account.mask??null,designation:null}})
+  }
+  const stages=new Map(scoped.flatMap(r=>{const stage=guidedStage(r,c);return stage?[[r.record_id,stage] as const]:[]}))
+  const groups=new Map<string,{stage:SweepType;records:WorkRecord[];deferred:string|null}>()
+  for(const r of scoped){const stage=stages.get(r.record_id);if(!stage)continue
+    const deferred=guidedDeferral(r,stage,c,asOf),key=[r.account_id,stage,stream(r),deferred??'active',activeJobIds(r.record_id).length?'waiting':'ready'].join(':')
+    const group=groups.get(key)??{stage,records:[],deferred};group.records.push(r);groups.set(key,group)
+  }
+  for(const[key,group]of groups){
+    const ordered=group.records.sort((a,b)=>a.activity_date.localeCompare(b.activity_date)||a.record_id.localeCompare(b.record_id))
+    for(let offset=0;offset<ordered.length;offset+=GUIDED_BATCH_LIMIT){
+      const rs=ordered.slice(offset,offset+GUIDED_BATCH_LIMIT),account=c.accounts.find(a=>a.id===rs[0].account_id)!
+      const items=rs.map(r=>guidedItem(r,c)),id=`guided:${group.stage}:${fingerprint(items.map(i=>i.recordId)).slice(0,24)}`
+      add(group.stage,id,{kind:'account',id:account.id},rs,[key,items,c.guidedReviews],'/check-in',rs[0].activity_date,
+        {items,account:{id:account.id,name:account.display_name??'Your account',mask:account.mask??null,designation:account.designation}})
+      const action=actions.at(-1)!
+      // Unmatched documents can still supply evidence for any receipt group.
+      if(group.stage.startsWith('receipt_')){
+        const documentJobs=jobs.filter(j=>!j.recordIds.length&&['queued','processing','retry_scheduled'].includes(j.status))
+        action.dependencies=[...new Set([...action.dependencies,...documentJobs.map(j=>j.id)])]
+        if(action.dependencies.length)action.status='waiting'
+      }
+      if(group.deferred){action.status='deferred';action.availableAt=group.deferred}
+      action.priority.score+=group.stage==='personal_exception_sweep'||group.stage==='mixed_use_sweep'?100:40
+      action.priority.reasons.push('visible_scoped_batch','evidence_before_individual_questions')
+    }
   }
   const unknownAccounts = new Set(c.accounts.filter(a => !a.designation).map(a => a.id))
   for (const q of input.questions) {
@@ -160,6 +190,7 @@ export function projectBettiWork(input: {
       ? 'special_transaction' : 'material_question'
     const accountDependency = r?.account_id && unknownAccounts.has(r.account_id)
     if (accountDependency) continue // The one account fact replaces these repeated requests.
+    if(r&&stages.has(r.record_id))continue // One scoped guided action owns this dependency.
     add(type, `${q.source ?? 'bookkeeping'}:${q.id}`, { kind: 'question', id: q.id }, r ? [r] : [],
       [q.version, q.contextFingerprint, q.kind, q.prompt, q.guidance, q.options], r ? `/check-in?record=${encodeURIComponent(r.record_id)}` : '/check-in', q.openedAt ?? asOf,
       { question: q,
@@ -177,7 +208,7 @@ export function projectBettiWork(input: {
     && !input.questions.some(q => q.version === d.id || q.id === d.issue_id))) {
     const r = d.record_id ? byId.get(d.record_id) : undefined
     if (r && !['catch_up','current'].includes(stream(r))) continue
-    if (r && ['personal', 'excluded'].includes(r.treatment ?? '')) continue
+    if (r && (['personal', 'excluded'].includes(r.treatment ?? '')||stages.has(r.record_id))) continue
     add('material_question', `${d.source ?? 'bookkeeping'}:${d.issue_id}`, { kind: 'question', id: d.issue_id }, r ? [r] : [], d.id,
       r ? `/check-in?record=${encodeURIComponent(r.record_id)}` : '/check-in', d.created_at,
       { status: 'deferred', availableAt: d.deferred_until })

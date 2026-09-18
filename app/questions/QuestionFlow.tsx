@@ -13,7 +13,7 @@ import type { CustomerQuestion } from '../lib/bookkeeping/customer-questions'
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 const customerDate = new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})
 
-export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete,experience='questions',ongoingFrom,otherWorkWaiting=false,returnTo:origin='/home',initialWorkMessage,initialActionCount }: {initialWorkMessage?:HomeCommand;initialActionCount?:number;returnTo?:string;ongoingFrom?:string;otherWorkWaiting?:boolean; initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void;experience?:'questions'|'check-in' }) {
+export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete,experience='questions',ongoingFrom,otherWorkWaiting=false,returnTo:origin='/home',initialWorkMessage,initialActionCount,guided=false,onGuidedAnswer }: {guided?:boolean;onGuidedAnswer?:(deferred:boolean)=>Promise<void>;initialWorkMessage?:HomeCommand;initialActionCount?:number;returnTo?:string;ongoingFrom?:string;otherWorkWaiting?:boolean; initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void;experience?:'questions'|'check-in' }) {
   const router=useRouter()
   const returnTo=safeReturnTo(origin,'/home')
   const [workMessage,setWorkMessage]=useState(initialWorkMessage)
@@ -83,6 +83,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
         if(response.status===409)await reloadAuthoritativeQueue()
         throw new Error(result.error || 'Unable to save that answer.')
       }
+      if(onGuidedAnswer){await onGuidedAnswer(command.action==='defer');return}
       if (command.action === 'defer') {deferredInThisSession.current.add(question.id);setDeferredCount(value=>value+1)}
       followUpRecord.current=command.action==='defer'?null:question.recordId??null
       completedVersions.current.add(questionVersionKey(question))
@@ -138,7 +139,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   useEffect(()=>{if(!question&&!queueNeedsReload&&embedded)onComplete?.({unresolvedCount:unresolvedKept})},[question,queueNeedsReload,embedded,onComplete,unresolvedKept])
 
   useEffect(()=>{
-    if(experience!=='check-in')return
+    if(experience!=='check-in'||guided)return
     let live=true
     const refresh=async()=>{
       if(document.visibilityState!=='visible'||submitLock.current)return
@@ -184,11 +185,11 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   const enteredCents = parsePositiveDollarCents(mixedAmount)
   const transactionTotalCents = Math.abs(question.transaction.amountCents??0)
 
-  const shownPrompt=question.prompt==='What was this purchase for?'?'What did you buy?':question.prompt
-  const shownGuidance=question.kind==='business_purpose'&&question.evidence
+  const shownPrompt=guided?question.prompt:question.prompt==='What was this purchase for?'?'What did you buy?':question.prompt
+  const shownGuidance=!guided&&question.kind==='business_purpose'&&question.evidence
     ?'I have the receipt, but I can’t tell what this was for.'
     :question.guidance
-  const conversation=<>{!embedded && <header className="mb-2 flex items-center justify-between gap-4 text-sm">
+  const conversation=<>{!embedded && !guided && <header className="mb-2 flex items-center justify-between gap-4 text-sm">
         <Link href={returnTo} className="inline-flex min-h-11 items-center font-semibold text-[#243186]">← {returnLabel(returnTo)}</Link>
         {total > 1 && <p className="text-[#65736b]" role="status">{answered > 0 ? `${answered} answered` : 'One at a time'}{questions.length > 1 ? ' · More waiting' : ''}</p>}
       </header>}
@@ -217,7 +218,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
             <label htmlFor="purpose" className="sr-only">What was this purchase for?</label>
             <textarea id="purpose" value={purpose} onChange={(event) => { setPurpose(event.target.value); growResponse(event.currentTarget) }}
               maxLength={1000} rows={2} className="w-full rounded-lg border border-slate-300 p-3"
-              placeholder={question.prompt.includes('meal')?'For example, lunch to discuss a client project':'For example, printer paper for customer projects'} />
+              placeholder={question.prompt.toLowerCase().includes('meal')||question.kind==='business_purpose'&&question.evidence&&guided?'For example, lunch to discuss a client project':'For example, printer paper for customer projects'} />
             <Action onClick={() => submit({ action: 'business_purpose', businessPurpose: purpose })} busy={busy || !purpose.trim()}>Continue</Action>
             <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>I’m not sure</Action>
           </>}
@@ -320,6 +321,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
           I’ll come back to this
         </button>}
       </section></>
+  if(guided)return <div className="betti-question-controls">{conversation}</div>
   if(embedded)return <div className="weekly-question-flow">{conversation}</div>
   return <main className="app-page -mx-4 -mb-10 px-4 sm:-mx-6 sm:px-6 lg:-mx-8"><div className="mx-auto max-w-2xl py-2 sm:py-3">{conversation}</div></main>
 }

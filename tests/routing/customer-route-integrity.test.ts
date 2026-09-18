@@ -35,6 +35,6 @@ describe('customer route integrity', () => {
     expect(read('app/reports/ReportsSummary.tsx')).toContain('href="/reports/tax-time"')
     expect(read('app/settings/page.tsx')).toContain('href="/settings/banking"')
     expect(read('app/questions/page.tsx')).toContain("redirect('/check-in')")
-    expect(read('app/check-in/page.tsx')).toContain('<QuestionFlow')
+    expect(read('app/check-in/page.tsx')).toContain('<GuidedWork')
   })
 })

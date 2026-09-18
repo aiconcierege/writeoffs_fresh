@@ -539,3 +539,13 @@ No historical cleanup means no Catch-up workstream. For example, a September act
 Home, Check-in and the question API consume the same read-only Betti work projection. A shared account prerequisite counts once. Pending processing suppresses dependent questions without blocking unrelated work. Received/unassessed, processing, action required, deferred, held and settled states remain distinct. Reading never repairs or creates bookkeeping facts.
 
 Scope expansion schedules bounded, resumable reassessment only for the newly authorized interval. Working reports and the active transaction ledger use the same scope boundary while retaining immutable original source records.
+
+### Phase 3: one guided Work with Betti experience
+
+`/check-in` renders the authoritative Betti work projection, including guided actions, not a second question queue. Account-use remains one canonical fact. For assessed ordinary bank-backed purchases, business-only accounts receive a scoped personal exception review followed by partly-personal exceptions; mixed accounts receive a grouped factual use review. Already customer-established use and valid existing mixed/multiple-category allocations are not reclassified by the sweep.
+
+Groups contain at most eight visible purchases. Explicit answers are append-only, versioned snapshots of record, decision, evidence and account-use identity. New/unseen activity never inherits a prior review. Personal/mixed answers invoke existing canonical correction commands. No selection in a business-only exception sweep records only that scoped review, not a fabricated new business-use or tax decision.
+
+Receipt upload uses the unified intake. Relevant processing must settle before receipt-availability confirmation. “That’s all the receipts I have” invokes the existing receipt-unavailable assertion only for the displayed eligible group. It does not erase working expense treatment. Deferral is separate from completion. Reassessment and matching remain canonical workers; read/render operations do not mutate them.
+
+Customer sessions are bounded at five handled/deferred guided actions, with an option to continue. This is a presentation boundary, not a Current/Catch-up scheduling quota. Projection priority and dependencies determine the next useful action. Completion language distinguishes the end of a visit, actual processing, deferred work and supported source coverage; it never invents whole-business current-through or Catch-up review authority.
