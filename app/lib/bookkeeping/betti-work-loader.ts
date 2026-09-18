@@ -1,3 +1,4 @@
+import {timed} from '../performance/request-timing'
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createHash } from 'node:crypto'
@@ -19,17 +20,17 @@ export async function loadBettiWork(input: {
   }
   const digest = (context: WorkContext) => createHash('sha256').update(JSON.stringify(context)).digest('hex')
   for (let attempt = 0; attempt < 2; attempt++) {
-    const before = await read()
+    const before = await timed('context_before',read)
     // Existing canonical question readers use PostgREST's default 1,000-row
     // ceiling. Never present their potentially truncated output as exact work.
     // A future batched adapter can raise this guard without changing semantics.
     if (before.records.length >= 1000 || before.links.length >= 1000 || (before.questionVersions?.length ?? 0) >= 1000)
       throw new Error('Projection question adapter capacity exceeded')
-    const queue = await getCanonicalQuestionCandidates({ supabase: input.db, scope: input.scope, asOf })
-    const after = await read()
+    const queue = await timed('question_inputs',()=>getCanonicalQuestionCandidates({ supabase: input.db, scope: input.scope, asOf, businessId: input.businessId }))
+    const after = await timed('context_after',read)
     if (digest(before) !== digest(after)) continue
-    return projectBettiWork({ businessId: input.businessId, context: after, questions: queue.questions,
-      asOf, continuityRecordId: input.continuityRecordId, processingEnabled: input.processingEnabled })
+    return timed('projection_construction',async()=>projectBettiWork({ businessId: input.businessId, context: after, questions: queue.questions,
+      asOf, continuityRecordId: input.continuityRecordId, processingEnabled: input.processingEnabled }))
   }
   throw new Error('Betti work changed during projection; retry the read')
 }

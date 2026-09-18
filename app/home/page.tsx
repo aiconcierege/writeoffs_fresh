@@ -1,3 +1,5 @@
+import {requestUser} from '../lib/performance/request-identity'
+import {timedRender} from '../lib/performance/request-timing'
 import {WorkRefresh} from '../components/WorkRefresh'
 import './command-center.css'
 import {loadBettiWork} from '../lib/bookkeeping/betti-work-loader'
@@ -15,8 +17,8 @@ import{HomeBettiHero}from'./HomeBettiHero'
 import{HomeRecentActivity}from'./HomeRecentActivity'
 
 export const dynamic='force-dynamic';export const runtime='nodejs'
-export default async function HomePage(){
- const supabase=await createServerSupabase(),{data:{user}}=await supabase.auth.getUser();if(!user)redirect('/login')
+async function HomePage(){
+ const supabase=await createServerSupabase(),{data:{user}}=await requestUser(supabase);if(!user)redirect('/login')
  const membership=await loadCustomerEntitlements(supabase);if(membership.lifecycle==='none')redirect('/membership');if(membership.lifecycle==='expired_read_only')redirect('/membership/read-only')
  const isBusiness=membership.plan==='business',today=new Date().toISOString().slice(0,10),year=today.slice(0,4),yearStart=`${year}-01-01`
  const businessResult=await supabase.from('businesses').select('business_description,business_profile_context,schedule_c_eligibility,business_stage,business_start_month,uses_customer_job_materials,keeps_future_sale_merchandise,prior_materials_handling,catch_up_start_date,onboarding_start_method,v1_support_status,onboarding_state,onboarding_version')
@@ -44,3 +46,5 @@ export default async function HomePage(){
   <HomeRecentActivity activity={recentActivity}/>
  </div></main>
 }
+
+export default timedRender('HomePage',HomePage)

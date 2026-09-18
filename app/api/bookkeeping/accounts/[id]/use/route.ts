@@ -1,11 +1,14 @@
+import {requestUser} from '../../../../../lib/performance/request-identity'
+import {guidedCommand} from '../../../../../lib/bookkeeping/guided-command-response'
+import { timedRoute } from '../../../../../lib/performance/request-timing'
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../../../utils/supabase/server'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
-export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+async function handlePOST(request: Request, context: { params: Promise<{ id: string }> }) {
   const supabase = await createServerSupabase()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await requestUser(supabase)
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   const { id } = await context.params
   const body = await request.json().catch(() => null) as Record<string, unknown> | null
@@ -24,3 +27,5 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
   return NextResponse.json({ ok: true, eventId: data })
 }
+
+export const POST = timedRoute(guidedCommand(handlePOST))

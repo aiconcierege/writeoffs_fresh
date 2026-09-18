@@ -1,3 +1,4 @@
+import {requestRead} from '../performance/request-timing'
 import 'server-only'
 
 import type {SupabaseClient} from '@supabase/supabase-js'
@@ -49,7 +50,7 @@ export const can=(snapshot:EntitlementSnapshot,capability:MembershipCapability)=
 export const getLimit=(snapshot:EntitlementSnapshot,limit:'connected_plaid_item_limit')=>limit==='connected_plaid_item_limit'?snapshot.connectedPlaidItemLimit:0
 
 export async function loadCustomerEntitlements(supabase:SupabaseClient):Promise<EntitlementSnapshot>{
-  const membership=await supabase.from('current_customer_membership').select('*').maybeSingle()
+  const membership=await requestRead(supabase,'membership',async()=>supabase.from('current_customer_membership').select('*').maybeSingle())
   if(membership.error)throw new Error('MEMBERSHIP_UNAVAILABLE')
   return entitlementsFromMembership(membership.data as Record<string,unknown>|null)
 }

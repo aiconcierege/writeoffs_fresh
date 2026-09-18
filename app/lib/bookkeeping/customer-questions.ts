@@ -1,3 +1,4 @@
+import {requestUser} from '../performance/request-identity'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CanonicalWeeklyReviewItem } from './model'
 import { listCanonicalReviewQueue } from './review-queue'
@@ -198,11 +199,13 @@ async function buildCustomerQuestions(input: {
   scope?:'expenses'|'business'
   asOf: string
   includeNonConversational?: boolean
+  businessId?: string
 }) {
-  const deductionQuestions = await listDeductionQuestions(input.supabase)
-  const contractorQuestions = await listContractorQuestions(input.supabase,input.asOf)
-  const [queue,validBookkeepingResult] = await Promise.all([
-    listCanonicalReviewQueue(input),
+  const resolutionRead=input.businessId?loadCurrentRecordConvergences({supabase:input.supabase,businessId:input.businessId}):undefined
+  const [deductionQuestions,contractorQuestions,queue,validBookkeepingResult] = await Promise.all([
+    listDeductionQuestions(input.supabase,input.businessId),
+    listContractorQuestions(input.supabase,input.asOf,input.businessId),
+    listCanonicalReviewQueue({...input,resolution:resolutionRead}),
     input.supabase.rpc(input.includeNonConversational?'list_current_evidence_question_event_ids':'list_current_askable_bookkeeping_question_event_ids',{p_as_of:input.asOf}),
   ])
   if(validBookkeepingResult.error)throw new Error('Current bookkeeping questions could not be validated.')
@@ -214,9 +217,9 @@ async function buildCustomerQuestions(input: {
   const recordIds = [...new Set(currentQueue.map(({ record }) => record.id))]
   if (!recordIds.length) return [...deductionQuestions, ...contractorQuestions]
   const businessId = currentQueue[0].record.businessId
-  const resolution = await loadCurrentRecordConvergences({
+  const resolution = await (resolutionRead??loadCurrentRecordConvergences({
     supabase: input.supabase, businessId,
-  })
+  }))
 
   const [{ data: records, error: recordError }, { data: sources, error: sourceError }, documentResult] =
     await Promise.all([
@@ -334,6 +337,7 @@ export async function getCanonicalQuestionCandidates(input: {
   scope?: 'expenses' | 'business'
   asOf?: string
   includeNonConversational?: boolean
+  businessId?: string
 }): Promise<CurrentAskableQuestionQueue> {
   const asOf=input.asOf??new Date().toISOString()
   const questions=await buildCustomerQuestions({...input,asOf})
@@ -351,17 +355,16 @@ export async function getCurrentAskableQuestionQueue(input: {
 /** Compatibility contract for existing Weekly Review and /questions consumers. */
 export async function listCustomerQuestions(input: {
   includeNonConversational?: boolean
+  businessId?: string
   supabase: SupabaseClient
   scope?: 'expenses' | 'business'
 }) {
   return (await getCurrentAskableQuestionQueue(input)).questions
 }
 
-async function listContractorQuestions(supabase: SupabaseClient,asOf=new Date().toISOString()): Promise<CustomerQuestion[]> {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('An authenticated user is required.')
-  const { data: business } = await supabase.from('businesses').select('id').eq('owner_user_id', user.id).single()
-  if (!business) return []
+async function listContractorQuestions(supabase: SupabaseClient,asOf=new Date().toISOString(),businessId?:string): Promise<CustomerQuestion[]> {
+  const business=businessId?{id:businessId}:await questionBusiness(supabase)
+  if(!business)return []
   const [{ data: payments, error: paymentError }, { data: contractors, error: contractorError },
     { data: w9, error: w9Error },{data:deferrals,error:deferralError}] = await Promise.all([
     supabase.from('current_contractor_payments').select('*').eq('business_id', business.id),
@@ -402,12 +405,9 @@ async function listContractorQuestions(supabase: SupabaseClient,asOf=new Date().
   return questions
 }
 
-async function listDeductionQuestions(supabase: SupabaseClient): Promise<CustomerQuestion[]> {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('An authenticated user is required.')
-  const { data: business, error: businessError } = await supabase.from('businesses').select('id')
-    .eq('owner_user_id', user.id).maybeSingle()
-  if (businessError || !business) throw new Error('Business was not found for the authenticated user.')
+async function listDeductionQuestions(supabase: SupabaseClient,businessId?:string): Promise<CustomerQuestion[]> {
+  const business=businessId?{id:businessId}:await questionBusiness(supabase)
+  if(!business)throw new Error('Business was not found for the authenticated user.')
   const { data: attentions, error } = await supabase.from('current_deduction_attentions')
     .select('id,attention_id,event_type,fact_type,bookkeeping_record_id,question_type,prompt,guidance,scope_key,signal_version,created_at')
     .eq('business_id', business.id).eq('event_type', 'opened').order('created_at')
@@ -441,4 +441,12 @@ async function listDeductionQuestions(supabase: SupabaseClient): Promise<Custome
         currency: record?.currency ?? 'USD', date: record?.occurred_on ?? null },
     }
   })
+}
+
+async function questionBusiness(supabase:SupabaseClient){
+ const {data:{user},error}=await requestUser(supabase)
+ if(error||!user)throw new Error('An authenticated user is required.')
+ const business=await supabase.from('businesses').select('id').eq('owner_user_id',user.id).maybeSingle()
+ if(business.error)throw new Error('Business unavailable')
+ return business.data
 }

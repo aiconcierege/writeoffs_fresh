@@ -1,9 +1,12 @@
+import {requestUser} from '../../../../../lib/performance/request-identity'
+import {guidedCommand} from '../../../../../lib/bookkeeping/guided-command-response'
+import { timedRoute } from '../../../../../lib/performance/request-timing'
 import {loadSpecialWork} from '../../../../../lib/bookkeeping/special-transactions'
 import {NextResponse} from 'next/server'
 import {createServerSupabase} from '../../../../../../utils/supabase/server'
 import {requireCapability,membershipErrorResponse} from '../../../../../lib/membership/entitlements'
-export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){
- const db=await createServerSupabase(),{data:{user}}=await db.auth.getUser()
+async function handlePOST(request:Request,{params}:{params:Promise<{id:string}>}){
+ const db=await createServerSupabase(),{data:{user}}=await requestUser(db)
  if(!user)return NextResponse.json({error:'unauthorized'},{status:401})
  try{await requireCapability(db,'track_expenses')}catch(e){const r=membershipErrorResponse(e);return NextResponse.json({error:r.error},{status:r.status})}
  let body;try{body=await request.json()}catch{return NextResponse.json({error:'Invalid answer.'},{status:400})}
@@ -14,8 +17,12 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
  return NextResponse.json({ok:true,decisionId:result.data})
 }
 
-export async function GET(_request:Request,{params}:{params:Promise<{id:string}>}){
- const db=await createServerSupabase(),{data:{user}}=await db.auth.getUser()
+async function handleGET(_request:Request,{params}:{params:Promise<{id:string}>}){
+ const db=await createServerSupabase(),{data:{user}}=await requestUser(db)
  if(!user)return NextResponse.json({error:'unauthorized'},{status:401})
  try{const{id}=await params;const work=await loadSpecialWork(db,id);if(!work)return NextResponse.json({error:'Unavailable'},{status:404});return NextResponse.json({work},{headers:{'Cache-Control':'private, no-store'}})}catch{return NextResponse.json({error:'Unavailable'},{status:404})}
 }
+
+export const GET = timedRoute(handleGET)
+
+export const POST = timedRoute(guidedCommand(handlePOST))

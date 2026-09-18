@@ -28,7 +28,7 @@ function start(){
  return{ready,fetcher}
 }
 it('automatically reads ready work after a short processing gap without a command or navigation',async()=>{
- const{ready,fetcher}=start();await vi.advanceTimersByTimeAsync(7000)
+ const{ready,fetcher}=start();await vi.advanceTimersByTimeAsync(500)
  expect(fetcher).toHaveBeenCalledOnce();expect(hooks.setters[0]).toHaveBeenCalledWith(ready)
  expect(fetcher.mock.calls[0][0]).toBe('/api/bookkeeping/work?record=entry-record')
  expect(fetcher.mock.calls[0][1].method).toBeUndefined()
@@ -40,4 +40,11 @@ it('bounds automatic processing reads without limiting completed customer action
 it('stops background reads when the customer leaves',async()=>{
  const{fetcher}=start();cleanup.forEach(fn=>fn());cleanup=[]
  await vi.advanceTimersByTimeAsync(60000);expect(fetcher).not.toHaveBeenCalled()
+})
+
+it('does not spend projection reads while the customer is considering ready work',async()=>{
+ const fetcher=vi.fn();vi.stubGlobal('fetch',fetcher)
+ GuidedWork({initialWork:homeWorkFixture('concurrent')})
+ cleanup=hooks.effects.flatMap(effect=>{const dispose=effect();return typeof dispose==='function'?[dispose]:[]})
+ await vi.advanceTimersByTimeAsync(120000);expect(fetcher).not.toHaveBeenCalled()
 })

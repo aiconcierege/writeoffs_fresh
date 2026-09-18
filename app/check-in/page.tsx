@@ -1,3 +1,5 @@
+import {requestUser} from '../lib/performance/request-identity'
+import {timedRender} from '../lib/performance/request-timing'
 import {redirect} from 'next/navigation'
 import {createServerSupabase} from '../../utils/supabase/server'
 import {loadCustomerEntitlements} from '../lib/membership/entitlements'
@@ -8,8 +10,8 @@ import {loadSpecialWork} from '../lib/bookkeeping/special-transactions'
 import {GuidedWork} from '../components/guided/GuidedWork'
 import {ConversationShell} from '../components/guided/ConversationShell'
 export const dynamic='force-dynamic'
-export default async function CheckInPage({searchParams}:{searchParams:Promise<{record?:string;returnTo?:string;ordinary?:string;review?:string}>}){
- const db=await createServerSupabase(),{data:{user}}=await db.auth.getUser()
+async function CheckInPage({searchParams}:{searchParams:Promise<{record?:string;returnTo?:string;ordinary?:string;review?:string}>}){
+ const db=await createServerSupabase(),{data:{user}}=await requestUser(db)
  if(!user)redirect('/login')
  const membership=await loadCustomerEntitlements(db)
  if(membership.lifecycle==='none')redirect('/membership')
@@ -22,3 +24,5 @@ export default async function CheckInPage({searchParams}:{searchParams:Promise<{
  }
  return <GuidedWork initialWork={queue.work} returnTo={returnTo} recordId={record} ordinary={ordinary==='1'}/>
 }
+
+export default timedRender('CheckInPage',CheckInPage)

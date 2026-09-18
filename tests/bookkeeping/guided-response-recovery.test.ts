@@ -41,6 +41,16 @@ describe('guided answer recovery never resends an uncertain write',()=>{
  it('counts only a confirmed response as an answer',async()=>{
   const fetcher=vi.fn().mockResolvedValue({ok:true,status:200,json:async()=>({ok:true})})
   const result=await answer(fetcher)
-  expect(result.confirmed).toHaveBeenCalledWith(false);expect(result.refresh).not.toHaveBeenCalled();expect(fetcher).toHaveBeenCalledOnce()
+  expect(result.confirmed).toHaveBeenCalledWith(false,undefined,undefined);expect(result.refresh).not.toHaveBeenCalled();expect(fetcher).toHaveBeenCalledOnce()
  })
+})
+
+it('uses the server-confirmed continuation without another answer or queue request',async()=>{
+ const work={businessId:'owned-business',nextAction:{id:'independent-ready-action'}}
+ const fetcher=vi.fn().mockResolvedValue({ok:true,status:200,json:async()=>({ok:true,work})})
+ const result=await answer(fetcher)
+ expect(fetcher).toHaveBeenCalledOnce()
+ expect(fetcher.mock.calls[0][1].headers['x-betti-guided']).toBe('1')
+ expect(result.confirmed).toHaveBeenCalledWith(false,undefined,work)
+ expect(result.refresh).not.toHaveBeenCalled()
 })

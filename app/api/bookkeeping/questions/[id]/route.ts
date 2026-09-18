@@ -1,3 +1,6 @@
+import {requestUser} from '../../../../lib/performance/request-identity'
+import {guidedCommand} from '../../../../lib/bookkeeping/guided-command-response'
+import { timedRoute } from '../../../../lib/performance/request-timing'
 import { loadCurrentCustomerWork } from '../../../../lib/bookkeeping/customer-work'
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../../utils/supabase/server'
@@ -78,12 +81,12 @@ function parseCommand(value: unknown): CustomerQuestionAction | null {
   return null
 }
 
-export async function POST(
+async function handlePOST(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createServerSupabase()
-  const { data: { user }, error } = await supabase.auth.getUser()
+  const { data: { user }, error } = await requestUser(supabase)
   if (error || !user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
@@ -261,3 +264,5 @@ function nextHomeOfficeQuestion(factType: string, value: string | number | boole
   }
   return null
 }
+
+export const POST = timedRoute(guidedCommand(handlePOST))

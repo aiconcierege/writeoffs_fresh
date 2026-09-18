@@ -1,3 +1,4 @@
+import {requestUser} from '../performance/request-identity'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { CanonicalWeeklyReviewService } from './review-events'
 import {
@@ -32,9 +33,9 @@ export async function actOnCustomerQuestion(input: {
   expectedEventId: string
   command: CustomerQuestionAction
 }) {
-  const { data: { user }, error } = await input.supabase.auth.getUser()
+  const { data: { user }, error } = await requestUser(input.supabase)
   if (error || !user) throw new Error('An authenticated user is required.')
-  const queue = await listCanonicalReviewQueue({ supabase: input.supabase })
+  const queue = await listCanonicalReviewQueue({ supabase: input.supabase, issueId: input.issueId })
   const item = queue.find(({ event }) => event.reviewIssueId === input.issueId)
   if (!item || item.event.id !== input.expectedEventId) {
     throw new Error('This question changed. Please continue with the latest question.')

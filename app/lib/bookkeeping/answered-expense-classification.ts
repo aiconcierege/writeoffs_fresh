@@ -1,3 +1,4 @@
+import {requestUser} from '../performance/request-identity'
 import 'server-only'
 import { createServerAdminSupabase } from '../../../utils/supabase/admin'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -27,7 +28,7 @@ export async function finishAnsweredExpense(input: { supabase: SupabaseClient; a
   const decision = input.result.decision
   if (!decision || typeof decision !== 'object' || !('id' in decision) || !('businessId' in decision)
     || !('bookkeepingRecordId' in decision)) return
-  const { data: { user } } = await input.supabase.auth.getUser()
+  const { data: { user } } = await requestUser(input.supabase)
   if (!user) throw new Error('AUTH_REQUIRED')
   const businessId = String(decision.businessId), recordId = String(decision.bookkeepingRecordId)
   // Confirm ownership with the authenticated repository before a trusted read.

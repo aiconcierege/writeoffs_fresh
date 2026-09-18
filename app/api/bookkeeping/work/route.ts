@@ -1,12 +1,14 @@
+import {requestUser} from '../../../lib/performance/request-identity'
+import { timedRoute } from '../../../lib/performance/request-timing'
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../utils/supabase/server'
 import { loadCustomerEntitlements } from '../../../lib/membership/entitlements'
 import { loadBettiWork } from '../../../lib/bookkeeping/betti-work-loader'
 
 export const dynamic = 'force-dynamic'
-export async function GET(request: Request) {
+async function handleGET(request: Request) {
   const db = await createServerSupabase()
-  const { data: { user }, error } = await db.auth.getUser()
+  const { data: { user }, error } = await requestUser(db)
   if (error || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   const { data: assurance } = await db.auth.mfa.getAuthenticatorAssuranceLevel()
   if (assurance?.currentLevel !== 'aal2') return NextResponse.json({ error: 'MFA required' }, { status: 403 })
@@ -26,3 +28,5 @@ export async function GET(request: Request) {
       { status: 503, headers: { 'Cache-Control': 'private, no-store' } })
   }
 }
+
+export const GET = timedRoute(handleGET)

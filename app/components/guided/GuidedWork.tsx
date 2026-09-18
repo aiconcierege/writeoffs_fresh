@@ -27,6 +27,7 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
   if(!response.ok)throw new Error('I couldn’t refresh your work. Please try again.')
   const updated=await response.json() as BettiWorkProjection;if(signal?.aborted)throw new DOMException('Superseded read','AbortError');setWork(updated);return updated
  },[recordId])
+ const needsProcessingRead=(!work.nextAction&&work.betti.genuinelyProcessing+work.betti.queued+work.betti.retryScheduled>0)||error==='I couldn’t check for updates. Refresh before answering.'
  useEffect(()=>{
   let alive=true
   const updateError='I couldn’t check for updates. Refresh before answering.'
@@ -37,10 +38,24 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
    catch{if(alive&&!controller.signal.aborted)setError(updateError)}
    finally{if(backgroundRead.current===controller)backgroundRead.current=null}
   }
-  // A short processing gap resumes automatically; long-running work does not poll forever.
-  const timer=setInterval(()=>{if(automaticReads.current<8){automaticReads.current++;void read();if(automaticReads.current===8)setWaitingPaused(true)}},7000);window.addEventListener('focus',read)
-  return()=>{alive=false;backgroundRead.current?.abort();clearInterval(timer);window.removeEventListener('focus',read)}
- },[refresh])
+  // Read quickly during a real transition, then back off. No idle polling while
+  // the customer is reading an actionable question; focus still checks freshness.
+  const delays=[500,1000,2000,4000,7000,10000,15000,20000]
+  let timer:ReturnType<typeof setTimeout>|undefined
+  const schedule=()=>{
+   if(!alive||!needsProcessingRead)return
+   if(automaticReads.current>=delays.length){setWaitingPaused(true);return}
+   timer=setTimeout(async()=>{
+    if(!alive)return
+    if(!lock.current&&!reconciling.current&&!backgroundRead.current&&document.visibilityState==='visible'){
+     automaticReads.current++;await read()
+    }
+    schedule()
+   },document.visibilityState==='visible'?delays[automaticReads.current]:7000)
+  }
+  schedule();window.addEventListener('focus',read)
+  return()=>{alive=false;backgroundRead.current?.abort();clearTimeout(timer);window.removeEventListener('focus',read)}
+ },[refresh,needsProcessingRead,waitingPaused])
  // The entry record is a server-side priority hint, never a session boundary.
  const action=work.nextAction
  useEffect(()=>{const title=root.current?.querySelector('h1');if(title){title.tabIndex=-1;title.focus({preventScroll:true})}},[action?.id])
@@ -51,21 +66,22 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
   const alreadyReconciling=reconciling.current;reconciling.current=true
   try{await refresh();setError('')}catch{setError('I couldn’t check for updates. Refresh before answering.')}finally{reconciling.current=alreadyReconciling}
  }
- async function resolved(isDeferred:boolean,message?:string){
+ async function resolved(isDeferred:boolean,message?:string,nextWork?:BettiWorkProjection){
   backgroundRead.current?.abort();reconciling.current=true;automaticReads.current=0;setWaitingPaused(false)
   try{
   if(isDeferred)setDeferred(n=>n+1);else setHandled(n=>n+1)
   setNotice(isDeferred?'I saved this for later.':message??'Got it. I’ve saved what you told me.')
+  if(nextWork){setWork(nextWork);setError('');return}
   // Explicit answer reconciliation, never a GET/render side effect.
-  const reconciliation=await fetch('/api/bookkeeping/questions/reconcile',{method:'POST',signal:AbortSignal.timeout(15000)})
+  const reconciliation=isDeferred?{ok:true}:await fetch('/api/bookkeeping/questions/reconcile',{method:'POST',signal:AbortSignal.timeout(15000)})
   if(!reconciliation.ok){await recover();return}
   try{const next=await refresh();setError('');if(!isDeferred&&next.nextAction?.question&&action?.recordIds.some(id=>next.nextAction!.recordIds.includes(id)))setNotice('That helps. I have a follow-up about this purchase.')}catch{setError('I couldn’t check for updates. Refresh before answering.')}
   requestAnimationFrame(()=>heading.current?.focus())
   }catch{await recover()}finally{reconciling.current=false}
  }
- async function perform(command:()=>Promise<void>,isDeferred=false){
+ async function perform(command:()=>Promise<BettiWorkProjection|void>,isDeferred=false){
   if(lock.current)return;lock.current=true;backgroundRead.current?.abort();setSaving(true);setError('')
-  try{await command();await resolved(isDeferred)}catch(e){setError(e instanceof Error?e.message:'Your answer could not be confirmed.');try{await refresh()}catch{/* Explicit reload remains available. */}}
+  try{const next=await command();await resolved(isDeferred,undefined,next??undefined)}catch(e){setError(e instanceof Error?e.message:'Your answer could not be confirmed.');try{await refresh()}catch{/* Explicit reload remains available. */}}
   finally{lock.current=false;setSaving(false)}
  }
  const home=homeCommand(work,'statement_uploads'),waiting=work.betti.genuinelyProcessing+work.betti.queued+work.betti.retryScheduled>0
@@ -81,11 +97,11 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
   :<><h1>{action.type==='recover_ingestion'?'Let’s take another look at this document.':'Send me your financial activity.'}</h1><p className="betti-explanation">{action.type==='recover_ingestion'?'Your original is safe. Open the document to see what will help me read it.':'Connected accounts are the easiest way to keep up. Statements work too.'}</p><div className="betti-continue"><Link className="btn btn-primary" href={action.href}>{action.type==='recover_ingestion'?'View document':'Send documents'}</Link>{action.type==='provide_records'&&<Link className="betti-defer" href="/get-started">Connect accounts instead</Link>}</div></>}
  </ConversationShell></div>
 }
-function AccountStep({action,busy,perform}:{action:WorkAction;busy:boolean;perform:(fn:()=>Promise<void>,deferred?:boolean)=>Promise<void>}){
+function AccountStep({action,busy,perform}:{action:WorkAction;busy:boolean;perform:(fn:()=>Promise<BettiWorkProjection|void>,deferred?:boolean)=>Promise<void>}){
  const request=useRef<AccountUseRequest|null>(null),account=action.account!
- return <><MerchantIdentity merchant={account.name+(account.mask?` · ${account.mask}`:'')}/><h1>How did you use this account?</h1><p className="betti-explanation">Tell me once. I’ll use this for its activity in your books, and you can still change any individual purchase.</p><div className="betti-choices">{([['business_only','Business only','I use this account for my business.'],['business_and_personal','Business + personal','There’s personal activity in this account too.']] as const).map(([designation,label,description])=><SelectionCard key={designation} disabled={busy} onClick={()=>void perform(async()=>{if(request.current?.designation!==designation)request.current={designation,effectiveAt:new Date().toISOString(),requestId:crypto.randomUUID()};await persistAccountUse(account.id,request.current)})}><span>{label}<small>{description}</small></span></SelectionCard>)}</div>{busy&&<p role="status">Saving your account choice…</p>}</>
+ return <><MerchantIdentity merchant={account.name+(account.mask?` · ${account.mask}`:'')}/><h1>How did you use this account?</h1><p className="betti-explanation">Tell me once. I’ll use this for its activity in your books, and you can still change any individual purchase.</p><div className="betti-choices">{([['business_only','Business only','I use this account for my business.'],['business_and_personal','Business + personal','There’s personal activity in this account too.']] as const).map(([designation,label,description])=><SelectionCard key={designation} disabled={busy} onClick={()=>void perform(async()=>{if(request.current?.designation!==designation)request.current={designation,effectiveAt:new Date().toISOString(),requestId:crypto.randomUUID()};let next:BettiWorkProjection|undefined;await persistAccountUse(account.id,request.current,value=>{next=value});return next})}><span>{label}<small>{description}</small></span></SelectionCard>)}</div>{busy&&<p role="status">Saving your account choice…</p>}</>
 }
-function SweepStep({action,busy,perform,refresh}:{action:WorkAction;busy:boolean;perform:(fn:()=>Promise<void>,deferred?:boolean)=>Promise<void>;refresh:()=>Promise<BettiWorkProjection>}){
+function SweepStep({action,busy,perform,refresh}:{action:WorkAction;busy:boolean;perform:(fn:()=>Promise<BettiWorkProjection|void>,deferred?:boolean)=>Promise<void>;refresh:()=>Promise<BettiWorkProjection>}){
  const[answers,setAnswers]=useState<Record<string,{use:string;businessDollars?:string}>>({}),[uploading,setUploading]=useState(false),[showUpload,setShowUpload]=useState(false),[uploadReadError,setUploadReadError]=useState(false),request=useRef<{signature:string;id:string}|null>(null)
  async function readAfterUpload(){setUploading(true);try{await refresh();setUploadReadError(false)}catch{setUploadReadError(true)}finally{setUploading(false)}}
  function uploadState(value:boolean){setUploading(value);if(!value)void readAfterUpload()}
@@ -99,8 +115,8 @@ function SweepStep({action,busy,perform,refresh}:{action:WorkAction;busy:boolean
    const supplied=disposition==='deferred'?{}:Object.fromEntries(Object.entries(answers).map(([id,a])=>[id,{use:a.use,...(a.use==='mixed'?{businessCents:parsePositiveDollarCents(a.businessDollars??'')}: {})}]))
    const payload={actionId:action.id,version:action.version,items,disposition,answers:supplied},signature=JSON.stringify(payload)
    if(request.current?.signature!==signature)request.current={signature,id:crypto.randomUUID()}
-   const response=await fetch('/api/bookkeeping/work/answer',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...payload,requestId:request.current.id}),signal:AbortSignal.timeout(15000)})
-   const result=await response.json();if(!response.ok)throw new Error(result.error??'Please refresh this group.')
+   const response=await fetch('/api/bookkeeping/work/answer',{method:'POST',headers:{'content-type':'application/json','x-betti-guided':'1'},body:JSON.stringify({...payload,requestId:request.current.id}),signal:AbortSignal.timeout(15000)})
+   const result=await response.json();if(!response.ok)throw new Error(result.error??'Please refresh this group.');return result.work as BettiWorkProjection|undefined
   },disposition==='deferred')
  }
  return <><h1>{title}</h1><p className="betti-explanation">{explanation}</p>{action.account&&<p className="betti-workstream">{action.account.name}{action.account.mask?` · ${action.account.mask}`:''} · {items.length} shown</p>}
@@ -116,7 +132,7 @@ function SweepStep({action,busy,perform,refresh}:{action:WorkAction;busy:boolean
  <div className="betti-continue"><button className={`btn ${receipt?'btn-secondary':'btn-primary'}`} disabled={busy||!valid||uploading||uploadReadError} onClick={()=>void save('completed')}>{busy?'Saving…':availability?'That’s all the receipts I have':personal?Object.keys(answers).length?'Save personal exceptions':'Nothing here is personal':mixed?mixedAccount?'Save these facts':Object.keys(answers).length?'Save business portions':'Nothing is partly personal': 'Continue with Betti'}</button></div>
  {!receipt&&<button className="betti-defer" disabled={busy||uploading} onClick={()=>void save('deferred')}>{availability?'I’ll send receipts later':'I’ll come back to this'}</button>}</>
 }
-function SpecialStep({action,returnTo,resolved,recover}:{action:WorkAction;returnTo:string;resolved:(deferred:boolean,message?:string)=>Promise<void>;recover:()=>Promise<void>}){
+function SpecialStep({action,returnTo,resolved,recover}:{action:WorkAction;returnTo:string;resolved:(deferred:boolean,message?:string,work?:BettiWorkProjection)=>Promise<void>;recover:()=>Promise<void>}){
  const[work,setWork]=useState<SpecialWork|null>(null),[failed,setFailed]=useState(false)
  useEffect(()=>{let live=true;fetch(`/api/bookkeeping/records/${action.recordIds[0]}/special`,{cache:'no-store'}).then(async r=>{if(!r.ok)throw new Error();const data=await r.json();if(live)setWork(data.work)}).catch(()=>{if(live)setFailed(true)});return()=>{live=false}},[action])
  const transaction=action.question?.transaction??action.transaction

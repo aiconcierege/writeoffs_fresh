@@ -1,10 +1,13 @@
+import {requestUser} from '../../../../lib/performance/request-identity'
+import {guidedCommand} from '../../../../lib/bookkeeping/guided-command-response'
+import { timedRoute } from '../../../../lib/performance/request-timing'
 import {NextResponse} from 'next/server'
 import {createServerSupabase} from '../../../../../utils/supabase/server'
 import {requireCapability,membershipErrorResponse} from '../../../../lib/membership/entitlements'
 import {loadCurrentCustomerWork} from '../../../../lib/bookkeeping/customer-work'
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-export async function POST(request:Request){
- const db=await createServerSupabase(),{data:{user}}=await db.auth.getUser()
+async function handlePOST(request:Request){
+ const db=await createServerSupabase(),{data:{user}}=await requestUser(db)
  if(!user)return NextResponse.json({error:'Sign in to continue.'},{status:401})
  try{await requireCapability(db,'autonomous_processing')}catch(e){const r=membershipErrorResponse(e);return NextResponse.json({error:r.error},{status:r.status})}
  let body;try{body=await request.json()}catch{return NextResponse.json({error:'Check your answer.'},{status:400})}
@@ -26,3 +29,5 @@ export async function POST(request:Request){
   return NextResponse.json({ok:true,result:result.data},{headers:{'Cache-Control':'private, no-store'}})
  }catch{return NextResponse.json({error:'I couldn’t confirm that answer. Please refresh and try again.'},{status:503})}
 }
+
+export const POST = timedRoute(guidedCommand(handlePOST))

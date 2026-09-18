@@ -1,3 +1,4 @@
+import {requestUser} from '../performance/request-identity'
 import {loadCustomerEntitlements} from '../membership/entitlements'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { homeCommand } from '../home/command-center'
@@ -6,7 +7,7 @@ import { loadBettiWork } from './betti-work-loader'
 /** All conversational consumers share the same scope, prerequisites and waiting gates.
  * `count` includes canonical guided actions; `questions` is only the question subset. */
 export async function loadCurrentCustomerWork(input:{supabase:SupabaseClient;scope?:'business'|'expenses';asOf?:string;recordId?:string}) {
-  const {data:{user}}=await input.supabase.auth.getUser()
+  const {data:{user}}=await requestUser(input.supabase)
   if(!user)throw new Error('Authenticated user required')
   const {data:business,error}=await input.supabase.from('businesses').select('id,onboarding_start_method').eq('owner_user_id',user.id).single()
   if(error||!business)throw new Error('Business unavailable')

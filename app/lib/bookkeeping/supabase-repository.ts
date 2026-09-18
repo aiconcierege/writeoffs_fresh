@@ -588,27 +588,48 @@ export class SupabaseBookkeepingRepository
     return this.requireReviewEvent(input.businessId, data)
   }
 
-  async listCurrentWeeklyReviewItems(businessId: string, asOf: string) {
+  async listCurrentWeeklyReviewItems(businessId: string, asOf: string, issueId?:string) {
     const { data, error } = await this.supabase.rpc('list_current_bookkeeping_review_issues', {
       p_business_id: businessId,
       p_as_of: asOf,
     })
     if (error) fail('list current bookkeeping review issues', error)
-    return Promise.all(
-      ((data ?? []) as DatabaseRow[]).map(async (row) => {
-        const event = mapWeeklyReviewEvent(row)
-        const [record, decision] = await Promise.all([
-          this.findRecord(businessId, event.bookkeepingRecordId),
-          this.findDecisionById(businessId, event.basedOnDecisionId),
-        ])
-        if (!record || !decision) {
-          fail('map bookkeeping review issue', {
-            message: 'review issue record or decision is missing',
-          })
-        }
-        return { record, decision, event }
-      })
-    )
+    const events=((data ?? []) as DatabaseRow[]).map(mapWeeklyReviewEvent).filter(event=>!issueId||event.reviewIssueId===issueId)
+    const result: Array<{record:CanonicalBookkeepingRecord;decision:StoredBookkeepingDecision;event:StoredWeeklyReviewEvent}>=[]
+    // Bounded tenant-scoped batches replace six reads per question. Keep the same
+    // source authority, Plaid-current validation and allocation mapping as findRecord.
+    for(let offset=0;offset<events.length;offset+=100){
+      const batch=events.slice(offset,offset+100),recordIds=[...new Set(batch.map(e=>e.bookkeepingRecordId))],decisionIds=[...new Set(batch.map(e=>e.basedOnDecisionId))]
+      const responses=await Promise.all([
+        this.supabase.from('bookkeeping_records').select('id,business_id,amount_cents,currency').eq('business_id',businessId).in('id',recordIds),
+        this.supabase.from('bookkeeping_financial_sources').select('bookkeeping_record_id,financial_transaction_id').eq('business_id',businessId).in('bookkeeping_record_id',recordIds).is('revoked_at',null),
+        this.supabase.from('bookkeeping_decisions').select('*').eq('business_id',businessId).in('id',decisionIds),
+        this.supabase.from('bookkeeping_allocations').select('bookkeeping_decision_id,allocation_kind,amount_cents,tax_category_key,memo').eq('business_id',businessId).in('bookkeeping_decision_id',decisionIds),
+      ])
+      for(const response of responses)if(response.error||response.data?.length===1000)fail('load review batch',response.error??{message:'Review batch exceeds adapter capacity'})
+      const [records,sources,decisions,allocations]=responses.map(r=>(r.data??[]) as DatabaseRow[])
+      const transactionIds=sources.map(r=>requiredString(r,'financial_transaction_id'))
+      const [financial,plaidState]=await Promise.all([
+        transactionIds.length?this.supabase.from('financial_transactions').select('id,amount_cents,currency').eq('business_id',businessId).in('id',transactionIds):Promise.resolve({data:[],error:null}),
+        currentPlaidFinancialState({supabase:this.supabase,businessId,candidateFinancialTransactionIds:transactionIds}),
+      ])
+      if(financial.error)fail('load review financial sources',financial.error)
+      const recordMap=new Map(records.map(r=>[r.id,r])),decisionMap=new Map(decisions.map(r=>[r.id,r]))
+      const financialMap=new Map((financial.data??[]).map(r=>[r.id,r]))
+      for(const event of batch){
+        const row=recordMap.get(event.bookkeepingRecordId),decision=decisionMap.get(event.basedOnDecisionId)
+        if(!row||!decision)fail('map bookkeeping review issue',{message:'review issue record or decision is missing'})
+        const links=sources.filter(r=>r.bookkeeping_record_id===event.bookkeepingRecordId)
+        if(links.length>1)fail('map bookkeeping review issue',{message:'multiple active financial sources'})
+        const sourceId=links[0]?requiredString(links[0],'financial_transaction_id'):null,source=sourceId?financialMap.get(sourceId):null
+        if(sourceId&&(!source||!plaidFinancialTransactionIsCurrent({id:sourceId,state:plaidState})))fail('map bookkeeping review issue',{message:'active financial source is missing'})
+        const record=mapRecord(source?{...row,authoritative_amount_cents:Number(source.amount_cents),authoritative_currency:source.currency}:row)
+        result.push({event,record,decision:mapDecision(decision,allocations.filter(a=>a.bookkeeping_decision_id===decision.id).map(a=>({
+          kind:requiredString(a,'allocation_kind') as BookkeepingDecisionInput['allocations'][number]['kind'],amountCents:Number(a.amount_cents),taxCategoryKey:nullableString(a,'tax_category_key'),memo:nullableString(a,'memo'),
+        })))})
+      }
+    }
+    return result
   }
 
   async answerBusinessPurpose(input: {

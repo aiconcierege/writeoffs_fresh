@@ -42,7 +42,7 @@ export interface WeeklyReviewRepository {
   }): Promise<StoredWeeklyReviewEvent>
   listCurrentWeeklyReviewItems(
     businessId: string,
-    asOf: string
+    asOf: string, issueId?: string
   ): Promise<CanonicalWeeklyReviewItem[]>
 }
 
@@ -128,10 +128,10 @@ export class CanonicalWeeklyReviewService {
     })
   }
 
-  async listQueue(businessId: string, asOf = new Date().toISOString()) {
+  async listQueue(businessId: string, asOf = new Date().toISOString(), issueId?: string) {
     required(businessId, 'Business')
     const normalizedAsOf = validateDeferredUntil(asOf)
     if (!normalizedAsOf) throw new BookkeepingValidationError('Queue time is required.')
-    return this.repository.listCurrentWeeklyReviewItems(businessId, normalizedAsOf)
+    return this.repository.listCurrentWeeklyReviewItems(businessId, normalizedAsOf, issueId)
   }
 }

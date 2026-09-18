@@ -13,8 +13,13 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
  const errors=[];page.on('pageerror',e=>errors.push(e.message))
  const steps=[],seen=new Set(),captures=new Set(),processingWaits=[];let persistenceMs=0,clickAt=0,expectedVersion=''
  let responseLossTested=false
+ const performanceMode=process.env.CERTIFICATION_PERFORMANCE==='true', httpTimings=[]
+ let renderedMs=0,acknowledgmentMs=null
+ page.on('response',async r=>{if(r.url().includes('/api/bookkeeping/'))httpTimings.push({path:new URL(r.url()).pathname,method:r.request().method(),status:r.status(),serverTiming:(await r.allHeaders())['server-timing']??null})})
  async function save(label,loseResponse=false){
   clickAt=Date.now()
+  if(performanceMode)loseResponse=false
+  await page.evaluate(()=>{window.__bettiPerf={};document.addEventListener('click',()=>{window.__bettiPerf.click=performance.now();requestAnimationFrame(()=>{window.__bettiPerf.pending=performance.now()})},{once:true,capture:true})})
   let resolveSaved
   const saved=new Promise(resolve=>{resolveSaved=resolve})
   const handler=async route=>{
@@ -33,6 +38,8 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
    assert.equal(response.status,200,response.body)
    // Observe actual screen advancement, not an obsolete independently read snapshot.
    await page.waitForFunction(version=>document.querySelector('[data-guided-action]')?.getAttribute('data-guided-version')!==version,expectedVersion,{timeout:60000})
+   renderedMs=Date.now()-clickAt
+   acknowledgmentMs=await page.evaluate(()=>window.__bettiPerf.pending-window.__bettiPerf.click)
   }finally{await page.unroute('**/api/bookkeeping/**',handler)}
  }
  try{for(let turn=0;turn<200;turn++){
@@ -85,7 +92,7 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
   // Do not wait for an old API snapshot to reappear after a worker advances priority.
   await page.waitForTimeout(100)
   const visibleMs=Date.now()-clickAt
-  steps.push({at:new Date().toISOString(),number:steps.length+1,type:action.type,merchant,workstream:action.workstream,disposition,next:after.nextAction?{type:after.nextAction.type,workstream:after.nextAction.workstream}:null,persistedMs:persistenceMs,nextVisibleMs:visibleMs,unnecessaryStop:false})
+  steps.push({at:new Date().toISOString(),number:steps.length+1,type:action.type,merchant,workstream:action.workstream,disposition,next:after.nextAction?{type:after.nextAction.type,workstream:after.nextAction.workstream}:null,persistedMs:persistenceMs,nextVisibleMs:visibleMs,renderedMs,acknowledgmentMs,unnecessaryStop:false})
   await writeFile(`${dir}/continuity-progress.json`,JSON.stringify(steps,null,2))
   console.log('Continuous action',steps.length,action.type,action.workstream,disposition,'next:',after.nextAction?.type??after.readiness.phase)
   if(merchant==='LOAN PAYMENT - EQUIPMENT FINANCE CO')await screenshot(page,'post-deferral-continuation')
@@ -93,10 +100,10 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
  }
  }catch(error){
   await page.screenshot({path:`${dir}/browser/continuity-failure.png`,fullPage:true})
-  await writeFile(`${dir}/continuity-failure.json`,JSON.stringify({error:String(error),steps,processingWaits,navigation,ui:await page.locator('[data-guided-action]').getAttribute('data-guided-action'),version:await page.locator('[data-guided-version]').getAttribute('data-guided-version'),projection:await api(context,path)},null,2))
+  await writeFile(`${dir}/continuity-failure.json`,JSON.stringify({error:String(error),steps,httpTimings,processingWaits,navigation,ui:await page.locator('[data-guided-action]').getAttribute('data-guided-action'),version:await page.locator('[data-guided-version]').getAttribute('data-guided-version'),projection:await api(context,path)},null,2))
   throw error
  }
- assert(responseLossTested,'Committed-response-loss recovery was not exercised')
+ if(!performanceMode)assert(responseLossTested,'Committed-response-loss recovery was not exercised')
  assert(steps.length>=10,'Fewer than ten actions exercised')
  assert(steps.some(s=>s.workstream==='current'),'Current work was not exercised')
  assert(steps.some(s=>s.merchant==='LOAN PAYMENT - EQUIPMENT FINANCE CO'&&s.disposition==='deferred'))
@@ -105,5 +112,5 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
  assert.deepEqual(navigation,[],'Conversation navigated or reloaded');assert.deepEqual(errors,[])
  const final=await cross(context,page);assert.equal(final.w.customer.actionableCount,0)
  const home=await context.newPage();await home.goto(origin+'/home');await screenshot(home,'home-only-deferred');await home.close()
- await writeFile(`${dir}/continuity-result.json`,JSON.stringify({result:'PASS',steps,processingWaits,responseLossTested,navigation,errors,finalActions:final.w.customer.actionableCount,deferred:final.w.customer.deferredCount},null,2))
+ await writeFile(`${dir}/continuity-result.json`,JSON.stringify({result:'PASS',steps,httpTimings,processingWaits,responseLossTested,navigation,errors,finalActions:final.w.customer.actionableCount,deferred:final.w.customer.deferredCount},null,2))
 }

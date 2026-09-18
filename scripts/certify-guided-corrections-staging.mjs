@@ -57,7 +57,7 @@ ink.fillText("McDonald's Restaurant",35,90);ink.font='28px Arial'
 await writeFile(`${dir}/food.png`,canvas.toBuffer('image/png'))
 
 const browser=await chromium.launch({headless:true});const save=()=>writeFile(`${dir}/fixtures.json`,JSON.stringify(fixtures),{mode:0o600});
-async function api(context,path){for(let attempt=0;attempt<3;attempt++){const r=await context.request.get(origin+path);if(r.status()===503&&attempt<2){await new Promise(resolve=>setTimeout(resolve,500));continue}assert.equal(r.status(),200,`${path}: ${r.status()}`);return r.json()}}
+async function api(context,path){const attempts=process.env.CERTIFICATION_PERFORMANCE==='true'?12:3;for(let attempt=0;attempt<attempts;attempt++){const r=await context.request.get(origin+path);if(r.status()===503&&attempt<attempts-1){if(process.env.CERTIFICATION_PERFORMANCE==='true')console.log('Measured read retry',path,attempt+1);await new Promise(resolve=>setTimeout(resolve,500));continue}assert.equal(r.status(),200,`${path}: ${r.status()}`);return r.json()}}
 async function onboard(f,page){
  const b=await admin.from('businesses').select('onboarding_state').eq('id',f.businessId).single()
  if(b.data.onboarding_state==='completed')return
