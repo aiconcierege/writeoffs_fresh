@@ -313,6 +313,16 @@ export class SupabaseBookkeepingRepository
     return mapDecision(current, allocations)
   }
 
+  async completePurchaseBusinessContext(input:{businessId:string;recordId:string;decisionId:string;answerEventId:string;accountUseEventId:string}){
+    const {data,error}=await this.supabase.rpc('complete_purchase_business_context',{
+      p_business:input.businessId,p_record:input.recordId,p_expected:input.decisionId,
+      p_answer:input.answerEventId,p_account_use:input.accountUseEventId})
+    if(error)fail('complete purchase business context',error)
+    const decision=await this.findDecisionById(input.businessId,String(data))
+    if(!decision)throw new Error('Completed purchase decision unavailable')
+    return decision
+  }
+
   async ensureInitialUnresolvedDecision(businessId: string, recordId: string) {
     const { data, error } = await this.supabase.rpc(
       'ensure_initial_bookkeeping_decision',

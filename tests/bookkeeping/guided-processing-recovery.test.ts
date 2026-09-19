@@ -50,12 +50,13 @@ it('does not spend projection reads while the customer is considering ready work
 })
 
 
-it('refreshes a ready batch while real worker activity can change its version',async()=>{
+it('does not preempt a ready action while workers run, but refreshes when the customer returns',async()=>{
  const ready=homeWorkFixture('concurrent')
  const{fetcher,view}=start({...homeWorkFixture('processing'),nextAction:ready.nextAction})
  expect(view.props['data-guided-action']).toBe(ready.nextAction?.type)
- await vi.advanceTimersByTimeAsync(500)
- expect(fetcher).toHaveBeenCalledOnce()
  await vi.advanceTimersByTimeAsync(240000)
- expect(fetcher).toHaveBeenCalledTimes(12)
+ expect(fetcher).not.toHaveBeenCalled()
+ const focus=vi.mocked(window.addEventListener).mock.calls.find(([event])=>event==='focus')?.[1] as ()=>Promise<void>
+ await focus()
+ expect(fetcher).toHaveBeenCalledOnce()
 })

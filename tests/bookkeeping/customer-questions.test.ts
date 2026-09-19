@@ -147,8 +147,7 @@ describe('customer question projection', () => {
     const typeQuestion=projectCustomerQuestion(item('TRANSACTION_TYPE_UNCLEAR'), transaction)
     expect(typeQuestion?.kind).toBe('transaction_type')
     expect(typeQuestion?.options?.map(option=>option.label)).toEqual([
-      'A purchase','Money I earned','Money moved between accounts','A credit card payment',
-      'A refund','Money I added','Money I borrowed','Something else',
+      'A purchase','Money moved between accounts','A credit card payment','Something else',
     ])
     expect(JSON.stringify(typeQuestion)).not.toMatch(/ledger|schedule c|tax category|classification/i)
     expect(projectCustomerQuestion(item('CONFLICTING_EVIDENCE', {
@@ -179,4 +178,22 @@ describe('customer question projection', () => {
     malformed.event.questionContext = { merchant: 'Office Depot' }
     expect(projectCustomerQuestion(malformed, transaction)).toBeNull()
   })
+})
+
+
+describe('canonical evidence-specific conversation',()=>{
+ it('narrows only a provenance-bearing settlement hypothesis, keeping canonical alternatives',()=>{
+  const q=item('TRANSACTION_TYPE_UNCLEAR',{factType:'money_in_source',understanding:{kind:'customer_payment_candidate',counterparty:'ACME',basis:'inferred',confidence:.8,sourceId:'source',evidenceFingerprint:'evidence'}})
+  const projected=projectCustomerQuestion(q,{...transaction,amountCents:73544})!
+  expect(projected.confirmation).toEqual({optionId:'earned_money',label:'Yes, that’s right'})
+  expect(projected.understanding).toContain('ACME')
+  expect(projected.options).toHaveLength(6)
+  q.event.questionContext!.understanding={kind:'customer_payment_candidate',counterparty:'ACME'}
+  expect(projectCustomerQuestion(q,{...transaction,amountCents:73544})?.confirmation).toBeUndefined()
+ })
+ it('asks insurance coverage, not purchase nature or already-established business use',()=>{
+  const q=withDecision(item('BUSINESS_PURPOSE_NEEDED',{factType:'ordinary_expense_purpose',knownPurchase:'insurance'}),{treatment:'business',allocations:[{kind:'business',amountCents:-11875}]})
+  expect(projectCustomerQuestion(q,transaction)).toMatchObject({kind:'business_purpose',prompt:'What did the insurance cover?',options:expect.arrayContaining([{id:'vehicle insurance',label:'A vehicle'}])})
+  expect(projectCustomerQuestion({...q,decision:{...q.decision,treatment:'unresolved'}},transaction)).toBeNull()
+ })
 })

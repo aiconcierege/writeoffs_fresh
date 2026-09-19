@@ -86,6 +86,7 @@ export async function processOperatingExpenseTreatment(input: {
       contextFingerprint: `${evidenceFingerprint}:expense-purpose`,
       questionContext: { schemaVersion: 1, routingVersion: classification.version,
         reason: 'BUSINESS_PURPOSE_NEEDED', factType,
+        ...(classification.reasonCode==='INSURANCE_COVERAGE_NEEDED'?{knownPurchase:'insurance'}:{}),
         establishedFacts: ['purchase', 'businessContext'] },
     })
   }

@@ -24,6 +24,17 @@ export function assessEconomicNature(s: BookkeepingEvaluationSnapshot) {
   const result = (nature: 'business_income' | 'transfer' | 'credit_card_payment' | 'refund' | 'loan_principal_payment', explanation: string) =>
     ({ nature, explanation, confidence: 0.98, sourceId: origin.transactionId })
 
+  // Bank interest grammar + credit direction + bank account + source provenance.
+  // Not loan-interest refunds, card interest charges, dividends or free-form memos.
+  const interestNarrative = /^(?:(?:BANK|DEPOSIT|CREDIT) )?INTEREST (?:PAID|EARNED|CREDIT|PAYMENT)$/.test(text)
+    || /^(?:CREDIT|DEPOSIT) INTEREST$/.test(text)
+  const providerInterest = highProvider && primary === 'INCOME' && detailed === 'INCOME_INTEREST_EARNED'
+  if (bank && incoming && s.accountUse?.designation === 'business_only'
+    && (interestNarrative || providerInterest) && (!primary || primary === 'INCOME')
+    && (!detailed || detailed === 'INCOME_INTEREST_EARNED')) {
+    return result('business_income', 'Bank credit evidence establishes interest earned in the customer-designated business account. This records working income, not a tax-form election.')
+  }
+
   // Explicit customer role + credit rail/direction + customer-established account
   // context. A payout, invoice number, ACH deposit or bare PAYMENT is not enough.
   if (bank && incoming && s.accountUse?.designation === 'business_only'

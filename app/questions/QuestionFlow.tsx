@@ -25,6 +25,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   const [answered, setAnswered] = useState(0)
   const [purpose, setPurpose] = useState('')
   const [otherActivity, setOtherActivity] = useState(false)
+  const [showAlternatives,setShowAlternatives]=useState(false)
   const [mealRelationship, setMealRelationship] = useState('')
   const [mixedAmount, setMixedAmount] = useState('')
   const [mixedMode,setMixedMode]=useState<'dollars'|'percentage'>('dollars')
@@ -137,6 +138,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   useEffect(() => {
     setPurpose(''); setMealRelationship(''); setMixedAmount(''); setMixedPercentage('')
     setMixedMode('dollars'); setShowAmount(false); setFactValue('')
+    setShowAlternatives(false); setOtherActivity(false)
   }, [question?.id, question?.version])
 
   useEffect(()=>{if(!question&&!queueNeedsReload&&embedded)onComplete?.({unresolvedCount:unresolvedKept})},[question,queueNeedsReload,embedded,onComplete,unresolvedKept])
@@ -198,8 +200,9 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
       </header>}
       <section className={`question-conversation relative py-3 sm:py-6${embedded?' weekly-question-embedded':''}`}>
         <div className="question-identity">{!embedded&&<BettiIllustration state="question" className="question-betti" priority sizes="3rem" />}<span>Betti</span></div>
+        {question.understanding && !showAlternatives && <p className="betti-understanding">{question.understanding}</p>}
         <h1 ref={heading} tabIndex={-1} aria-describedby={guided?'guided-transaction':undefined} className="text-[1.65rem] font-semibold leading-tight tracking-[-.035em] text-[#17211d] outline-none sm:text-3xl">
-          {showAmount ? `How much of the ${amount??'total'} was for your business?` : shownPrompt}
+          {showAmount ? `How much of the ${amount??'total'} was for your business?` : showAlternatives && question.confirmation ? 'What was this money for?' : shownPrompt}
         </h1>
         <div className="question-transaction-context my-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#59665f]">
           <span className="font-semibold break-words">{question.transaction.merchant}</span>
@@ -211,8 +214,8 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
         {shownGuidance && !showAmount && <p className="mt-2 text-muted">{shownGuidance}</p>}
         {showAmount && <p className="mt-2 text-muted">Enter the business dollars. I’ll handle the split.</p>}
 
-        {submitting&&<p role="status" className="text-sm text-muted">Saving your answer…</p>}
-        <div className="question-answer-options mt-4 grid gap-2" data-answer-layout={guided && ['business_use', 'factual_choice', 'transaction_type'].includes(question.kind) && !otherActivity ? 'choices' : 'field'}>
+        <p role="status" className="betti-answer-status">{submitting?'Got it. Saving your answer…':'\u00a0'}</p>
+        <div className="question-answer-options mt-4 grid gap-2" data-answer-layout={guided&&question.confirmation&&!showAlternatives?'confirmation':guided && (question.options || ['business_use', 'factual_choice', 'transaction_type'].includes(question.kind)) && !otherActivity ? 'choices' : 'field'}>
           {question.kind === 'business_use' && <>
             <Action onClick={() => submit({ action: 'business_use', use: 'business' })} busy={busy}>Yes, business</Action>
             <Action onClick={() => submit({ action: 'business_use', use: 'personal' })} busy={busy}>No, personal</Action>
@@ -220,11 +223,14 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
             <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>I’m not sure</Action>
           </>}
           {question.kind === 'business_purpose' && <>
+            {question.options && !otherActivity ? question.options.map(option => <Action key={option.id} busy={busy}
+              onClick={()=>option.id==='other'?setOtherActivity(true):submit({action:'business_purpose',businessPurpose:option.id})}>{option.label}</Action>) : <>
             <label htmlFor="purpose" className="sr-only">What was this purchase for?</label>
             <textarea id="purpose" value={purpose} onChange={(event) => { setPurpose(event.target.value); growResponse(event.currentTarget) }}
               maxLength={1000} rows={2} className="w-full rounded-lg border border-slate-300 p-3"
               placeholder={question.prompt.toLowerCase().includes('meal')?'For example, lunch to discuss a client project':guided?question.prompt.toLowerCase().includes('travel')?'Destination, dates, and business reason':'A short note in your own words':'For example, printer paper for customer projects'} />
             <Action onClick={() => submit({ action: 'business_purpose', businessPurpose: purpose })} busy={busy || !purpose.trim()}>Continue</Action>
+            </>}
             <Action onClick={() => submit({ action: 'not_sure' })} busy={busy}>I’m not sure</Action>
           </>}
           {question.kind === 'meal_relationship' && <>
@@ -277,14 +283,17 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
             </Action>
           )}
           {question.kind==='transaction_type'&&<>
-            {!otherActivity ? question.options?.map(option=><Action key={option.id}
+            {question.confirmation && !showAlternatives ? <>
+              <button type="button" className="btn btn-primary" disabled={busy} onClick={()=>void submit({action:'transaction_type',activity:question.confirmation!.optionId})}>{question.confirmation.label}</button>
+              <button type="button" className="betti-defer" disabled={busy} onClick={()=>setShowAlternatives(true)}>No, something else</button>
+            </> : !otherActivity ? question.options?.map(option=><Action key={option.id}
               onClick={()=>option.id==='other'?setOtherActivity(true):submit({action:'transaction_type',activity:option.id})} busy={busy}>{option.label}</Action>) : <>
               <label htmlFor="money-source" className="text-sm font-medium">Tell me where this money came from</label>
               <textarea id="money-source" rows={2} maxLength={1000} value={purpose} onChange={event=>setPurpose(event.target.value)} className="w-full rounded-lg border border-slate-300 p-3"/>
               <Action onClick={()=>submit({action:'transaction_type',activity:'other',details:purpose})} busy={busy||!purpose.trim()}>Continue</Action>
               <button type="button" disabled={busy} onClick={()=>setOtherActivity(false)} className="min-h-11 underline">Back to choices</button>
             </>}
-            <button type="button" disabled={busy} onClick={()=>void submit({action:'not_sure'})} className="min-h-11 text-sm underline">I’m not sure</button>
+            {(!question.confirmation||showAlternatives)&&<button type="button" disabled={busy} onClick={()=>void submit({action:'not_sure'})} className="min-h-11 text-sm underline">I’m not sure</button>}
           </>}
           {question.kind === 'percentage' && embedded && <div className="weekly-question-blocked" role="status">
             <strong>I still need a little more information about this item.</strong>

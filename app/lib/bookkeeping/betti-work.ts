@@ -223,7 +223,7 @@ export function projectBettiWork(input: {
     if (accountDependency) continue // The one account fact replaces these repeated requests.
     if(r&&(stages.has(r.record_id)||specialRecords.has(r.record_id)||deferredSpecialRecords.has(r.record_id)))continue // One scoped guided action owns this dependency.
     add(type, `${q.source ?? 'bookkeeping'}:${q.id}`, { kind: 'question', id: q.id }, r ? [r] : [],
-      [q.version, q.contextFingerprint, q.kind, q.prompt, q.guidance, q.options], r ? `/check-in?record=${encodeURIComponent(r.record_id)}` : '/check-in', q.openedAt ?? asOf,
+      [q.version, q.contextFingerprint, q.kind, q.prompt, q.guidance, q.options, q.understanding, q.confirmation], r ? `/check-in?record=${encodeURIComponent(r.record_id)}` : '/check-in', q.openedAt ?? asOf,
       { question: q,
         ...(!r && q.transaction.date ? { workstream: activityWorkstream(q.transaction.date, c.business),
           affects: ['catch_up', 'current'].filter(s => s === activityWorkstream(q.transaction.date, c.business)) as ('catch_up' | 'current')[] } : {}),

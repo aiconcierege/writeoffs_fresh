@@ -79,10 +79,10 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
     admin.from('bookkeeping_financial_sources')
       .select('financial_transaction_id').eq('business_id', businessId)
       .eq('bookkeeping_record_id', recordId).is('revoked_at', null).maybeSingle(),
-    admin.from('bookkeeping_decisions').select('id,provenance').eq('business_id', businessId)
+    admin.from('bookkeeping_decisions').select('id,provenance,treatment').eq('business_id', businessId)
       .eq('bookkeeping_record_id', recordId),
     admin.from('bookkeeping_review_events')
-      .select('id,supersedes_event_id,event_type,reason,question_context,answer_payload,provenance').eq('business_id', businessId)
+      .select('id,supersedes_event_id,event_type,reason,question_context,answer_payload,provenance,resulting_decision_id').eq('business_id', businessId)
       .in('bookkeeping_record_id', evidenceRecordIds),
     admin.from('bookkeeping_document_links').select('id,receipt_id').eq('business_id', businessId)
       .in('bookkeeping_record_id', evidenceRecordIds).is('revoked_at', null),
@@ -138,6 +138,13 @@ export async function loadBookkeepingEvaluationSnapshot(input: {
     decisionHistoryLength: decisionsResult.data?.length ?? 0,
     customerFactsAuthoritative: currentDecision.provenance === 'user' || (Boolean(currentDecision.reason?.startsWith('Schedule C operating-expense classification:'))
       && Boolean(decisionsResult.data?.some(row => row.provenance === 'user'))),
+    customerPurchaseOnly: currentDecision.provenance==='user' && currentDecision.bookkeepingNature==='expense'
+      && currentDecision.treatment==='unresolved' && currentDecision.allocations.length===0
+      && !(decisionsResult.data??[]).some(row=>row.provenance==='user'&&['business','personal','mixed_use','excluded'].includes(String(row.treatment)))
+      ? (()=>{const answer=reviewEvents.find(event=>event.provenance==='user'&&event.event_type==='answered'
+        && event.resulting_decision_id===currentDecision.id&&event.reason==='TRANSACTION_TYPE_UNCLEAR'
+        && object(event.answer_payload).activity==='purchase')
+        return answer?{answerEventId:String(answer.id),decisionId:currentDecision.id}:undefined})() : undefined,
     currentDecision,
     movement: null,
     movementCandidates: [],

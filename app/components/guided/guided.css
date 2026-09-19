@@ -2,24 +2,24 @@
 .betti-work-nav { display:flex; justify-content:space-between; align-items:center; gap:1rem; min-height:44px; margin-bottom:1rem; font-size:.85rem; color:var(--wo-muted); }
 .betti-work-nav a { display:flex; align-items:center; min-height:44px; color:var(--wo-blue); font-weight:550; }
 .betti-work-nav > span { text-align:right; }
-.betti-conversation { display:grid; grid-template-columns:minmax(15rem,.82fr) minmax(0,1.5fr); gap:0; background:linear-gradient(110deg,#edf3e8,#f5f6ed 37%,#fffefa 72%); border:1px solid var(--wo-line); border-radius:1.75rem; box-shadow:var(--wo-shadow); min-height:35rem; }
-.betti-guide { display:flex; flex-direction:column; align-items:center; padding:2.5rem 1.5rem; align-self:start; position:sticky; top:5.5rem; }
+.betti-conversation { display:grid; grid-template-columns:12rem minmax(0,1fr); gap:0; background:linear-gradient(110deg,#edf3e8,#f5f6ed 37%,#fffefa 72%); border:1px solid var(--wo-line); border-radius:1.75rem; box-shadow:var(--wo-shadow); min-height:38rem; }
+.betti-guide { display:flex; flex-direction:column; align-items:center; padding:6.5rem .25rem 0 1.25rem; align-self:start; position:sticky; top:4rem; }
 .betti-guide-intro { width:100%; max-width:17rem; }
 .betti-eyebrow { color:var(--wo-green); font-size:.85rem; font-weight:600; letter-spacing:.01em; }
 .betti-guide-note { font-size:clamp(1.6rem,2.4vw,2.15rem); line-height:1.15; letter-spacing:-.035em; margin-top:1rem; font-weight:550; }
-.betti-guide-art { width:100%; height:22rem; max-height:22rem; margin-top:1.25rem; }
-.betti-conversation-body { min-width:0; padding:2.5rem 3rem 3rem 1.75rem; align-self:center; }
-.betti-workstream { color:var(--wo-muted); font-size:.8rem; line-height:1.5; font-weight:550; margin-bottom:1.75rem; }
+.betti-guide-art { width:100%; height:15rem; margin:0; }
+.betti-conversation-body { min-width:0; padding:2rem 3rem 2.5rem 1.25rem; align-self:start; }
+.betti-workstream { color:var(--wo-muted); font-size:.8rem; line-height:1.5; font-weight:550; margin-bottom:0; }
 .betti-conversation-body :is(h1,h2) { font-size:var(--wo-title); font-weight:600; letter-spacing:-.035em; line-height:1.17; color:var(--wo-ink); margin:1.25rem 0 1rem; }
 .betti-conversation-body h1[tabindex="-1"]:focus { outline:none; }
 .betti-conversation-body p { overflow-wrap:anywhere; }
 .betti-explanation { color:var(--wo-muted); font-size:1rem; line-height:1.6; margin:.85rem 0 1.5rem; max-width:52ch; }
-.betti-saved { color:var(--wo-green); font-size:.85rem; border-left:2px solid #94b9a6; padding:.3rem .8rem; margin:0 0 1rem; }
-.betti-merchant { display:flex; gap:1rem; align-items:center; margin:0 0 1.65rem; padding-bottom:1.5rem; border-bottom:1px solid var(--wo-line); min-width:0; }
+.betti-saved { color:var(--wo-green); font-size:.85rem; min-height:1.5rem; padding:.25rem 0; margin:.4rem 0 .85rem; }
+.betti-merchant { display:flex; gap:1rem; align-items:center; margin:0 0 1.25rem; padding:0; min-width:0; }
 .betti-merchant > div { min-width:0; }
-.betti-merchant-mark { display:grid; place-items:center; flex:none; width:3.8rem; height:3.8rem; border:1px solid var(--wo-line); border-radius:1rem; color:var(--wo-muted); background:white; box-shadow:0 2px 5px #19342c04; }
-.betti-merchant-mark img { object-fit:contain; width:2.65rem; height:2.65rem; }
-.betti-merchant-name { font-size:clamp(1.5rem,2.5vw,2.05rem); font-weight:650; letter-spacing:-.035em; line-height:1.15; overflow-wrap:anywhere; }
+.betti-merchant-mark { display:grid; place-items:center; flex:none; width:3rem; height:3rem; border:1px solid var(--wo-line); border-radius:1rem; color:var(--wo-muted); background:white; box-shadow:0 2px 5px #19342c04; }
+.betti-merchant-mark img { object-fit:contain; width:2rem; height:2rem; }
+.betti-merchant-name { font-size:clamp(1.1rem,1.8vw,1.4rem); font-weight:650; letter-spacing:-.035em; line-height:1.15; overflow-wrap:anywhere; }
 .betti-merchant-meta { color:var(--wo-muted); font-size:.9rem; line-height:1.45; margin-top:.5rem; font-variant-numeric:tabular-nums; }
 .betti-merchant-compact { border:0; padding:0; margin:0; gap:.8rem; }
 .betti-merchant-compact .betti-merchant-name { font-size:1rem; font-weight:600; letter-spacing:-.015em; }
@@ -68,28 +68,29 @@
 .betti-processing-dot { flex:none; width:.5rem; height:.5rem; border-radius:50%; background:var(--wo-green); animation:betti-breathe 1.8s ease-in-out infinite; }
 @keyframes betti-breathe { 50% { opacity:.35; } }
 @media(min-width:640px) and (max-width:999px) {
- .betti-conversation { grid-template-columns:minmax(11rem,.65fr) minmax(0,1.5fr); }
- .betti-guide { padding:2rem 1rem; }
- .betti-guide-art { height:18rem; }
+ .betti-conversation { grid-template-columns:9rem minmax(0,1fr); }
+ .betti-guide { padding:6rem 0 0 .75rem; }
+ .betti-guide-art { height:12rem; }
  .betti-guide-note { font-size:1.6rem; }
  .betti-conversation-body { padding:2rem 1.75rem 2rem .75rem; }
 }
 @media(max-width:639px) {
  .betti-work { padding:.5rem 0 2rem; }
  .betti-work-nav { font-size:.8rem; gap:.65rem; margin-bottom:.65rem; }
- .betti-conversation { display:block; min-height:0; border-radius:1.3rem; background:linear-gradient(160deg,#edf3e8,#fffefa 22rem); }
- .betti-guide { position:relative; top:auto; height:8.25rem; padding:1.25rem 1.25rem .5rem; align-items:flex-start; }
+ .betti-conversation { display:block; position:relative; min-height:36rem; border-radius:1.3rem; background:linear-gradient(160deg,#edf3e8,#fffefa 22rem); }
+ .betti-guide { position:absolute; top:.75rem; left:.4rem; width:4.75rem; height:5rem; padding:0; }
  .betti-guide-intro { max-width:65%; }
  .betti-eyebrow { font-size:.8rem; }
  .betti-guide-note { font-size:1.35rem; margin-top:.6rem; }
- .betti-guide-art { position:absolute; right:.7rem; top:.3rem; width:7.5rem; height:8rem; margin:0; }
- .betti-conversation-body { padding:1rem 1.25rem 1.5rem; }
- .betti-workstream { font-size:.8rem; margin-bottom:1.15rem; }
+ .betti-guide-art { width:4.75rem; height:5rem; margin:0; }
+ .betti-conversation-body { padding:1.2rem 1.1rem 1.5rem; }
+ .betti-conversation-orientation { min-height:4.25rem; padding-left:4.4rem; display:block; }
+ .betti-workstream { font-size:.8rem; margin:.35rem 0 0; }
  .betti-conversation-body :is(h1,h2) { font-size:1.8rem; margin:1rem 0 .75rem; }
- .betti-merchant { padding-bottom:1.1rem; margin-bottom:1.2rem; gap:.8rem; }
+ .betti-merchant { padding:0; margin-bottom:1.1rem; gap:.8rem; }
  .betti-merchant-mark { width:3rem; height:3rem; border-radius:.8rem; }
  .betti-merchant-mark img { width:2rem; height:2rem; }
- .betti-merchant-name { font-size:1.45rem; }
+ .betti-merchant-name { font-size:1.1rem; }
  .betti-merchant-meta { font-size:.85rem; }
  .betti-merchant-compact { padding:0; margin:0; }
  .betti-merchant-compact .betti-merchant-name { font-size:.95rem; }
@@ -103,3 +104,30 @@
  .betti-question-controls [data-answer-layout=field]>.btn-primary { width:100%; }
  .betti-work .document-intake { padding:1rem; }
 }
+
+.betti-conversation-orientation { display:flex; flex-wrap:wrap; gap:.3rem 1.25rem; align-items:baseline; }
+.betti-active-conversation { min-height:27rem; }
+.betti-understanding { font-size:1.05rem; line-height:1.55; color:var(--wo-muted); margin:0 0 .8rem; max-width:56ch; }
+.betti-answer-status { min-height:1.4rem; margin:.5rem 0; color:var(--wo-green); font-size:.85rem; }
+.betti-question-controls .question-answer-options { margin-top:.4rem; }
+.betti-batch { max-height:25rem; overflow:auto; scrollbar-gutter:stable; }
+[data-guided-action=receipt_upload_sweep] .betti-batch { max-height:16rem; }
+.betti-conversation-body :is(button,input,textarea,a):focus-visible { outline:3px solid var(--wo-blue); outline-offset:3px; }
+.betti-batch:focus-visible { outline:3px solid var(--wo-blue); outline-offset:3px; }
+@media(max-width:639px) { .betti-conversation-orientation { display:block; } .betti-saved { margin:.15rem 0 .65rem; } .betti-batch { max-height:21rem; } }
+@media(prefers-reduced-motion:reduce) { .betti-work *, .betti-work *::before, .betti-work *::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
+
+.betti-conversation:has(.betti-complete) { min-height:26rem; }
+.betti-active-conversation:has(.betti-complete) { min-height:16rem; }
+@media(max-width:639px) {
+ .betti-conversation-orientation { min-height:4.75rem; }
+ .betti-saved { padding:0; min-height:2.5rem; margin:0 0 .4rem; }
+ .betti-conversation:has(.betti-complete) { min-height:28rem; }
+}
+
+/* Keep secondary responses with the conversation, not centered in empty rows. */
+.betti-question-controls .question-answer-options>button:not(.btn) { justify-self:start; text-align:left; width:auto; }
+.betti-question-controls .question-conversation>button { width:auto; text-align:left; }
+.betti-question-controls [data-answer-layout=confirmation] { display:flex; flex-wrap:wrap; align-items:center; gap:.75rem 1.25rem; }
+.betti-question-controls [data-answer-layout=confirmation] .btn-primary { min-width:10rem; }
+.betti-question-controls [data-answer-layout=confirmation] .betti-defer { margin:0; }

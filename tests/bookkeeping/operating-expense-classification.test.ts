@@ -15,6 +15,11 @@ function snapshot(description: string, extra: Partial<BookkeepingEvaluationSnaps
 }
 
 describe('Schedule C operating-expense classification', () => {
+  it.each(['Freelance design services for a customer project.', 'Payment to a freelancer for design work.'])('uses the already supplied purpose: %s', purpose => {
+    const value=snapshot('ZELLE TO A PERSON')
+    value.currentDecision.businessPurpose=purpose
+    expect(classifyOperatingExpense(value)).toMatchObject({status:'ordinary',categoryKey:'contract-labor'})
+  })
   const ordinary = [
     ['Google Ads advertising', 'advertising'], ['Broker commission', 'commissions'],
     ['Upwork contractor', 'contract-labor'], ['Professional liability insurance', 'insurance'],

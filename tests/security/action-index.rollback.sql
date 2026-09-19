@@ -6,7 +6,7 @@ declare bid uuid:=current_setting('test.business_id')::uuid; uid uuid:=current_s
  question_id uuid; question_version uuid; n integer; before_events integer; after_events integer;
  lease uuid:=gen_random_uuid(); revision_before bigint; stale_publish boolean; summary_before timestamptz; available_before timestamptz;
 begin
- if not exists(select 1 from auth.users where id=uid and raw_user_meta_data->>'synthetic_guided_contract'='true') then raise exception 'Synthetic fixture required';end if;
+ if not exists(select 1 from auth.users where id=uid and (raw_user_meta_data->>'synthetic_guided_contract'='true' or raw_user_meta_data->>'synthetic_ux1'='true')) then raise exception 'Synthetic fixture required';end if;
  perform set_config('request.jwt.claims',jsonb_build_object('sub',uid,'role','authenticated','aal','aal1')::text,true);
  begin perform public.read_betti_action_index(bid);raise exception 'AAL1 accepted';exception when insufficient_privilege then null;end;
  perform set_config('request.jwt.claims',jsonb_build_object('sub',uid,'role','authenticated','aal','aal2')::text,true);

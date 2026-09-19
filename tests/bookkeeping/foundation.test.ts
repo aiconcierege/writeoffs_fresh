@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type {
   BookkeepingActor,
   CanonicalBookkeepingRecord,
@@ -426,6 +426,27 @@ describe('canonical bookkeeping behavior', () => {
         expectedCurrentDecisionId: 'stale-decision',
       })
     ).rejects.toThrow('reevaluate')
+  })
+
+  it('delegates purchase-only fact completion without relaxing the customer-decision guard', async () => {
+    const { repository, service } = setup()
+    const current = await service.recordDecision({ actor: userActor(), recordId: 'record-1', expectedCurrentDecisionId: null,
+      decision: { bookkeepingNature: 'expense', treatment: 'unresolved', reviewStatus: 'needs_review', allocations: [] } })
+    const complete = vi.fn().mockResolvedValue(current)
+    Object.assign(repository, { completePurchaseBusinessContext: complete })
+    const proposal = { bookkeepingNature: 'expense' as const, treatment: 'business' as const,
+      reviewStatus: 'resolved' as const, businessPurpose: current.businessPurpose, confidence: .99, reason: 'Existing account fact.',
+      allocations: [{ kind: 'business' as const, amountCents: -10_000 }],
+      businessContextCompletion: { answerEventId: 'answer', accountUseEventId: 'account-fact' },
+      basis: { ...automatedBasis, ruleKey: 'bookkeeping.business_context.default_business.v1' } }
+    await service.recordAutomatedDecision({ businessId: 'business-1', recordId: 'record-1', expectedCurrentDecisionId: current.id, proposal })
+    expect(complete).toHaveBeenCalledWith({ businessId: 'business-1', recordId: 'record-1', decisionId: current.id,
+      answerEventId: 'answer', accountUseEventId: 'account-fact' })
+    await expect(service.recordAutomatedDecision({ businessId: 'business-1', recordId: 'record-1', expectedCurrentDecisionId: current.id,
+      proposal: { ...proposal, businessContextCompletion: undefined } })).rejects.toThrow('cannot silently supersede')
+    await expect(service.recordAutomatedDecision({ businessId: 'business-1', recordId: 'record-1', expectedCurrentDecisionId: current.id,
+      proposal: { ...proposal, businessPurpose: 'Invented purpose' } })).rejects.toThrow('cannot silently supersede')
+    expect(complete).toHaveBeenCalledTimes(1)
   })
 
   it('requires evidence and an allowed rule rather than confidence alone', async () => {

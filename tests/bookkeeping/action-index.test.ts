@@ -35,6 +35,16 @@ describe('canonical action index publication',()=>{
    expect(candidates[0]??null).toEqual(projected.nextAction)
   }
  })
+ it.each(['payout','insurance'])('retains evidence-specific questions identically in full and indexed projection: %s',kind=>{
+  const input=prepared('questions')
+  input.questions[0]={...input.questions[0],kind:kind==='payout'?'transaction_type':'business_purpose',
+   understanding:kind==='payout'?'This looks like customer payments from a processor.':'I know this was an insurance payment for your business.',
+   prompt:kind==='payout'?'Is that right?':'What did the insurance cover?',
+   ...(kind==='payout'?{confirmation:{optionId:'earned_money',label:'Yes, that’s right'}}:{})}
+  const built=buildActionIndex(input),full=projectBettiWork(input)
+  expect(built.work.nextAction).toEqual(full.nextAction)
+  expect(built.entries.find(e=>e.action.question?.id===input.questions[0].id)?.action.question).toEqual(input.questions[0])
+ })
  it('retains more than a thousand legitimate canonical actions with exact continuity',()=>{
   const c=context();c.records=Array.from({length:1001},(_,i)=>record('r-'+i));const input={businessId:'b',context:c,questions:c.records.map(question),commandItems:[],asOf,processingEnabled:true}
   const built=buildActionIndex(input);expect(built.entries.length).toBe(1001)

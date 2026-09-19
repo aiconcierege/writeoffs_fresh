@@ -19,6 +19,7 @@ import {
 } from './validation'
 
 export interface BookkeepingRepository {
+  completePurchaseBusinessContext?(input:{businessId:string;recordId:string;decisionId:string;answerEventId:string;accountUseEventId:string}):Promise<StoredBookkeepingDecision>
   findBusinessIdForUser(userId: string): Promise<string | null>
   ensureRecord(input: {
     actor: BookkeepingActor
@@ -267,6 +268,18 @@ export class CanonicalBookkeepingService {
       throw new BookkeepingValidationError(
         'The bookkeeping decision changed; reevaluate before saving.'
       )
+    }
+    const completion=input.proposal.businessContextCompletion
+    if(current.provenance==='user' && completion && this.repository.completePurchaseBusinessContext
+      && current.bookkeepingNature==='expense' && current.treatment==='unresolved' && !current.allocations.length
+      && input.proposal.bookkeepingNature==='expense' && input.proposal.treatment==='business'
+      && input.proposal.businessPurpose===current.businessPurpose
+      && input.proposal.basis.ruleKey==='bookkeeping.business_context.default_business.v1') {
+      validateAutomatedDecisionProposal(record.authoritativeAmountCents,input.proposal)
+      // A dedicated atomic command revalidates both exact customer facts. The
+      // general prohibition on superseding customer decisions remains below.
+      return this.repository.completePurchaseBusinessContext({businessId:input.businessId,recordId:input.recordId,
+        decisionId:current.id,...completion})
     }
     if (current.provenance === 'user' && !isCategoryOnlyEnrichment(current, input.proposal)) {
       throw new BookkeepingValidationError(

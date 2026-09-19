@@ -75,6 +75,7 @@ export type AutomatedDecisionProposal = Omit<
   'provenance'
 > & {
   basis: AutomatedDecisionBasis
+  businessContextCompletion?: {answerEventId:string;accountUseEventId:string}
 }
 
 export type CanonicalReviewQueueItem = {

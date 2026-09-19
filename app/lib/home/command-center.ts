@@ -14,11 +14,7 @@ const dateLabel = (day: string) => new Intl.DateTimeFormat('en-US', { month: 'lo
 export function homeCommand(work: GuidedWorkProjection, startMethod: string | null): HomeCommand {
   const next = work.nextAction
   const context: string[] = []
-  if (work.customer.sharedCount) context.push('One answer can help you get caught up and keep up.')
-  else {
-    if (work.progress.catchUp.customerActions) context.push(`Getting caught up · ${work.progress.catchUp.customerActions} ${work.progress.catchUp.customerActions===1?'needs':'need'} you`)
-    if (work.progress.current.customerActions) context.push(`Current activity · ${work.progress.current.customerActions} ${work.progress.current.customerActions===1?'needs':'need'} you`)
-  }
+  if (work.customer.actionableCount) context.push(`${work.customer.actionableCount} ${work.customer.actionableCount===1?'thing needs':'things need'} you`)
   if (next?.type === 'provide_records') {
     const documents = startMethod === 'statement_uploads' || startMethod === 'receipts'
     return { state: 'welcome', heading: 'I’m ready to start your books.',
@@ -39,9 +35,9 @@ export function homeCommand(work: GuidedWorkProjection, startMethod: string | nu
     const current = (work.index?.summaryCurrent!==false && work.progress.current.activity > 0) || work.progress.current.customerActions > 0
     const href = next.href.startsWith('/check-in') ? `${next.href}${next.href.includes('?') ? '&' : '?'}returnTo=%2Fhome` : next.href
     return { state: 'needs-customer',
-      heading: earlier ? 'I’m getting your books caught up.' : 'I could use your help.',
-      supporting: earlier && current ? 'I’m getting your books caught up and keeping up with new activity. I just need a few facts from you.'
-        : 'I’ve used the information you’ve given me. Let’s finish the things only you can tell me.',
+      heading: 'I have a few questions for you.',
+      supporting: earlier && current ? 'I’ve worked through your activity to get you caught up and keep up. Tell me a few facts, and I’ll take it from there.'
+        : 'I’ve reviewed the information you sent. Tell me a few facts, and I’ll take it from there.',
       action: { href, label: next.type === 'account_use' && !href.startsWith('/check-in') ? 'Tell Betti about your account' : 'Continue with Betti' }, context }
   }
   if (work.betti.genuinelyProcessing > 0) return { state: 'working', heading: 'I’m organizing the records you sent.',

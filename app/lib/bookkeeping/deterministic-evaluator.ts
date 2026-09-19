@@ -6,6 +6,7 @@ import { hasStrongOrdinaryExpenseEvidence, snapshotEconomicContext } from './evi
 import { assessBusinessContext, businessContextAllocationDomain } from './business-context'
 import { classifyOperatingExpense, expenseMovementReason } from './operating-expense-classification'
 import type { SharedBookkeepingEvidence } from './shared-evidence'
+import {purchaseUnderstanding} from './purchase-understanding'
 import { assessEconomicNature } from './economic-nature-evidence'
 
 export const BOOKKEEPING_EVALUATOR_VERSION = 'v1' as const
@@ -43,6 +44,7 @@ export type BookkeepingEvaluationSnapshot = {
   businessDescription: string | null
   activeDocumentCount: number
   customerFactsAuthoritative?: boolean
+  customerPurchaseOnly?: { answerEventId: string; decisionId: string }
   customerAnswerCount: number
   hasOpenConflictingEvidence: boolean
   decisionHistoryLength: number
@@ -156,7 +158,7 @@ export function evaluateDeterministicBookkeeping(
       amountCents: snapshot.amountCents,
       plaidPrimary: snapshot.personalFinanceCategory?.primary,
     })
-    || operatingClassification.status === 'ordinary')
+    || operatingClassification.status === 'ordinary' || purchaseUnderstanding(snapshot) !== null)
   const businessContext = assessBusinessContext(snapshot)
 
   const inferredBusinessContextDecision = snapshot.currentDecision.bookkeepingNature === 'expense'
@@ -207,6 +209,21 @@ export function evaluateDeterministicBookkeeping(
     }
   }
 
+  // A factual purchase answer establishes nature, not a new business-use choice.
+  // Consume the existing account fact only when the loader proves this exact
+  // decision came from that answer and no prior customer-use decision exists.
+  if (snapshot.customerPurchaseOnly?.decisionId === snapshot.currentDecision.id
+    && snapshot.currentDecision.bookkeepingNature === 'expense'
+    && snapshot.currentDecision.treatment === 'unresolved' && !snapshot.currentDecision.allocations.length
+    && snapshot.accountUse?.designation === 'business_only' && !snapshot.hasOpenConflictingEvidence
+    && ordinaryExpenseEstablished && businessContextAllocationDomain(snapshot) === null) {
+    const ruleKey='bookkeeping.business_context.default_business.v1' as const
+    return {ruleKey,proposal:{bookkeepingNature:'expense',treatment:'business',reviewStatus:'resolved',confidence:.99,
+      reason:`Customer designated the payment account as Business only. Purchase nature was supplied in answer ${snapshot.customerPurchaseOnly.answerEventId}.`,
+      businessContextCompletion:{answerEventId:snapshot.customerPurchaseOnly.answerEventId,accountUseEventId:snapshot.accountUse.eventId},
+      businessPurpose:snapshot.currentDecision.businessPurpose,allocations:[{kind:'business',amountCents:snapshot.amountCents!}],
+      basis:{evidenceSufficient:true,ruleKey,ruleAllowed:true,businessPurposeSupported:false,mixedUseAllocationSupported:false}}}
+  }
   if (snapshot.currentDecision.provenance === 'user' || snapshot.customerFactsAuthoritative) return null
   if (snapshot.currentDecision.treatment !== 'unresolved' || snapshot.hasOpenConflictingEvidence) return null
 
@@ -266,7 +283,7 @@ export function evaluateDeterministicBookkeeping(
       reviewStatus: context?.context === 'restaurant_meal' ? 'needs_review' : 'resolved',
       confidence: businessContext.basis === 'account_business_only' ? 0.99 : 0.97,
       reason: businessContext.basis === 'account_business_only'
-        ? 'Customer designated the payment account as Business only.'
+        ? `Customer designated the payment account as Business only.${purchaseUnderstanding(snapshot)?.kind==='insurance'?' Debit and insurance evidence establish a purchase; policy coverage remains unresolved.':''}`
         : 'Customer deliberately provided the receipt linked to this expense.',
       businessPurpose: snapshot.currentDecision.businessPurpose,
       allocations: [{ kind: 'business', amountCents: snapshot.amountCents!,

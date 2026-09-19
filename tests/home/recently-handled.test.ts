@@ -26,7 +26,7 @@ describe('Home recent records', () => {
       row({ id: 'legacy', date: '2026-08-26', sourceModel: 'legacy' }),
     ])
     expect(activity.transactions.map(item => item.status)).toEqual([
-      'Business', 'Business + personal', 'Income',
+      'Business', 'Business + personal', 'Income', 'Not yet organized',
     ])
     expect(activity.transactions.map(item=>item.id)).not.toContain('personal')
   })
@@ -43,9 +43,9 @@ describe('Home recent records', () => {
     expect(activity.receiptMatches).toEqual([])
   })
 
-  it('caps compact lists at three without fabricating rows',()=>{
+  it('caps recent transactions at five without fabricating rows',()=>{
     const activity=deriveHomeRecentActivity(Array.from({length:7},(_,index)=>row({id:`${index}`,date:`2026-08-${String(10+index).padStart(2,'0')}`})))
-    expect(activity.transactions).toHaveLength(3)
+    expect(activity.transactions).toHaveLength(5)
     expect(activity.receiptMatches).toHaveLength(0)
   })
 })

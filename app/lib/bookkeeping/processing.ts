@@ -22,6 +22,7 @@ import { runDeductionIntelligenceForRecord } from './deduction-intelligence'
 import { assessBusinessContext, businessContextAllocationDomain } from './business-context'
 import { processOperatingExpenseTreatment } from './operating-expense-processing'
 import { processVehicleExpense } from './vehicle-processing'
+import {payoutUnderstanding} from './purchase-understanding'
 import { supportedMealPurpose } from './shared-evidence'
 import { classifyOperatingExpense } from './operating-expense-classification'
 
@@ -177,9 +178,10 @@ async function ensureRemainingNatureQuestion(admin: SupabaseClient, snapshot: Aw
     recordId: snapshot.recordId, decisionId: snapshot.currentDecision.id, reason: 'TRANSACTION_TYPE_UNCLEAR',
     issueKey: `nature:${snapshot.recordId}:${snapshot.currentDecision.id}`,
     contextFingerprint: createHash('sha256').update(JSON.stringify({decision:snapshot.currentDecision.id,
-      description:snapshot.description,amount:snapshot.amountCents})).digest('hex'),
+      description:snapshot.description,amount:snapshot.amountCents,understanding:payoutUnderstanding(snapshot)})).digest('hex'),
     questionContext: { schemaVersion:1, reason:'TRANSACTION_TYPE_UNCLEAR',
-      factType: snapshot.amountCents > 0 ? 'money_in_source' : 'economic_nature' } })
+      factType: snapshot.amountCents > 0 ? 'money_in_source' : 'economic_nature',
+      understanding:payoutUnderstanding(snapshot) } })
 }
 
 export async function evaluateBookkeepingProcessingJob(

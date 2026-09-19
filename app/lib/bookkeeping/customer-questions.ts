@@ -18,6 +18,8 @@ export type CustomerQuestion = {
   materiality?:'totals'|'disclosable'
   recordId?:string
   prompt: string
+  understanding?: string
+  confirmation?: { optionId: string; label: string }
   guidance?: string
   options?: Array<{ id: string; label: string }>
   transaction: {
@@ -121,10 +123,20 @@ export function projectCustomerQuestion(
         prompt: 'Where did you travel, when, and what was the business reason?',
         guidance: 'Tell me the destination, trip dates, and what the trip was for.',
       } : null
+    if (context?.factType === 'ordinary_expense_purpose' && context.knownPurchase === 'insurance') return isPurchase
+      && ['business', 'mixed_use'].includes(item.decision.treatment) && hasBusinessPortion ? {
+        ...base, kind: 'business_purpose',
+        understanding: item.decision.treatment === 'business'
+          ? 'I know this was an insurance payment for your business.' : 'I know this was an insurance payment with a business portion.',
+        prompt: 'What did the insurance cover?',
+        options: [{id:'business insurance',label:'Business insurance'}, {id:'vehicle insurance',label:'A vehicle'},
+          {id:'health insurance',label:'Health insurance'}, {id:'other',label:'Something else'}],
+      } : null
     return isPurchase && ['business', 'mixed_use'].includes(item.decision.treatment)
       && hasBusinessPortion ? {
       ...base,
       kind: 'business_purpose',
+      understanding: item.decision.businessPurpose ? undefined : 'I can see this was a purchase, but I can’t tell what it was for.',
       prompt: item.decision.businessPurpose ? 'How will you use what you bought?' : 'What was this purchase for?',
       guidance: item.decision.businessPurpose ? 'For example: office work, materials for a customer job, or products you sell. Tell me the use, not an accounting category.' : 'Tell WriteOffs what you bought or why you needed it.',
     } : null
@@ -140,7 +152,13 @@ export function projectCustomerQuestion(
   }
   if (item.event.reason === 'TRANSACTION_TYPE_UNCLEAR' && (transaction.amountCents ?? 0) > 0) return {
     ...base, kind: 'transaction_type', materiality: 'totals', prompt: 'What was this money for?',
-    guidance: 'Tell me where it came from. I’ll handle the bookkeeping.',
+    understanding: 'I can see this was money coming in, but I can’t tell where it came from.',
+    ...(isPayoutConfirmation(context?.understanding) ? {
+      understanding: context.understanding.invoiceReference
+        ? `This looks like payment for invoice ${context.understanding.invoiceReference} from ${context.understanding.counterparty}.`
+        : `This looks like customer payments from ${context.understanding.counterparty}.`,
+      prompt: 'Is that right?', confirmation: {optionId:'earned_money',label:'Yes, that’s right'},
+    } : {}),
     options: [
       ['earned_money', 'Payment from a customer'], ['moved_money', 'Transfer between my accounts'],
       ['added_own_money', 'Money I added to the business'], ['borrowed_money', 'Loan proceeds'],
@@ -149,10 +167,10 @@ export function projectCustomerQuestion(
   }
   if(item.event.reason==='TRANSACTION_TYPE_UNCLEAR')return{
     ...base,kind:'transaction_type',materiality:'totals',prompt:'What kind of activity was this?',
+    understanding:'I can see money left your account, but I can’t tell what it was for.',
     guidance:'Choose what happened. I’ll handle the bookkeeping rules.',options:[
-      ['purchase','A purchase'],['earned_money','Money I earned'],['moved_money','Money moved between accounts'],
-      ['paid_card','A credit card payment'],['received_refund','A refund'],['added_own_money','Money I added'],
-      ['borrowed_money','Money I borrowed'], ['other','Something else'],
+      ['purchase','A purchase'],['moved_money','Money moved between accounts'],
+      ['paid_card','A credit card payment'],['other','Something else'],
     ].map(([id,label])=>({id,label})),
     ...(economicContext?.confidence === 'narrowed_confirmation' ? {
       prompt: economicContext.context === 'telecom_service'
@@ -428,6 +446,7 @@ async function listDeductionQuestions(supabase: SupabaseClient,businessId?:strin
       id: attention.attention_id, version: attention.id, source: 'deduction' as const,
       recordId: attention.bookkeeping_record_id ?? undefined,
       kind: attention.question_type as CustomerQuestion['kind'], prompt: attention.prompt,
+      ...(attention.fact_type==='phone_business_use_percentage'?{understanding:'I know this is your phone bill. I just need to know how much was for business.'}:{}),
       ...(attention.fact_type==='vehicle_association'?{options:(vehicles??[]).map(vehicle=>({id:vehicle.id,label:vehicle.display_name}))}:{}),
       guidance: attention.guidance ?? undefined,
       openedAt:attention.created_at,availableAt:null,
@@ -445,4 +464,13 @@ async function questionBusiness(supabase:SupabaseClient){
  const business=await supabase.from('businesses').select('id').eq('owner_user_id',user.id).maybeSingle()
  if(business.error)throw new Error('Business unavailable')
  return business.data
+}
+
+function isPayoutConfirmation(value: unknown): value is {kind:'customer_payment_candidate';counterparty:string;invoiceReference?:string} {
+  if (!value || typeof value !== 'object') return false
+  const v=value as Record<string,unknown>
+  return (v.invoiceReference===undefined||typeof v.invoiceReference==='string'&&/^[A-Z0-9]{1,20}$/.test(v.invoiceReference))
+    && v.kind==='customer_payment_candidate' && v.basis==='inferred' && v.confidence===.8
+    && typeof v.sourceId==='string' && typeof v.evidenceFingerprint==='string'
+    && typeof v.counterparty==='string' && /^[A-Z][A-Z0-9 ]{1,35}$/.test(v.counterparty)
 }

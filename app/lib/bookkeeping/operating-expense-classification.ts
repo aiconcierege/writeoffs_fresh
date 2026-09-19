@@ -1,9 +1,10 @@
+import {purchaseUnderstanding} from './purchase-understanding'
 import { snapshotEconomicContext } from './evidence-aware-routing'
 import type { BookkeepingEvaluationSnapshot } from './deterministic-evaluator'
 import type { TaxRuleFacts } from './tax-rule-catalog'
 import { receiptPurchaseEvidence, receiptRestaurantEvidence, supportedMealPurpose } from './shared-evidence'
 
-export const OPERATING_EXPENSE_CLASSIFIER_VERSION = 'schedule-c-operating-expense:v3' as const
+export const OPERATING_EXPENSE_CLASSIFIER_VERSION = 'schedule-c-operating-expense:v5' as const
 
 export const SCHEDULE_C_OPERATING_CATEGORIES = {
   advertising: 'Advertising',
@@ -44,10 +45,10 @@ const normalize = (value: string | null | undefined) =>
     .replace(/\b(flights|airlines|restaurants|meals|subscriptions|services|licenses)\b/g, word => word.slice(0, -1))
 
 const patterns: Array<{ categoryKey: OperatingExpenseCategoryKey; nature: string; pattern: RegExp }> = [
-  { categoryKey: 'car-truck', nature: 'vehicle_operating_expense', pattern: /\b(?:gasoline|vehicle fuel|auto insurance|car insurance|auto repair|car repair|oil change|vehicle maintenance|dmv registration|vehicle registration|car tires?|parking fee|road toll|vehicle lease payment|car lease payment)\b/ },
+  { categoryKey: 'car-truck', nature: 'vehicle_operating_expense', pattern: /\b(?:gasoline|vehicle fuel|auto insurance|car insurance|vehicle insurance|auto repair|car repair|oil change|vehicle maintenance|dmv registration|vehicle registration|car tires?|parking fee|road toll|vehicle lease payment|car lease payment)\b/ },
   { categoryKey: 'advertising', nature: 'advertising', pattern: /\b(?:advertis\w*|marketing|promotion|google ads|meta ads|facebook ads|mailchimp)\b/ },
   { categoryKey: 'commissions', nature: 'commissions_fees', pattern: /\b(?:commission|referral fee|broker fee|platform fee)\b/ },
-  { categoryKey: 'contract-labor', nature: 'contract_labor', pattern: /\b(?:contractor|freelanc|subcontract|upwork|fiverr)\b/ },
+  { categoryKey: 'contract-labor', nature: 'contract_labor', pattern: /\b(?:contractors?|freelanc(?:e|er|ers|ing)|subcontract(?:or|ors)?|upwork|fiverr)\b/ },
   { categoryKey: 'insurance', nature: 'business_insurance', pattern: /\b(?:business insurance|liability insurance|professional liability|errors and omissions|e o insurance|commercial insurance)\b/ },
   { categoryKey: 'interest', nature: 'business_interest', pattern: /\b(?:interest charge|finance charge|business loan interest)\b/ },
   { categoryKey: 'legal-professional', nature: 'legal_professional', pattern: /\b(?:attorney|law firm|legal service|accountant|accounting|bookkeep|tax prepar|professional service)\b/ },
@@ -152,7 +153,7 @@ export function classifyOperatingExpense(snapshot: BookkeepingEvaluationSnapshot
   const unique = [...new Set(matches.map(({ categoryKey }) => categoryKey))]
   if (unique.length !== 1) return { version: OPERATING_EXPENSE_CLASSIFIER_VERSION,
     status: unique.length ? 'needs_facts' : 'needs_facts', categoryKey: null, expenseNature: null,
-    confidence: 0, reasonCode: unique.length ? 'CONFLICTING_CATEGORY_EVIDENCE' : 'CATEGORY_EVIDENCE_INSUFFICIENT',
+    confidence: 0, reasonCode: unique.length ? 'CONFLICTING_CATEGORY_EVIDENCE' : purchaseUnderstanding(snapshot)?.kind==='insurance' ? 'INSURANCE_COVERAGE_NEEDED' : 'CATEGORY_EVIDENCE_INSUFFICIENT',
     evidence: [], taxFacts: baseFacts }
   const match = matches[0]
   const taxFacts: TaxRuleFacts = { ...baseFacts, expenseNature: match.nature,
