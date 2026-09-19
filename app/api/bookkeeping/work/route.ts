@@ -7,6 +7,7 @@ import { loadCustomerEntitlements } from '../../../lib/membership/entitlements'
 import { loadBettiWork } from '../../../lib/bookkeeping/betti-work-loader'
 import {actionIndexEnabled} from '../../../lib/bookkeeping/action-index-worker'
 import {readBettiActionIndex} from '../../../lib/bookkeeping/action-index-reader'
+import {actionPresentation} from '../../../lib/bookkeeping/action-presentation'
 
 export const dynamic = 'force-dynamic'
 async function handleGET(request: Request) {
@@ -20,16 +21,22 @@ async function handleGET(request: Request) {
     if (!membership.businessId || membership.lifecycle === 'none')
       return NextResponse.json({ error: 'Membership required' }, { status: 403 })
     const record = new URL(request.url).searchParams.get('record')
+    const params=new URL(request.url).searchParams
+    const presented=params.get('presented'),presentedVersion=params.get('presentedVersion')
+    if((presented!==null||presentedVersion!==null)&&(!presented||presented.length>512||!presentedVersion||presentedVersion.length>128))
+      return NextResponse.json({error:'Invalid presentation context'},{status:400})
     if (record && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(record))
       return NextResponse.json({ error: 'Invalid context' }, { status: 400 })
-    if(new URL(request.url).searchParams.get('view')==='guided'&&actionIndexEnabled()){
+    if(params.get('view')==='guided'&&!presented&&actionIndexEnabled()){
       const indexed=await readBettiActionIndex({db,businessId:membership.businessId,view:'guided',continuityRecordId:record??undefined,
         processingEnabled:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'})
       if(indexed)return NextResponse.json({...indexed,actionsEnabled:membership.capabilities.has('autonomous_processing')},{headers:{'Cache-Control':'private, no-store'}})
     }
     const projection = await loadBettiWork({ db, businessId: membership.businessId, scope: membership.plan ?? 'expenses',
       continuityRecordId: record ?? undefined, processingEnabled: process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED !== 'false' })
-    return NextResponse.json({ ...(new URL(request.url).searchParams.get('view')==='guided'?guidedWorkProjection(projection):projection), actionsEnabled: membership.capabilities.has('autonomous_processing') },
+    return NextResponse.json({ ...(params.get('view')==='guided'?guidedWorkProjection(projection):projection),
+      ...(presented&&presentedVersion?{presentation:actionPresentation(projection,{id:presented,version:presentedVersion})}:{}),
+      actionsEnabled: membership.capabilities.has('autonomous_processing') },
       { headers: { 'Cache-Control': 'private, no-store' } })
   } catch {
     return NextResponse.json({ error: 'Betti’s work summary is temporarily unavailable. Please try again.' },

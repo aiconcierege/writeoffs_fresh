@@ -60,3 +60,29 @@ it('does not preempt a ready action while workers run, but refreshes when the cu
  await focus()
  expect(fetcher).toHaveBeenCalledOnce()
 })
+
+it('includes the exact displayed identity in a focus refresh instead of requesting a new recommendation',async()=>{
+ const ready=homeWorkFixture('concurrent');const{fetcher}=start(ready)
+ const focus=vi.mocked(window.addEventListener).mock.calls.find(([event])=>event==='focus')?.[1] as ()=>Promise<void>
+ await focus()
+ const url=new URL(fetcher.mock.calls[0][0],'https://example.test')
+ expect(url.searchParams.get('presented')).toBe(ready.nextAction?.id)
+ expect(url.searchParams.get('presentedVersion')).toBe(ready.nextAction?.version)
+})
+
+it('discards an in-flight focus read when an ordinary answer starts',async()=>{
+ const{fetcher,view}=start(homeWorkFixture('concurrent'))
+ let finish!:(value:unknown)=>void
+ fetcher.mockReturnValueOnce(new Promise(resolve=>{finish=resolve}))
+ const focus=vi.mocked(window.addEventListener).mock.calls.find(([event])=>event==='focus')?.[1] as ()=>Promise<void>
+ const reading=focus()
+ const findPending=(node:unknown):((busy:boolean)=>void)|undefined=>{
+  if(!node||typeof node!=='object')return
+  if(Array.isArray(node)){for(const child of node){const found=findPending(child);if(found)return found}return}
+  const props=(node as {props?:{onGuidedPending?:(busy:boolean)=>void;children?:unknown}}).props
+  return props?.onGuidedPending??findPending(props?.children)
+ }
+ const pending=findPending(view);expect(pending).toBeTypeOf('function');pending!(true)
+ finish({ok:true,json:async()=>homeWorkFixture('organized')});await reading
+ expect(hooks.setters[0]).not.toHaveBeenCalled()
+})

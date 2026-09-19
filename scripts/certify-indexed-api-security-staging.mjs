@@ -36,13 +36,17 @@ try{
  await lowContext.addCookies([...jar].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:true,sameSite:'Lax'})))
  const checks=[]
  for(const [context,expected] of [[lowContext,403],[anonymous,401]]){
-  for(const [path,method] of [['/api/bookkeeping/work','GET'],['/api/bookkeeping/questions/11111111-1111-4111-8111-111111111111','POST']]){
+  for(const [path,method] of [['/api/bookkeeping/work','GET'],['/api/bookkeeping/work?view=guided&presented=foreign-action&presentedVersion=foreign-version','GET'],['/api/bookkeeping/questions/11111111-1111-4111-8111-111111111111','POST']]){
    const r=await context.request.fetch(origin+path,{method,headers:{'if-match':'22222222-2222-4222-8222-222222222222','x-betti-guided':'1','x-user-id':f.userId,'x-business-id':f.businessId},...(method==='POST'?{data:{action:'defer'}}:{})})
    assert.equal(r.status(),expected,path);checks.push({path,assurance:expected===403?'AAL1':'anonymous',status:r.status()})
   }
  }
  const workResponse=await contexts[0].request.get(origin+'/api/bookkeeping/work');assert.equal(workResponse.status(),200)
  const work=await workResponse.json();assert.equal(work.businessId,f.businessId);assert.equal(work.index?.version,1)
+ const presentedResponse=await contexts[0].request.get(origin+'/api/bookkeeping/work?view=guided&presented=foreign-action&presentedVersion=foreign-version')
+ assert.equal(presentedResponse.status(),200);const presented=await presentedResponse.json()
+ assert.equal(presented.businessId,f.businessId);assert(!JSON.stringify(presented).includes('foreign-action'));assert(!JSON.stringify(presented).includes('foreign-version'))
+ checks.push({path:'presentation context',foreignDataReturned:false,status:200})
  await writeFile(dir+'/indexed-api-security.json',JSON.stringify({checks,aal2Read:true,spoofedHeadersRejected:true},null,2));console.log('PASS: indexed handlers reject anonymous/AAL1 requests and spoofed identity headers; real AAL2 reads remain available')
 }finally{for(const c of contexts)await c.close();await browser.close()}
 }

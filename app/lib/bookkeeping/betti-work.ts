@@ -4,7 +4,7 @@ import type { CustomerQuestion } from './customer-questions'
 import { purchaseReceiptEligible } from './receipt-eligibility'
 import {guidedStage,guidedItem,guidedDeferral,GUIDED_BATCH_LIMIT,type GuidedItem,type GuidedReview,type SweepType} from './guided-work'
 
-export const BETTI_WORK_VERSION = 'betti-work:v3-guided-evidence'
+export const BETTI_WORK_VERSION = 'betti-work:v4-render-ready'
 export type Workstream = 'catch_up' | 'current' | 'shared' | 'outside_scope' | 'unscoped'
 export type ActionType = 'provide_records' | 'account_use' | 'personal_exception_sweep' | 'mixed_use_sweep'
   | 'receipt_upload_sweep' | 'receipt_availability' | 'special_transaction' | 'material_question'
@@ -40,6 +40,7 @@ export type WorkAction = {
   status: 'actionable' | 'deferred' | 'waiting'; availableAt: string | null
   href: string; question?: CustomerQuestion
   transaction?:{merchant:string;date:string;amountCents:number}
+  decisionVersion?:string
   items?:GuidedItem[];account?:{id:string;name:string;mask:string|null;designation:string|null}
   priority: { score: number; reasons: string[]; unlocks: number; ageDays: number; continuity: boolean
     materiality: 'totals' | 'disclosable' | null; deadline: string | null }
@@ -126,11 +127,20 @@ export function projectBettiWork(input: {
       : j.state === 'pending' ? 'queued' : j.state === 'processing' ? 'processing' : 'held'
     // Unknown document dates remain unscoped; upload time never supplies an activity date.
     return { id: j.id, version: j.updated_at, target: j.document_id ?? j.receipt_id ?? j.record_id,
-      documentId: j.document_id, recordIds, workstream: contextOf(rs), status,
+      documentId: j.document_id, receiptId: j.receipt_id, recordIds, workstream: contextOf(rs), status,
       availableAt: j.available_at, leaseExpiresAt: j.lease_expires_at }
   })
   const jobs=allJobs.filter(j=>j.workstream!=='outside_scope')
-  const activeJobIds = (id: string) => jobs.filter(j => j.recordIds.includes(id)).map(j => j.id)
+  // Until extraction/matching establishes a record relationship, independence
+  // cannot be proven. This fence applies to every evidence-dependent action,
+  // not only receipt sweeps. Account-use remains an independent customer fact.
+  const unassignedEvidence = jobs.filter(j => !j.recordIds.length && (j.documentId || j.receiptId))
+  const unassessedDocuments = c.documents.filter(d => d.has_job === false)
+  const activeJobIds = (id: string) => [...new Set([
+    ...jobs.filter(j => j.recordIds.includes(id)).map(j => j.id),
+    ...unassignedEvidence.map(j => j.id),
+    ...unassessedDocuments.map(d => `document-unassessed:${d.id}`),
+  ])]
   const actions: WorkAction[] = []
   const add = (type: ActionType, id: string, target: WorkAction['target'], rs: WorkRecord[], evidence: unknown,
     href: string, openedAt: string, extra: Partial<WorkAction> = {}) => {
@@ -198,7 +208,7 @@ export function projectBettiWork(input: {
     const until=deferred?new Date(Date.parse(deferred.created_at)+7*86400000).toISOString():null
     add('special_transaction',`special:${r.record_id}:evidence`,{kind:'record',id:r.record_id},[r],
       [r.decision_id,r.review_version,deferred?.id],`/check-in?record=${encodeURIComponent(r.record_id)}`,r.activity_date,
-      {transaction:{merchant:r.merchant??'Financial activity',date:r.activity_date,amountCents:r.amount_cents},
+      {decisionVersion:r.decision_id!,transaction:{merchant:r.merchant??'Financial activity',date:r.activity_date,amountCents:r.amount_cents},
        ...(until&&until>asOf?{status:'deferred' as const,availableAt:until}:{})})
     actions.at(-1)!.priority.reasons.push('existing_supporting_evidence_workflow')
   }
@@ -224,7 +234,7 @@ export function projectBettiWork(input: {
     if(r&&(stages.has(r.record_id)||specialRecords.has(r.record_id)||deferredSpecialRecords.has(r.record_id)))continue // One scoped guided action owns this dependency.
     add(type, `${q.source ?? 'bookkeeping'}:${q.id}`, { kind: 'question', id: q.id }, r ? [r] : [],
       [q.version, q.contextFingerprint, q.kind, q.prompt, q.guidance, q.options, q.understanding, q.confirmation], r ? `/check-in?record=${encodeURIComponent(r.record_id)}` : '/check-in', q.openedAt ?? asOf,
-      { question: q,
+      { question: q,...(type==='special_transaction'&&r?.decision_id?{decisionVersion:r.decision_id}:{}),
         ...(!r && q.transaction.date ? { workstream: activityWorkstream(q.transaction.date, c.business),
           affects: ['catch_up', 'current'].filter(s => s === activityWorkstream(q.transaction.date, c.business)) as ('catch_up' | 'current')[] } : {}),
         ...(q.availableAt && q.availableAt > asOf ? { status: 'deferred' as const, availableAt: q.availableAt } : {}) })

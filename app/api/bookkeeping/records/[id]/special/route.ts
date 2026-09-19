@@ -17,10 +17,13 @@ async function handlePOST(request:Request,{params}:{params:Promise<{id:string}>}
  return NextResponse.json({ok:true,decisionId:result.data})
 }
 
-async function handleGET(_request:Request,{params}:{params:Promise<{id:string}>}){
+async function handleGET(request:Request,{params}:{params:Promise<{id:string}>}){
  const db=await createServerSupabase(),{data:{user}}=await requestUser(db)
  if(!user)return NextResponse.json({error:'unauthorized'},{status:401})
- try{const{id}=await params;const work=await loadSpecialWork(db,id);if(!work)return NextResponse.json({error:'Unavailable'},{status:404});return NextResponse.json({work},{headers:{'Cache-Control':'private, no-store'}})}catch{return NextResponse.json({error:'Unavailable'},{status:404})}
+ try{const{id}=await params;const work=await loadSpecialWork(db,id);if(!work)return NextResponse.json({error:'Unavailable'},{status:404});
+  const expected=new URL(request.url).searchParams.get('expected')
+  if(expected&&expected!==work.decisionId)return NextResponse.json({error:'This detail has changed. Check the current action.'},{status:409,headers:{'Cache-Control':'private, no-store'}})
+  return NextResponse.json({work},{headers:{'Cache-Control':'private, no-store'}})}catch{return NextResponse.json({error:'Unavailable'},{status:404})}
 }
 
 export const GET = timedRoute(handleGET)

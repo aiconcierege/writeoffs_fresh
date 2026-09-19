@@ -1,5 +1,6 @@
 // UX-1 browser journeys. Only explicitly marked synthetic staging tenants.
 import assert from 'node:assert/strict'
+import {recordVisibleBettiActions} from './lib/betti-visible-actions.mjs'
 import {readFile,writeFile,mkdir} from 'node:fs/promises'
 import {createHmac,randomUUID} from 'node:crypto'
 import {createServerClient} from '@supabase/ssr'
@@ -30,6 +31,7 @@ async function session(f){
   const p=line.replace(/^#HttpOnly_/,'').split('\t')
   if(p[0]===new URL(origin).hostname)await context.addCookies([{domain:p[0],path:p[2],secure:p[3]==='TRUE',name:p[5],value:p[6],httpOnly:true,sameSite:'None'}])
  }
+ if(process.env.BETTI_VISIBLE_LOG)await recordVisibleBettiActions(context,process.env.BETTI_VISIBLE_LOG)
  return context
 }
 async function capture(page,state){
@@ -100,7 +102,7 @@ async function guidedJourney(f,context,page){
    for(let fiber=element[key];fiber;fiber=fiber.return){
     for(const branch of [fiber,fiber.alternate])for(let hook=branch?.memoizedState;hook;hook=hook.next){
      const value=hook.memoizedState
-     if(value&&typeof value==='object'&&value.businessId&&value.customer&&value.nextAction?.version===version)return value.nextAction
+     if(value&&typeof value==='object'&&value.businessId&&value.customer){const shown=value.presentation?.action??value.nextAction;if(shown?.version===version)return shown}
     }
    }
    return null
@@ -153,6 +155,20 @@ async function guidedJourney(f,context,page){
    console.log('PASS confirmation alternatives; no answer POST; canonical progression preserved')
    return
   }
+  if(process.argv.includes('--readiness-upload')&&action.type==='receipt_upload_sweep'&&!f.readinessUploaded){
+   const registered=page.waitForResponse(r=>r.url().endsWith('/api/documents')&&r.request().method()==='POST')
+   const chooser=page.waitForEvent('filechooser');await page.getByRole('button',{name:'Choose receipts',exact:true}).click()
+   await(await chooser).setFiles('/private/tmp/writeoffs-phase3/food.png');assert.equal((await registered).status(),200)
+   f.readinessUploaded=true;await writeFile(`${dir}/${prefix}-guided-${f.userId}.json`,JSON.stringify(f),{mode:0o600})
+   await page.waitForFunction(()=>!document.querySelector('.document-intake button')?.disabled)
+   continue
+  }
+  if(process.argv.includes('--readiness-upload')){
+   const checked=page.waitForResponse(r=>r.url().includes('/api/bookkeeping/work')&&r.request().method()==='GET')
+   await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await checked
+   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))))
+   if(await page.locator('[data-guided-action]').getAttribute('data-guided-version')!==action.version)continue
+  }
   let button,disposition='completed'
   if(action.type==='account_use')button=page.getByRole('button',{name:scenario==='mixed'?/Business \+ personal/:/Business only/})
   else if(action.type==='personal_exception_sweep')button=page.getByRole('button',{name:'Nothing here is personal',exact:true})
@@ -181,7 +197,7 @@ async function guidedJourney(f,context,page){
    else if(question?.kind==='meal_relationship'){await page.locator('#meal-relationship').fill('Alex Smith, prospective customer');button=page.getByRole('button',{name:'Continue',exact:true})}
    else if(question?.kind==='business_purpose'){
     if(question.options)button=page.getByRole('button',{name:'Business insurance',exact:true})
-    else {await page.locator('#purpose').fill(scenario==='meal'?'Breakfast with prospective customer Alex Smith to discuss a website design project.':/PRINT/i.test(merchant)?'Printed advertising flyers for my design business.':/MARK/i.test(merchant)?'Freelance design services for a customer project.':'Office supplies for customer design work.');button=page.getByRole('button',{name:'Continue',exact:true})}
+    else {await page.locator('#purpose').fill((scenario==='meal'||/MCDONALD/i.test(merchant))?'Breakfast with prospective customer Alex Smith to discuss a website design project.':/PRINT/i.test(merchant)?'Printed advertising flyers for my design business.':/MARK/i.test(merchant)?'Freelance design services for a customer project.':'Office supplies for customer design work.');button=page.getByRole('button',{name:'Continue',exact:true})}
    }else if(question?.kind==='percentage'){await page.locator('#percentage').fill('70');button=page.getByRole('button',{name:'Continue',exact:true})}
    if(!button){button=page.getByRole('button',{name:'I’ll come back to this',exact:true});disposition='deferred'}
   }else {button=page.getByRole('button',{name:'I’ll come back to this',exact:true});disposition='deferred'}
@@ -248,6 +264,56 @@ try {
   }
   const context=await session(f),page=await context.newPage(),errors=[]
   page.on('pageerror',e=>errors.push(e.message))
+  if(process.argv.includes('--completion-inspect')){
+   const response=await context.request.get(origin+'/api/bookkeeping/work');assert.equal(response.status(),200)
+   const work=await response.json();assert.equal(work.customer.actionableCount,0)
+   assert.equal(work.betti.genuinelyProcessing+work.betti.queued,0)
+   await page.goto(origin+'/check-in')
+   await page.locator('[data-guided-action]:not([data-guided-id])').waitFor()
+   if(work.customer.deferredCount)await page.getByText('I’ve saved the things you want to come back to.',{exact:true}).waitFor()
+   await capture(page,work.customer.deferredCount?'settled-only-deferred':'settled-completion')
+   console.log('Read-only settled completion inspected');await context.close();await browser.close();process.exit(0)
+  }
+  if(process.argv.includes('--presentation-probe')){
+   const read=async()=>{const r=await context.request.get(origin+'/api/bookkeeping/work');assert.equal(r.status(),200);return r.json()}
+   let before=await read()
+   for(let i=0;i<120&&(!before.nextAction||before.index?.summaryCurrent===false);i++){await page.waitForTimeout(2000);before=await read()}
+   assert(before.nextAction,'A real canonical ready action is required')
+   await page.goto(origin+'/check-in');await page.locator('[data-guided-version]').waitFor()
+   const originalVersion=await page.locator('[data-guided-version]').getAttribute('data-guided-version')
+   const original=before.customer.actionable.find(a=>a.version===originalVersion)
+   assert(original,'Initial displayed action must be canonical')
+   const other=await context.newPage();await other.goto(origin+'/import')
+   const received=other.waitForResponse(r=>r.url().endsWith('/api/documents')&&r.request().method()==='POST')
+   const chooser=other.waitForEvent('filechooser');await other.getByRole('button',{name:'Choose files',exact:true}).click()
+   await(await chooser).setFiles(process.argv.includes('--churn-probe')?(process.env.UX_PROBE_RECEIPT==='phone'?'/private/tmp/writeoffs-unified-documents/receipt-after.png':'/private/tmp/writeoffs-phase3/food.png'):'/private/tmp/writeoffs-phase3/current-phone.pdf')
+   assert.equal((await received).status(),200)
+   if(process.argv.includes('--churn-probe')){
+    const response=page.waitForResponse(r=>r.url().includes('/api/bookkeeping/work')&&r.request().method()==='GET')
+    await page.evaluate(()=>window.dispatchEvent(new Event('focus')))
+    const r=await response;assert.equal(r.status(),200);const refreshed=await r.json()
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))))
+    await capture(page,'presentation-during-ingestion')
+    const result={originalVersion,observedVersion:await page.locator('[data-guided-action]').getAttribute('data-guided-version'),notice:await page.locator('.betti-saved').innerText(),presentation:refreshed.presentation,index:refreshed.index}
+    await writeFile(`${dir}/${prefix}/churn-probe.json`,JSON.stringify(result,null,2))
+    console.log('Churn probe:',JSON.stringify(result));await context.close();await browser.close();process.exit(0)
+   }
+   let settled=await read()
+   for(let i=0;i<180&&(settled.index?.summaryCurrent===false||settled.nextAction?.id===original.id||!settled.customer.actionable.some(a=>a.id===original.id&&a.version===originalVersion));i++){await page.waitForTimeout(2000);settled=await read()}
+   assert(settled.customer.actionable.some(a=>a.id===original.id&&a.version===originalVersion),'Original must still be independently eligible')
+   assert(settled.nextAction?.id!==original.id,'Fixture must produce a different higher-priority recommendation')
+   const response=page.waitForResponse(r=>r.url().includes('/api/bookkeeping/work')&&r.request().method()==='GET')
+   await page.evaluate(()=>window.dispatchEvent(new Event('focus')))
+   const r=await response;assert.equal(r.status(),200);const refreshed=await r.json()
+   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))))
+   const observed=await page.locator('[data-guided-action]').getAttribute('data-guided-version')
+   const result={original:{id:original.id,version:originalVersion},recommended:{id:settled.nextAction.id,version:settled.nextAction.version},observedVersion:observed,presentation:refreshed.presentation,retained:observed===originalVersion}
+   await writeFile(`${dir}/${prefix}/presentation-probe.json`,JSON.stringify(result,null,2))
+   await capture(page,'presentation-focus-after-ingestion')
+   if(process.env.BETTI_EXPECT_STABLE==='1')assert(result.retained,'Focus must retain the still-eligible visible question')
+   console.log('Presentation probe:',JSON.stringify({retained:result.retained,status:refreshed.presentation?.status??'legacy-unconditional-replacement'}))
+   await context.close();await browser.close();process.exit(0)
+  }
   if(process.argv.includes('--gallery-only')){
    const label=process.env.UX_GALLERY??'read-only';assert(/^[a-z0-9-]+$/.test(label))
    await page.goto(origin+'/home');await capture(page,`home-${label}`)

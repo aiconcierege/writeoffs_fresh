@@ -47,6 +47,27 @@ describe('authenticated Betti work GET boundary', () => {
     expect(response.status).toBe(200)
     expect((await response.json()).businessId).toBe(business)
   })
+  it('revalidates presented work against the canonical set without mutating or changing its count',async()=>{
+    const full=await (await GET(request())).json()
+    const params=new URLSearchParams({view:'guided',presented:full.nextAction.id,presentedVersion:full.nextAction.version})
+    const response=await GET(new Request('https://writeoffs.example/api/bookkeeping/work?'+params))
+    const value=await response.json()
+    expect(value.presentation).toEqual({status:'retained',action:full.nextAction})
+    expect(value.nextAction).toEqual(full.nextAction)
+    expect(value.customer.actionableCount).toBe(full.customer.actionableCount)
+    expect(mocks.rpc.mock.calls.every(([name])=>name==='read_betti_work_inputs')).toBe(true)
+  })
+  it('never loads a foreign action supplied as presentation context',async()=>{
+    const response=await GET(new Request('https://writeoffs.example/api/bookkeeping/work?view=guided&presented=foreign-action&presentedVersion=foreign-version'))
+    const value=await response.json()
+    expect(value.businessId).toBe(business)
+    expect(value.presentation).toEqual({status:'updated',action:value.nextAction})
+    expect(JSON.stringify(value)).not.toContain('foreign')
+  })
+  it('rejects incomplete presentation context',async()=>{
+    expect((await GET(new Request('https://writeoffs.example/api/bookkeeping/work?presented=action'))).status).toBe(400)
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
   it.each([['unauthenticated', 401], ['MFA', 403], ['membership', 403]])('rejects %s before loading work', async (kind, status) => {
     if (kind === 'unauthenticated') mocks.getUser.mockResolvedValue({ data: { user: null } })
     if (kind === 'MFA') mocks.mfa.mockResolvedValue({ data: { currentLevel: 'aal1' } })

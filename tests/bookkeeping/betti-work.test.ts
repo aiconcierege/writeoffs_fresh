@@ -375,3 +375,36 @@ it('does not bypass an existing special deferral through a purchase sweep',()=>{
  c.specialDeferrals=[{business_id:'a',id:'saved',record_id:'old',decision_id:'decision-old',created_at:now}]
  const p=project(c);expect(p.customer.actionableCount).toBe(0);expect(p.customer.deferredCount).toBe(1)
 })
+
+
+describe('render-ready evidence dependencies',()=>{
+ it('holds all material candidates until an unassigned document has been assessed/matched',()=>{
+  const c=context();c.records=[record(),record('current','2026-09-15')];c.jobs=[job(null)]
+  const p=project(c,c.records.map(question))
+  expect(p.nextAction).toBeNull();expect(p.customer.actionableCount).toBe(0)
+  expect(p.betti.waiting).toHaveLength(2)
+  expect(p.betti.waiting.every(a=>a.dependencies.includes('job'))).toBe(true)
+ })
+ it('holds received-but-unassessed evidence without claiming a worker is processing',()=>{
+  const c=context();c.records=[record()];c.documents=[{business_id:'a',id:'new-doc',receipt_id:null,created_at:now,has_job:false}]
+  const p=project(c,c.records.map(question));expect(p.nextAction).toBeNull()
+  expect(p.betti.genuinelyProcessing).toBe(0);expect(p.betti.missingJobs).toHaveLength(1)
+ })
+ it('does not hold a durable account-use fact for document extraction',()=>{
+  const c=context();c.records=[record()];c.jobs=[job(null)]
+  c.accounts=[{business_id:'a',id:'account',designation:null,use_version:null}]
+  expect(project(c,c.records.map(question)).nextAction?.type).toBe('account_use')
+ })
+ it('releases independent work once the document relationship is known, without any timer',()=>{
+  const c=context();c.records=[record(),record('current','2026-09-15')];c.jobs=[job(null)]
+  c.documentRecords=[{business_id:'a',document_id:'document',record_id:'old'}]
+  const p=project(c,c.records.map(question));expect(p.nextAction?.recordIds).toEqual(['current'])
+  expect(p.betti.waiting[0].recordIds).toEqual(['old'])
+ })
+ it('does not publish an eliminated candidate between extraction and final reassessment',()=>{
+  const c=context();c.records=[record()];c.jobs=[job(null)]
+  expect(project(c,c.records.map(question)).nextAction).toBeNull()
+  c.jobs=[job()];expect(project(c,c.records.map(question)).nextAction).toBeNull()
+  c.jobs=[];c.records[0]=organized(c.records[0]);expect(project(c,[]).nextAction).toBeNull()
+ })
+})

@@ -14,7 +14,7 @@ import type { CustomerQuestion } from '../lib/bookkeeping/customer-questions'
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 const customerDate = new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})
 
-export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete,experience='questions',ongoingFrom,otherWorkWaiting=false,returnTo:origin='/home',initialWorkMessage,initialActionCount,guided=false,onGuidedAnswer,onGuidedRefresh }: {guided?:boolean;onGuidedAnswer?:(deferred:boolean,message?:string,work?:GuidedWorkProjection)=>Promise<void>;onGuidedRefresh?:()=>Promise<void>;initialWorkMessage?:HomeCommand;initialActionCount?:number;returnTo?:string;ongoingFrom?:string;otherWorkWaiting?:boolean; initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void;experience?:'questions'|'check-in' }) {
+export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,onComplete,experience='questions',ongoingFrom,otherWorkWaiting=false,returnTo:origin='/home',initialWorkMessage,initialActionCount,guided=false,onGuidedAnswer,onGuidedRefresh,onGuidedPending }: {onGuidedPending?:(pending:boolean)=>void;guided?:boolean;onGuidedAnswer?:(deferred:boolean,message?:string,work?:GuidedWorkProjection)=>Promise<void>;onGuidedRefresh?:()=>Promise<void>;initialWorkMessage?:HomeCommand;initialActionCount?:number;returnTo?:string;ongoingFrom?:string;otherWorkWaiting?:boolean; initialQuestions: CustomerQuestion[];range?:{start:string;end:string};recordId?:string;embedded?:boolean;onComplete?:(result:{unresolvedCount:number})=>void;experience?:'questions'|'check-in' }) {
   const router=useRouter()
   const returnTo=safeReturnTo(origin,'/home')
   const [workMessage,setWorkMessage]=useState(initialWorkMessage)
@@ -71,6 +71,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   async function submit(command: Record<string, unknown>) {
     if (!question || busy || submitLock.current) return
     submitLock.current = true
+    onGuidedPending?.(true)
     setBusy(true)
     setError('')
     try {
@@ -113,6 +114,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
       if(uncertain&&onGuidedRefresh)await onGuidedRefresh()
     } finally {
       submitLock.current = false
+      onGuidedPending?.(false)
       setBusy(false)
     }
   }

@@ -7,7 +7,7 @@ import {supabase} from '../../utils/supabase/client'
 import {fileKind} from '../lib/documents/file-validation'
 import {runBoundedBatch} from '../lib/documents/batch-intake'
 import {status,type Document} from '../lib/documents/customer-status'
-export function DocumentIntake({compact=false,recordId,guided=false,onUploadState,buttonLabel='Choose files'}:{buttonLabel?:string;compact?:boolean;recordId?:string;guided?:boolean;onUploadState?:(busy:boolean)=>void}){
+export function DocumentIntake({compact=false,recordId,guided=false,onUploadState,buttonLabel='Choose files'}:{buttonLabel?:string;compact?:boolean;recordId?:string;guided?:boolean;onUploadState?:(busy:boolean,result?:{received:number})=>void}){
  const [accounts,setAccounts]=useState<StatementUseAccount[]>([])
  const [uploads,setUploads]=useState<Array<{key:string;name:string;state:'uploading'|'received'|'failed';documentId?:string}>>([])
  const router=useRouter()
@@ -20,6 +20,7 @@ export function DocumentIntake({compact=false,recordId,guided=false,onUploadStat
   if(!files.length||busyRef.current)return
   if(files.length>10){setMessage('Choose up to 10 documents at a time.');return}
   const batch=files.map(file=>({file,key:crypto.randomUUID()}));setUploads(batch.map(({file,key})=>({key,name:file.name,state:'uploading'})))
+  let receivedCount=0
   busyRef.current=true;setBusy(true);onUploadState?.(true);setMessage('Sending your documents…')
   try{
    const{data:{user}}=await supabase.auth.getUser();if(!user){router.push('/login');return}
@@ -31,13 +32,13 @@ export function DocumentIntake({compact=false,recordId,guided=false,onUploadStat
     const stored=await supabase.storage.from('receipts').upload(path,file,{contentType:mime,upsert:false})
     if(stored.error&&!/already exists|duplicate/i.test(stored.error.message))throw new Error('UPLOAD')
     const r=await fetch('/api/documents',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:crypto.randomUUID(),fingerprint:hash,name:file.name,mime,bytes:file.size,...(recordId?{recordId}:{})})})
-    if(!r.ok)throw new Error('REGISTER');const body=await r.json();setUploads(rows=>rows.map(row=>row.key===key?{...row,state:'received',documentId:body.document.id}:row));return file.name
+    if(!r.ok)throw new Error('REGISTER');const body=await r.json();receivedCount++;setUploads(rows=>rows.map(row=>row.key===key?{...row,state:'received',documentId:body.document.id}:row));return file.name
     }catch(error){setUploads(rows=>rows.map(row=>row.key===key?{...row,state:'failed'}:row));throw error}
    }})
    const failed=results.filter(r=>r.status==='rejected').length,received=results.length-failed
    setMessage(`${received} ${received===1?'document':'documents'} received.${failed?` ${failed} could not be sent. Check the file is under 20 MB and try again.`:' You can leave while Betti organizes them.'}`);await refresh()
   }catch{setUploads(rows=>rows.map(row=>row.state==='uploading'?{...row,state:'failed'}:row));setMessage('Your documents could not be sent. Please try again.')}
-  finally{busyRef.current=false;setBusy(false);onUploadState?.(false);if(input.current)input.current.value=''}
+  finally{busyRef.current=false;setBusy(false);onUploadState?.(false,{received:receivedCount});if(input.current)input.current.value=''}
  }
  return <div className={`document-intake min-w-0 ${compact?'document-intake-compact':''}`}>
   <p className="text-sm leading-6 text-slate-600">{guided?recordId?'Send the supporting document you have. I’ll review it with this transaction.':'Choose the receipts you have. I’ll look for their matching purchases.':'Send me receipts and statements. I’ll figure out where they belong.'}</p>

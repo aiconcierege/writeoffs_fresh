@@ -59,3 +59,18 @@ describe('canonical action index publication',()=>{
  it('expires at business midnight before historical policy changes',()=>{const c=context();const now='2026-09-18T06:59:59.000Z';expect(actionIndexValidUntil(c,[],now)).toBe('2026-09-18T07:00:00.000Z')})
  it('never uses missing receipt as loss of organized working treatment',()=>{const i=prepared('receipt'),built=buildActionIndex(i);expect(built.work.progress.catchUp.organized).toBe(1);expect(built.work.progress.current.organized).toBe(1)})
 })
+
+
+it('publishes the same render-ready set for unknown evidence, linked evidence, and settled reassessment',()=>{
+ const input=prepared('questions')
+ input.context.jobs=[{business_id:'b',id:'evidence',record_id:null,document_id:'document',receipt_id:null,state:'processing',kind:'document',available_at:asOf,lease_expires_at:'2026-09-18T12:10:00Z',updated_at:asOf}]
+ for(const phase of ['unassigned','linked','settled']){
+  if(phase==='linked')input.context.documentRecords=[{business_id:'b',document_id:'document',record_id:'old'}]
+  if(phase==='settled'){input.context.jobs=[];input.questions=input.questions.filter(q=>q.recordId!=='old')}
+  const canonical=projectBettiWork(input),indexed=buildActionIndex(input)
+  expect(indexed.work.nextAction).toEqual(canonical.nextAction)
+  expect(indexed.entries.filter(e=>e.action.status==='actionable').map(e=>e.action)).toEqual(canonical.customer.actionable)
+  if(phase==='unassigned')expect(canonical.nextAction).toBeNull()
+  else expect(canonical.nextAction?.recordIds).toEqual(['current'])
+ }
+})
