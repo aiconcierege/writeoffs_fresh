@@ -54,4 +54,5 @@ export async function finishAnsweredExpense(input: { supabase: SupabaseClient; a
     snapshot = await loadBookkeepingEvaluationSnapshot({ admin, businessId, recordId })
   }
   await processOperatingExpenseTreatment({ admin, snapshot })
+  return true // The caller must reread next work after possible local enrichment.
 }

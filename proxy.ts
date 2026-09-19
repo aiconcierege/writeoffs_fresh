@@ -5,7 +5,7 @@
  */
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { isAuthenticatedRoute,isCustomerBookkeepingMutationRoute } from './app/lib/route-policy'
+import { isAuthenticatedRoute,isCustomerBookkeepingMutationRoute,indexedHandlerOwnsAuthentication } from './app/lib/route-policy'
 import { mfaEnforcementMode } from './app/lib/auth/mfa-policy'
 import { isCustomerSignupEnabled } from './app/lib/auth/signup-policy'
 import { nextRequiredCustomerDestination } from './app/lib/auth/prerequisite-policy'
@@ -33,6 +33,9 @@ async function runProxy(req: NextRequest,timing:{started:number;calls:number;tra
   const url = req.nextUrl
   const pathname = url.pathname
   const res = NextResponse.next()
+
+  if(indexedHandlerOwnsAuthentication(pathname,req.method,
+    process.env.WRITEOFFS_ENVIRONMENT==='staging'&&process.env.BETTI_ACTION_INDEX_ENABLED!=='false'))return res
 
   // --- Keep Supabase auth cookies in sync for server components ---
   const supabase = createServerClient(

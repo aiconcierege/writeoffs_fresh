@@ -89,6 +89,9 @@ export function workingOrganized(record: WorkRecord): boolean {
 export function projectBettiWork(input: {
   businessId: string; context: WorkContext; questions: CustomerQuestion[]; asOf: string
   continuityRecordId?: string; processingEnabled?: boolean
+  /** Internal index construction only: collect each action's continuity variant
+   * in one pass. Request adapters accept only the single-record hint above. */
+  continuityRecordIds?: ReadonlySet<string>
 }) {
   const { context: c, asOf } = input
   if (c.business.id !== input.businessId || c.business.authorizedScope.businessId !== input.businessId) throw new Error('Projection business mismatch')
@@ -132,7 +135,7 @@ export function projectBettiWork(input: {
   const add = (type: ActionType, id: string, target: WorkAction['target'], rs: WorkRecord[], evidence: unknown,
     href: string, openedAt: string, extra: Partial<WorkAction> = {}) => {
     const affects = extra.affects ?? streams(rs), ageDays = Math.max(0, Math.floor((Date.parse(asOf) - Date.parse(openedAt)) / 86400000))
-    const continuity = rs.some(r => r.record_id === input.continuityRecordId)
+    const continuity = rs.some(r => r.record_id === input.continuityRecordId || input.continuityRecordIds?.has(r.record_id))
     const unlocks = type === 'account_use' ? rs.filter(r => !workingOrganized(r)).length : rs.length
     // Explainable utility, not a fixed stream quota. Aging is unbounded to prevent starvation.
     const reasons = [type === 'account_use' ? 'account_prerequisite' : type === 'recover_ingestion'

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const getUser = vi.fn()
+const assurance = vi.fn()
 const maybeSingle = vi.fn()
 const rpc = vi.fn()
 const applyFact = vi.fn()
@@ -9,7 +10,7 @@ const actOnCustomerQuestion = vi.fn()
 
 vi.mock('../../utils/supabase/server', () => ({
   createServerSupabase: vi.fn(async () => ({
-    auth: { getUser }, rpc,
+    auth: { getUser, mfa:{getAuthenticatorAssuranceLevel:assurance} }, rpc,
     from: vi.fn(() => ({
       select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle })) })),
     })),
@@ -29,6 +30,7 @@ const eventId = '22222222-2222-4222-8222-222222222222'
 describe('customer question API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    assurance.mockResolvedValue({data:{currentLevel:"aal2"}})
     maybeSingle.mockResolvedValue({data:null})
     rpc.mockResolvedValue({error:null})
     applyFact.mockResolvedValue({outcome:'already_applied'})
@@ -40,6 +42,16 @@ describe('customer question API', () => {
     actOnCustomerQuestion.mockResolvedValue({})
   })
 
+
+  it('rejects AAL1 before any eligibility read or write',async()=>{
+    assurance.mockResolvedValue({data:{currentLevel:'aal1'}})
+    const route=await import('../../app/api/bookkeeping/questions/[id]/route')
+    const response=await route.POST(new Request('https://local/answer',{method:'POST',headers:{'if-match':eventId},body:JSON.stringify({action:'defer'})}),{params:Promise.resolve({id:issueId})})
+    expect(response.status).toBe(403)
+    expect(getCurrentAskableQuestionQueue).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
+    expect(actOnCustomerQuestion).not.toHaveBeenCalled()
+  })
 
   it.each([80,50])('retries only the same committed factual answer (%s)',async value=>{
     maybeSingle.mockResolvedValue({data:{id:issueId,attention_id:issueId,event_type:'answered',

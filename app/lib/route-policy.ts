@@ -34,6 +34,14 @@ export function isAuthenticatedRoute(pathname: string) {
 const CUSTOMER_BOOKKEEPING_MUTATION_PREFIXES=['/api/bookkeeping/','/api/receipts','/api/plaid/link-token','/api/plaid/exchange','/api/plaid/sync','/api/mileage','/api/manual-money','/api/invoices','/api/import','/api/documents','/api/deductions','/api/contractors','/api/tx/'] as const
 export function isCustomerBookkeepingMutationRoute(pathname:string,method:string){return !['GET','HEAD','OPTIONS'].includes(method.toUpperCase())&&CUSTOMER_BOOKKEEPING_MUTATION_PREFIXES.some(prefix=>pathname===prefix||pathname.startsWith(prefix))}
 
+/** These handlers authenticate and refresh cookies themselves, enforce MFA and
+ * membership, and call tenant/version-guarded SQL. Avoid a second network auth
+ * gate in Proxy; no client claims or forwarded identity headers are trusted. */
+export function indexedHandlerOwnsAuthentication(pathname:string,method:string,indexEnabled:boolean){
+  return indexEnabled && ((method==='GET'&&pathname==='/api/bookkeeping/work')
+    ||(method==='POST'&&/^\/api\/bookkeeping\/questions\/[^/]+$/.test(pathname)))
+}
+
 export type ApplicationNavigationSection = 'home' | 'transactions' | 'reports' | 'account' | null
 
 export function applicationNavigationSection(pathname: string): ApplicationNavigationSection {

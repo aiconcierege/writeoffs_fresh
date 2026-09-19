@@ -7,6 +7,7 @@ import { prepareWeeklyReviews } from '../../../../lib/bookkeeping/weekly-review-
 import {createServerAdminSupabase} from '../../../../../utils/supabase/admin'
 import {drainAccountDeletionQueue}from '../../../../lib/account-lifecycle/deletion'
 import {drainLifecycleNotifications}from '../../../../lib/account-lifecycle/notifications'
+import {actionIndexEnabled,refreshBettiActionIndex} from '../../../../lib/bookkeeping/action-index-worker'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -21,6 +22,7 @@ function authorized(request: Request) {
 
 async function run(request: Request) {
   if (!authorized(request)) return NextResponse.json({ error: 'Not authorized.' }, { status: 401 })
+  const actionIndexBefore=actionIndexEnabled()?await refreshBettiActionIndex({limit:12}):null
   const expiration=await createServerAdminSupabase().rpc('expire_elapsed_business_memberships',{p_now:new Date().toISOString()})
   if(expiration.error)throw new Error('MEMBERSHIP_EXPIRATION_UNAVAILABLE')
   const accountLifecycle=await drainAccountDeletionQueue(3)
@@ -39,7 +41,8 @@ async function run(request: Request) {
   const shadow = expensiveProcessingEnabled
     ? await drainReceiptUnderstandingJobs({ batchSize: 1 })
     : { paused: true, claimed: 0, completed: 0, failed: 0 }
-  return NextResponse.json({ documents,bookkeeping,weeklyReviews,shadow,accountLifecycle,lifecycleNotifications,expensiveProcessingEnabled,membershipsExpired:expiration.data,health: await documentQueueHealth() })
+  const actionIndexAfter=actionIndexEnabled()?await refreshBettiActionIndex({limit:12}):null
+  return NextResponse.json({ documents,bookkeeping,weeklyReviews,shadow,accountLifecycle,lifecycleNotifications,expensiveProcessingEnabled,membershipsExpired:expiration.data,health: await documentQueueHealth(),actionIndexBefore,actionIndexAfter })
 }
 
 export async function GET(request: Request) { try { return await run(request) } catch {

@@ -5,6 +5,17 @@ import {createServerSupabase} from '../../../utils/supabase/server'
 import {loadCustomerEntitlements} from '../membership/entitlements'
 import {loadBettiWork} from './betti-work-loader'
 import {timed} from '../performance/request-timing'
+import {after} from 'next/server'
+import {actionIndexEnabled,refreshBettiActionIndex} from './action-index-worker'
+import {readBettiActionIndex} from './action-index-reader'
+
+export function guidedContinuityRecord(request:Request){
+ let record=request.headers.get('x-betti-record')
+ if(!record)try{const source=new URL(request.headers.get('referer')??'')
+  if(source.origin===new URL(request.url).origin&&source.pathname==='/check-in')record=source.searchParams.get('record')
+ }catch{/* A context hint is optional and never changes ownership/eligibility. */}
+ return record&&/^[0-9a-f-]{36}$/i.test(record)?record:undefined
+}
 
 /** Optional continuation of an explicit, successfully persisted command. Never a GET
  * side effect, optimistic answer, or cross-request cache. Projection failure must not
@@ -22,19 +33,25 @@ export function guidedCommand<Rest extends unknown[]>(handler:(request:Request,.
     requestUser(db),db.auth.mfa.getAuthenticatorAssuranceLevel(),loadCustomerEntitlements(db),
    ])
    if(!user||assurance?.currentLevel!=='aal2'||!membership.businessId||!membership.capabilities.has('autonomous_processing'))return response
+   if(actionIndexEnabled()){
+    // Durable invalidation was committed with the fact. after() accelerates the
+    // leased refresh; the cron is its recovery path if this callback is lost.
+    after(async()=>{
+     try{
+      await refreshBettiActionIndex({businessId:membership.businessId!,limit:2})
+     }catch{console.error('BETTI_ACTION_INDEX_REFRESH_PENDING')}
+    })
+    const saved=await response.clone().json()
+    if(saved.work?.index?.version===1)return response
+    const indexed=await readBettiActionIndex({db,businessId:membership.businessId,view:'guided',
+     continuityRecordId:guidedContinuityRecord(request),processingEnabled:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'})
+    if(indexed)return Response.json({...saved,work:indexed},{status:response.status,headers:{'Cache-Control':'private, no-store'}})
+   }
    // Deferral supplies no new bookkeeping fact; its canonical event is enough.
    if(!deferred)await timed('question_reconciliation',async()=>{
     const result=await db.rpc('reconcile_current_betti_questions');if(result.error)throw new Error('Reconciliation unavailable')
    })
-   let record=request.headers.get('x-betti-record')
-   // Preserve the existing Check-in entry priority when returning its next read.
-   // This is only a priority hint: tenant/scope eligibility remains canonical.
-   if(!record){
-    try{
-     const source=new URL(request.headers.get('referer')??'')
-     if(source.origin===new URL(request.url).origin&&source.pathname==='/check-in')record=source.searchParams.get('record')
-    }catch{/* No trusted originating context. */}
-   }
+   const record=guidedContinuityRecord(request)
    const work=await timed('next_projection',()=>loadBettiWork({db,businessId:membership.businessId!,scope:membership.plan??'expenses',
     continuityRecordId:record&&/^[0-9a-f-]{36}$/i.test(record)?record:undefined,
     processingEnabled:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'}))

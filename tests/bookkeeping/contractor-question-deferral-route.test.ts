@@ -4,7 +4,7 @@ const rpc=vi.fn()
 const getUser=vi.fn(async()=>({data:{user:{id:'owner'}},error:null}))
 const paymentId='11111111-1111-4111-8111-111111111111'
 
-vi.mock('../../utils/supabase/server',()=>({createServerSupabase:vi.fn(async()=>({auth:{getUser},rpc,
+vi.mock('../../utils/supabase/server',()=>({createServerSupabase:vi.fn(async()=>({auth:{getUser,mfa:{getAuthenticatorAssuranceLevel:async()=>({data:{currentLevel:"aal2"}})}},rpc,
   from:vi.fn((table:string)=>({select:vi.fn(()=>({eq:vi.fn(()=>({maybeSingle:vi.fn(async()=>({
     data:table==='current_contractor_payments'?{id:paymentId}:null,error:null}))}))}))}))}))}))
 vi.mock('../../app/lib/bookkeeping/customer-work',()=>({loadCurrentCustomerWork:async()=>({questions:[{id:paymentId,version:paymentId}]})}))

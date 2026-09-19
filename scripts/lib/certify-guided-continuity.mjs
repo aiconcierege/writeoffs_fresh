@@ -39,22 +39,31 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
     else await route.fulfill({response}).catch(()=>{}) // Client timeout can precede a confirmed commit.
    }catch(error){resolveSaved({status:0,body:String(error)});await route.abort().catch(()=>{})}
   }
-  await page.route('**/api/bookkeeping/**',handler)
+  // Performance runs measure Chromium's actual request, without replacing it
+  // with Playwright's Node-side route.fetch connection. Fault tests retain interception.
+  const observe=async response=>{
+   if(response.request().method()!=='POST'||!response.url().includes('/api/bookkeeping/')||response.url().endsWith('/reconcile'))return
+   const headers=await response.allHeaders()
+   resolveSaved({status:response.status(),body:await response.text(),serverTiming:headers['server-timing']??null,
+    dbCalls:Number(headers['x-betti-db-calls']??0)||null,proxyMs:Number(headers['x-betti-proxy-ms']??0)||null,proxyCalls:Number(headers['x-betti-proxy-calls']??0)||null})
+  }
+  if(performanceMode)page.on('response',observe)
+  else await page.route('**/api/bookkeeping/**',handler)
   try{
    await page.locator(`[data-guided-version="${expectedVersion}"]`).getByRole('button',{name:label,exact:typeof label==='string'}).click()
    const response=await saved;persistenceMs=Date.now()-clickAt;commandServerTiming=response.serverTiming??null;commandMetrics={dbCalls:response.dbCalls,proxyMs:response.proxyMs,proxyCalls:response.proxyCalls}
    assert.equal(response.status,200,response.body)
    // Observe actual screen advancement, not an obsolete independently read snapshot.
    await page.waitForFunction(version=>document.querySelector('[data-guided-action]')?.getAttribute('data-guided-version')!==version,expectedVersion,{timeout:60000})
-   renderedMs=Date.now()-clickAt
+   renderedMs=await page.evaluate(()=>performance.now()-window.__bettiPerf.click)
    acknowledgmentMs=await page.evaluate(()=>window.__bettiPerf.pending-window.__bettiPerf.click)
    if(performanceMode)assert(await page.evaluate(()=>window.__bettiPerf.pendingVisible),'No immediate pending acknowledgment')
-  }finally{await page.unroute('**/api/bookkeeping/**',handler)}
+  }finally{if(performanceMode)page.off('response',observe);else await page.unroute('**/api/bookkeeping/**',handler)}
  }
  try{for(let turn=0;turn<200;turn++){
   const work=await api(context,path),action=work.nextAction
   if(!action){
-   if(work.betti.jobs.length){
+   if(work.betti.genuinelyProcessing+work.betti.queued+work.betti.retryScheduled>0){
     if(!captures.has('processing')){await screenshot(page,'genuine-processing');captures.add('processing')}
     // Normal worker completion only. A long wait may require the explicit bounded-read control.
     let ready=false;const startedAt=Date.now();let explicitChecks=0
@@ -62,7 +71,7 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
      await page.waitForTimeout(4000)
      if(await page.getByRole('button',{name:'Check for the next step',exact:true}).isVisible()){await page.getByRole('button',{name:'Check for the next step',exact:true}).click();explicitChecks++}
      const next=await api(context,path)
-     if(next.nextAction||!next.betti.jobs.length){ready=true;break}
+     if(next.nextAction||next.betti.genuinelyProcessing+next.betti.queued+next.betti.retryScheduled===0){ready=true;break}
     }
     processingWaits.push({elapsedMs:Date.now()-startedAt,explicitChecks,settled:ready});
     if(!ready){
@@ -135,6 +144,8 @@ export async function certifyContinuity({page,context,client,api,screenshot,cros
  if(process.env.CERTIFICATION_ORDINARY_CONTINUITY==='true'){
   assert(steps.length>=20,'Fewer than twenty uninterrupted ordinary actions')
   assert(steps.every(s=>s.type==='material_question'&&s.disposition==='completed'&&/^PERF INCOMING \d{2}$/.test(s.merchant??'')))
+ }else if(process.env.CERTIFICATION_INDEX_CONTINUITY==='true'){
+  assert(steps.length>=20,'Fewer than twenty uninterrupted indexed actions')
  }else{
   assert(steps.some(s=>s.merchant==='LOAN PAYMENT - EQUIPMENT FINANCE CO'&&s.disposition==='deferred'))
   assert(steps.some(s=>s.merchant==='REFUND - OFFICE DEPOT'&&s.disposition==='completed'))

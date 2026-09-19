@@ -114,6 +114,23 @@ function mapDecision(
   }
 }
 
+/** Optional inline hydration from the atomic indexed command, never client input. */
+function indexedAnswerResult(result:DatabaseRow):StoredReviewAnswerResult|null{
+ const h=nullableObject(result,'_indexHydration')
+ if(!h)return null
+ const decision=nullableObject(h,'decision'),answered=nullableObject(h,'answeredEvent'),resolved=nullableObject(h,'resolvedEvent')
+ if(!decision||!answered||!resolved||!Array.isArray(h.allocations))throw new Error('Incomplete indexed answer result')
+ const businessId=requiredString(result,'business_id')
+ for(const row of [decision,answered,resolved,...h.allocations])if(row.business_id!==businessId)throw new Error('Unowned indexed answer result')
+ const followUp=nullableObject(h,'followUpEvent')
+ if(followUp&&followUp.business_id!==businessId)throw new Error('Unowned indexed follow-up')
+ return{answeredEvent:mapWeeklyReviewEvent(answered),resolvedEvent:mapWeeklyReviewEvent(resolved),
+  decision:mapDecision(decision,(h.allocations as DatabaseRow[]).map(a=>({
+   kind:requiredString(a,'allocation_kind') as BookkeepingDecisionInput['allocations'][number]['kind'],
+   amountCents:Number(a.amount_cents),taxCategoryKey:nullableString(a,'tax_category_key'),memo:nullableString(a,'memo'),
+  }))),followUpEvent:followUp?mapWeeklyReviewEvent(followUp):null}
+}
+
 function mapDocumentLink(row: DatabaseRow): DocumentationLink {
   return {
     id: requiredString(row, 'id'),
@@ -654,6 +671,7 @@ export class SupabaseBookkeepingRepository
     if (error) fail('answer bookkeeping business-purpose review issue', error)
     const result = oneRow(data)
     if (!result) fail('answer bookkeeping business-purpose review issue', { message: 'no result returned' })
+    const indexed=indexedAnswerResult(result);if(indexed)return indexed
     const businessId = requiredString(result, 'business_id')
     const [answeredEvent, resolvedEvent, decision] = await Promise.all([
       this.loadReviewEvent(businessId, requiredString(result, 'answered_event_id')),
@@ -949,6 +967,7 @@ export class SupabaseBookkeepingRepository
     if (error) fail(operation, error)
     const result = oneRow(data)
     if (!result) fail(operation, { message: 'no result returned' })
+    const indexed=indexedAnswerResult(result);if(indexed)return indexed
     const businessId = requiredString(result, 'business_id')
     const followUpEventId = nullableString(result, 'follow_up_event_id')
     const [answeredEvent, resolvedEvent, decision, followUpEvent] =
@@ -974,6 +993,8 @@ export class SupabaseBookkeepingRepository
   }
 
   private async requireReviewEvent(businessId: string, value: unknown) {
+    const inline=oneRow(value),event=inline?nullableObject(inline,'_indexEvent'):null
+    if(event){if(event.business_id!==businessId)throw new Error('Unowned indexed event');return mapWeeklyReviewEvent(event)}
     if (typeof value !== 'string') {
       fail('load bookkeeping review event', { message: 'no id returned' })
     }

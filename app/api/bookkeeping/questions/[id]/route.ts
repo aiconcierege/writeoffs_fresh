@@ -3,7 +3,7 @@ import {guidedCommand} from '../../../../lib/bookkeeping/guided-command-response
 import type {WorkInputSnapshot} from '../../../../lib/bookkeeping/work-input-snapshot'
 import { timed, timedRoute } from '../../../../lib/performance/request-timing'
 import { loadCurrentCustomerWork } from '../../../../lib/bookkeeping/customer-work'
-import { NextResponse } from 'next/server'
+import { NextResponse,after } from 'next/server'
 import { createServerSupabase } from '../../../../../utils/supabase/server'
 import {
   actOnCustomerQuestion,
@@ -12,6 +12,11 @@ import {
 import { createServerAdminSupabase } from '../../../../../utils/supabase/admin'
 import { loadBookkeepingEvaluationSnapshot } from '../../../../lib/bookkeeping/evaluation-snapshot'
 import { finishAnsweredExpense } from '../../../../lib/bookkeeping/answered-expense-classification'
+import {actionIndexEnabled,refreshBettiActionIndex} from '../../../../lib/bookkeeping/action-index-worker'
+import {readIndexedQuestion,indexedQuestionClient} from '../../../../lib/bookkeeping/indexed-question-command'
+import {loadCustomerEntitlements} from '../../../../lib/membership/entitlements'
+import {readBettiActionIndex} from '../../../../lib/bookkeeping/action-index-reader'
+import {guidedContinuityRecord} from '../../../../lib/bookkeeping/guided-command-response'
 import { runDeductionIntelligenceForRecord } from '../../../../lib/bookkeeping/deduction-intelligence'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -91,6 +96,8 @@ async function handlePOST(
   if (error || !user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
+  const {data:assurance}=await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+  if(assurance?.currentLevel!=='aal2')return NextResponse.json({error:'MFA required'},{status:403})
   const { id } = await context.params
   let body: unknown
   try {
@@ -104,6 +111,32 @@ async function handlePOST(
     return NextResponse.json({ error: 'invalid question action' }, { status: 400 })
   }
   try {
+    if(actionIndexEnabled()){
+      const membership=await loadCustomerEntitlements(supabase)
+      if(!membership.businessId||!membership.capabilities.has('autonomous_processing'))
+        return NextResponse.json({error:'Active membership required'},{status:403})
+      const indexed=await readIndexedQuestion(supabase,membership.businessId,id,expectedEventId)
+      if(indexed.initialized&&!indexed.action&&command.action!=='deduction_fact')
+        return NextResponse.json({error:'This question changed. Continue with the latest work.'},{status:409})
+      if(indexed.commandItem&&indexed.action?.question?.source==='bookkeeping'){
+        const transport=indexedQuestionClient({db:supabase,businessId:membership.businessId,id,version:expectedEventId,
+          continuityRecordId:guidedContinuityRecord(request),replay:indexed.replay})
+        const result=await actOnCustomerQuestion({supabase:transport.client,issueId:id,expectedEventId,command,
+          indexedItem:indexed.commandItem,authenticatedUserId:user.id})
+        // Only defer enrichment when the canonical write transaction confirms
+        // a durable deterministic job for this exact resulting expense decision.
+        let enriched:boolean|undefined
+        if(transport.backgroundSafe())after(async()=>{
+          try{await finishAnsweredExpense({supabase,result});await refreshBettiActionIndex({businessId:membership.businessId!,limit:2})}
+          catch{console.error('BETTI_ANSWER_ENRICHMENT_REMAINS_QUEUED')}
+        })
+        else enriched=await finishAnsweredExpense({supabase,result})
+        const next=enriched?await readBettiActionIndex({db:supabase,businessId:membership.businessId,view:'guided',
+          continuityRecordId:guidedContinuityRecord(request),processingEnabled:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'}):transport.next()
+        return NextResponse.json({ok:true,...(request.headers.get('x-betti-guided')==='1'&&next?{work:next}:{})},
+          {headers:{'Cache-Control':'private, no-store'}})
+      }
+    }
     let validatedSnapshot:WorkInputSnapshot|undefined
     const work = await timed('command_eligibility',()=>loadCurrentCustomerWork({supabase,onSnapshot:value=>{validatedSnapshot=value}}))
     if (!work.questions.some(q=>q.id===id && q.version===expectedEventId)) {

@@ -10,7 +10,9 @@ import {createCanvas} from '@napi-rs/canvas'
 const origin=process.env.CERTIFICATION_ORIGIN??'https://writeoffs-fresh-staging.vercel.app'
 assert(/^https:\/\/writeoffs-fresh-staging(?:-[a-z0-9-]+)?\.vercel\.app$/.test(origin))
 const reportThrough=new Date().toISOString().slice(0,10)
-const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Phoenix',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
+// Canonical activation uses UTC dates; a Phoenix-local date can be the prior
+// day after 17:00 and incorrectly label a synthetic Current fixture as Catch-up.
+const today=reportThrough
 const dir=process.env.CERTIFICATION_ARTIFACT_DIR??'/private/tmp/writeoffs-phase3-corrections',url=process.env.NEXT_PUBLIC_SUPABASE_URL
 assert(/^\/private\/tmp\/writeoffs-phase3(?:-[a-z0-9-]+)?$/.test(dir))
 assert(process.env.WRITEOFFS_ENVIRONMENT==='staging'&&new URL(url).hostname==='sgrqrrxrlglhjuetdtps.supabase.co')
@@ -211,6 +213,11 @@ try {
    const name='performance-incoming-samples'+(offset?`-${offset}`:'')
    await statement(name,'September 1, 2026','September 30, 2026',Array.from({length:extraSamples},(_,i)=>[day,`PERF INCOMING ${String(i+1+offset).padStart(2,'0')}`,10000+(i+offset)*101]))
    await upload(f,page,context,`${dir}/${name}.pdf`)
+  }
+  if(process.argv.includes('--current-boundary-evidence')){
+   const day=reportThrough.slice(5,10).replace('-','/')
+   await statement('performance-current-activation','September 1, 2026','September 30, 2026',[[day,'PERF INCOMING 21',12121],[day,'PERF INCOMING 22',12222]])
+   await upload(f,page,context,`${dir}/performance-current-activation.pdf`)
   }
   if(process.argv.includes('--prepare-only')){await context.close();await browser.close();process.exit(0)}
   // Preparation only: avoid demanding a stable projection during initial worker churn.

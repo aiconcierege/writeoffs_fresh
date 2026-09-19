@@ -14,6 +14,7 @@ import { listCanonicalReviewQueue } from './review-queue'
 import { projectCustomerQuestion } from './customer-questions'
 import { SupabaseBookkeepingRepository } from './supabase-repository'
 import { understandMealAnswer } from './meal-answer-understanding'
+import type {CanonicalWeeklyReviewItem} from './model'
 
 export type CustomerQuestionAction =
   | { action: 'defer' }
@@ -35,20 +36,23 @@ export async function actOnCustomerQuestion(input: {
   expectedEventId: string
   command: CustomerQuestionAction
   validatedSnapshot?:WorkInputSnapshot
+  indexedItem?:CanonicalWeeklyReviewItem
+  authenticatedUserId?:string
 }) {
-  const { data: { user }, error } = await requestUser(input.supabase)
+  const { data: { user }, error } = input.indexedItem&&input.authenticatedUserId
+    ?{data:{user:{id:input.authenticatedUserId}},error:null}:await requestUser(input.supabase)
   if (error || !user) throw new Error('An authenticated user is required.')
   // Snapshot is supplied only by the server eligibility loader. Canonical write
   // RPCs still check the current event/decision/evidence under their existing lock.
   const asOf=input.validatedSnapshot?.asOf??new Date().toISOString()
   const reads=input.validatedSnapshot?workSnapshotReader(input.validatedSnapshot,input.validatedSnapshot.businessId,asOf):input.supabase
-  const queue = await timed('current_action_lookup',()=>listCanonicalReviewQueue({ supabase: reads, issueId: input.issueId,
+  const queue = input.indexedItem?[input.indexedItem]:await timed('current_action_lookup',()=>listCanonicalReviewQueue({ supabase: reads, issueId: input.issueId,
     businessId:input.validatedSnapshot?.businessId,asOf }))
   const item = queue.find(({ event }) => event.reviewIssueId === input.issueId)
   if (!item || item.event.id !== input.expectedEventId) {
     throw new Error('This question changed. Please continue with the latest question.')
   }
-  const eligibility = await reads.rpc('list_current_askable_bookkeeping_question_event_ids',
+  const eligibility = input.indexedItem?{data:[{event_id:input.indexedItem.event.id}],error:null}:await reads.rpc('list_current_askable_bookkeeping_question_event_ids',
     { p_as_of: asOf })
   if (eligibility.error || !(eligibility.data ?? []).some((row: {event_id:string}) => row.event_id === item.event.id))
     throw new Error('This question is not currently available. Please refresh your questions.')

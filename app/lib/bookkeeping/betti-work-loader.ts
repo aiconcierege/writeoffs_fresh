@@ -5,6 +5,8 @@ import { createHash } from 'node:crypto'
 import { getCanonicalQuestionCandidates } from './customer-questions'
 import { projectBettiWork, type WorkContext } from './betti-work'
 import {workSnapshotReader,type WorkInputSnapshot} from './work-input-snapshot'
+import {actionIndexEnabled} from './action-index-worker'
+import {readBettiActionIndex} from './action-index-reader'
 
 type WorkLoad = {
  db:SupabaseClient;businessId:string;scope:'business'|'expenses';asOf?:string
@@ -16,6 +18,14 @@ type WorkLoad = {
  * The same canonical question/domain selectors consume it. No persistence, read
  * repair, cross-request cache, or second eligibility/priority policy is introduced. */
 export async function loadBettiWork(input:WorkLoad){
+ if(actionIndexEnabled()&&!input.onSnapshot&&!input.asOf){
+  const indexed=await readBettiActionIndex({...input,view:'full'})
+  if(indexed)return indexed
+ }
+ return loadCanonicalBettiWork(input)
+}
+
+export async function loadCanonicalBettiWork(input:WorkLoad){
  const asOf=input.asOf??new Date().toISOString()
  const result=await timed('canonical_input_snapshot',async()=>await input.db.rpc('read_betti_work_inputs',{
   p_business_id:input.businessId,p_as_of:asOf,

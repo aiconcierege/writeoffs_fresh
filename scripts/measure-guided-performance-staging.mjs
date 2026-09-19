@@ -38,7 +38,11 @@ try{
  }
  // Bounded bursts, not a claim that these six tenants represent full production capacity.
  // These are concurrent read counts, not customer capacity estimates.
- if(process.argv.includes('--concurrency'))for(const stage of [{concurrency:1,requests:8},{concurrency:5,requests:20},{concurrency:10,requests:30},{concurrency:25,requests:50}]){
+ const chosenStage=Number(process.env.PERFORMANCE_CONCURRENCY_STAGE??1)
+ assert([1,5,10,25].includes(chosenStage))
+ // Run one explicitly selected stage, allowing provider-health inspection before
+ // escalating. Default never launches a 25-request burst.
+ if(process.argv.includes('--concurrency'))for(const stage of [{concurrency:1,requests:8},{concurrency:5,requests:20},{concurrency:10,requests:30},{concurrency:25,requests:50}].filter(s=>s.concurrency===chosenStage)){
   let issued=0;const observations=[],started=performance.now()
   await Promise.all(Array.from({length:stage.concurrency},async()=>{while(issued<stage.requests){const index=issued++;observations.push(await read(contexts[index%contexts.length]))}}))
   const sorted=observations.map(r=>r.ms).sort((a,b)=>a-b),p95=sorted[Math.ceil(sorted.length*.95)-1]

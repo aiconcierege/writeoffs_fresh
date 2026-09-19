@@ -1,4 +1,5 @@
 import type {BettiWorkProjection} from './betti-work'
+import type {ActionIndexFreshness} from './action-index-model'
 
 /** Conversation DTO: exact canonical action and counts, without the full action
  * universe, job list or coverage diagnostics. It is never a partial FullWork value.
@@ -9,9 +10,11 @@ export type GuidedWorkProjection = Pick<BettiWorkProjection,
  scope:Pick<BettiWorkProjection['scope'],'bookkeepingStart'>
  customer:Pick<BettiWorkProjection['customer'],'actionableCount'|'deferredCount'|'sharedCount'>
  betti:Pick<BettiWorkProjection['betti'],'genuinelyProcessing'|'queued'|'retryScheduled'|'failures'|'missingJobs'|'systemHeld'>
+ index?:ActionIndexFreshness
 }
-export function guidedWorkProjection(work:BettiWorkProjection):GuidedWorkProjection {
+export function guidedWorkProjection(work:BettiWorkProjection&{index?:ActionIndexFreshness}):GuidedWorkProjection {
  return {version:work.version,businessId:work.businessId,asOf:work.asOf,scopeVersion:work.scopeVersion,
+  ...(work.index?{index:work.index}:{}),
   scope:{bookkeepingStart:work.scope.bookkeepingStart},progress:work.progress,readiness:work.readiness,
   nextAction:work.nextAction,
   customer:{actionableCount:work.customer.actionableCount,deferredCount:work.customer.deferredCount,sharedCount:work.customer.sharedCount},

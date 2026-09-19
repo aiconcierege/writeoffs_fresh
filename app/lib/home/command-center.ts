@@ -35,8 +35,8 @@ export function homeCommand(work: GuidedWorkProjection, startMethod: string | nu
     supporting: 'I couldn’t finish organizing it. Your document is safe—let’s take a look.',
     action: { href: next.href, label: 'View document' }, context }
   if (next && work.customer.actionableCount > 0) {
-    const earlier = work.progress.catchUp.customerActions > 0 || (work.progress.catchUp.activity > 0 && work.readiness.catchUp === 'work_remaining')
-    const current = work.progress.current.activity > 0 || work.progress.current.customerActions > 0
+    const earlier = work.progress.catchUp.customerActions > 0 || (work.index?.summaryCurrent!==false && work.progress.catchUp.activity > 0 && work.readiness.catchUp === 'work_remaining')
+    const current = (work.index?.summaryCurrent!==false && work.progress.current.activity > 0) || work.progress.current.customerActions > 0
     const href = next.href.startsWith('/check-in') ? `${next.href}${next.href.includes('?') ? '&' : '?'}returnTo=%2Fhome` : next.href
     return { state: 'needs-customer',
       heading: earlier && current ? 'Getting caught up. Keeping up. I’m on it.' : earlier ? 'I’m getting your books caught up.' : 'I could use your help.',
