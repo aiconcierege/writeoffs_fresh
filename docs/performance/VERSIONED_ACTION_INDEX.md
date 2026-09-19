@@ -85,7 +85,7 @@ Additive index tables can remain during rollback; destructive down-migration is
 not required. Applied migration files are immutable, hence follow-up migrations
 record safeguards discovered during candidate certification.
 
-## Validation evidence before public promotion
+## Validation evidence
 
 - Full suite: 1,663 passing, 143 environment-dependent skips.
 - Existing lint warnings: 16; zero errors and no new warnings.
@@ -99,14 +99,17 @@ record safeguards discovered during candidate certification.
 - Existing staging security/cross-surface harness passed: tenant isolation, stale
   and retry rejection, read-only rendering, Home/Check-in agreement, out-of-scope
   exclusion and Reports arithmetic.
-- Candidate ordinary sample (16 interactions): actual click-to-next median about
-  414 ms, p95 806 ms. This is not yet public-alias certification.
-- Candidate sequential projection reads: p50 280 ms, p95 341 ms.
+- Public ordinary sample (30 interactions): actual click-to-next median 525 ms,
+  p95 711 ms, maximum 731 ms. See the certification report for all action classes.
+- Public sequential projection reads: p50 288 ms, p95 390 ms.
 - Index selector SQL sample: 27.8 ms versus 606.1 ms canonical reconstruction;
   these are component samples, not percentiles or an infrastructure capacity claim.
 
-The initial long-session preparation hit a bounded processing wait after account
-use, not an ordinary-answer timing success. Another session handled 28 actions
-before concurrent new evidence correctly caused a stale-action 409. Neither
-attempt is mislabeled as a completed clean long-session certification. A settled
-20+ action run and public timings remain required.
+The public run completed 41 continuous actions without navigation or unnecessary
+stops. Its final shared-percentage update exposed delayed index recovery: staging's
+public alias had advanced while its cron still used the prior deployment. A proper
+staging release aligned both, and migration 009 prioritizes existing index recovery
+over dormant bootstrap. Normal cron recovered the synthetic state; the subsequent
+receipt Later action settled without navigation. See
+[VERSIONED_ACTION_INDEX_CERTIFICATION.md](VERSIONED_ACTION_INDEX_CERTIFICATION.md)
+for timings, outliers, remaining slower paths and the complete validation record.

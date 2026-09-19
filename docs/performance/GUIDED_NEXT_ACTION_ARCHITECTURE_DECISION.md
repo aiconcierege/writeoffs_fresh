@@ -1,8 +1,9 @@
 # Guided next-action architecture: approved action index
 
-Status: implementation and certification in progress, not launch certification.
-Rick approved the versioned canonical action index. Additive index migrations have
-been applied to dedicated staging; the public runtime remains `c268477` until validation.
+Status: approved architecture implemented in `fffe012`; public dedicated staging
+certification is recorded in `VERSIONED_ACTION_INDEX_CERTIFICATION.md`. Additive
+index migrations are applied only to dedicated staging. The measurements below
+record the investigation preceding implementation, not the final runtime.
 
 ## Recommendation
 
