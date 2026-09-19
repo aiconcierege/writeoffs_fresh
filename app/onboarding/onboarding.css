@@ -1,0 +1,54 @@
+.wo-onboarding { max-width:70rem; margin:auto; padding:2rem 0 3rem; }
+.wo-onboarding-progress { display:flex; flex-wrap:wrap; justify-content:space-between; gap:.65rem; max-width:36rem; margin:0 0 2rem auto; color:var(--wo-muted); font-size:.85rem; }
+.wo-onboarding-progress > span:first-child { color:var(--wo-green); font-weight:600; }
+.wo-onboarding-progress [role=progressbar] { width:100%; height:3px; background:#dce4db; border-radius:4px; overflow:hidden; }
+.wo-onboarding-progress [role=progressbar] > div { height:100%; background:var(--wo-green); }
+.wo-onboarding-composition { display:grid; grid-template-columns:minmax(14rem,.85fr) minmax(0,1.5fr); gap:3rem; }
+.wo-onboarding-guide { padding:2.25rem 1.5rem; border-radius:1.5rem; background:linear-gradient(145deg,#edf3e8,#f5f5eb); align-self:start; position:sticky; top:6rem; }
+.wo-onboarding-intro { font-size:clamp(1.6rem,2.5vw,2.3rem); font-weight:550; letter-spacing:-.04em; line-height:1.15; margin:1rem 0; max-width:12ch; }
+.wo-onboarding-art { width:100%; height:20rem; margin-top:1rem; }
+.wo-onboarding .onboarding-conversation { padding:1.75rem 0 0; min-width:0; }
+.wo-onboarding .wo-onboarding-title { font-size:var(--wo-title); line-height:1.15; letter-spacing:-.035em; font-weight:600; color:var(--wo-ink); outline:none; max-width:36rem; }
+.wo-onboarding .onboarding-conversation p { color:var(--wo-muted); line-height:1.6; font-size:1rem; }
+.wo-onboarding .onboarding-conversation input:not([type=radio]):not([type=checkbox]),.wo-onboarding textarea { background:var(--wo-paper); border-color:#a7b5aa; border-radius:.7rem; padding:.9rem; }
+.wo-onboarding .onboarding-conversation textarea { min-height:7rem; }
+.wo-onboarding-choices { display:grid; gap:.7rem; margin-top:1.5rem; }
+.wo-onboarding .onboarding-conversation .wo-onboarding-choice { display:flex; cursor:pointer; gap:.85rem; padding:1rem 1.1rem; border:1px solid var(--wo-line); border-radius:.8rem; background:var(--wo-paper); transition:background .12s,border-color .12s; }
+.wo-onboarding .onboarding-conversation .wo-onboarding-choice[data-selected=true] { border-color:var(--wo-blue); background:#eef1fa; box-shadow:inset 3px 0 var(--wo-blue); }
+.wo-onboarding-choice:hover { border-color:var(--wo-blue)!important; }
+.wo-onboarding-choice input { margin-top:.2rem; }
+.wo-onboarding-choice > span > span:first-child { font-weight:600; color:var(--wo-ink); }
+.wo-onboarding-choice > span > span:last-child:not(:first-child) { font-size:.9rem; color:var(--wo-muted); line-height:1.5; }
+.wo-onboarding-actions { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-top:2rem; padding-top:1.5rem; border-top:1px solid var(--wo-line); }
+.wo-onboarding-actions .btn { min-width:10rem; justify-content:space-between; gap:1.5rem; }
+.wo-onboarding-back { color:var(--wo-muted); font-size:.95rem; text-decoration:underline; text-underline-offset:4px; padding:.5rem .25rem; }
+.wo-onboarding .onboarding-conversation .wo-onboarding-saved { font-size:.8rem; margin-top:1rem; }
+.wo-onboarding-error { margin-top:1.5rem; }
+.wo-month-year { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:.6rem; max-width:26rem; margin-top:1.75rem; }
+.wo-month-year legend { font-weight:600; font-size:1rem; margin-bottom:.7rem; }
+.wo-month-year label { display:block; font-size:.85rem; color:var(--wo-muted); margin-bottom:.4rem; }
+.wo-month-year select { min-height:3rem; width:100%; padding:.75rem; border:1px solid #a7b5aa; background:var(--wo-paper); border-radius:.7rem; }
+.wo-onboarding-review { margin-top:1.5rem; }
+.wo-onboarding-review summary { display:flex; align-items:center; cursor:pointer; min-height:44px; color:var(--wo-blue); font-size:.95rem; text-decoration:underline; text-underline-offset:4px; list-style:none; }
+.wo-onboarding-review summary::-webkit-details-marker { display:none; }
+.wo-onboarding-review summary::after { content:'+'; margin-left:.6rem; font-size:1.2rem; text-decoration:none; }
+.wo-onboarding-review[open] summary::after { content:'−'; }
+.wo-onboarding-review > div { margin-top:.75rem; }
+.wo-onboarding-review section { margin-top:1rem; }
+.wo-onboarding[data-onboarding-step=review] .onboarding-conversation { align-self:center; padding-top:0; }
+@media(min-width:640px) and (max-width:999px) { .wo-onboarding-composition { grid-template-columns:minmax(11rem,.7fr) minmax(0,1.5fr); gap:1.5rem; } .wo-onboarding-guide { padding:1.5rem 1rem; } .wo-onboarding-art { height:16rem; } }
+@media(max-width:639px) {
+ .wo-onboarding { padding:1.25rem 0 2rem; }
+ .wo-onboarding-progress { margin-bottom:1.25rem; }
+ .wo-onboarding-composition { display:block; }
+ .wo-onboarding-guide { position:relative; top:auto; min-height:8rem; padding:1.25rem; border-radius:1rem; }
+ .wo-onboarding-intro { font-size:1.35rem; max-width:17ch; margin:.6rem 6rem 0 0; }
+ .wo-onboarding-art { position:absolute; right:.5rem; top:.25rem; height:7.75rem; width:6.5rem; margin:0; }
+ .wo-onboarding .onboarding-conversation { padding:1.5rem .25rem 0; }
+ .wo-onboarding .wo-onboarding-title { font-size:1.85rem; }
+ .wo-onboarding .onboarding-conversation p { font-size:.95rem; }
+ .wo-onboarding-actions { margin-top:1.5rem; padding-top:1.1rem; }
+ .wo-onboarding-actions .btn { min-width:12rem; }
+ .wo-onboarding[data-onboarding-step=review] .onboarding-conversation { padding-top:1.5rem; }
+ .wo-onboarding[data-onboarding-step=review] .wo-onboarding-art { width:7rem; }
+}

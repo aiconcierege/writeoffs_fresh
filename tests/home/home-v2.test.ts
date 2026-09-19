@@ -61,7 +61,7 @@ describe('Home command center', () => {
   })
 
   it('uses one canonical Betti hero before her financial work and customer actions', () => {
-    expect(bettiHero.match(/<BettiIllustration/g)).toHaveLength(1)
+    expect(bettiHero.match(/<BettiPresence/g)).toHaveLength(1)
     expect(home.indexOf('<HomeBettiHero')).toBeLessThan(home.indexOf('home-financial'))
     expect(home.indexOf('home-financial')).toBeLessThan(home.indexOf('<HomeRecentActivity'))
     expect(home.indexOf('<HomeQuickActions')).toBeLessThan(home.indexOf('<HomeRecentActivity'))
@@ -69,7 +69,7 @@ describe('Home command center', () => {
     expect(styles).toContain('@media (max-width:340px)')
     expect(styles).toContain('.home-add-list { grid-template-columns: repeat(2,minmax(0,1fr))')
     expect(bettiHero).toContain('data-betti-state={projection.state}')
-    expect(bettiHero).toContain('decorative')
+    expect(readFileSync('app/components/experience/BettiPresence.tsx', 'utf8')).toContain('decorative')
     expect(quickActions).toContain('<svg')
   })
 

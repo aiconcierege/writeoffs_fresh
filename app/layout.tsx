@@ -1,5 +1,6 @@
 // app/layout.tsx
 import "./globals.css"
+import "./components/experience/experience.css"
 import { Suspense } from "react"
 import { Inter } from "next/font/google"
 import { Header } from "./components/Header"
@@ -19,8 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body className={`${inter.className} min-h-screen bg-[#fbfaf7] text-[#17211d] antialiased`}>
+        <a href="#main-content" className="wo-skip">Skip to content</a>
         <Suspense><Header /></Suspense>
-        <main className="pt-16 pb-10 px-4 sm:px-6 lg:px-8">
+        <main id="main-content" tabIndex={-1} className="pt-16 pb-10 px-4 sm:px-6 lg:px-8">
           {children}
         </main>
       </body>

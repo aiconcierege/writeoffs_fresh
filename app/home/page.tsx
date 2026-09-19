@@ -35,7 +35,7 @@ async function HomePage(){
  ])
  const betti=work?homeCommand(work,businessResult.data?.onboarding_start_method??null):unavailableHomeCommand
  const dateLabel=(day:string)=>new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}).format(new Date(`${day}T00:00:00Z`))
- return <main className="home-page home-command-center" data-customer-action-count={work?.customer.actionableCount}><WorkRefresh active={!work||Boolean(work.betti.jobs.length)}/><div className="home-shell">
+ return <div className="home-page home-command-center wo-experience" data-customer-action-count={work?.customer.actionableCount}><WorkRefresh active={!work||Boolean(work.betti.jobs.length)}/><div className="home-shell">
   <HomeBettiHero projection={betti}/>
   {betti.education&&<p className="home-first-use">{betti.education}</p>}
 
@@ -44,7 +44,7 @@ async function HomePage(){
   <HomeQuickActions business={isBusiness}/>
   {summary.businessMilesMilli>0&&<p className="home-mileage-summary"><Link href="/mileage">{new Intl.NumberFormat('en-US',{maximumFractionDigits:3}).format(summary.businessMilesMilli/1000)} business miles recorded →</Link></p>}
   <HomeRecentActivity activity={recentActivity}/>
- </div></main>
+ </div></div>
 }
 
 export default timedRender('HomePage',HomePage)

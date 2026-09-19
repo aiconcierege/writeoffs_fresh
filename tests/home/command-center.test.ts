@@ -19,7 +19,7 @@ describe('Home uses the shared work projection', () => {
   })
   it('shows concurrent streams without adding system work to the customer count', () => {
     const work = homeWorkFixture('concurrent'), p = homeCommand(work, null)
-    expect(p.context).toEqual(['Getting caught up · 1 need you', 'Current activity · 1 need you'])
+    expect(p.context).toEqual(['Getting caught up · 1 needs you', 'Current activity · 1 needs you'])
     expect(work.customer.actionableCount).toBe(2)
     expect(p.heading).not.toMatch(/\d|tasks|unresolved/)
     expect(p.action?.href).toBe(`${work.nextAction?.href}&returnTo=%2Fhome`)

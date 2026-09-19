@@ -47,7 +47,7 @@ describe('canonical application and public shell routes', () => {
     expect(header).toContain('Menu')
     expect(header).toContain('href="/home" heightPx={34}')
     expect(header).toContain('href="/check-in"')
-    expect(header).toContain('Check in with Betti')
+    expect(header).toContain('Work with Betti')
     for (const group of ['Your books', 'Betti', 'Your account']) expect(header).toContain(group)
     expect(header).toContain('aria-label="Authenticated navigation"')
     expect(header).toContain('onClick={closeMenu}')

@@ -207,11 +207,12 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
           {amount && <span>· {amount}</span>}
           {question.evidence&&<a href={question.evidence.receiptUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center font-semibold text-[#243186]">View receipt ↗</a>}
         </div>
+        {guided && question.evidence && <a className="betti-evidence-link" href={question.evidence.receiptUrl} target="_blank" rel="noreferrer">View receipt ↗</a>}
         {shownGuidance && !showAmount && <p className="mt-2 text-muted">{shownGuidance}</p>}
         {showAmount && <p className="mt-2 text-muted">Enter the business dollars. I’ll handle the split.</p>}
 
         {submitting&&<p role="status" className="text-sm text-muted">Saving your answer…</p>}
-        <div className="mt-4 grid gap-2">
+        <div className="question-answer-options mt-4 grid gap-2" data-answer-layout={guided && ['business_use', 'factual_choice', 'transaction_type'].includes(question.kind) && !otherActivity ? 'choices' : 'field'}>
           {question.kind === 'business_use' && <>
             <Action onClick={() => submit({ action: 'business_use', use: 'business' })} busy={busy}>Yes, business</Action>
             <Action onClick={() => submit({ action: 'business_use', use: 'personal' })} busy={busy}>No, personal</Action>

@@ -1,11 +1,12 @@
 import Link from 'next/link'
-import {BettiIllustration,type BettiState} from '../BettiIllustration'
+import type {BettiState} from '../BettiIllustration'
+import {BettiPresence} from '../experience/BettiPresence'
 import {returnLabel,safeReturnTo} from '../../lib/navigation-context'
 import './guided.css'
 export function ConversationShell({children,context='Work with Betti',progress='One thing at a time',returnTo='/home',state='question',notice}:{children:React.ReactNode;context?:string;progress?:string;returnTo?:string;state?:BettiState;notice?:string}){
  const back=safeReturnTo(returnTo,'/home')
- return <div className="betti-work"><nav className="betti-work-nav" aria-label="Return to your books"><Link href={back}>← {returnLabel(back)}</Link><span aria-live="polite">{progress}</span></nav>
-  <div className="betti-conversation"><aside className="betti-guide"><div className="betti-guide-intro"><p className="betti-eyebrow">Betti · Your bookkeeper</p><p className="betti-guide-note">You bring the facts.<br/>I’ll take care of the books.</p></div><BettiIllustration state={state} className={`betti-guide-art${state==='question'?' betti-guide-engaged':''}`} priority sizes="(max-width: 639px) 145px, (max-width: 900px) 200px, 290px"/></aside>
+ return <div className="betti-work wo-experience"><nav className="betti-work-nav" aria-label="Return to your books"><Link href={back}>← {returnLabel(back)}</Link><span aria-live="polite">{progress}</span></nav>
+  <div className="betti-conversation"><aside className="betti-guide"><div className="betti-guide-intro"><p className="betti-eyebrow">Betti · Your bookkeeper</p><p className="betti-guide-note">I’ll take care<br/>of the books.</p></div><BettiPresence state={state} engagement="work" className="betti-guide-art" priority sizes="(max-width: 639px) 120px, (max-width: 900px) 220px, 330px"/></aside>
    <section className="betti-conversation-body" aria-label="Work with Betti"><p className="betti-workstream">{context}</p>{notice&&<p className="betti-saved" role="status">{notice}</p>}{children}</section>
   </div>
  </div>

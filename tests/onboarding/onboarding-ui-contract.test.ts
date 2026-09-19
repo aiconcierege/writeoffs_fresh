@@ -5,14 +5,14 @@ const flow = readFileSync('app/onboarding/OnboardingFlow.tsx', 'utf8')
 describe('canonical v1 onboarding UI', () => {
   it('asks only the minimum plain-language factual sequence', () => {
     for (const copy of [
-      'Tell us about your business.',
+      'Let’s meet your business.',
       'How do you report this business on your taxes?',
-      'Are you starting fresh or bringing in an existing business?',
+      'Is this a new or existing business?',
       'Does your business buy parts or materials for customer jobs?',
       'Does your business keep a significant amount of products or merchandise in stock to sell later?',
-      'How far back should Betti organize your books?',
+      'When should I start keeping your books?',
       'Give Betti your financial activity',
-      'You’re ready to use WriteOffs.',
+      'I’ve got what I need to start.',
     ]) expect(flow).toContain(copy)
   })
 
@@ -56,7 +56,7 @@ describe('canonical v1 onboarding UI', () => {
 
   it('enters Home for either activity preference without bookkeeping prerequisites', () => {
     expect(flow).toContain("router.push('/home')")
-    expect(flow).toContain('Start using WriteOffs')
+    expect(flow).toContain('Go to WriteOffs')
     expect(flow).not.toContain('HistoricalMileage')
     expect(flow).not.toContain('historical_mileage')
   })

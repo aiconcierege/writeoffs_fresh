@@ -51,6 +51,7 @@ export function BettiIllustration({
   return (
     <Image
       src={assets[state]}
+      data-pose={state}
       alt={decorative ? '' : descriptions[state]}
       width={dimensions[state].width}
       height={dimensions[state].height}

@@ -7,8 +7,8 @@ describe('authenticated visual alignment', () => {
   it('gives the authenticated shell stronger brand and navigation presence', () => {
     const header = source('app/components/Header.tsx')
     expect(header).toContain('href="/home" heightPx={34}')
-    expect(header).toContain('min-h-12')
-    expect(header).toContain('text-base font-semibold')
+    expect(source('app/components/experience/experience.css')).toContain('min-height:2.75rem')
+    expect(header).toContain('wo-menu-panel')
     expect(header).toContain("event.key !== 'Escape'")
     expect(header).toContain('onClick={closeMenu}')
   })

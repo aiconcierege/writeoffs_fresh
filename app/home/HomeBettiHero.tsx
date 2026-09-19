@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { BettiIllustration, type BettiState } from '../components/BettiIllustration'
+import type { BettiState } from '../components/BettiIllustration'
+import { BettiPresence } from '../components/experience/BettiPresence'
 import type { HomeCommand } from '../lib/home/command-center'
 
 const artworkState: Record<HomeCommand['state'], BettiState> = {
@@ -22,9 +23,7 @@ export function HomeBettiHero({ projection }: { projection: HomeCommand }) {
       {projection.alternative && <Link className="home-betti-alternative" href={projection.alternative.href}>{projection.alternative.label} →</Link>}
       {projection.context.length > 0 && <ul className="home-work-context" aria-label="What needs you">{projection.context.map(line => <li key={line}>{line}</li>)}</ul>}
     </div>
-    <div className="home-betti-portrait" aria-hidden="true">
-      <BettiIllustration state={artworkState[projection.state]} className="home-betti-art" priority
-        sizes="(max-width: 639px) 9rem, (max-width: 1023px) 16rem, 21rem" decorative />
-    </div>
+    <BettiPresence state={artworkState[projection.state]} className="home-betti-portrait" priority
+      sizes="(max-width: 639px) 140px, (max-width: 1023px) 260px, 360px" />
   </section>
 }
