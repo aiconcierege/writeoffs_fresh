@@ -153,6 +153,7 @@ async function guidedJourney(f,context,page){
   const label=`work-${action.type}-${detail}`
   await writeFile(`${dir}/${prefix}/state-${sequence.length}.json`,JSON.stringify(work,null,2))
   if(!seen.has(label)){await capture(page,label);seen.add(label)}
+  if(process.argv.includes('--capture-insurance')&&detail==='insurance'&&action.question?.kind==='business_purpose'){await capture(page,'work-insurance-coverage');console.log('Real canonical insurance question captured; left unanswered');return}
   if(process.argv.includes('--confirm-only')&&action.question?.confirmation){
    const posts=[];page.on('request',r=>{if(r.method()==='POST')posts.push(r.url())})
    await page.getByRole('button',{name:'No, something else',exact:true}).click()
