@@ -3,7 +3,7 @@ import Link from 'next/link'
 import {useCallback,useEffect,useRef,useState} from 'react'
 import type {GuidedWorkProjection} from '../../lib/bookkeeping/guided-work-projection'
 import type {WorkAction} from '../../lib/bookkeeping/betti-work'
-import {homeCommand} from '../../lib/home/command-center'
+import {conversationStatus,savedAcknowledgment,type ConversationOutcome} from './conversation-status'
 import {persistAccountUse,type AccountUseRequest} from '../../lib/bookkeeping/account-use-request'
 import {parsePositiveDollarCents} from '../../lib/bookkeeping/question-input'
 import type {SpecialWork} from '../../lib/bookkeeping/special-transactions'
@@ -23,6 +23,7 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
  useEffect(()=>{try{const saved=JSON.parse(sessionStorage.getItem(`betti-visit:${initialWork.businessId}`)??'null');if(saved&&Date.now()-saved.at<7200000){setHandled(saved.handled??0);setDeferred(saved.deferred??0)}}catch{/* Session progress is optional; canonical facts remain durable. */}setSessionReady(true)},[initialWork.businessId])
  useEffect(()=>{if(!sessionReady)return;try{sessionStorage.setItem(`betti-visit:${initialWork.businessId}`,JSON.stringify({handled,deferred,at:Date.now()}))}catch{/* Private browsing may disable session storage. */}},[handled,deferred,sessionReady,initialWork.businessId])
  const[notice,setNotice]=useState(''),[error,setError]=useState(''),[saving,setSaving]=useState(false)
+ const[outcome,setOutcome]=useState<ConversationOutcome>(null)
  const backgroundRead=useRef<AbortController|null>(null),reconciling=useRef(false)
  const automaticReads=useRef(0)
  const[waitingPaused,setWaitingPaused]=useState(false)
@@ -42,7 +43,7 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
   if(state==='settling'){checkingPresented.current=true;setNotice('I’m checking new information before we continue.')}
   if(state==='retained'&&checkingPresented.current){checkingPresented.current=false;setNotice('I still need your help with this.')}
   if(state==='resolved'||state==='updated'||state==='deferred'||state==='rechecking'){
-   setNotice(state==='rechecking'?'I’m still checking that item. We can work on this one meanwhile.':state==='deferred'?'This is saved for later.':state==='updated'?'I’ve checked the latest information. Here’s what I still need.':evidenceReceived.current?'Got it — I’ve checked the information you sent. We can move on from that question.':'My latest review took care of that question.')
+   setNotice(state==='rechecking'?'I’m still checking that item. We can work on this one meanwhile.':state==='deferred'?'This is saved for later.':state==='updated'?'I’ve checked the latest information. Here’s what I still need.':evidenceReceived.current?'Got it — that answered this for me.':'My latest review took care of that question.')
    presented.current=null;evidenceReceived.current=false;checkingPresented.current=false
   }
   setWork(updated);return updated
@@ -91,7 +92,8 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
   backgroundRead.current?.abort();reconciling.current=true;automaticReads.current=0;setWaitingPaused(false)
   try{
   if(isDeferred)setDeferred(n=>n+1);else setHandled(n=>n+1)
-  setNotice(isDeferred?'I saved this for later.':message??'Got it. I’ve saved what you told me.')
+  const result:ConversationOutcome=isDeferred?(action?.type==='receipt_upload_sweep'||action?.type==='receipt_availability'?'receipts-deferred':'deferred'):'answered'
+  setOutcome(result);setNotice(isDeferred?savedAcknowledgment(result):message??savedAcknowledgment(result))
   if(nextWork){readSequence.current++;presented.current=null;evidenceReceived.current=false;checkingPresented.current=false;setWork(nextWork);setError('');return}
   // Explicit answer reconciliation, never a GET/render side effect.
   const reconciliation=isDeferred?{ok:true}:await fetch('/api/bookkeeping/questions/reconcile',{method:'POST',signal:AbortSignal.timeout(15000)})
@@ -105,12 +107,12 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
   try{const next=await command();await resolved(isDeferred,undefined,next??undefined)}catch(e){setError(e instanceof Error?e.message:'Your answer could not be confirmed.');try{await refresh()}catch{/* Explicit reload remains available. */}}
   finally{lock.current=false;setSaving(false)}
  }
- const home=homeCommand(work,'statement_uploads'),waiting=work.betti.genuinelyProcessing+work.betti.queued+work.betti.retryScheduled>0
+ const status=conversationStatus(work,outcome,waitingPaused),waiting=status.waiting
  const progress=handled||deferred?`${handled} handled this visit${deferred?` · ${deferred} saved for later`:''}`:work.customer.actionableCount?`${work.customer.actionableCount} ${work.customer.actionableCount===1?'thing needs':'things need'} you`:''
  return <div ref={root} data-customer-action-count={work.customer.actionableCount} data-guided-action={action?.type??work.readiness.phase} data-guided-version={action?.version} data-guided-id={action?.id} data-guided-presentation={work.presentation?.status??'ready'}>
  <ConversationShell contentIdentity={action?.id+':'+action?.version} returnTo={returnTo} context={context} progress={progress} notice={notice} state={!action?waiting?'working':'caught-up':'question'}>
   {error&&<div className="betti-error" role="alert">{error}<button className="betti-defer" onClick={()=>void recover()}>Refresh current work</button></div>}
-  {!action?<><span className={waiting?'betti-working':'betti-complete'} hidden/><h1 ref={heading} tabIndex={-1}>{waiting?'I’m updating your books.':home.heading}</h1><p className="betti-explanation">{waiting?waitingPaused?'This is taking a little longer. You can return to your books or check again.':handled?'I’m using what you told me to finish what I can. You don’t need to wait here.':'I’m reviewing the records you sent. You don’t need to wait here.':home.state==='waiting'&&work.customer.deferredCount?'I’ve saved the things you want to come back to.':home.supporting}</p>{waiting&&<p className="betti-processing" role="status"><span className="betti-processing-dot"/> {work.betti.genuinelyProcessing?'Organizing your records':'Waiting to review your records'}</p>}{waiting&&waitingPaused&&<button className="betti-defer" onClick={()=>void recover()}>Check for the next step</button>}{home.alternative&&<Link className="btn btn-secondary" href={home.alternative.href}>{home.alternative.label}</Link>}<div className="betti-continue"><Link className="btn btn-primary" href={returnTo}>Back to your books</Link></div></>
+  {!action?<><span className={waiting?'betti-working':'betti-complete'} hidden/><h1 ref={heading} tabIndex={-1}>{status.heading}</h1><p className="betti-explanation">{status.supporting}</p>{status.operationalNote&&<p className="betti-operational-note">{status.operationalNote}</p>}{waiting&&<p className="betti-processing" role="status"><span className="betti-processing-dot"/> {work.betti.genuinelyProcessing?'Organizing your records':'Waiting to review your records'}</p>}{waiting&&waitingPaused&&<button className="betti-defer" onClick={()=>void recover()}>Check for the next step</button>}{status.alternative&&<Link className="btn btn-secondary" href={status.alternative.href}>{status.alternative.label}</Link>}<div className="betti-continue"><Link className="btn btn-primary" href={returnTo}>Back to your books</Link></div></>
   :action.type==='account_use'?<AccountStep key={action.id+action.version} action={action} busy={saving} perform={perform}/>
   :action.items?<SweepStep key={action.id+action.version} action={action} busy={saving} perform={perform} refresh={()=>refresh(undefined,'evidence')} onPending={onPending}/>
   :action.type==='special_transaction'&&(!ordinary||!action.recordIds.includes(recordId??'')||!action.question)?<SpecialStep key={action.id+action.version} action={action} returnTo={returnTo} resolved={resolved} recover={recover} onPending={onPending} onEvidenceReceived={async()=>{await refresh(undefined,'evidence')}}/>
@@ -129,7 +131,7 @@ function SweepStep({action,busy,perform,refresh,onPending}:{onPending:(pending:b
  const personal=action.type==='personal_exception_sweep',mixed=action.type==='mixed_use_sweep',mixedAccount=action.account?.designation==='business_and_personal'
  const receipt=action.type==='receipt_upload_sweep',availability=action.type==='receipt_availability',items=action.items!
  const title=personal?'Is anything here personal?':mixed?mixedAccount?'How were these purchases used?':'Is anything partly personal?':receipt?`I’m missing receipts for ${items.length} ${items.length===1?'purchase':'purchases'}.`:'Is that all the receipts you have?'
- const explanation=personal?'I’m treating these as business because this is your business-only account. Tell me if anything was personal.':mixed?mixedAccount?'Choose the use of each purchase. For anything mixed, tell me the business dollars—I’ll handle the split.':'Select any partly personal purchases and enter the business dollars. Leave the others unselected.':receipt?'Send me the ones you have and I’ll match them.':'This confirmation covers only the purchases shown here. Missing receipts stay recorded separately; they don’t erase your business expenses.'
+ const explanation=personal?'I’m treating these as business because this is your business-only account. Tell me if anything was personal.':mixed?mixedAccount?'Choose the use of each purchase. For anything mixed, tell me the business dollars—I’ll handle the split.':'Select any partly personal purchases and enter the business dollars. Leave the others unselected.':receipt?'Send me the ones you have and I’ll match them.':'This applies only to these purchases. Missing receipts won’t remove supported expenses.'
  const valid=!mixed||items.every(i=>{const a=answers[i.recordId];if(mixedAccount&&!a)return false;if(a?.use!=='mixed')return true;const n=parsePositiveDollarCents(a.businessDollars??'');return n!==null&&n>0&&n<Math.abs(i.amountCents)})
  function save(disposition:'completed'|'deferred'){
   return perform(async()=>{

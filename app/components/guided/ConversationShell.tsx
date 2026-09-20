@@ -16,12 +16,11 @@ export function ConversationShell({children,context='Work with Betti',progress='
   const animation=content.current?.animate([{opacity:.65},{opacity:1}],{duration:160,easing:'ease-out'})
   return()=>animation?.cancel()
  },[contentIdentity])
- return <div className="betti-work wo-experience"><nav className="betti-work-nav" aria-label="Return to your books"><Link href={back}>← {returnLabel(back)}</Link></nav>
-  <header className="betti-destination"><p className="betti-destination-title">Work with Betti</p><span aria-live="polite">{progress}</span></header>
+ return <div className="betti-work wo-experience">
+  <header className="betti-destination"><div><p className="betti-destination-title">Work with Betti</p>{context!=='Work with Betti'&&<p className="betti-workstream">{context}</p>}</div><div className="betti-destination-actions"><span aria-live="polite">{progress}</span><nav aria-label="Return to your books"><Link href={back}>← {returnLabel(back)}</Link></nav></div></header>
   <div className="betti-conversation" data-conversation-stage>
-   <div className="betti-guide"><BettiPresence state={state} engagement="work" className="betti-guide-art" priority sizes="(max-width: 639px) 100px, (max-width: 999px) 200px, 280px"/></div>
+   <div className="betti-guide"><p className="betti-eyebrow betti-guide-identity">Betti · Your bookkeeper</p><BettiPresence state={state} engagement="work" className="betti-guide-art" priority sizes="(max-width: 899px) 104px, (max-width: 1199px) 350px, 440px"/></div>
    <section className="betti-conversation-body" aria-label="Work with Betti">
-    <header className="betti-conversation-orientation"><p className="betti-eyebrow">Betti · Your bookkeeper</p>{context!=='Work with Betti'&&<p className="betti-workstream">{context}</p>}</header>
     <p className="betti-saved" role="status">{notice||'\u00a0'}</p>
     <div ref={content} className="betti-active-conversation">{children}</div>
    </section>

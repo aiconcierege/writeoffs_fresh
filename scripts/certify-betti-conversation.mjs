@@ -14,6 +14,7 @@ assert(process.argv.includes('--certify'))
 const scenario=process.env.UX_SCENARIO??'';assert(['','meal','mixed','scope'].includes(scenario))
 const dir='/private/tmp/writeoffs-conversation',basePrefix=origin==='https://writeoffs-fresh-staging.vercel.app'?'staging':origin.startsWith('https:')?'candidate':'local'
 const prefix=basePrefix+(scenario?'-'+scenario:'')
+const viewportHeight=Number(process.env.UX_VIEWPORT_HEIGHT??900);assert(Number.isInteger(viewportHeight)&&viewportHeight>=700&&viewportHeight<=1200)
 await mkdir(`${dir}/${prefix}`,{recursive:true})
 const admin=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false}})
 function totp(secret){const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',bits=[...secret.replace(/=+$/,'').toUpperCase()].map(c=>alphabet.indexOf(c).toString(2).padStart(5,'0')).join(''),key=Buffer.from(Array.from({length:Math.floor(bits.length/8)},(_,i)=>parseInt(bits.slice(i*8,i*8+8),2))),counter=Buffer.alloc(8);counter.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const hash=createHmac('sha1',key).update(counter).digest(),offset=hash.at(-1)&15;return String((hash.readUInt32BE(offset)&0x7fffffff)%1000000).padStart(6,'0')}
@@ -24,7 +25,7 @@ async function session(f){
  const cookies=new Map(),client=createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,{cookies:{getAll:()=>[...cookies].map(([name,value])=>({name,value})),setAll:values=>values.forEach(({name,value})=>cookies.set(name,value))}})
  assert(!(await client.auth.signInWithPassword({email:f.email,password:f.password})).error)
  assert(!(await client.auth.mfa.challengeAndVerify({factorId:f.factorId,code:totp(f.totpSecret)})).error)
- const context=await browser.newContext({viewport:{width:1280,height:900},timezoneId:'America/Phoenix'})
+ const context=await browser.newContext({viewport:{width:1280,height:viewportHeight},timezoneId:'America/Phoenix'})
  await context.addCookies([...cookies].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:origin.startsWith('https:'),sameSite:'Lax'})))
  for(const line of (await readFile(`${dir}/candidate-cookie.txt`,'utf8').catch(()=>'')).split('\n')){
   if(!line.includes('\t'))continue
@@ -40,7 +41,7 @@ async function capture(page,state){
  if(new URL(page.url()).pathname==='/home')await page.locator('[data-customer-action-count]').waitFor()
  if(new URL(page.url()).pathname==='/check-in'){await page.locator('[data-guided-action]').waitFor();await page.locator('.betti-active-conversation h1').first().waitFor()}
  for(const width of [390,430,768,1280]){
-  await page.setViewportSize({width,height:900})
+  await page.setViewportSize({width,height:viewportHeight})
   await page.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';window.scrollTo({top:0,behavior:'instant'})})
   await page.mouse.move(0,0)
   await page.evaluate(async()=>{await document.fonts.ready;await Promise.all([...document.images].map(img=>img.decode().catch(()=>{})))})
@@ -58,7 +59,13 @@ async function capture(page,state){
    assert(!zoomOverflow,`${state} text scaling overflow`)
   }
   await page.screenshot({path:`${dir}/${prefix}/${state}-${width}.png`,fullPage:true})
-  results.push({state,width,...metrics})
+  const geometry=await page.evaluate(()=>{
+   const box=selector=>{const r=document.querySelector(selector)?.getBoundingClientRect();return r?{x:r.x,y:r.y,width:r.width,height:r.height,bottom:r.bottom}:null}
+   const header=box('body>header'),destination=box('.betti-destination'),stage=box('[data-conversation-stage]'),art=box('.betti-guide-art'),panel=box('.betti-conversation-body')
+   const answers=[...document.querySelectorAll('.question-answer-options button,.betti-choices button,.betti-continue .btn-primary')].filter(el=>el.getClientRects().length).map(el=>{const r=el.getBoundingClientRect();return{text:el.textContent,top:r.top,bottom:r.bottom,visible:r.bottom<=innerHeight}})
+   return{viewportHeight:innerHeight,header,destination,headerToIdentity:header&&destination?destination.y-header.bottom:null,stage,art,panel,answers,stageViewportArea:stage?Math.round(stage.width*Math.max(0,Math.min(stage.bottom,innerHeight)-Math.max(stage.y,0))/(innerWidth*innerHeight)*100):null}
+  })
+  results.push({state,width,...metrics,geometry})
  }
  await writeFile(`${dir}/${prefix}/results.json`,JSON.stringify(results,null,2))
 }
@@ -271,7 +278,7 @@ try {
    assert.equal(work.betti.genuinelyProcessing+work.betti.queued,0)
    await page.goto(origin+'/check-in')
    await page.locator('[data-guided-action]:not([data-guided-id])').waitFor()
-   if(work.customer.deferredCount)await page.getByText('I’ve saved the things you want to come back to.',{exact:true}).waitFor()
+   if(work.customer.deferredCount)await page.getByText(/saved the things you want to come back to/).waitFor()
    await capture(page,work.customer.deferredCount?'settled-only-deferred':'settled-completion')
    console.log('Read-only settled completion inspected');await context.close();await browser.close();process.exit(0)
   }

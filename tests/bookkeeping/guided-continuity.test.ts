@@ -23,19 +23,19 @@ describe('guided conversation follows canonical ready work across entry boundari
  })
  it('stops truthfully only when all remaining customer work is deferred',()=>{
   const html=render(homeWorkFixture('deferred'))
-  expect(html).toContain('I’ve saved the things you want to come back to.')
+  expect(html).toContain('I saved the things you want to come back to.')
   expect(html).not.toContain('Next material question')
  })
- it('does not describe a system hold as deferred-only completion',()=>{
+ it('does not mislabel held records as a processing failure after a deferral',()=>{
   const work=homeWorkFixture('held');work.customer.deferredCount=1
   const html=render(work)
-  expect(html).toContain('Your records are safe.')
-  expect(html).not.toContain('You’re all set for now')
+  expect(html).toContain('I saved the things you want to come back to.')
+  expect(html).toContain('You’re all set for now')
  })
  it('reports real processing without claiming deferred work is the only remaining work',()=>{
   const work=homeWorkFixture('processing');work.customer.deferredCount=1
   const html=render(work)
-  expect(html).toContain('I’m updating your books.')
+  expect(html).toContain('I’m working on your books.')
   expect(html).not.toContain('You’re all set for now')
  })
 })
