@@ -185,7 +185,7 @@ async function guidedJourney(f,context,page){
     button=page.getByRole('button',{name:'Save these facts',exact:true})
    }else button=page.getByRole('button',{name:'Nothing is partly personal',exact:true})
   }
-  else if(action.type==='receipt_upload_sweep'&&scenario==='mixed'){button=page.getByRole('button',{name:'I’ll send receipts later',exact:true});disposition='deferred'}
+  else if((action.type==='receipt_upload_sweep'||action.type==='receipt_availability')&&(scenario==='mixed'||process.argv.includes('--receipts-later'))){button=page.getByRole('button',{name:'I’ll send receipts later',exact:true});disposition='deferred'}
   else if(action.type==='receipt_upload_sweep')button=page.getByRole('button',{name:/^(Continue with Betti|Review without more receipts)$/,exact:true})
   else if(action.type==='receipt_availability')button=page.getByRole('button',{name:'That’s all the receipts I have',exact:true})
   else if(process.argv.includes('--answers')){
@@ -226,7 +226,7 @@ async function guidedJourney(f,context,page){
   await page.locator('.betti-active-conversation h1').first().waitFor({timeout:30000})
   const stability=await page.evaluate(()=>({stageStable:window.__bettiStage===document.querySelector('[data-conversation-stage]'),artStable:window.__bettiArt===document.querySelector('.betti-guide'),navigationCount:performance.getEntriesByType('navigation').length,scrollAfter:scrollY,ackMs:window.__bettiAck}))
   assert(stability.stageStable&&stability.artStable,'Workspace remounted')
-  sequence.push({type:action.type,question:action.question?.kind,merchant,workstream:action.workstream,prompt:action.question?.prompt,understanding:action.question?.understanding,disposition,scrollBefore,responseTiming:r.headers()['server-timing'],requestTarget:r.url().split('/api/')[1],publishedVersion:!!published,pendingBefore:work.betti.queued+work.betti.genuinelyProcessing,ms:performance.now()-start,next:await page.locator('[data-guided-action]').getAttribute('data-guided-action'),...stability})
+  sequence.push({type:action.type,question:action.question?.kind,merchant,workstream:action.workstream,prompt:action.question?.prompt,understanding:action.question?.understanding,disposition,scrollBefore,responseTiming:r.headers()['server-timing'],requestTarget:r.url().split('/api/')[1],notice:await page.locator('.betti-saved').innerText(),heading:await page.locator('.betti-active-conversation h1').first().innerText(),publishedVersion:!!published,pendingBefore:work.betti.queued+work.betti.genuinelyProcessing,ms:performance.now()-start,next:await page.locator('[data-guided-action]').getAttribute('data-guided-action'),...stability})
   assert.equal(await page.evaluate(()=>performance.timeOrigin),timeOrigin,'Unnecessary navigation')
   await writeFile(`${dir}/${prefix}/guided-sequence-${f.userId}.json`,JSON.stringify({history,sequence},null,2))
  }

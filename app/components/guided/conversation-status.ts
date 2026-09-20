@@ -20,7 +20,7 @@ export function conversationStatus(work:GuidedWorkProjection,outcome:Conversatio
  if(work.presentation?.status==='settling')return {heading:'I’m checking the next thing.',supporting:'You don’t need to wait here.',waiting:true,alternative:undefined,operationalNote:undefined}
  const savedForLater=work.customer.deferredCount>0
  const justDeferred=outcome==='deferred'||outcome==='receipts-deferred'
- if(savedForLater&&(justDeferred||!waiting))return {
+ if(justDeferred||(savedForLater&&!waiting))return {
   heading:'You’re all set for now.',
   supporting:outcome==='receipts-deferred'?'I’ll keep working with what I have. You can send those receipts whenever you’re ready.':'I saved the things you want to come back to. I’ll keep working with what I have.',
   operationalNote:processingProblem?'I couldn’t finish processing some records. There’s nothing else you need to answer right now.':undefined,

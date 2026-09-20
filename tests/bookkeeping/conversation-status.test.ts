@@ -20,6 +20,13 @@ describe('guided deferral and processing language',()=>{
   expect(result.heading).toBe('You’re all set for now.')
   expect(result.waiting).toBe(true) // polling still resumes any newly ready work
  })
+ it('uses the successful deferral acknowledgment while the summary catches up',()=>{
+  const work=homeWorkFixture('waiting')
+  expect(work.customer.deferredCount).toBe(0)
+  const result=conversationStatus(work,'receipts-deferred')
+  expect(result.heading).toBe('You’re all set for now.')
+  expect(result.waiting).toBe(true)
+ })
  it('does not hide a genuine processing failure behind successful deferral',()=>{
   const work:GuidedWorkProjection=homeWorkFixture('recovery');work.customer.deferredCount=1
   const result=conversationStatus(work,'receipts-deferred')
