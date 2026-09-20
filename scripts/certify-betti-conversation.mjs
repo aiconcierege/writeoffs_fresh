@@ -38,7 +38,7 @@ async function capture(page,state){
  if(state.startsWith('onboarding-')&&!process.argv.includes('--onboarding'))return
  await page.locator('.wo-experience:not([aria-busy="true"])').first().waitFor({timeout:60000})
  if(new URL(page.url()).pathname==='/home')await page.locator('[data-customer-action-count]').waitFor()
- if(new URL(page.url()).pathname==='/check-in')await page.locator('[data-guided-action]').waitFor()
+ if(new URL(page.url()).pathname==='/check-in'){await page.locator('[data-guided-action]').waitFor();await page.locator('.betti-active-conversation h1').first().waitFor()}
  for(const width of [390,430,768,1280]){
   await page.setViewportSize({width,height:900})
   await page.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';window.scrollTo({top:0,behavior:'instant'})})
@@ -318,7 +318,8 @@ try {
   if(process.argv.includes('--gallery-only')){
    const label=process.env.UX_GALLERY??'read-only';assert(/^[a-z0-9-]+$/.test(label))
    await page.goto(origin+'/home');await capture(page,`home-${label}`)
-   await page.goto(origin+'/check-in');await capture(page,`work-${label}`)
+   const record=process.env.UX_GALLERY_RECORD;assert(!record||/^[0-9a-f-]{36}$/i.test(record))
+   await page.goto(origin+'/check-in'+(record?'?record='+encodeURIComponent(record):''));await capture(page,`work-${label}`)
    await page.emulateMedia({reducedMotion:'reduce'})
    assert.equal(await page.evaluate(()=>matchMedia('(prefers-reduced-motion: reduce)').matches),true)
    const keyboard=[]
