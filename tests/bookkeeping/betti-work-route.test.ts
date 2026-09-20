@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), mfa: vi.fn(), membership: vi.fn(), queue: vi.fn() }))
 vi.mock('../../utils/supabase/server', () => ({ createServerSupabase: async () => ({
   auth: { getUser: mocks.getUser, mfa: { getAuthenticatorAssuranceLevel: mocks.mfa } }, rpc: mocks.rpc,
@@ -13,6 +13,7 @@ const snapshot = () => ({ business: { id: business, start: '2026-01-01', activat
 records: [], accounts: [], jobs: [], documents: [], links: [], coverage: [], deferred: [], questionVersions: [] })
 const inputSnapshot=(context=snapshot(),asOf=new Date().toISOString())=>({version:1,businessId:business,asOf,context,reviews:[],askable:[],tables:Object.fromEntries(WORK_INPUT_TABLES.map(name=>[name,[]])),timings:{}})
 const request = () => new Request('https://writeoffs.example/api/bookkeeping/work')
+afterEach(()=>vi.unstubAllEnvs())
 beforeEach(() => {
   vi.resetAllMocks()
   mocks.getUser.mockResolvedValue({ data: { user: { id: 'owner' } }, error: null })
@@ -26,6 +27,14 @@ beforeEach(() => {
   })
 })
 describe('authenticated Betti work GET boundary', () => {
+  it('reconciles a visible action against canonical inputs even when the staging index is enabled',async()=>{
+    vi.stubEnv('WRITEOFFS_ENVIRONMENT','staging')
+    vi.stubEnv('BETTI_ACTION_INDEX_ENABLED','true')
+    const response=await GET(new Request('https://writeoffs.example/api/bookkeeping/work?view=guided&presented=account:test:use&presentedVersion=old'))
+    expect(response.status).toBe(200)
+    expect(mocks.rpc.mock.calls.map(call=>call[0])).toEqual(['read_betti_work_inputs'])
+    expect((await response.json()).presentation).toBeDefined()
+  })
   it('reads only; does not call reconcile, enqueue, answer, or create', async () => {
     const response = await GET(request())
     expect(response.status).toBe(200)

@@ -116,8 +116,10 @@ async function handlePOST(
       if(!membership.businessId||!membership.capabilities.has('autonomous_processing'))
         return NextResponse.json({error:'Active membership required'},{status:403})
       const indexed=await readIndexedQuestion(supabase,membership.businessId,id,expectedEventId)
-      if(indexed.initialized&&!indexed.action&&command.action!=='deduction_fact')
-        return NextResponse.json({error:'This question changed. Continue with the latest work.'},{status:409})
+      // An invalidated derived index is not proof that a canonically presented
+      // question changed. A miss uses the existing atomic canonical eligibility
+      // path below, including exact event-version and command RPC validation.
+      // Published questions retain the indexed fast path; reads never repair it.
       if(indexed.commandItem&&indexed.action?.question?.source==='bookkeeping'){
         const transport=indexedQuestionClient({db:supabase,businessId:membership.businessId,id,version:expectedEventId,
           continuityRecordId:guidedContinuityRecord(request),replay:indexed.replay})

@@ -20,7 +20,10 @@ type WorkLoad = {
 export async function loadBettiWork(input:WorkLoad){
  if(actionIndexEnabled()&&!input.onSnapshot&&!input.asOf){
   const indexed=await readBettiActionIndex({...input,view:'full'})
-  if(indexed)return indexed
+  // A dirty derived summary cannot establish that the customer has no work.
+  // Home and recovery reads share the same atomic canonical fallback. Ordinary
+  // mutation responses keep their independent-action indexed fast path.
+  if(indexed?.index.summaryCurrent)return indexed
  }
  return loadCanonicalBettiWork(input)
 }

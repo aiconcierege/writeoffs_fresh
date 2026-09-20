@@ -224,6 +224,7 @@ async function guidedJourney(f,context,page){
   await writeFile(`${dir}/${prefix}/guided-sequence-${f.userId}.json`,JSON.stringify({history,sequence},null,2))
  }
  await page.goto(origin+'/home');await capture(page,'home-guided-finished')
+ if(!scenario&&!process.argv.includes('--simple'))assert.equal(await page.locator('.home-recent-transactions li').count(),5,'Home must display the five latest in-scope transactions')
  const work=await read('/api/bookkeeping/work'),questions=await read('/api/bookkeeping/questions')
  assert.equal(work.customer.actionableCount,questions.count)
  assert.equal(Number(await page.locator('[data-customer-action-count]').getAttribute('data-customer-action-count')),questions.count)

@@ -1,3 +1,4 @@
+import {isDeepStrictEqual} from 'node:util'
 import {requestUser} from '../../../../lib/performance/request-identity'
 import {guidedCommand} from '../../../../lib/bookkeeping/guided-command-response'
 import { timedRoute } from '../../../../lib/performance/request-timing'
@@ -21,7 +22,7 @@ async function handlePOST(request:Request){
   if(!prior.data){
    const queue=await loadCurrentCustomerWork({supabase:db})
    const action=queue.actions.find(a=>a.id===body.actionId&&a.version===body.version)
-   if(!action?.items||JSON.stringify(action.items)!==JSON.stringify(body.items))return NextResponse.json({error:'These purchases changed. I’ll refresh the group before you continue.'},{status:409})
+   if(!action?.items||!isDeepStrictEqual(action.items,body.items))return NextResponse.json({error:'These purchases changed. I’ll refresh the group before you continue.'},{status:409})
    type=action.type
   }
   const result=await db.rpc('answer_betti_guided_work',{p_request:body.requestId,p_action:type,p_disposition:body.disposition,p_items:body.items,p_answers:body.answers})

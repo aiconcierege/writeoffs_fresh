@@ -6,6 +6,8 @@ export type HomeRecentReceiptMatch={id:string;merchant:string;date:string;amount
 export type HomeRecentActivity={transactions:HomeRecentTransaction[];receiptMatches:HomeRecentReceiptMatch[]}
 
 function transactionStatus(row:TransactionReadRow){
+ if(row.treatment==='personal')return'Personal'
+ if(row.treatment==='excluded')return row.treatmentLabel||'Outside income and expenses'
  if(row.bookkeepingNature==='income')return'Income'
  if(row.treatment==='mixed_use')return'Business + personal'
  if(row.treatment==='business')return'Business'
@@ -13,7 +15,9 @@ function transactionStatus(row:TransactionReadRow){
 }
 
 export function deriveHomeRecentActivity(rows:TransactionReadRow[]):HomeRecentActivity{
- const relevant=rows.filter(row=>row.sourceModel==='canonical'&&!['personal','excluded'].includes(row.treatment??''))
+ // The read model enforces authorized date scope. A personal exception or
+ // non-P&L movement is still recent financial activity, not a missing row.
+ const relevant=rows.filter(row=>row.sourceModel==='canonical')
   .sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id))
  const transactions=relevant.slice(0,5).map(row=>({id:row.id,merchant:row.vendor,date:row.date,amountCents:row.amountCents,
   status:transactionStatus(row),href:`/transactions/${row.id}?returnTo=%2Fhome`}))

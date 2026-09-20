@@ -7,6 +7,10 @@ const rpc = vi.fn()
 const applyFact = vi.fn()
 const getCurrentAskableQuestionQueue = vi.fn()
 const actOnCustomerQuestion = vi.fn()
+const indexEnabled = vi.fn(() => false)
+const indexedQuestion = vi.fn()
+vi.mock('../../app/lib/bookkeeping/action-index-worker',()=>({actionIndexEnabled:indexEnabled,refreshBettiActionIndex:vi.fn()}))
+vi.mock('../../app/lib/bookkeeping/indexed-question-command',()=>({readIndexedQuestion:indexedQuestion,indexedQuestionClient:vi.fn()}))
 
 vi.mock('../../utils/supabase/server', () => ({
   createServerSupabase: vi.fn(async () => ({
@@ -18,7 +22,7 @@ vi.mock('../../utils/supabase/server', () => ({
 }))
 vi.mock('../../app/lib/bookkeeping/customer-work', () => ({ loadCurrentCustomerWork:getCurrentAskableQuestionQueue }))
 vi.mock('../../app/lib/bookkeeping/customer-question-actions', () => ({ actOnCustomerQuestion }))
-vi.mock('../../app/lib/membership/entitlements',()=>({loadCustomerEntitlements:vi.fn(async()=>({plan:'business'}))}))
+vi.mock('../../app/lib/membership/entitlements',()=>({loadCustomerEntitlements:vi.fn(async()=>({plan:'business',businessId:'owned-business',capabilities:new Set(['autonomous_processing'])}))}))
 
 vi.mock('../../utils/supabase/admin',()=>({createServerAdminSupabase:vi.fn(()=>({rpc}))}))
 vi.mock('../../app/lib/bookkeeping/deduction-intelligence',()=>({runDeductionIntelligenceForRecord:applyFact}))
@@ -30,6 +34,8 @@ const eventId = '22222222-2222-4222-8222-222222222222'
 describe('customer question API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    indexEnabled.mockReturnValue(false)
+    indexedQuestion.mockResolvedValue({initialized:true,action:null,commandItem:null})
     assurance.mockResolvedValue({data:{currentLevel:"aal2"}})
     maybeSingle.mockResolvedValue({data:null})
     rpc.mockResolvedValue({error:null})
@@ -157,6 +163,27 @@ describe('customer question API', () => {
     const route=await import('../../app/api/bookkeeping/questions/[id]/route')
     const response=await route.POST(new Request('http://local',{method:'POST',headers:{'content-type':'application/json','if-match':eventId},body:JSON.stringify({action:'deduction_fact',value:80})}),{params:Promise.resolve({id:issueId})})
     expect(response.status).toBe(200);expect(rpc).not.toHaveBeenCalledWith('answer_deduction_attention',expect.anything())
+  })
+
+  it('accepts a canonically current question while the derived index is refreshing',async()=>{
+    indexEnabled.mockReturnValue(true)
+    const route=await import('../../app/api/bookkeeping/questions/[id]/route')
+    const response=await route.POST(new Request('https://local/answer',{method:'POST',headers:{'if-match':eventId},
+      body:JSON.stringify({action:'transaction_type',activity:'purchase'})}),{params:Promise.resolve({id:issueId})})
+    expect(response.status).toBe(200)
+    expect(indexedQuestion).toHaveBeenCalledWith(expect.anything(),'owned-business',issueId,eventId)
+    expect(getCurrentAskableQuestionQueue).toHaveBeenCalledWith(expect.objectContaining({onSnapshot:expect.any(Function)}))
+    expect(actOnCustomerQuestion).toHaveBeenCalledWith(expect.objectContaining({issueId,expectedEventId:eventId}))
+  })
+  it.each([{questions:[]},{questions:[{id:issueId,version:'different-event'}]}])('does not use an index miss to bypass canonical eligibility/version validation',async ({questions})=>{
+    indexEnabled.mockReturnValue(true)
+    getCurrentAskableQuestionQueue.mockResolvedValue({questions,count:questions.length})
+    const route=await import('../../app/api/bookkeeping/questions/[id]/route')
+    const response=await route.POST(new Request('https://local/answer',{method:'POST',headers:{'if-match':eventId},
+      body:JSON.stringify({action:'transaction_type',activity:'purchase'})}),{params:Promise.resolve({id:issueId})})
+    expect(response.status).toBe(409)
+    expect(actOnCustomerQuestion).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
   })
 
 })

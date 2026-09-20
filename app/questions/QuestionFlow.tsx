@@ -257,7 +257,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
             </div>
             {mixedMode==='dollars'?<>
             <label htmlFor="mixed-amount" className="text-base font-medium">Business amount</label>
-            <div className="flex items-center rounded-lg border border-slate-300 px-3 focus-within:ring-2">
+            <div className="betti-percentage-control flex items-center rounded-lg border border-slate-300 px-3 focus-within:ring-2">
               <span aria-hidden="true">$</span>
               <input id="mixed-amount" inputMode="decimal" value={mixedAmount}
                 onChange={(event) => setMixedAmount(event.target.value)} className="w-full p-3 outline-none"
@@ -268,7 +268,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
             })} busy={busy || enteredCents == null || enteredCents>=transactionTotalCents}>Continue</Action>
             </>:<>
             <label htmlFor="mixed-percentage" className="text-base font-medium">Business percentage</label>
-            <div className="flex items-center rounded-lg border border-slate-300 px-3 focus-within:ring-2">
+            <div className="betti-percentage-control flex items-center rounded-lg border border-slate-300 px-3 focus-within:ring-2">
               <input id="mixed-percentage" inputMode="decimal" value={mixedPercentage}
                 onChange={(event)=>setMixedPercentage(event.target.value)} className="w-full p-3 outline-none" placeholder="40"/>
               <span aria-hidden="true">%</span>
@@ -304,7 +304,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
           </div>}
           {question.kind === 'percentage' && !embedded && <>
             <label htmlFor="percentage" className="text-sm font-medium">Business use percentage</label>
-            <div className="flex items-center rounded-lg border border-slate-300 px-3 focus-within:ring-2">
+            <div className="betti-percentage-control flex items-center rounded-lg border border-slate-300 px-3 focus-within:ring-2">
               <input id="percentage" inputMode="numeric" value={factValue}
                 onChange={(event) => setFactValue(event.target.value)} className="w-full p-3 outline-none"
                 placeholder="70" /><span aria-hidden="true">%</span>

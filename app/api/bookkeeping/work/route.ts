@@ -4,7 +4,7 @@ import { timedRoute } from '../../../lib/performance/request-timing'
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../utils/supabase/server'
 import { loadCustomerEntitlements } from '../../../lib/membership/entitlements'
-import { loadBettiWork } from '../../../lib/bookkeeping/betti-work-loader'
+import { loadBettiWork, loadCanonicalBettiWork } from '../../../lib/bookkeeping/betti-work-loader'
 import {actionIndexEnabled} from '../../../lib/bookkeeping/action-index-worker'
 import {readBettiActionIndex} from '../../../lib/bookkeeping/action-index-reader'
 import {actionPresentation} from '../../../lib/bookkeeping/action-presentation'
@@ -27,12 +27,16 @@ async function handleGET(request: Request) {
       return NextResponse.json({error:'Invalid presentation context'},{status:400})
     if (record && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(record))
       return NextResponse.json({ error: 'Invalid context' }, { status: 400 })
+    let indexNeedsRefresh=false
     if(params.get('view')==='guided'&&!presented&&actionIndexEnabled()){
       const indexed=await readBettiActionIndex({db,businessId:membership.businessId,view:'guided',continuityRecordId:record??undefined,
         processingEnabled:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'})
-      if(indexed)return NextResponse.json({...indexed,actionsEnabled:membership.capabilities.has('autonomous_processing')},{headers:{'Cache-Control':'private, no-store'}})
+      if(indexed?.index?.summaryCurrent)return NextResponse.json({...indexed,actionsEnabled:membership.capabilities.has('autonomous_processing')},{headers:{'Cache-Control':'private, no-store'}})
+      indexNeedsRefresh=true
     }
-    const projection = await loadBettiWork({ db, businessId: membership.businessId, scope: membership.plan ?? 'expenses',
+    // A presented-action recovery must inspect the canonical snapshot. The
+    // convenience loader can return a dirty index with temporarily absent rows.
+    const projection = await (presented||indexNeedsRefresh?loadCanonicalBettiWork:loadBettiWork)({ db, businessId: membership.businessId, scope: membership.plan ?? 'expenses',
       continuityRecordId: record ?? undefined, processingEnabled: process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED !== 'false' })
     return NextResponse.json({ ...(params.get('view')==='guided'?guidedWorkProjection(projection):projection),
       ...(presented&&presentedVersion?{presentation:actionPresentation(projection,{id:presented,version:presentedVersion})}:{}),

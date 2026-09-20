@@ -31,21 +31,18 @@ export function homeCommand(work: GuidedWorkProjection, startMethod: string | nu
     supporting: 'I couldn’t finish organizing it. Your document is safe—let’s take a look.',
     action: { href: next.href, label: 'View document' }, context }
   if (next && work.customer.actionableCount > 0) {
-    const earlier = work.progress.catchUp.customerActions > 0 || (work.index?.summaryCurrent!==false && work.progress.catchUp.activity > 0 && work.readiness.catchUp === 'work_remaining')
-    const current = (work.index?.summaryCurrent!==false && work.progress.current.activity > 0) || work.progress.current.customerActions > 0
     const href = next.href.startsWith('/check-in') ? `${next.href}${next.href.includes('?') ? '&' : '?'}returnTo=%2Fhome` : next.href
     return { state: 'needs-customer',
-      heading: 'I have a few questions for you.',
-      supporting: earlier && current ? 'I’ve worked through your activity to get you caught up and keep up. Tell me a few facts, and I’ll take it from there.'
-        : 'I’ve reviewed the information you sent. Tell me a few facts, and I’ll take it from there.',
+      heading: next.type==='account_use'?'I have a question before I get started.':'I’ve worked on your books. I have a few questions for you.',
+      supporting: 'Tell me what you know. I’ll take care of the bookkeeping from there.',
       action: { href, label: next.type === 'account_use' && !href.startsWith('/check-in') ? 'Tell Betti about your account' : 'Continue with Betti' }, context }
   }
-  if (work.betti.genuinelyProcessing > 0) return { state: 'working', heading: 'I’m organizing the records you sent.',
-    supporting: 'You can leave this page while I work. I’ll ask if I need anything after I’ve looked through them.', action: null, context: ['I’ll ask when I need something from you.'] }
+  if (work.betti.genuinelyProcessing > 0) return { state: 'working', heading: 'I’m updating your books.',
+    supporting: 'I’m using the records and facts you’ve shared to finish what I can. You don’t need to wait here.', action: null, context: ['I’ll ask if I need anything else.'] }
   if (work.betti.failures.length || work.betti.missingJobs.length || work.betti.systemHeld.length) return {
     state: 'held', heading: 'Your records are safe.', supporting: 'Some work needs another look before I can finish. There’s nothing you need to answer right now.', action: null, context: [] }
-  if (work.betti.queued || work.betti.retryScheduled) return { state: 'waiting', heading: 'Your records are received.',
-    supporting: work.betti.retryScheduled ? 'Some processing is waiting to try again. I’ll check what I need from you afterward.' : 'I haven’t finished reviewing them yet. There’s nothing to answer right now.', action: null, context: [] }
+  if (work.betti.queued || work.betti.retryScheduled) return { state: 'waiting', heading: 'I have what I need for the next step.',
+    supporting: work.betti.retryScheduled ? 'I need to try part of the work again. You don’t need to wait here.' : 'I have more to review before I know what else I need. You don’t need to wait here.', action: null, context: [] }
   if (work.customer.deferredCount) return { state: 'waiting', heading: 'You’re done for now.',
     supporting: 'The things you set aside are saved for later. Your available working numbers are below.', action: null, context: [] }
   if (work.readiness.booksCurrentThrough) return { state: 'caught-up', heading: `Your books are current through ${dateLabel(work.readiness.booksCurrentThrough)}.`,

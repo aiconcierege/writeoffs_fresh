@@ -15,5 +15,13 @@ describe('guided answer API boundary',()=>{
  it('does not accept waiting work as a customer action',async()=>{m.work.mockResolvedValue({actions:[]});expect((await send()).status).toBe(409);expect(m.rpc).not.toHaveBeenCalled()})
  it('retries an existing assertion through its canonical payload equality check',async()=>{m.prior.mockResolvedValue({data:{action:'receipt_availability'}});expect((await send()).status).toBe(200);expect(m.work).not.toHaveBeenCalled();expect(m.rpc).toHaveBeenCalledTimes(1)})
  it('keeps deferral distinct from a completed receipt assertion',async()=>{expect((await send({...body,disposition:'deferred'})).status).toBe(200);expect(m.rpc).toHaveBeenCalledWith('answer_betti_guided_work',expect.objectContaining({p_disposition:'deferred'}))})
+ it('accepts identical JSONB item fields regardless of object-key serialization order',async()=>{
+  const reordered=Object.fromEntries(Object.entries(item).reverse())
+  expect((await send({...body,items:[reordered]})).status).toBe(200)
+  expect(m.rpc).toHaveBeenCalledTimes(1)
+ })
+ it.each([{...item,amountCents:-10001},{...item,reviewVersion:'changed'},{...item,extra:'unseen'}])('still rejects changed fields or added content',async changed=>{
+  expect((await send({...body,items:[changed]})).status).toBe(409);expect(m.rpc).not.toHaveBeenCalled()
+ })
  it('rejects oversized groups',async()=>{expect((await send({...body,items:Array(9).fill(item)})).status).toBe(400);expect(m.rpc).not.toHaveBeenCalled()})
 })

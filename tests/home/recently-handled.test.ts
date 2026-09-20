@@ -26,9 +26,9 @@ describe('Home recent records', () => {
       row({ id: 'legacy', date: '2026-08-26', sourceModel: 'legacy' }),
     ])
     expect(activity.transactions.map(item => item.status)).toEqual([
-      'Business', 'Business + personal', 'Income', 'Not yet organized',
+      'Personal', 'Business', 'Business + personal', 'Income', 'Not yet organized',
     ])
-    expect(activity.transactions.map(item=>item.id)).not.toContain('personal')
+    expect(activity.transactions.map(item=>item.id)).toContain('personal')
   })
 
   it('derives only real receipt links and does not pad either list', () => {

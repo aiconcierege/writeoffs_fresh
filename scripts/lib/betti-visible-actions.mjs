@@ -8,7 +8,7 @@ export async function recordVisibleBettiActions(context,path){
   await appendFile(path,JSON.stringify(event)+'\n')
  })
  await context.addInitScript(()=>{
-  const doc=crypto.randomUUID(),emit=event=>void window.__recordVisibleBetti({doc,at:performance.now(),...event})
+  const doc=crypto.randomUUID(),emit=event=>void window.__recordVisibleBetti({doc,at:performance.now(),wallTime:Date.now(),...event})
   let previous='',scheduled=false
   const inspect=()=>{
    scheduled=false

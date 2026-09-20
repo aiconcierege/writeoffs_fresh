@@ -13,8 +13,8 @@ describe('Home uses the shared work projection', () => {
     expect(homeCommand(homeWorkFixture(state), null).action).toBeNull()
   })
   it('only actual leased processing gets active processing language', () => {
-    expect(homeCommand(homeWorkFixture('processing'), null).heading).toContain('I’m organizing')
-    expect(homeCommand(homeWorkFixture('waiting'), null).heading).toBe('Your records are received.')
+    expect(homeCommand(homeWorkFixture('processing'), null).heading).toBe('I’m updating your books.')
+    expect(homeCommand(homeWorkFixture('waiting'), null).heading).toBe('I have what I need for the next step.')
     expect(homeCommand(homeWorkFixture('held'), null).heading).toBe('Your records are safe.')
   })
   it('shows concurrent streams without adding system work to the customer count', () => {
