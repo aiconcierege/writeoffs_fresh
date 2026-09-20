@@ -10,7 +10,7 @@ describe('customer question UI contract', () => {
     for (const copy of [
       'Yes, business', 'No, personal', 'I’m not sure', 'I’ll come back to this',
       'No, all business', 'Yes, partly personal', 'How much of the',
-      'Business amount', 'Enter the business dollars. I’ll handle the split.',
+      'Business amount', 'Tell me how much was for business.',
       'What did you buy?', 'I have the receipt, but I can’t tell what this was for.',
       'Nothing to answer right now.', 'returnLabel(returnTo)',
     ]) expect(flow).toContain(copy)

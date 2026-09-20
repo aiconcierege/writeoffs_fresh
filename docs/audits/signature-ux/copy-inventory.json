@@ -1,0 +1,2126 @@
+[
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I’ve received your files. I’m checking what they answer.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "error",
+    "text": "I couldn’t refresh your work. Please try again.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "error",
+    "text": "AbortError",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I’m checking new information before we continue.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I still need your help with this.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I’m still checking that item. We can work on this one meanwhile.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "defer",
+    "text": "This is saved for later.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I’ve checked the latest information. Here’s what I still need.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "acknowledgment",
+    "text": "Got it — that answered this for me.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "processing",
+    "text": "My latest review took care of that question.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "error",
+    "text": "I couldn’t check for updates. Refresh before answering.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Getting your books caught up",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Getting caught up and keeping up",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Keeping your books up to date",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Work with Betti",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I’m checking your books.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "That helps. I have a follow-up about this purchase.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Your answer could not be confirmed.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "defer",
+    "text": "${handled} handled this visit${deferred?` · ${deferred} saved for later`:''}",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "defer",
+    "text": "· ${deferred} saved for later",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "${work.customer.actionableCount} ${work.customer.actionableCount===1?'thing needs':'things need'} you",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "error",
+    "text": "Refresh current work",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Organizing your records",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "processing",
+    "text": "I’ll keep working from here",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Check for the next step",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Back to your books",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Let’s take another look at this document.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Send me your statements.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Open the document to see what I need to read it.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Connected accounts are the easiest way to keep up. Statements work too.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "View document",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Send documents",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Connect accounts instead",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "question",
+    "text": "How did you use this account?",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I’ll use this setting for the account. You can still change any purchase.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Business only",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I use this account for my business.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "sweep",
+    "text": "Business + personal",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "sweep",
+    "text": "There’s personal activity in this account too.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "acknowledgment",
+    "text": "Got it…",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "sweep",
+    "text": "Anything here personal?",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "question",
+    "text": "Which of these were for business?",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "sweep",
+    "text": "Anything partly personal?",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "receipt",
+    "text": "Do you have receipts for these?",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "receipt",
+    "text": "Any more receipts for these?",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I’m treating these as business because this is your business-only account.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "sweep",
+    "text": "This account has business and personal activity. For anything partly personal, tell me how much was for business.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "sweep",
+    "text": "Select anything partly personal and tell me how much was for business.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Send me what you have and I’ll match them.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "processing",
+    "text": "If not, that’s okay. I’ll keep working with what I have.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "error",
+    "text": "This list has changed. Refresh to see it.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "· ${action.account.mask}",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "·",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "error",
+    "text": "I couldn’t check the latest document status. Refresh before continuing.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "error",
+    "text": "Refresh document status",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "sweep",
+    "text": "Purchases in this review",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "sweep",
+    "text": "${personal?'Personal':'Partly personal'}: ${item.merchant}, ${item.date}, ${(Math.abs(item.amountCents)/100).toFixed(2)} dollars",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "sweep",
+    "text": "Personal",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "sweep",
+    "text": "Partly personal",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Use of ${item.merchant}",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Business",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "sweep",
+    "text": "Business dollars for",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "receipt",
+    "text": "Choose receipts",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "defer",
+    "text": "I’ll do this later",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "receipt",
+    "text": "I have another receipt",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Saving…",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "That’s all I have",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "sweep",
+    "text": "These were personal",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "sweep",
+    "text": "Nothing here is personal",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "That’s right",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Use these amounts",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "sweep",
+    "text": "Nothing is partly personal",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I don’t have any to send",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I’ll come back to this",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "completion",
+    "text": "There’s nothing I need you to answer about this right now.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "error",
+    "text": "I couldn’t load this detail. Please refresh.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "classification": "special transaction",
+    "text": "Getting the payment details…",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "receipt",
+    "text": "No problem. I saved those receipts for later.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "defer",
+    "text": "No problem. I saved that for later.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "acknowledgment",
+    "text": "Got it.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "I’m checking the next thing.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "You don’t need to wait here.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "completion",
+    "text": "You’re all set for now.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "receipt",
+    "text": "I’ll keep working with what I have. You can send those receipts whenever you’re ready.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "acknowledgment",
+    "text": "I saved the things you want to come back to. I’ll keep working with what I have.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "error",
+    "text": "I couldn’t finish processing some records. There’s nothing else you need to answer right now.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "processing",
+    "text": "I’m updating your books.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "processing",
+    "text": "I’m working on your books.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "processing",
+    "text": "I have more to review.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "This is taking a little longer. You don’t need to wait here.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "I’m using what you told me to finish what I can. You don’t need to wait here.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "processing",
+    "text": "I’m reviewing what you’ve shared. You don’t need to wait here.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "error",
+    "text": "I couldn’t finish processing some records.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "completion",
+    "text": "There’s nothing you need to answer right now. Your available books are still here.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "classification": "processing",
+    "text": "There’s nothing else I need you to answer right now. I still have records to review.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/ConversationShell.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Work with Betti",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/ConversationShell.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Return to your books",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/ConversationShell.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Betti · Your bookkeeper",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/guided/ConversationShell.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "✓",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "acknowledgment",
+    "text": "Got it.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "error",
+    "text": "Questions could not be refreshed. Please try again.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "error",
+    "text": "Unable to load the next question.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "error",
+    "text": "Unable to save that answer.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "special transaction",
+    "text": "Got it. I marked this as a credit card payment. It won’t be counted as a business expense.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "error",
+    "text": "TimeoutError",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "error",
+    "text": "TypeError",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "error",
+    "text": "SyntaxError",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "acknowledgment",
+    "text": "That took too long. Your answer may have saved, so reload the current question before trying again.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "error",
+    "text": "I still can’t load the current question. Please try again in a moment.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Loading the next question…",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Reload current question",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "We can keep going.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "completion",
+    "text": "That’s everything I needed.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I kept ${unresolvedKept} ${unresolvedKept===1?'item':'items'} on your list for more information.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "processing",
+    "text": "I’ll keep working from here.",
+    "status": "revised"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Check in with Betti",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "acknowledgment",
+    "text": "Your progress is saved.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "You’re ready for the next step.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "completion",
+    "text": "Nothing to answer right now.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I kept the deferred items on your list. You can come back when you have the facts.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Other work remains in your books. Betti will guide you to the next step.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "There are no questions available right now.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "question",
+    "text": "What was this purchase for?",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "question",
+    "text": "What did you buy?",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "receipt",
+    "text": "I have the receipt, but I can’t tell what this was for.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "${answered} answered",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "One at a time",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "· More waiting",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Betti",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "question",
+    "text": "How much of the ${amount??'total'} was for your business?",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "question",
+    "text": "What was this money for?",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "·",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "receipt",
+    "text": "View receipt ↗",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Tell me how much was for business.",
+    "status": "revised"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "acknowledgment",
+    "text": "Got it. Saving your answer…",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Yes, business",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "sweep",
+    "text": "No, personal",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Partly",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I’m not sure",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "For example, lunch to discuss a client project",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Destination, dates, and business reason",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "A short note in your own words",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "For example, printer paper for customer projects",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Continue",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "question",
+    "text": "Who was the meal with?",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "For example, Sarah Jones, client; Luis Garcia, prospective customer",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I’ll come back to this",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "No, all business",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "sweep",
+    "text": "Yes, partly personal",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "How to enter the business portion",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "sweep",
+    "text": "Business dollars",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Business percentage",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Business amount",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I’ll work out the amount.",
+    "status": "revised"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "No, something else",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Tell me where this money came from",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Back to choices",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I still need a little more information about this item.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "processing",
+    "text": "I’ll keep it on your list while we finish the rest of your review.",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Keep this on my list and continue",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Business use percentage",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Yes",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "No",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Whole number",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Date",
+    "status": "retained"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "${Math.min(control.scrollHeight, 180)}px",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "error",
+    "text": "Please try again.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "A document may help me understand this.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "special transaction",
+    "text": "Got it. This is a credit card payment, outside business income and expenses.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "sweep",
+    "text": "Got it. This is money taken or used personally, outside business expenses.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "special transaction",
+    "text": "Got it. I matched the refund to that purchase.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I kept this on your list. Come back when you have the information.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "That’s okay. Send me a document when you have one, and I’ll take another look.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "acknowledgment",
+    "text": "Got it.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Betti transaction question",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Betti",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Saving your answer…",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Send me a supporting record.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "special transaction",
+    "text": "Send me the payment, purchase or reimbursement record you have.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "special transaction",
+    "text": "What kind of payment was this?",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "special transaction",
+    "text": "Credit card payment",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "special transaction",
+    "text": "Payment on a business loan",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "sweep",
+    "text": "Money I took or used personally",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Something else",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "question",
+    "text": "Was this money returned by a store, or did someone reimburse you?",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Returned by the store",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Someone reimbursed me",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Send me the reimbursement records.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "understanding",
+    "text": "Send me the expense and reimbursement records so I can see what was repaid.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "question",
+    "text": "Is it for this purchase?",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "question",
+    "text": "Which purchase was it for?",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "special transaction",
+    "text": "This looks like a refund. Help me match it to the purchase.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "From a different year. I’ll need to check the tax details.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "special transaction",
+    "text": "How much of this refund was for business?",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Yes, that’s it",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I don’t see it / something else",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "special transaction",
+    "text": "Send me the original purchase or refund record so I can match them.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "special transaction",
+    "text": "Refund linked",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "special transaction",
+    "text": "I matched this refund to the original purchase. It won’t count as new income.",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Change the original purchase",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "special transaction",
+    "text": "Send me the loan statement.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "special transaction",
+    "text": "I can see this was a loan payment, but I need the statement to separate principal and interest.",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Send statement",
+    "status": "revised"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I’m not sure",
+    "status": "retained"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "I’ll come back to this",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "${count} quick ${count === 1 ? 'question' : 'questions'} for you",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "question",
+    "text": "Was this meal for business?",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "question",
+    "text": "Was this purchase for your business?",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "question",
+    "text": "Who was the meal with?",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "List the person or people and their business relationship. For example: Sarah Jones, client.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "question",
+    "text": "What was the business reason for the meal?",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "For example: Discussed a customer project or met with a prospective client.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "question",
+    "text": "Where did you travel, when, and what was the business reason?",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Tell me the destination, trip dates, and what the trip was for.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "special transaction",
+    "text": "I know this was an insurance payment for your business.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "special transaction",
+    "text": "I know this was an insurance payment with a business portion.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "question",
+    "text": "What did this insurance cover?",
+    "status": "revised"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Business insurance",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "A vehicle",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Health insurance",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Something else",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "understanding",
+    "text": "I can see this was a purchase, but I can’t tell what it was for.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "question",
+    "text": "How will you use what you bought?",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "question",
+    "text": "What was this purchase for?",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "For example: office work, materials for a customer job, or products you sell.",
+    "status": "revised"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Tell me what you bought or why you needed it.",
+    "status": "revised"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "sweep",
+    "text": "Was any of this purchase personal?",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "question",
+    "text": "What was this money for?",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "understanding",
+    "text": "I can see money came in, but I can’t tell where it came from.",
+    "status": "revised"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "special transaction",
+    "text": "This looks like payment for invoice ${context.understanding.invoiceReference} from ${context.understanding.counterparty}.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "special transaction",
+    "text": "This looks like customer payments from ${context.understanding.counterparty}.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "question",
+    "text": "Is that right?",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Yes, that’s right",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "special transaction",
+    "text": "Payment from a customer",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Transfer between my accounts",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Money I added to the business",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "special transaction",
+    "text": "Loan proceeds",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "special transaction",
+    "text": "Refund or reimbursement",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "question",
+    "text": "What kind of activity was this?",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "understanding",
+    "text": "I can see money left your account, but I can’t tell what it was for.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "special transaction",
+    "text": "Tell me what this payment was for.",
+    "status": "revised"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "A purchase",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Money moved between accounts",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "special transaction",
+    "text": "A credit card payment",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "question",
+    "text": "Was this a phone or telecommunications service charge?",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "question",
+    "text": "Was this a restaurant or meal purchase?",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Yes, phone service",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Yes, a meal",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "No, money moved between accounts",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "special transaction",
+    "text": "No, a credit card payment",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "special transaction",
+    "text": "No, a refund",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "question",
+    "text": "What actually happened with this transaction?",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Current bookkeeping questions could not be validated.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Conversational question state could not be loaded.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "error",
+    "text": "Unable to load question records: ${recordError.message}",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "error",
+    "text": "Unable to load question sources: ${sourceError.message}",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "error",
+    "text": "Unable to load question evidence: ${documentResult.error.message}",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "receipt",
+    "text": "Unable to load question evidence: ${receiptResult.error.message}",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "receipt",
+    "text": "Receipt",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "error",
+    "text": "Unable to load question transactions: ${transactionError.message}",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Transaction",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "error",
+    "text": "Unable to load contractor questions.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "question",
+    "text": "How did you pay ${contractor?.display_name ?? 'this contractor'}?",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Tell me how you paid them.",
+    "status": "revised"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Cash",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Check",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "ACH / Zelle",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "special transaction",
+    "text": "Payment card",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "special transaction",
+    "text": "Third-party payment service",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Other",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "special transaction",
+    "text": "Contractor payment",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "question",
+    "text": "Do you have a W-9 from ${contractor?.display_name ?? 'this contractor'}?",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Do not enter a Social Security number or EIN.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Yes, it is on file",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "No, I need it",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "I need to check",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Contractor",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Business was not found for the authenticated user.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "error",
+    "text": "Unable to load deduction questions: ${error.message}",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "error",
+    "text": "Unable to load deduction question context: ${recordsError.message}",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Deduction question ownership state could not be loaded.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "understanding",
+    "text": "I know this is your phone bill.",
+    "status": "revised"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Your business",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "An authenticated user is required.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Business unavailable",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "${work.customer.actionableCount} ${work.customer.actionableCount===1?'thing needs':'things need'} you",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "I’m ready to start your books.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "receipt",
+    "text": "Send me your statements and the receipts you have. I’ll take it from there.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Connect your business accounts so I can keep up as new activity arrives. You can also send me statements.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Send documents",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Connect accounts",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Connect accounts for automatic updates",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Use statements instead",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "receipt",
+    "text": "Send activity and receipts. I’ll do the bookkeeping and ask only when I need a fact.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "These records are from before your books begin.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Your books start ${dateLabel(work.scope.bookkeepingStart!)}. Earlier records aren’t included in these books.",
+    "status": "revised"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "processing",
+    "text": "Review an earlier bookkeeping start",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Your books still begin on the same date.",
+    "status": "revised"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "I need your help with a document.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "error",
+    "text": "I couldn’t finish reading it. Let’s see what’s missing.",
+    "status": "revised"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "View document",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "I have a question before I get started.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "I’ve worked on your books. I have a few questions for you.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Tell me what you know. I’ll take care of the bookkeeping from there.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Tell Betti about your account",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Continue with Betti",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "processing",
+    "text": "I’m updating your books.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "I’m using the records and facts you’ve shared to finish what I can. You don’t need to wait here.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "I’ll ask if I need anything else.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "error",
+    "text": "I couldn’t finish processing some records.",
+    "status": "revised"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "completion",
+    "text": "There’s nothing I need you to answer right now. Your available books are below.",
+    "status": "revised"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "processing",
+    "text": "I still have some records to review.",
+    "status": "revised"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "processing",
+    "text": "There’s nothing I need you to answer right now. I haven’t finished reviewing everything yet.",
+    "status": "revised"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "I have what I need for the next step.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "I need to try part of the work again. You don’t need to wait here.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "processing",
+    "text": "I have more to review before I know what else I need. You don’t need to wait here.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "completion",
+    "text": "You’re all set for now.",
+    "status": "revised"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "acknowledgment",
+    "text": "I saved the things you want to come back to. I’ll keep working with what I have.",
+    "status": "revised"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Your books are current through ${dateLabel(work.readiness.booksCurrentThrough)}.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Keep sending me your records. I’ll ask when I need something.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Your available records are organized.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Through ${dateLabel(work.readiness.knownAccountsOrganizedThrough)}, for the accounts and statement periods you’ve provided.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "processing",
+    "text": "There’s nothing I need you to answer right now. Your working books reflect the records available so far.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "orientation / answer / guidance",
+    "text": "Your books are here.",
+    "status": "retained"
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "classification": "error",
+    "text": "I couldn’t load my work summary just now. Refresh to try again.",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Choose files",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Choose up to 10 documents at a time.",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Sending your documents…",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "SHA-256",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "error",
+    "text": "${received} ${received===1?'document':'documents'} received.${failed?` ${failed} could not be sent. Check the file is under 20 MB and try again.`:' You can leave while Betti organizes them.'}",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "error",
+    "text": "${failed} could not be sent. Check the file is under 20 MB and try again.",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "You can leave while Betti organizes them.",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "error",
+    "text": "Your documents could not be sent. Please try again.",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "receipt",
+    "text": "Send me receipts and statements. I’ll figure out where they belong.",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Sending…",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Send Betti documents",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "defer",
+    "text": "Your documents are safe. Organizing is paused; please check back later.",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Files being sent",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Uploading…",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "processing",
+    "text": "Received — Betti is reviewing it",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "error",
+    "text": "Could not upload — choose this file to try again",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Uploading ${u.name}",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Your documents",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Document",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "Organizing is paused",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "error",
+    "text": "Try again",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "View",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "receipt",
+    "text": "View receipt →",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "orientation / answer / guidance",
+    "text": "View documents →",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "special transaction",
+    "text": "I need a statement showing this payment’s date, principal and interest separately. The amounts must add up to the payment. Your document is saved; no split has been assumed.",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "receipt",
+    "text": "I’m not sure what kind of document this is. Please send a clear receipt or a complete bank or credit-card statement.",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "acknowledgment",
+    "text": "Some activity may already be in your books. I’ve saved this document for review instead of adding it twice.",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "receipt",
+    "text": "I found more than one receipt in this image. Please upload each receipt separately.",
+    "status": "retained"
+  },
+  {
+    "file": "app/documents/DocumentIntake.tsx",
+    "classification": "error",
+    "text": "I couldn’t safely read all the information I need. Your original is saved. Please try a clearer or complete document.",
+    "status": "retained"
+  }
+]

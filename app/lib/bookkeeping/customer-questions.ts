@@ -128,7 +128,7 @@ export function projectCustomerQuestion(
         ...base, kind: 'business_purpose',
         understanding: item.decision.treatment === 'business'
           ? 'I know this was an insurance payment for your business.' : 'I know this was an insurance payment with a business portion.',
-        prompt: 'What did the insurance cover?',
+        prompt: 'What did this insurance cover?',
         options: [{id:'business insurance',label:'Business insurance'}, {id:'vehicle insurance',label:'A vehicle'},
           {id:'health insurance',label:'Health insurance'}, {id:'other',label:'Something else'}],
       } : null
@@ -138,7 +138,7 @@ export function projectCustomerQuestion(
       kind: 'business_purpose',
       understanding: item.decision.businessPurpose ? undefined : 'I can see this was a purchase, but I can’t tell what it was for.',
       prompt: item.decision.businessPurpose ? 'How will you use what you bought?' : 'What was this purchase for?',
-      guidance: item.decision.businessPurpose ? 'For example: office work, materials for a customer job, or products you sell. Tell me the use, not an accounting category.' : 'Tell WriteOffs what you bought or why you needed it.',
+      guidance: item.decision.businessPurpose ? 'For example: office work, materials for a customer job, or products you sell.' : 'Tell me what you bought or why you needed it.',
     } : null
   }
   if (item.event.reason === 'MIXED_USE_CLARIFICATION') {
@@ -152,7 +152,7 @@ export function projectCustomerQuestion(
   }
   if (item.event.reason === 'TRANSACTION_TYPE_UNCLEAR' && (transaction.amountCents ?? 0) > 0) return {
     ...base, kind: 'transaction_type', materiality: 'totals', prompt: 'What was this money for?',
-    understanding: 'I can see this was money coming in, but I can’t tell where it came from.',
+    understanding: 'I can see money came in, but I can’t tell where it came from.',
     ...(isPayoutConfirmation(context?.understanding) ? {
       understanding: context.understanding.invoiceReference
         ? `This looks like payment for invoice ${context.understanding.invoiceReference} from ${context.understanding.counterparty}.`
@@ -168,7 +168,7 @@ export function projectCustomerQuestion(
   if(item.event.reason==='TRANSACTION_TYPE_UNCLEAR')return{
     ...base,kind:'transaction_type',materiality:'totals',prompt:'What kind of activity was this?',
     understanding:'I can see money left your account, but I can’t tell what it was for.',
-    guidance:'Choose what happened. I’ll handle the bookkeeping rules.',options:[
+    guidance:'Tell me what this payment was for.',options:[
       ['purchase','A purchase'],['moved_money','Money moved between accounts'],
       ['paid_card','A credit card payment'],['other','Something else'],
     ].map(([id,label])=>({id,label})),
@@ -176,7 +176,7 @@ export function projectCustomerQuestion(
       prompt: economicContext.context === 'telecom_service'
         ? 'Was this a phone or telecommunications service charge?'
         : 'Was this a restaurant or meal purchase?',
-      guidance: 'Confirm what happened. I’ll handle the bookkeeping rules.',
+      guidance: '',
       options: [
         { id: 'purchase', label: economicContext.context === 'telecom_service'
           ? 'Yes, phone service' : 'Yes, a meal' },
@@ -397,7 +397,7 @@ async function listContractorQuestions(supabase: SupabaseClient,asOf=new Date().
     const contractor = contractorById.get(payment.contractor_id)
     questions.push({ id: payment.id, version: payment.id, source: 'contractor', kind: 'factual_choice',
       prompt: `How did you pay ${contractor?.display_name ?? 'this contractor'}?`,
-      guidance: 'Choose the factual payment method. WriteOffs will evaluate reporting implications separately.',
+      guidance: 'Tell me how you paid them.',
       options: [['cash','Cash'],['check','Check'],['ach_zelle','ACH / Zelle'],['payment_card','Payment card'],
         ['third_party_service','Third-party payment service'],['other','Other']].map(([id,label]) => ({ id, label })),
       transaction: { merchant: contractor?.display_name ?? 'Contractor payment', amountCents: Number(payment.amount_cents),
@@ -446,7 +446,7 @@ async function listDeductionQuestions(supabase: SupabaseClient,businessId?:strin
       id: attention.attention_id, version: attention.id, source: 'deduction' as const,
       recordId: attention.bookkeeping_record_id ?? undefined,
       kind: attention.question_type as CustomerQuestion['kind'], prompt: attention.prompt,
-      ...(attention.fact_type==='phone_business_use_percentage'?{understanding:'I know this is your phone bill. I just need to know how much was for business.'}:{}),
+      ...(attention.fact_type==='phone_business_use_percentage'?{understanding:'I know this is your phone bill.'}:{}),
       ...(attention.fact_type==='vehicle_association'?{options:(vehicles??[]).map(vehicle=>({id:vehicle.id,label:vehicle.display_name}))}:{}),
       guidance: attention.guidance ?? undefined,
       openedAt:attention.created_at,availableAt:null,

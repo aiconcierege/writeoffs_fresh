@@ -32,7 +32,7 @@ describe('customer route integrity', () => {
     expect(quickActions).toContain('href="/mileage"')
     expect(quickActions).toContain('href="/invoices"')
     expect(read('app/get-started/page.tsx')).toContain('<GetStartedFlow')
-    expect(read('app/reports/ReportsSummary.tsx')).toContain('href="/reports/tax-time"')
+    expect(read('app/reports/ReportsSummary.tsx')).toContain('href={`/reports/tax-time?year=${period.year}`}')
     expect(read('app/settings/page.tsx')).toContain('href="/settings/banking"')
     expect(read('app/questions/page.tsx')).toContain("redirect('/check-in')")
     expect(read('app/check-in/page.tsx')).toContain('<GuidedWork')

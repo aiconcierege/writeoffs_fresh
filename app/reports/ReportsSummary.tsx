@@ -2,6 +2,8 @@
 
 import { useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
+import { reportPeriod, type ReportPeriod } from './report-period'
+import './reports.css'
 
 type SummaryData = {
   ownerPersonalUseCents?: number
@@ -19,47 +21,72 @@ type SummaryData = {
 }
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+const money = (cents: number) => usd.format(cents / 100)
 
 export function ReportsSummary({scope,readOnly,annual}:{scope:'expenses'|'business';readOnly:boolean;annual?:ReactNode}) {
+  const [kind, setKind] = useState<ReportPeriod>('ytd')
+  const [anchor, setAnchor] = useState(() => new Date().toISOString().slice(0, 10))
+  const period = reportPeriod(kind, anchor)
   const [data, setData] = useState<SummaryData | null>(null)
   const [loading, setLoading] = useState(true)
-  useEffect(() => { fetch('/api/reports/summary', { cache: 'no-store' })
-    .then((response) => response.ok ? response.json() : null).then(setData)
-    .catch(() => setData(null)).finally(() => setLoading(false)) }, [])
-  if (loading) return <div role="status" aria-label="Loading report" className="page-container"><div className="skeleton h-12 max-w-md"/><div className="mt-8 grid gap-5 sm:grid-cols-2"><div className="skeleton h-28"/><div className="skeleton h-28"/></div></div>
-  if (!data) return <div className="page-container"><div role="alert" className="notice notice-error">Your report is temporarily unavailable. Please try again.</div></div>
-  return <main className="app-page -mx-4 -mb-10 sm:-mx-6 lg:-mx-8"><div className="page-container max-w-5xl space-y-8 sm:space-y-11">
-    {annual}
-    <header><p className="text-xs font-semibold tracking-[0.16em] text-slate-500">YEAR TO DATE</p>
-      <h1 className="page-title">{scope==='business'?'Your business so far':'Your expenses so far'}</h1>
-      {readOnly&&<p className="mt-2 text-sm font-medium text-[#243186]">Historical records · read only</p>}
-      {!data.completeness.isComplete && <p className="mt-2 text-sm text-slate-600">Betti still needs a few details before every total is final.</p>}
-      <Link href="/reports/tax-time" className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[#243186]">Tax-Time Report and annual readiness →</Link></header>
-    <section aria-labelledby="financial-summary-heading"><h2 id="financial-summary-heading" className="sr-only">Financial summary</h2>
-      <dl className="grid border-t border-[#dce3de] sm:grid-cols-2 sm:gap-x-10">
-        {scope==='business'&&<div className="border-b border-[#dce3de] py-5"><dt className="text-sm text-[#59665f]">Business income</dt><dd className="money-display mt-2 text-3xl font-semibold">{usd.format(data.businessIncomeCents / 100)}</dd></div>}
-        <div className="border-b border-[#dce3de] py-5"><dt className="text-sm text-[#59665f]">Business expenses</dt><dd className="money-display mt-2 text-3xl font-semibold">{usd.format(data.businessExpensesCents / 100)}</dd></div>
-        {scope==='business'&&<div className="py-7 sm:col-span-2"><dt className="font-medium text-[#17211d]">Estimated business profit</dt><dd className="money-display mt-2 text-4xl font-semibold sm:text-5xl">{usd.format(data.businessProfitCents / 100)}</dd></div>}
-      </dl>
-      {data.estimatedDeductionsCents != null && <div className="mt-3 max-w-xl border-l-2 border-[#9ccdbc] pl-4"><p className="eyebrow">Tax estimate</p><p className="mt-2 text-sm text-[#59665f]">Estimated deductions</p><p className="money-display mt-1 text-2xl font-semibold">{usd.format(data.estimatedDeductionsCents / 100)}</p></div>}
+  const [failed, setFailed] = useState(false)
+  const [retry, setRetry] = useState(0)
+  const [loadedPeriod, setLoadedPeriod] = useState('')
+  const periodKey = `${period.start}:${period.end}`
+  const pending = loading || (!failed && loadedPeriod !== periodKey)
+  useEffect(() => {
+    const controller = new AbortController()
+    setLoading(true); setFailed(false)
+    fetch(`/api/reports/summary?start=${period.start}&end=${period.end}`, {cache:'no-store', signal:controller.signal})
+      .then(async response => { if (!response.ok) throw new Error('report_unavailable'); return response.json() })
+      .then(value => { if (!controller.signal.aborted) { setData(value); setLoadedPeriod(`${period.start}:${period.end}`) } })
+      .catch(() => { if (!controller.signal.aborted) setFailed(true) })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    return () => controller.abort()
+  }, [period.start, period.end, retry])
+  const business = scope === 'business'
+  return <div className="reports-page wo-experience">
+    <header className="reports-heading"><div><p className="reports-eyebrow">Your business, in view</p><h1>Reports</h1></div><Link className="reports-link" href="#tax-time">Tax-time & exports <span aria-hidden="true">↓</span></Link></header>
+    {readOnly && <p className="reports-note">Historical records · read only</p>}
+    <div className="reports-controls"><div role="group" aria-label="Report period" className="reports-periods">{([['ytd','Year to date'],['month','Monthly'],['quarter','Quarterly'],['annual','Annual']] as const).map(([value,label]) => <button key={value} aria-pressed={kind===value} onClick={()=>{setKind(value);if(value==='ytd'){const today=new Date().toISOString().slice(0,10);setAnchor(period.year===Number(today.slice(0,4))?today:`${period.year}-12-31`)}}}>{label}</button>)}</div>
+      <div className="reports-date-controls">
+        {kind==='month'&&<label className="reports-month">Month<select aria-label="Reporting month" value={anchor.slice(5,7)} onChange={e=>setAnchor(`${period.year}-${e.target.value}-01`)}>{Array.from({length:12},(_,m)=><option key={m} value={String(m+1).padStart(2,'0')}>{new Date(Date.UTC(2026,m,1)).toLocaleDateString('en-US',{month:'long',timeZone:'UTC'})}</option>)}</select></label>}
+        {kind==='quarter'&&<label className="reports-month">Quarter<select aria-label="Reporting quarter" value={Math.floor((Number(anchor.slice(5,7))-1)/3)} onChange={e=>setAnchor(`${period.year}-${String(Number(e.target.value)*3+1).padStart(2,'0')}-01`)}>{[0,1,2,3].map(q=><option key={q} value={q}>Q{q+1}</option>)}</select></label>}
+        <label className="reports-month">Year<select aria-label="Reporting year" value={period.year} onChange={e=>{const today=new Date().toISOString().slice(0,10);setAnchor(kind==='ytd'?(e.target.value===today.slice(0,4)?today:`${e.target.value}-12-31`):`${e.target.value}-${anchor.slice(5,7)}-01`)}}>{Array.from({length:7},(_,i)=>new Date().getUTCFullYear()-i).map(year=><option key={year} value={year}>{year}</option>)}</select></label>
+      </div>
+    </div>
+    <div className="reports-period-caption"><span>{period.label}</span><span>Working books</span></div>
+    <div aria-busy={pending}>
+    {pending ? <div className="reports-loading" role="status"><span className="sr-only">Loading report</span><div className="skeleton"/><div className="skeleton"/><div className="skeleton"/></div>
+    : failed || !data ? <div role="alert" className="reports-error"><h2>Your report couldn’t load.</h2><p>Please try again. Your saved records haven’t changed.</p><button className="btn btn-primary" onClick={()=>setRetry(value=>value+1)}>Try again</button></div>
+    : <>
+      <section aria-label="Financial summary" className="reports-summary"><dl>
+        {business&&<div><dt>Business income</dt><dd>{money(data.businessIncomeCents)}</dd></div>}
+        <div><dt>Business expenses</dt><dd>{money(data.businessExpensesCents)}</dd></div>
+        {business&&<div className="reports-profit"><dt>Estimated profit</dt><dd>{money(data.businessProfitCents)}</dd></div>}
+      </dl><p>Based on your available records. Tax deductions may differ.</p></section>
+      <div className="reports-body">
+        <section className="reports-expenses" aria-labelledby="category-heading"><div className="reports-section-heading"><div><p className="reports-eyebrow">Business expenses</p><h2 id="category-heading">Where the money went</h2></div><span className="reports-section-amount">{money(data.businessExpensesCents)}</span></div>
+          <dl className="reports-rows">{data.categoryTotals.map(row=><div key={row.categoryKey}><dt>{row.categoryLabel}</dt><dd>{money(row.amountCents)}</dd></div>)}
+            {data.uncategorizedBusinessExpensesCents!==0&&<div><dt>Still being categorized</dt><dd>{money(data.uncategorizedBusinessExpensesCents)}</dd></div>}
+            {data.categoryTotals.length===0&&data.uncategorizedBusinessExpensesCents===0&&<div className="reports-empty"><dt>No business expenses to show yet.</dt><dd><Link href="/import">Send documents →</Link></dd></div>}
+            <div className="reports-total"><dt>Total business expenses</dt><dd>{money(data.businessExpensesCents)}</dd></div>
+          </dl>
+        </section>
+        <aside className="reports-context" aria-label="Income and other activity">
+          {business&&<section><p className="reports-eyebrow">Business income</p><h2>Money coming in</h2><p className="reports-context-value">{money(data.businessIncomeCents)}</p><p className="reports-note">Business income for this period. Transfers and money you added aren’t income.</p></section>}
+          {(data.ownerPersonalUseCents??0)!==0&&<section><h2>Money used personally</h2><p className="reports-context-value">{money(data.ownerPersonalUseCents??0)}</p><p className="reports-note">Separate from your business income, expenses and profit.</p></section>}
+          {data.businessMilesMilli>0&&<section><h2>Business driving</h2><p className="reports-context-value">{(data.businessMilesMilli/1000).toLocaleString('en-US',{maximumFractionDigits:3})} <small>miles</small></p><p className="reports-note">Your recorded business miles. Any deduction is tracked separately.</p><Link className="reports-link" href="/mileage">View mileage →</Link></section>}
+          {data.estimatedDeductionsCents!=null&&<section><h2>Estimated deductions</h2><p className="reports-context-value">{money(data.estimatedDeductionsCents)}</p><p className="reports-note">Tax-time amounts can differ from your working expenses.</p></section>}
+        </aside>
+      </div>
+      {data.contractorSummaries.some(row=>row.totalPaidCents>0)&&<section className="reports-section"><div className="reports-section-heading"><h2>People you hired</h2><Link className="reports-link" href="/contractors">View details →</Link></div><dl className="reports-rows">{data.contractorSummaries.filter(row=>row.totalPaidCents>0).map(row=><div key={row.id}><dt>{row.displayName}</dt><dd>{money(row.totalPaidCents)}</dd></div>)}</dl></section>}
+      {(data.completeness.unresolvedRecordCount>0||data.completeness.unresolvedTaxTreatmentCount>0)&&<section className="reports-review"><div><h2>Still being reviewed</h2>{data.completeness.unresolvedRecordCount>0&&<p>{data.completeness.unresolvedRecordCount} {data.completeness.unresolvedRecordCount===1?'transaction needs':'transactions need'} more detail.</p>}{data.completeness.unresolvedTaxTreatmentCount>0&&<p>Some tax-time details are still being checked. Your working amounts are shown above.</p>}</div><Link className="reports-link" href="/check-in">Work with Betti →</Link></section>}
+    </>}
+    </div>
+    <section id="tax-time" className="reports-tax-time"><div className="reports-section-heading"><div><p className="reports-eyebrow">For you or your tax preparer</p><h2>Tax-time & exports</h2><p className="reports-note">Use your records with a tax preparer or while preparing your own return.</p></div></div>
+      <div className="reports-export-actions"><Link className="btn btn-primary" href={`/reports/tax-time?year=${period.year}`}>View {period.year} tax-time summary</Link><a className="btn btn-secondary" href={`/api/export/csv?year=${period.year}`}>Download {period.year} transactions · CSV</a></div>
+      {annual&&<details className="reports-annual"><summary>Previous-year readiness</summary>{annual}</details>}
     </section>
-    <section><h2 className="text-lg font-semibold">Money taken or used personally</h2><p className="mt-2 tabular-nums">{usd.format((data.ownerPersonalUseCents??0)/100)}</p><p className="mt-1 text-sm text-slate-600">For this reporting period. This stays outside business income, expenses and profit.</p></section>
-    <section aria-labelledby="category-heading"><h2 id="category-heading" className="text-xl font-semibold text-slate-950">Where the money went</h2>
-      <p className="mt-1 text-sm text-slate-600">These working expenses include purchases still being categorized. Tax deductions may differ.</p>
-      <div className="mt-4 border-t border-slate-200">{data.categoryTotals.map((row) => <div key={row.categoryKey} className="grid grid-cols-[1fr_auto] gap-4 border-b border-slate-200 py-3 text-sm">
-        <span>{row.categoryLabel}</span><span className="tabular-nums">{usd.format(row.amountCents / 100)}</span></div>)}
-        {data.uncategorizedBusinessExpensesCents !== 0 && <div className="grid grid-cols-[1fr_auto] gap-4 border-b border-slate-200 py-3 text-sm"><span>Still being categorized</span><span className="tabular-nums">{usd.format(data.uncategorizedBusinessExpensesCents / 100)}</span></div>}
-        <div className="flex justify-between gap-4 border-b border-slate-200 py-3 text-sm font-semibold"><span>Total business expenses</span><span className="tabular-nums">{usd.format(data.businessExpensesCents / 100)}</span></div>
-        {data.categoryTotals.length === 0 && data.uncategorizedBusinessExpensesCents === 0 && <p className="py-5 text-sm text-slate-600">No supported category totals are available yet.</p>}</div>
-    </section>
-    {data.businessMilesMilli>0&&<section aria-labelledby="mileage-heading"><h2 id="mileage-heading" className="text-xl font-semibold text-slate-950">Business driving</h2>
-      <p className="mt-2 text-2xl font-semibold tabular-nums">{(data.businessMilesMilli / 1000).toLocaleString('en-US', { maximumFractionDigits: 3 })} miles</p>
-      {data.mileageTaxTreatmentStatus === 'facts_only' && <p className="mt-2 text-sm text-slate-600">Your mileage records are saved. Betti will not guess when more vehicle details are needed.</p>}
-    </section>}
-    {data.contractorSummaries.some(row=>row.totalPaidCents>0)&&<section aria-labelledby="contractor-heading"><div className="flex items-center justify-between gap-4"><h2 id="contractor-heading" className="text-lg font-semibold text-slate-950">People you hired</h2><a href="/contractors" className="text-sm font-semibold text-[#243186]">Manage details</a></div>
-      <div className="mt-4 border-t border-slate-200">{data.contractorSummaries.filter(row=>row.totalPaidCents>0).map(row=><div key={row.id} className="grid gap-1 border-b border-slate-200 py-4 sm:grid-cols-[1fr_auto] sm:gap-5"><div><p className="font-medium">{row.displayName}</p><p className="text-sm text-slate-600">Details: {row.w9Status.replaceAll('_',' ')}</p></div><p className="font-medium tabular-nums">{usd.format(row.totalPaidCents/100)}</p></div>)}</div>
-    </section>}
-    {(data.completeness.unresolvedTaxTreatmentCount>0||data.completeness.unresolvedRecordCount>0)&&<section className="border-t border-slate-200 pt-7"><h2 className="text-xl font-semibold text-slate-950">What still needs attention</h2>{data.completeness.unresolvedRecordCount > 0 && <p className="mt-2 text-sm text-slate-600">{data.completeness.unresolvedRecordCount} transactions still need bookkeeping decisions.</p>}
-      {data.completeness.unresolvedTaxTreatmentCount > 0 && <p className="mt-2 text-sm text-slate-600">{data.completeness.unresolvedTaxTreatmentCount} expense allocations still need tax or documentation review. Established business amounts remain in working expenses.</p>}</section>}
-  </div></main>
+  </div>
 }

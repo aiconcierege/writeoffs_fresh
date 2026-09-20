@@ -15,7 +15,7 @@ describe('Home uses the shared work projection', () => {
   it('only actual leased processing gets active processing language', () => {
     expect(homeCommand(homeWorkFixture('processing'), null).heading).toBe('I’m updating your books.')
     expect(homeCommand(homeWorkFixture('waiting'), null).heading).toBe('I have what I need for the next step.')
-    expect(homeCommand(homeWorkFixture('held'), null).heading).toBe('Your records are safe.')
+    expect(homeCommand(homeWorkFixture('held'), null).heading).toBe('I still have some records to review.')
   })
   it('shows concurrent streams without adding system work to the customer count', () => {
     const work = homeWorkFixture('concurrent'), p = homeCommand(work, null)
@@ -27,7 +27,7 @@ describe('Home uses the shared work projection', () => {
   it('does not label incomplete coverage as current or make missing receipts dominate', () => {
     const work = homeWorkFixture('organized'), p = homeCommand(work, null)
     expect(work.progress.catchUp.documentationLimitations).toBe(1)
-    expect(p.heading).toBe('You’re done for now.')
+    expect(p.heading).toBe('You’re all set for now.')
     expect(JSON.stringify(p)).not.toMatch(/missing receipts|books are current/)
   })
   it('routes recoverable problems to the projection document destination', () => {

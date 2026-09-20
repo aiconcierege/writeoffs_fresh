@@ -19,7 +19,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   const returnTo=safeReturnTo(origin,'/home')
   const [workMessage,setWorkMessage]=useState(initialWorkMessage)
   const [actionCount,setActionCount]=useState(initialActionCount)
-  const [success,setSuccess]=useState('Your answer is saved.')
+  const [success,setSuccess]=useState('Got it.')
   const [questions, setQuestions] = useState(initialQuestions)
   const [deferredCount,setDeferredCount]=useState(0)
   const [answered, setAnswered] = useState(0)
@@ -93,7 +93,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
       // A committed answer stays committed even if the next queue read fails.
       setQueueNeedsReload(true)
       setQuestions(previous => previous.filter(candidate => questionVersionKey(candidate) !== questionVersionKey(question)))
-      if (command.action !== 'defer') { setAnswered((value) => value + 1); setSuccess(command.activity==='paid_card' ? 'Got it. I marked this as a credit card payment. It won’t be counted as a business expense.' : 'Got it. Your answer is saved with this transaction.') }
+      if (command.action !== 'defer') { setAnswered((value) => value + 1); setSuccess(command.activity==='paid_card' ? 'Got it. I marked this as a credit card payment. It won’t be counted as a business expense.' : 'Got it.') }
       setPurpose('')
       setOtherActivity(false)
       setMealRelationship('')
@@ -170,7 +170,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   if (!question && queueNeedsReload) return <div role="alert" className="app-page"><p>{error || 'Loading the next question…'}</p><button type="button" disabled={submitting} onClick={()=>void retryQueue()} className="btn btn-secondary">Reload current question</button></div>
 
   if (!question) {
-    if(embedded)return <div className="weekly-question-complete" role="status"><strong>{unresolvedKept>0?'We can keep going.':'That’s everything I needed.'}</strong><p>{unresolvedKept>0?`I kept ${unresolvedKept} ${unresolvedKept===1?'item':'items'} on your list for more information.`:'I’ve saved your answers with this week’s records.'}</p></div>
+    if(embedded)return <div className="weekly-question-complete" role="status"><strong>{unresolvedKept>0?'We can keep going.':'That’s everything I needed.'}</strong><p>{unresolvedKept>0?`I kept ${unresolvedKept} ${unresolvedKept===1?'item':'items'} on your list for more information.`:'I’ll keep working from here.'}</p></div>
     return (
       <main data-current-action-count={actionCount} className="app-page -mx-4 -mb-10 sm:-mx-6 lg:-mx-8"><section className="question-caught-up mx-auto flex min-h-[64vh] max-w-2xl flex-col items-center justify-center px-6 py-10 text-center sm:py-16">
           <BettiIllustration state="caught-up" className="question-betti-caught" priority sizes="(max-width: 639px) 13rem, 18rem" />
@@ -214,7 +214,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
         </div>
         {guided && question.evidence && <a className="betti-evidence-link" href={question.evidence.receiptUrl} target="_blank" rel="noreferrer">View receipt ↗</a>}
         {shownGuidance && !showAmount && <p className="mt-2 text-muted">{shownGuidance}</p>}
-        {showAmount && <p className="mt-2 text-muted">Enter the business dollars. I’ll handle the split.</p>}
+        {showAmount && <p className="mt-2 text-muted">Tell me how much was for business.</p>}
 
         <p role="status" className="betti-answer-status">{submitting?'Got it. Saving your answer…':'\u00a0'}</p>
         <div className="question-answer-options mt-4 grid gap-2" data-answer-layout={guided&&question.confirmation&&!showAlternatives?'confirmation':guided && (question.options || ['business_use', 'factual_choice', 'transaction_type'].includes(question.kind)) && !otherActivity ? 'choices' : 'field'}>
@@ -273,7 +273,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
                 onChange={(event)=>setMixedPercentage(event.target.value)} className="w-full p-3 outline-none" placeholder="40"/>
               <span aria-hidden="true">%</span>
             </div>
-            <p className="text-muted">I’ll turn that into an exact dollar split.</p>
+            <p className="text-muted">I’ll work out the amount.</p>
             <Action onClick={()=>submit({action:'mixed_business_percentage',businessPercentage:mixedPercentage})}
               busy={busy||!/^(100(?:\.0{1,2})?|(?:[0-9]|[1-9][0-9])(?:\.[0-9]{1,2})?)$/.test(mixedPercentage)}>Continue</Action>
             </>}

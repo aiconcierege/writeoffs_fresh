@@ -34,13 +34,13 @@ describe('guided deferral and processing language',()=>{
   expect(result.operationalNote).toContain('couldn’t finish processing')
  })
  it('distinguishes an answer from first-entry processing and queued work',()=>{
-  expect(conversationStatus(homeWorkFixture('processing'),'answered').heading).toBe('Got it. I’m updating your books.')
+  expect(conversationStatus(homeWorkFixture('processing'),'answered').heading).toBe('I’m updating your books.')
   expect(conversationStatus(homeWorkFixture('processing'),null).heading).toBe('I’m working on your books.')
   expect(conversationStatus(homeWorkFixture('waiting'),null).heading).toBe('I have more to review.')
  })
  it('does not keep the deferral acknowledgment as the completion message after a subsequent answer',()=>{
   const work:GuidedWorkProjection=homeWorkFixture('processing');work.customer.deferredCount=1
-  expect(conversationStatus(work,'answered').heading).toBe('Got it. I’m updating your books.')
+  expect(conversationStatus(work,'answered').heading).toBe('I’m updating your books.')
  })
  it('does not label unresolved system-held records as a failed import',()=>{
   const work=homeWorkFixture('held');work.customer.deferredCount=1

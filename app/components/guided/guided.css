@@ -163,3 +163,13 @@
  .betti-guide-identity { top:1.75rem; left:6.5rem; width:12rem; }
  .betti-conversation-body { padding-top:7rem; }
 }
+
+/* The same stage, with a quieter financial work surface. */
+.betti-conversation { box-shadow:0 2px 3px #16384a03,0 16px 40px #16384a07; }
+.betti-question-controls [data-answer-layout=choices]>.btn-secondary { box-shadow:0 1px 2px #16384a07; border-color:#baccc1; background:#fffffc; transition:border-color .12s,background .12s,box-shadow .12s; }
+.betti-question-controls [data-answer-layout=choices]>.btn-secondary:hover:not(:disabled) { box-shadow:0 2px 6px #24318610; }
+.betti-understanding { border-left-width:2px; background:linear-gradient(90deg,#e9f2e8,#f3f7ef); color:#2b6049; }
+.betti-merchant-meta { letter-spacing:.005em; }
+.betti-batch-row:has(input:checked) { background:#e8eff9; }
+.betti-conversation-body input[type=checkbox],.betti-conversation-body input[type=radio] { accent-color:var(--wo-blue); width:1.2rem; height:1.2rem; flex-shrink:0; }
+@media(prefers-reduced-motion:reduce) { .betti-question-controls [data-answer-layout=choices]>.btn-secondary { transition:none; } }

@@ -1,0 +1,297 @@
+[
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "Is anything here personal?",
+    "after": "Anything here personal?"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "How were these purchases used?",
+    "after": "Which of these were for business?"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "Is anything partly personal?",
+    "after": "Anything partly personal?"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "Is that all the receipts you have?",
+    "after": "Any more receipts for these?"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "I’m treating these as business because this is your business-only account. Tell me if anything was personal.",
+    "after": "I’m treating these as business because this is your business-only account."
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "Choose the use of each purchase. For anything mixed, tell me the business dollars—I’ll handle the split.",
+    "after": "This account has business and personal activity. For anything partly personal, tell me how much was for business."
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "Select any partly personal purchases and enter the business dollars. Leave the others unselected.",
+    "after": "Select anything partly personal and tell me how much was for business."
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "Send me the ones you have and I’ll match them.",
+    "after": "Send me what you have and I’ll match them."
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "This applies only to these purchases. Missing receipts won’t remove supported expenses.",
+    "after": "If not, that’s okay. I’ll keep working with what I have."
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "I’ll send receipts later",
+    "after": "I’ll do this later"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "I have another receipt to send",
+    "after": "I have another receipt"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "That’s all the receipts I have",
+    "after": "That’s all I have"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "Save personal exceptions",
+    "after": "These were personal"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "Save these facts",
+    "after": "That’s right"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "Save business portions",
+    "after": "Use these amounts"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "Your original is safe. Open the document to see what will help me read it.",
+    "after": "Open the document to see what I need to read it."
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "Saving your account choice…",
+    "after": "Got it…"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "Waiting to review your records",
+    "after": "I’ll keep working from here"
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "I’m missing receipts for N purchases.",
+    "after": "Do you have receipts for these?"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "before": "Got it. I’ve saved what you told me.",
+    "after": "Got it."
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "before": "Your answer is saved.",
+    "after": "Got it."
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "before": "Got it. Your answer is saved with this transaction.",
+    "after": "Got it."
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "before": "I’ve saved your answers with this week’s records.",
+    "after": "I’ll keep working from here."
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "before": "Got it. I linked this return to its purchase.",
+    "after": "Got it. I matched the refund to that purchase."
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "before": "This looks like a refund. I need you to confirm the original purchase.",
+    "after": "This looks like a refund. Help me match it to the purchase."
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "before": "How much of this return was for the business portion?",
+    "after": "How much of this refund was for business?"
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "before": "Send the expense and reimbursement records so Betti can establish what this repaid. No business income or expense reversal has been assumed.",
+    "after": "Send me the expense and reimbursement records so I can see what was repaid."
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "before": "I couldn’t finish organizing it. Your document is safe—let’s take a look.",
+    "after": "I couldn’t finish reading it. Let’s see what’s missing."
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "before": "Your records are safe.",
+    "after": "I still have some records to review."
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "before": "Some work needs another look before I can finish. There’s nothing you need to answer right now.",
+    "after": "There’s nothing I need you to answer right now. I haven’t finished reviewing everything yet."
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "before": "You’re done for now.",
+    "after": "You’re all set for now."
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "before": "The things you set aside are saved for later. Your available working numbers are below.",
+    "after": "I saved the things you want to come back to. I’ll keep working with what I have."
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "before": "Your current bookkeeping scope stays unchanged.",
+    "after": "Your books still begin on the same date."
+  },
+  {
+    "file": "app/lib/home/command-center.ts",
+    "before": "I’ve kept the earlier evidence, but it isn’t part of your active books.",
+    "after": "Earlier records aren’t included in these books."
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "before": "What did the insurance cover?",
+    "after": "What did this insurance cover?"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "before": "I can see this was money coming in, but I can’t tell where it came from.",
+    "after": "I can see money came in, but I can’t tell where it came from."
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "before": "Choose what happened. I’ll handle the bookkeeping rules.",
+    "after": "Tell me what this payment was for."
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "before": "Confirm what happened. I’ll handle the bookkeeping rules.",
+    "after": "(removed)"
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "before": "I know this is your phone bill. I just need to know how much was for business.",
+    "after": "I know this is your phone bill."
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "before": "For example: office work, materials for a customer job, or products you sell. Tell me the use, not an accounting category.",
+    "after": "For example: office work, materials for a customer job, or products you sell."
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "before": "Tell WriteOffs what you bought or why you needed it.",
+    "after": "Tell me what you bought or why you needed it."
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "before": "A supporting record may help me understand this.",
+    "after": "A document may help me understand this."
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "before": "I recorded that you’re not sure. The activity remains unresolved; supporting records can help establish it.",
+    "after": "That’s okay. Send me a document when you have one, and I’ll take another look."
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "before": "Got it. I linked this return to the purchase. Both records and their history are kept.",
+    "after": "Got it. I matched the refund to that purchase."
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "before": "Got it. I saved that fact.",
+    "after": "Got it."
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "before": "I need more evidence before I can finish this. Send the payment, purchase or reimbursement record you have.",
+    "after": "Send me the payment, purchase or reimbursement record you have."
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "before": "Different tax year — needs tax-treatment review",
+    "after": "From a different year. I’ll need to check the tax details."
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "before": "Send the original purchase or return record. I’ll keep this unresolved until the relationship is supported.",
+    "after": "Send me the original purchase or refund record so I can match them."
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "before": "This return reduces the supported business and personal portions of the original purchase. It is not business revenue.",
+    "after": "I matched this refund to the original purchase. It won’t count as new income."
+  },
+  {
+    "file": "app/components/SpecialTransactionFlow.tsx",
+    "before": "Choose statement",
+    "after": "Send statement"
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "before": "Enter the business dollars. I’ll handle the split.",
+    "after": "Tell me how much was for business."
+  },
+  {
+    "file": "app/questions/QuestionFlow.tsx",
+    "before": "I’ll turn that into an exact dollar split.",
+    "after": "I’ll work out the amount."
+  },
+  {
+    "file": "app/lib/bookkeeping/customer-questions.ts",
+    "before": "Choose the factual payment method. WriteOffs will evaluate reporting implications separately.",
+    "after": "Tell me how you paid them."
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "I’m checking the latest state of your books.",
+    "after": "I’m checking your books."
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "Please refresh this group.",
+    "after": "This list has changed. Refresh to see it."
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "Send me your financial activity.",
+    "after": "Send me your statements."
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "No customer question is available for this activity.",
+    "after": "There’s nothing I need you to answer about this right now."
+  },
+  {
+    "file": "app/components/guided/GuidedWork.tsx",
+    "before": "Review without more receipts",
+    "after": "I don’t have any to send"
+  },
+  {
+    "file": "app/components/guided/conversation-status.ts",
+    "before": "Got it. I’m updating your books.",
+    "after": "I’m updating your books."
+  }
+]

@@ -6,7 +6,7 @@ export type ConversationOutcome = 'answered' | 'deferred' | 'receipts-deferred' 
 export function savedAcknowledgment(outcome:ConversationOutcome) {
  return outcome==='receipts-deferred'?'No problem. I saved those receipts for later.'
   :outcome==='deferred'?'No problem. I saved that for later.'
-  :'Got it. I’ve saved what you told me.'
+  :'Got it.'
 }
 
 /** Presentation only, used when no canonical action is ready. A saved deferral
@@ -27,7 +27,7 @@ export function conversationStatus(work:GuidedWorkProjection,outcome:Conversatio
   waiting,alternative:undefined,
  }
  if(waiting)return {
-  heading:outcome==='answered'?'Got it. I’m updating your books.':work.betti.genuinelyProcessing?'I’m working on your books.':'I have more to review.',
+  heading:outcome==='answered'?'I’m updating your books.':work.betti.genuinelyProcessing?'I’m working on your books.':'I have more to review.',
   supporting:paused?'This is taking a little longer. You don’t need to wait here.':outcome==='answered'?'I’m using what you told me to finish what I can. You don’t need to wait here.':'I’m reviewing what you’ve shared. You don’t need to wait here.',
   waiting,alternative:undefined,operationalNote:undefined,
  }

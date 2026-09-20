@@ -25,10 +25,10 @@ export function homeCommand(work: GuidedWorkProjection, startMethod: string | nu
       context: [], education: 'Send activity and receipts. I’ll do the bookkeeping and ask only when I need a fact.' }
   }
   if (work.readiness.phase === 'outside_scope') return {state:'waiting',heading:'These records are from before your books begin.',
-    supporting:`Your books start ${dateLabel(work.scope.bookkeepingStart!)}. I’ve kept the earlier evidence, but it isn’t part of your active books.`,
-    action:null,alternative:{href:'/onboarding?edit=1',label:'Review an earlier bookkeeping start'},context:['Your current bookkeeping scope stays unchanged.']}
+    supporting:`Your books start ${dateLabel(work.scope.bookkeepingStart!)}. Earlier records aren’t included in these books.`,
+    action:null,alternative:{href:'/onboarding?edit=1',label:'Review an earlier bookkeeping start'},context:['Your books still begin on the same date.']}
   if (next?.type === 'recover_ingestion') return { state: 'attention', heading: 'I need your help with a document.',
-    supporting: 'I couldn’t finish organizing it. Your document is safe—let’s take a look.',
+    supporting: 'I couldn’t finish reading it. Let’s see what’s missing.',
     action: { href: next.href, label: 'View document' }, context }
   if (next && work.customer.actionableCount > 0) {
     const href = next.href.startsWith('/check-in') ? `${next.href}${next.href.includes('?') ? '&' : '?'}returnTo=%2Fhome` : next.href
@@ -39,17 +39,19 @@ export function homeCommand(work: GuidedWorkProjection, startMethod: string | nu
   }
   if (work.betti.genuinelyProcessing > 0) return { state: 'working', heading: 'I’m updating your books.',
     supporting: 'I’m using the records and facts you’ve shared to finish what I can. You don’t need to wait here.', action: null, context: ['I’ll ask if I need anything else.'] }
-  if (work.betti.failures.length || work.betti.missingJobs.length || work.betti.systemHeld.length) return {
-    state: 'held', heading: 'Your records are safe.', supporting: 'Some work needs another look before I can finish. There’s nothing you need to answer right now.', action: null, context: [] }
+  if (work.betti.failures.length || work.betti.missingJobs.length) return {
+    state: 'held', heading: 'I couldn’t finish processing some records.', supporting: 'There’s nothing I need you to answer right now. Your available books are below.', action: null, context: [] }
+  if (work.betti.systemHeld.length) return {
+    state: 'held', heading: 'I still have some records to review.', supporting: 'There’s nothing I need you to answer right now. I haven’t finished reviewing everything yet.', action: null, context: [] }
   if (work.betti.queued || work.betti.retryScheduled) return { state: 'waiting', heading: 'I have what I need for the next step.',
     supporting: work.betti.retryScheduled ? 'I need to try part of the work again. You don’t need to wait here.' : 'I have more to review before I know what else I need. You don’t need to wait here.', action: null, context: [] }
-  if (work.customer.deferredCount) return { state: 'waiting', heading: 'You’re done for now.',
-    supporting: 'The things you set aside are saved for later. Your available working numbers are below.', action: null, context: [] }
+  if (work.customer.deferredCount) return { state: 'waiting', heading: 'You’re all set for now.',
+    supporting: 'I saved the things you want to come back to. I’ll keep working with what I have.', action: null, context: [] }
   if (work.readiness.booksCurrentThrough) return { state: 'caught-up', heading: `Your books are current through ${dateLabel(work.readiness.booksCurrentThrough)}.`,
     supporting: 'Keep sending me your records. I’ll ask when I need something.', action: null, context: [] }
   if (work.readiness.knownAccountsOrganizedThrough) return { state: 'caught-up', heading: 'Your available records are organized.',
     supporting: `Through ${dateLabel(work.readiness.knownAccountsOrganizedThrough)}, for the accounts and statement periods you’ve provided.`, action: null, context: [] }
-  return { state: 'caught-up', heading: 'You’re done for now.',
+  return { state: 'caught-up', heading: 'You’re all set for now.',
     supporting: 'There’s nothing I need you to answer right now. Your working books reflect the records available so far.', action: null, context: [] }
 }
 

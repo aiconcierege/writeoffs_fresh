@@ -13,7 +13,7 @@ export function ConversationShell({children,context='Work with Betti',progress='
   if(previous.current===contentIdentity)return
   previous.current=contentIdentity
   if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return
-  const animation=content.current?.animate([{opacity:.65},{opacity:1}],{duration:160,easing:'ease-out'})
+  const animation=content.current?.animate([{opacity:.9},{opacity:1}],{duration:160,easing:'ease-out'})
   return()=>animation?.cancel()
  },[contentIdentity])
  return <div className="betti-work wo-experience">

@@ -183,12 +183,12 @@ async function guidedJourney(f,context,page){
   else if(action.type==='mixed_use_sweep'){
    if(scenario==='mixed'){
     for(const item of action.items){const group=page.getByRole('group',{name:`Use of ${item.merchant}`,exact:true});const choice=item.merchant.includes('ADOBE')?'Personal':item.merchant.includes('GOOGLE')?'Partly personal':'Business';await group.getByRole('button',{name:choice,exact:true}).click();if(choice==='Partly personal')await page.getByLabel(`Business dollars for ${item.merchant}`,{exact:true}).fill('30.00')}
-    button=page.getByRole('button',{name:'Save these facts',exact:true})
+    button=page.getByRole('button',{name:'That’s right',exact:true})
    }else button=page.getByRole('button',{name:'Nothing is partly personal',exact:true})
   }
-  else if((action.type==='receipt_upload_sweep'||action.type==='receipt_availability')&&(scenario==='mixed'||process.argv.includes('--receipts-later'))){button=page.getByRole('button',{name:'I’ll send receipts later',exact:true});disposition='deferred'}
-  else if(action.type==='receipt_upload_sweep')button=page.getByRole('button',{name:/^(Continue with Betti|Review without more receipts)$/,exact:true})
-  else if(action.type==='receipt_availability')button=page.getByRole('button',{name:'That’s all the receipts I have',exact:true})
+  else if((action.type==='receipt_upload_sweep'||action.type==='receipt_availability')&&(scenario==='mixed'||process.argv.includes('--receipts-later'))){button=page.getByRole('button',{name:'I’ll do this later',exact:true});disposition='deferred'}
+  else if(action.type==='receipt_upload_sweep')button=page.getByRole('button',{name:/^(I don’t have any to send|Review without more receipts)$/,exact:true})
+  else if(action.type==='receipt_availability')button=page.getByRole('button',{name:'That’s all I have',exact:true})
   else if(process.argv.includes('--answers')){
    const question=action.question
    if(action.type==='special_transaction'){
@@ -257,7 +257,7 @@ try {
    await context.close()
   }
  } else {
-  let fixtures=await readFile(`${dir}/${prefix}-fixtures.json`,'utf8').then(JSON.parse).catch(()=>[])
+  let fixtures=await readFile(process.env.UX_FIXTURES??`${dir}/${prefix}-fixtures.json`,'utf8').then(JSON.parse).catch(()=>[])
   let f=process.argv.includes('--fresh')?null:process.env.UX_FIXTURE_INDEX===undefined?fixtures.at(-1):fixtures[Number(process.env.UX_FIXTURE_INDEX)]
   if(!f){
    const nonce=randomUUID(),email=`ux1-${nonce}@staging.writeoffs.invalid`,password=`Ux1-${nonce}!`
@@ -326,6 +326,25 @@ try {
   if(process.argv.includes('--gallery-only')){
    const label=process.env.UX_GALLERY??'read-only';assert(/^[a-z0-9-]+$/.test(label))
    await page.goto(origin+'/home');await capture(page,`home-${label}`)
+   if(process.argv.includes('--flagship-gallery')){
+    const homeAmounts=await page.locator('.home-financial-node dd').allTextContents()
+    const recent=await page.locator('.home-recent').count()?await page.locator('.home-recent').innerText():''
+    await page.goto(origin+'/reports')
+    await page.locator('.reports-summary').waitFor({timeout:60000})
+    assert.deepEqual(await page.locator('.reports-summary dd').allTextContents(),homeAmounts,'Home and Reports totals must agree for YTD authorized books')
+    await capture(page,`reports-${label}`)
+    for(const mode of ['Monthly','Quarterly','Annual','Year to date']){
+     const response=page.waitForResponse(r=>r.url().includes('/api/reports/summary?')&&r.request().method()==='GET')
+     await page.getByRole('button',{name:mode,exact:true}).click()
+     const reportResponse=await response;assert.equal(reportResponse.status(),200)
+     const report=await reportResponse.json()
+     assert.equal(report.categoryTotals.reduce((sum,row)=>sum+row.amountCents,0)+report.uncategorizedBusinessExpensesCents,report.businessExpensesCents)
+     assert.equal(report.businessIncomeCents-report.businessExpensesCents,report.businessProfitCents)
+     await page.locator('.reports-summary').waitFor()
+     if(mode==='Annual')await capture(page,`reports-annual-${label}`)
+    }
+    await writeFile(`${dir}/${prefix}/flagship-report-checks.json`,JSON.stringify({homeAmounts,recent,periods:['Monthly','Quarterly','Annual','Year to date'],reconciled:true},null,2))
+   }
    const record=process.env.UX_GALLERY_RECORD;assert(!record||/^[0-9a-f-]{36}$/i.test(record))
    await page.goto(origin+'/check-in'+(record?'?record='+encodeURIComponent(record):''));await capture(page,`work-${label}`)
    await page.emulateMedia({reducedMotion:'reduce'})

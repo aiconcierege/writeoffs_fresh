@@ -193,7 +193,7 @@ describe('canonical evidence-specific conversation',()=>{
  })
  it('asks insurance coverage, not purchase nature or already-established business use',()=>{
   const q=withDecision(item('BUSINESS_PURPOSE_NEEDED',{factType:'ordinary_expense_purpose',knownPurchase:'insurance'}),{treatment:'business',allocations:[{kind:'business',amountCents:-11875}]})
-  expect(projectCustomerQuestion(q,transaction)).toMatchObject({kind:'business_purpose',prompt:'What did the insurance cover?',options:expect.arrayContaining([{id:'vehicle insurance',label:'A vehicle'}])})
+  expect(projectCustomerQuestion(q,transaction)).toMatchObject({kind:'business_purpose',prompt:'What did this insurance cover?',options:expect.arrayContaining([{id:'vehicle insurance',label:'A vehicle'}])})
   expect(projectCustomerQuestion({...q,decision:{...q.decision,treatment:'unresolved'}},transaction)).toBeNull()
  })
 })
