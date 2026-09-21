@@ -1,0 +1,8 @@
+{
+  "publicStaging": "https://writeoffs-fresh-staging.vercel.app",
+  "http": 200,
+  "requestId": "8f4dd9da-76ff-4c7f-8410-54bb20eae17e",
+  "status": "scheduled",
+  "graceDays": 6.999983715277778,
+  "newSyncDenied": true
+}

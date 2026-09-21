@@ -1,0 +1,48 @@
+{
+  "target": "dedicated staging only",
+  "http": 200,
+  "pitrEnabled": false,
+  "backupCount": 8,
+  "backups": [
+    {
+      "insertedAt": "2026-09-21T04:59:26.477Z",
+      "status": "COMPLETED",
+      "isPhysical": true
+    },
+    {
+      "insertedAt": "2026-09-20T05:00:13.463Z",
+      "status": "COMPLETED",
+      "isPhysical": true
+    },
+    {
+      "insertedAt": "2026-09-19T04:54:30.138Z",
+      "status": "COMPLETED",
+      "isPhysical": true
+    },
+    {
+      "insertedAt": "2026-09-18T04:53:09.694Z",
+      "status": "COMPLETED",
+      "isPhysical": true
+    },
+    {
+      "insertedAt": "2026-09-17T05:03:50.084Z",
+      "status": "COMPLETED",
+      "isPhysical": true
+    },
+    {
+      "insertedAt": "2026-09-16T05:00:41.759Z",
+      "status": "COMPLETED",
+      "isPhysical": true
+    },
+    {
+      "insertedAt": "2026-09-15T05:03:05.905Z",
+      "status": "COMPLETED",
+      "isPhysical": true
+    },
+    {
+      "insertedAt": "2026-09-14T04:53:26.141Z",
+      "status": "COMPLETED",
+      "isPhysical": true
+    }
+  ]
+}

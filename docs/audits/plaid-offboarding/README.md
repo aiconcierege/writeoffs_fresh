@@ -84,7 +84,7 @@ Fresh isolated synthetic business: `58a2fc15-ac3a-4ef9-a0c9-bbab693f9804`; Item 
 ## Backups: exact remaining work
 
 - Encryption is implemented (AES-256-GCM bundle; authenticated restore; private temporary files). No surgical rewrite of old encrypted backups is necessary or proposed.
-- The runbook records managed daily backups with seven-day retention, and an independent S3 Object Lock floor of 35 days. **Object Lock is a minimum hold, not automatic expiration.** The runbook explicitly says lifecycle expiration configuration remains a later AWS action.
+- [Live dedicated-staging provider metadata](evidence/managed-backups.json) returned eight completed daily physical backups dated September 14–21, with PITR disabled. This verifies creation, not a Production retention setting. The runbook records managed daily backups with seven-day retention, and an independent S3 Object Lock floor of 35 days. **Object Lock is a minimum hold, not automatic expiration.** The runbook explicitly says lifecycle expiration configuration remains a later AWS action.
 - Recommended independent retention is daily 35 days, weekly 8–12 weeks, monthly three months. Current source does not verify/enforce the actual bucket expiration rules, including noncurrent versions. This certification therefore cannot claim those objects expire.
 - Independent backup workflow is manual-only. Production scheduling is documented as unconfigured. Ledger export exists but is not automatically called after each completed deletion.
 - `restore-encrypted-backup.mjs` verifies/restores data. Reconciliation is a separate command. Reconciliation schedules canonical deletion; operators must drain it and verify private objects absent before activation. There is no automated activation gate proving these steps completed against a sufficiently current ledger.
@@ -103,6 +103,12 @@ Settings correctly separates “Cancel membership” (paid-through service, 12 m
 - Lint: 0 errors, 16 existing warnings; no new warnings.
 - Production dependency vulnerabilities: 0. Full audit: 2 existing moderate development advisories, no high/critical.
 - Focused provider-removal and SQL-regression tests pass; real staging SQL and public security evidence linked above.
-- Final secret scan, diff check, staging commit and deployment are recorded in release evidence after completion.
+- Secret scan: no leaks; `git diff --check`: PASS. Application commit `8f60423` passed Vercel’s optimized Turbopack build.
+- Public dedicated staging deployment: `dpl_7LKtAZFJGntKqGsUp2yKyDFDr1JM`, https://writeoffs-fresh-staging-39h4n6tvw-ricks-projects-3ba59ab5.vercel.app . Public alias promoted successfully.
+- The known local Turbopack sandbox issue prevents repeating the default build in the pre-push hook. Full equivalent checks, local optimized Webpack, and the exact application commit’s Vercel Turbopack build passed; the staging push uses a one-time hook bypass, without modifying the hook.
 
 Files: Plaid service/shared removal helper, existing deletion worker, migration `20261005000600_plaid_offboarding_retention.sql`, targeted tests, isolated certification script, this audit/evidence. No visual redesign or parallel lifecycle system.
+
+## Final public release recertification
+
+Fresh release-only business `78bff923-28bf-45ee-a3ad-9eaf065b732f` and Item `2e8971ea-7fc7-4940-91f0-cf736cb26d1d` repeated the checks after promotion: [real Sandbox disconnect](evidence/final-disconnect.json), [seven-day request](evidence/final-deletion-request.json), [grace cancellation](evidence/final-deletion-cancel.json), [MFA and cross-tenant denial](evidence/final-security.json), and [scoped time-controlled permanent deletion](evidence/final-permanent-deletion.json). All passed. The synthetic release customer was permanently deleted. This does not change the **NO** decision on unverified operational backup controls.

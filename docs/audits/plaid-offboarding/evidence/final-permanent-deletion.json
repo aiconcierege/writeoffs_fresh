@@ -1,0 +1,11 @@
+{
+  "internalDeterministic": true,
+  "timeControlled": true,
+  "workerStepsInvokedIndividually": true,
+  "requestId": "8f4dd9da-76ff-4c7f-8410-54bb20eae17e",
+  "privateObjectRemoved": true,
+  "applicationDataRemoved": true,
+  "authAndMfaRemoved": true,
+  "tombstonePresent": true,
+  "completed": true
+}
