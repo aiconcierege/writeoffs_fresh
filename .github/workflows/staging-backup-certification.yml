@@ -3,6 +3,12 @@ name: Staging backup certification
 on:
   workflow_dispatch:
     inputs:
+      operation:
+        description: Read-only inspection or existing backup certification
+        required: true
+        default: backup
+        type: choice
+        options: [backup, inspect-retention]
       backup_class:
         description: Backup retention class
         required: true
@@ -19,6 +25,7 @@ concurrency:
 
 jobs:
   backup:
+    if: ${{ inputs.operation != 'inspect-retention' }}
     environment: staging-backup
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -50,3 +57,30 @@ jobs:
           WRITEOFFS_BACKUP_S3_PREFIX: ${{ vars.WRITEOFFS_BACKUP_S3_PREFIX }}
           WRITEOFFS_BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.WRITEOFFS_BACKUP_S3_ACCESS_KEY_ID }}
           WRITEOFFS_BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.WRITEOFFS_BACKUP_S3_SECRET_ACCESS_KEY }}
+
+  inspect-retention:
+    if: ${{ inputs.operation == 'inspect-retention' }}
+    environment: staging-backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Inspect existing staging backup controls without mutations
+        run: node scripts/backup/inspect-s3-retention.mjs > retention-inspection.json
+        env:
+          WRITEOFFS_BACKUP_S3_REGION: us-east-2
+          WRITEOFFS_BACKUP_S3_BUCKET: writeoffs-backups-264524064115-us-east-2-an
+          WRITEOFFS_BACKUP_EXPECTED_S3_BUCKET: writeoffs-backups-264524064115-us-east-2-an
+          WRITEOFFS_BACKUP_S3_PREFIX: ${{ vars.WRITEOFFS_BACKUP_S3_PREFIX }}
+          WRITEOFFS_BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.WRITEOFFS_BACKUP_S3_ACCESS_KEY_ID }}
+          WRITEOFFS_BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.WRITEOFFS_BACKUP_S3_SECRET_ACCESS_KEY }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: staging-backup-retention-inspection
+          path: retention-inspection.json
+          retention-days: 14
