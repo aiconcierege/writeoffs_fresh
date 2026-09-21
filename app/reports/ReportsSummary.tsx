@@ -1,11 +1,14 @@
 'use client'
 
+import {SourceCoverageNotice} from '../components/SourceCoverageNotice'
+import type {SourceCoverage} from '../lib/bookkeeping/source-coverage'
 import { useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { reportPeriod, type ReportPeriod } from './report-period'
 import './reports.css'
 
 type SummaryData = {
+  sourceCoverage?:SourceCoverage|null
   ownerPersonalUseCents?: number
   businessIncomeCents: number
   businessExpensesCents: number
@@ -60,6 +63,7 @@ export function ReportsSummary({scope,readOnly,annual}:{scope:'expenses'|'busine
     {pending ? <div className="reports-loading" role="status"><span className="sr-only">Loading report</span><div className="skeleton"/><div className="skeleton"/><div className="skeleton"/></div>
     : failed || !data ? <div role="alert" className="reports-error"><h2>Your report couldn’t load.</h2><p>Please try again. Your saved records haven’t changed.</p><button className="btn btn-primary" onClick={()=>setRetry(value=>value+1)}>Try again</button></div>
     : <>
+      <SourceCoverageNotice coverage={data.sourceCoverage??null}/>
       <section aria-label="Financial summary" className="reports-summary"><dl>
         {business&&<div><dt>Business income</dt><dd>{money(data.businessIncomeCents)}</dd></div>}
         <div><dt>Business expenses</dt><dd>{money(data.businessExpensesCents)}</dd></div>

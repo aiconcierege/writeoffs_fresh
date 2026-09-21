@@ -1,0 +1,103 @@
+{
+  "kind": "REAL PLAID SANDBOX",
+  "itemRecordId": "97b3fe3b-5c16-4cf5-9e37-9bb72e6694b8",
+  "providerDelta": {
+    "added": 9,
+    "modified": 0,
+    "removed": [
+      {
+        "account_id": "ejVyXGKQapIpWVdQ85MASKrWV4PvrzFr6PLVR",
+        "transaction_id": "dPVNXkqadLSPrVxdgo5btgGzMxNkWwio9LzvA"
+      },
+      {
+        "account_id": "ejVyXGKQapIpWVdQ85MASKrWV4PvrzFr6PLVR",
+        "transaction_id": "aaVPX8wydZTDLVzZwAEoTNdR5yQ37JupnAJ8l"
+      },
+      {
+        "account_id": "Q1o7Md8gVqCmWXAZaqEJIP3J651B3ZuwyBpaN",
+        "transaction_id": "KjQydKM9aoIwMVyeRjN7Hl6N8eVzp5CgJ4kLL"
+      }
+    ]
+  },
+  "storedRemovals": [
+    {
+      "id": "93d5564d-7120-43c2-9445-254bf7ea3f23",
+      "plaid_transaction_id": "aaVPX8wydZTDLVzZwAEoTNdR5yQ37JupnAJ8l",
+      "supersedes_version_id": "1cf957d6-b472-458f-8bd1-35e27de62769",
+      "canonical_financial_transaction_id": null,
+      "event_type": "removed"
+    },
+    {
+      "id": "6bed965c-325e-43b8-b454-ceacaf924642",
+      "plaid_transaction_id": "dPVNXkqadLSPrVxdgo5btgGzMxNkWwio9LzvA",
+      "supersedes_version_id": "2452943c-3a02-4ed3-9034-0cc6cd7866f9",
+      "canonical_financial_transaction_id": null,
+      "event_type": "removed"
+    },
+    {
+      "id": "e5e558e0-e119-47f3-a580-0cf7d136da0c",
+      "plaid_transaction_id": "KjQydKM9aoIwMVyeRjN7Hl6N8eVzp5CgJ4kLL",
+      "supersedes_version_id": "d44b30ad-68b0-4c4d-8b08-06aca55b929d",
+      "canonical_financial_transaction_id": null,
+      "event_type": "removed"
+    }
+  ],
+  "priorVersions": [
+    {
+      "id": "1cf957d6-b472-458f-8bd1-35e27de62769",
+      "pending": true,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "2452943c-3a02-4ed3-9034-0cc6cd7866f9",
+      "pending": true,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "d44b30ad-68b0-4c4d-8b08-06aca55b929d",
+      "pending": true,
+      "canonical_financial_transaction_id": null
+    }
+  ],
+  "webhooks": [
+    {
+      "id": "4c9e7b0b-cbf7-40c8-9f30-b43813490212",
+      "webhook_code": "DEFAULT_UPDATE",
+      "received_at": "2026-09-21T18:17:15.723358+00:00",
+      "processed_at": "2026-09-21T18:17:15.723358+00:00"
+    },
+    {
+      "id": "0adf404b-eb59-4b7c-b638-249209c804ce",
+      "webhook_code": "TRANSACTIONS_REMOVED",
+      "received_at": "2026-09-21T18:17:15.846761+00:00",
+      "processed_at": "2026-09-21T18:17:15.846761+00:00"
+    },
+    {
+      "id": "961ed7e8-8906-4f92-9192-301841e6cbb4",
+      "webhook_code": "SYNC_UPDATES_AVAILABLE",
+      "received_at": "2026-09-21T18:17:16.884643+00:00",
+      "processed_at": "2026-09-21T18:17:18.052+00:00"
+    }
+  ],
+  "cursorMatchesProvider": true,
+  "lastSuccessfulSync": "2026-09-21T18:17:17.743321+00:00",
+  "replayRequestId": "97f6ed3728759cd",
+  "replayVersionCount": 325,
+  "replayCreatesNoVersions": true,
+  "homeEqualsReports": true,
+  "income": 0,
+  "expenses": 0,
+  "index": {
+    "published": 1,
+    "conflicted": 0,
+    "failed": 0
+  },
+  "publicStatuses": {
+    "/home": 200,
+    "/transactions": 200,
+    "/reports": 200,
+    "/api/reports/summary": 200,
+    "/api/bookkeeping/work": 200
+  },
+  "verifiedAt": "2026-09-21T18:18:39.554Z"
+}

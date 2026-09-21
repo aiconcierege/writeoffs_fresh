@@ -58,3 +58,16 @@ describe('Plaid provider normalization', () => {
     })
   })
 })
+
+import {normalizePlaidSyncTransaction} from '../../app/lib/plaid/normalize'
+it('quarantines fractional cents without rounding and retains exact provider evidence', () => {
+ const source={...transaction,amount:48.2542}
+ const event=normalizePlaidSyncTransaction(source,'modified')
+ expect(event.amount_cents).toBeNull()
+ expect(event.raw_source).toEqual(source)
+ expect(event.rejection_reason).toBe('INVALID_SOURCE_FACTS')
+ expect(normalizePlaidSyncTransaction({...source,amount:48.25},'modified').amount_cents).toBe(-4825)
+})
+it('never quarantines an unidentified event and loses its lifecycle identity',()=>{
+ expect(()=>normalizePlaidSyncTransaction({amount:1.0001},'added')).toThrow('PLAID_SOURCE_IDENTITY_MISSING')
+})

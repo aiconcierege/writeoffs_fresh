@@ -87,3 +87,21 @@ export function normalizePlaidRemoval(value: unknown): PlaidTransactionEvent {
     payment_channel: null, provider_evidence: {},
   }
 }
+
+/** Invalid money never becomes an invented canonical amount. Identifiable source
+ * revisions can be durably quarantined in the same transaction as the cursor. */
+export function normalizePlaidSyncTransaction(value: unknown, eventType: 'added' | 'modified'): PlaidTransactionEvent {
+  try { return normalizePlaidTransaction(value, eventType) } catch {
+    const row = object(value), id = text(row, 'transaction_id'), account = text(row, 'account_id')
+    if (!id || !account) throw new Error('PLAID_SOURCE_IDENTITY_MISSING')
+    const date = text(row, 'date')
+    const validDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(Date.parse(date))
+      && new Date(date).toISOString().slice(0, 10) === date ? date : null
+    return { event_type: eventType, transaction_id: id, account_id: account,
+      pending_transaction_id: text(row, 'pending_transaction_id'), source_hash: stableHash({ quarantined: row }),
+      transaction_date: validDate, authorized_date: null, amount_cents: null, currency: null,
+      merchant_name: text(row, 'merchant_name'), original_description: text(row, 'original_description') ?? text(row, 'name'),
+      pending: row.pending === true, payment_channel: text(row, 'payment_channel'), provider_evidence: {},
+      rejection_reason: 'INVALID_SOURCE_FACTS', raw_source: row }
+  }
+}

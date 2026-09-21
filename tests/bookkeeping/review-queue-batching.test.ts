@@ -17,7 +17,7 @@ function fixture(count:number,missingSource=false){
   const query={select:()=>query,eq:(key:string,value:unknown)=>{read.filters.push([key,value]);rows=rows.filter(r=>r[key]===value);return query},in:(key:string,values:unknown[])=>{rows=rows.filter(r=>values.includes(r[key]));return query},is:(key:string,value:unknown)=>{rows=rows.filter(r=>r[key]===value);return query},then:(resolve:(value:unknown)=>unknown)=>Promise.resolve({data:rows,error:null}).then(resolve)}
   return query
  }} as unknown as SupabaseClient
- return{db,reads}
+ return{db,reads,tables}
 }
 it('loads 24 questions with six bounded tenant-scoped reads, preserving financial authority and all allocations',async()=>{
  const{db,reads}=fixture(24);const rows=await new SupabaseBookkeepingRepository(db).listCurrentWeeklyReviewItems('a','2026-09-18')
@@ -39,4 +39,17 @@ it('isolates another business even when an upstream adapter returns an unowned e
 it('bounds larger queues into batches rather than issuing one query per item',async()=>{
  const{db,reads}=fixture(205);expect(await new SupabaseBookkeepingRepository(db).listCurrentWeeklyReviewItems('a','2026-09-18')).toHaveLength(205)
  expect(reads).toHaveLength(18)
+})
+
+it.each(['removed','modified'])('retains history but excludes questions for %s Plaid sources',async(eventType)=>{
+ const{db,tables}=fixture(2)
+ tables.plaid_transaction_versions=[
+ {id:'v1',business_id:'a',plaid_transaction_id:'tx',canonical_financial_transaction_id:'financial-0',event_type:'added',supersedes_version_id:null},
+ {id:'v2',business_id:'a',plaid_transaction_id:'tx',canonical_financial_transaction_id:eventType==='modified'?'replacement':null,event_type:eventType,supersedes_version_id:'v1'}]
+ const repo=new SupabaseBookkeepingRepository(db)
+ const rows=await repo.listCurrentWeeklyReviewItems('a','2026-09-18')
+ expect(rows.map(r=>r.event.reviewIssueId)).toEqual(['issue-1'])
+ expect(await repo.listCurrentWeeklyReviewItems('a','2026-09-18','issue-0')).toEqual([])
+ expect(tables.bookkeeping_records).toHaveLength(2)
+ expect(tables.plaid_transaction_versions).toHaveLength(2)
 })

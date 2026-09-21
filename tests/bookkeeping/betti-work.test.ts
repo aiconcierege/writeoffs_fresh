@@ -176,6 +176,21 @@ describe('read-only Betti work projection', () => {
     const qs = c.records.map(question); qs[0].openedAt = '2026-01-01T00:00:00Z'
     expect(project(c, qs).nextAction?.workstream).toBe('catch_up')
   })
+  it('keeps authorized older books separate from limited connected-bank evidence', () => {
+    const c = context()
+    c.business.start = c.business.authorizedScope.selectedStart = c.business.authorizedScope.authorizedStart = '2022-01-01'
+    c.business.authorizedScope.catchUp = { from: '2022-01-01', through: '2026-08-31' }
+    c.accounts = [{ business_id: 'a', id: 'account', use_version: 'use', designation: 'business_only' }]
+    c.records = [organized(record('bank-history', '2026-09-15'))]
+    const p = project(c)
+    expect(p.scope.bookkeepingStart).toBe('2022-01-01')
+    expect(p.scope.coverageGaps).toEqual([{ accountId: 'account', from: '2022-01-01', through: '2026-09-17', reason: 'source_coverage_unconfirmed' }])
+    expect(p.readiness.booksCurrentThrough).toBeNull()
+    expect(p.readiness.knownAccountsOrganizedThrough).toBeNull()
+    expect(activityWorkstream('2022-06-01', c.business)).toBe('catch_up')
+    c.coverage = [{ business_id: 'a', id: 'old-statement', account_id: 'account', document_id: 'd', period_start: '2022-01-01', period_end: '2022-12-31', validation_status: 'validated', ambiguous_row_count: 0 }]
+    expect(project(c).scope.coverageGaps[0].from).toBe('2023-01-01')
+  })
   it('coverage exposes gaps, including between uploaded periods', () => {
     expect(sourceCoverageGaps('2026-01-01', '2026-09-17', [
       { from: '2026-05-01', through: '2026-05-31', validated: true },

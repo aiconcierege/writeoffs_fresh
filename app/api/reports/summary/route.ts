@@ -1,3 +1,4 @@
+import {loadSourceCoverage} from '../../../lib/bookkeeping/source-coverage-loader'
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../utils/supabase/server'
 import { getAuthenticatedCanonicalReport } from '../../../lib/bookkeeping/reporting-service'
@@ -19,7 +20,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'invalid_period' }, { status: 400 })
   }
   try {
-    return NextResponse.json(await getAuthenticatedCanonicalReport({ supabase, periodStart, periodEnd }))
+    const [report,coverage]=await Promise.all([getAuthenticatedCanonicalReport({supabase,periodStart,periodEnd}),loadSourceCoverage(supabase,periodStart,periodEnd).catch(()=>null)])
+    return NextResponse.json({...report,sourceCoverage:coverage},{headers:{'Cache-Control':'private, no-store'}})
   } catch (error) {
     if (error instanceof Error && /authenticated user/i.test(error.message)) {
       return NextResponse.json({ error: 'unauthorized' }, { status: 401 })

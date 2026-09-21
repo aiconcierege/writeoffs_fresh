@@ -1,0 +1,2291 @@
+{
+  "webhook": "https://writeoffs-fresh-staging.vercel.app/api/plaid/webhook",
+  "state": {
+    "id": "97b3fe3b-5c16-4cf5-9e37-9bb72e6694b8",
+    "connection_status": "connected",
+    "consent_status": "active",
+    "new_accounts_available": false,
+    "sync_requested_at": null,
+    "last_successful_sync_at": "2026-09-21T18:03:01.931017+00:00",
+    "initial_update_complete": true,
+    "historical_update_complete": true
+  },
+  "hasPersistedCursor": true,
+  "events": [
+    {
+      "id": "331bdf8b-8b73-4387-9a19-267377dbe46a",
+      "webhook_type": "TRANSACTIONS",
+      "webhook_code": "SYNC_UPDATES_AVAILABLE",
+      "received_at": "2026-09-21T17:41:26.899375+00:00",
+      "processed_at": "2026-09-21T17:41:30.691+00:00",
+      "last_attempt_at": "2026-09-21T17:41:28.372+00:00"
+    },
+    {
+      "id": "d0262b14-2a48-4cfd-b7bc-645554391091",
+      "webhook_type": "TRANSACTIONS",
+      "webhook_code": "HISTORICAL_UPDATE",
+      "received_at": "2026-09-21T17:41:27.805908+00:00",
+      "processed_at": "2026-09-21T17:41:27.805908+00:00",
+      "last_attempt_at": null
+    },
+    {
+      "id": "6cd4bc22-200d-43bb-a900-edc1062c2e19",
+      "webhook_type": "TRANSACTIONS",
+      "webhook_code": "INITIAL_UPDATE",
+      "received_at": "2026-09-21T17:41:27.891322+00:00",
+      "processed_at": "2026-09-21T17:41:27.891322+00:00",
+      "last_attempt_at": null
+    },
+    {
+      "id": "a3f4e57f-c845-4aba-92cb-61b5097e727d",
+      "webhook_type": "TRANSACTIONS",
+      "webhook_code": "DEFAULT_UPDATE",
+      "received_at": "2026-09-21T17:42:34.590843+00:00",
+      "processed_at": "2026-09-21T17:42:34.590843+00:00",
+      "last_attempt_at": null
+    },
+    {
+      "id": "ea4cff16-f487-43f7-b26c-6be924b5fe49",
+      "webhook_type": "TRANSACTIONS",
+      "webhook_code": "SYNC_UPDATES_AVAILABLE",
+      "received_at": "2026-09-21T17:42:35.913119+00:00",
+      "processed_at": "2026-09-21T17:42:36.826+00:00",
+      "last_attempt_at": "2026-09-21T17:42:35.966+00:00"
+    },
+    {
+      "id": "b51feb00-2b95-4793-9e4f-306313d6bd41",
+      "webhook_type": "TRANSACTIONS",
+      "webhook_code": "SYNC_UPDATES_AVAILABLE",
+      "received_at": "2026-09-21T17:51:00.234915+00:00",
+      "processed_at": "2026-09-21T17:51:03.589+00:00",
+      "last_attempt_at": "2026-09-21T17:51:00.517+00:00"
+    },
+    {
+      "id": "87b60703-4419-44be-a164-dc6dd5f9f8cd",
+      "webhook_type": "TRANSACTIONS",
+      "webhook_code": "DEFAULT_UPDATE",
+      "received_at": "2026-09-21T17:51:01.548324+00:00",
+      "processed_at": "2026-09-21T17:51:01.548324+00:00",
+      "last_attempt_at": null
+    },
+    {
+      "id": "56b4374c-8b24-4ff9-b631-4dd323239a03",
+      "webhook_type": "TRANSACTIONS",
+      "webhook_code": "DEFAULT_UPDATE",
+      "received_at": "2026-09-21T17:57:11.337869+00:00",
+      "processed_at": "2026-09-21T17:57:11.337869+00:00",
+      "last_attempt_at": null
+    },
+    {
+      "id": "bf406b5e-7186-4033-8174-a65467ab66e3",
+      "webhook_type": "TRANSACTIONS",
+      "webhook_code": "SYNC_UPDATES_AVAILABLE",
+      "received_at": "2026-09-21T17:57:12.162325+00:00",
+      "processed_at": "2026-09-21T17:57:13.61+00:00",
+      "last_attempt_at": "2026-09-21T17:57:12.24+00:00"
+    },
+    {
+      "id": "7c749eaf-26d3-47ff-a0f9-c81ac539f929",
+      "webhook_type": "TRANSACTIONS",
+      "webhook_code": "SYNC_UPDATES_AVAILABLE",
+      "received_at": "2026-09-21T18:03:00.900872+00:00",
+      "processed_at": "2026-09-21T18:03:02.016+00:00",
+      "last_attempt_at": "2026-09-21T18:03:00.94+00:00"
+    }
+  ],
+  "transactionVersions": 313,
+  "revisions": [
+    {
+      "id": "4b3e1a1d-9982-40b5-821d-21b4f512bd74",
+      "event_type": "added",
+      "amount_cents": -7200,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "000dcf06-26d8-41ec-b941-0cfd88687515"
+    },
+    {
+      "id": "00581191-3ede-483f-aef3-a0eb853bc6d4",
+      "event_type": "modified",
+      "amount_cents": -7200,
+      "supersedes_version_id": "4b3e1a1d-9982-40b5-821d-21b4f512bd74",
+      "canonical_financial_transaction_id": "000dcf06-26d8-41ec-b941-0cfd88687515"
+    },
+    {
+      "id": "5ef15dd6-19cb-4d64-b4e7-8c1bca299df5",
+      "event_type": "added",
+      "amount_cents": -325,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "e44e23f7-3b6b-43ca-9948-91ae60f09e9b"
+    },
+    {
+      "id": "ef979bc7-6b29-44f8-a2f2-1a90cc7d32ce",
+      "event_type": "modified",
+      "amount_cents": -325,
+      "supersedes_version_id": "5ef15dd6-19cb-4d64-b4e7-8c1bca299df5",
+      "canonical_financial_transaction_id": "e44e23f7-3b6b-43ca-9948-91ae60f09e9b"
+    },
+    {
+      "id": "71aad530-21f0-4da2-a4eb-fa9d7015911c",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "30de6c84-8a2c-4ea8-9854-f5f9ec18692d"
+    },
+    {
+      "id": "608a2f50-ca70-4a31-822d-d69479234b9d",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "71aad530-21f0-4da2-a4eb-fa9d7015911c",
+      "canonical_financial_transaction_id": "f5a948b6-ac05-4126-8401-4f7d47cf9acc"
+    },
+    {
+      "id": "76f18cd8-a1c5-4de9-bec8-3752625f1a72",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "7b9adec8-d711-4edc-a43a-24f174e02719"
+    },
+    {
+      "id": "2c91c6ad-c56f-42fd-9197-3ad7966e801c",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "76f18cd8-a1c5-4de9-bec8-3752625f1a72",
+      "canonical_financial_transaction_id": "74a7b8a0-b320-41d8-9537-4641ffd1ceb8"
+    },
+    {
+      "id": "f88eb0cd-388c-490b-9cb8-969e7efa540d",
+      "event_type": "added",
+      "amount_cents": -1234,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "e71a2585-da09-455e-96a6-870cb1a52fa6"
+    },
+    {
+      "id": "7e10e70e-3230-40e2-861f-46523422835a",
+      "event_type": "added",
+      "amount_cents": -1265,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "73f14870-4509-4a9b-880a-1dbe4de94d28"
+    },
+    {
+      "id": "81e585e9-27a8-4b30-93cc-7b206ec9cf12",
+      "event_type": "modified",
+      "amount_cents": -1265,
+      "supersedes_version_id": "7e10e70e-3230-40e2-861f-46523422835a",
+      "canonical_financial_transaction_id": "5b56473b-77c2-48e7-aa5c-845a9ae27351"
+    },
+    {
+      "id": "81d767f6-c05b-462e-aa2e-55eb76289ed4",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "2e972ca1-fd6b-4051-9e56-5e587c083f8d",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "81d767f6-c05b-462e-aa2e-55eb76289ed4",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "456a188d-24ee-4464-b8c1-392c14c9664b",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "562d6a84-d89d-4d4b-bb4f-2280df8a40f5",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "456a188d-24ee-4464-b8c1-392c14c9664b",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "0e440fc9-b883-434a-a4a7-bf3a5de75057",
+      "event_type": "added",
+      "amount_cents": -99,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "948f3c56-99d0-45ab-b9ea-c6e654d55883"
+    },
+    {
+      "id": "b559353c-f6ef-49c2-98ad-c902888c8703",
+      "event_type": "modified",
+      "amount_cents": -99,
+      "supersedes_version_id": "0e440fc9-b883-434a-a4a7-bf3a5de75057",
+      "canonical_financial_transaction_id": "948f3c56-99d0-45ab-b9ea-c6e654d55883"
+    },
+    {
+      "id": "f2b80fa9-d528-47b0-a850-db5d379576b7",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "210306cc-309c-4ed1-852c-b5880ccfc8d2"
+    },
+    {
+      "id": "bb90374a-946d-4184-a6f7-4b5f1db6a57e",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "f2b80fa9-d528-47b0-a850-db5d379576b7",
+      "canonical_financial_transaction_id": "ec3700da-53ae-4279-9d2c-adca11038f8b"
+    },
+    {
+      "id": "752d282c-4d2c-4e25-9c31-0185547eb175",
+      "event_type": "added",
+      "amount_cents": -8900,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "5bc78066-1ec6-41c2-b51e-3b648f7b169a"
+    },
+    {
+      "id": "609111d6-2155-49f3-93cd-b884c75fae84",
+      "event_type": "modified",
+      "amount_cents": -8900,
+      "supersedes_version_id": "752d282c-4d2c-4e25-9c31-0185547eb175",
+      "canonical_financial_transaction_id": "a96b1270-62cc-4fda-bab4-6f9892805aec"
+    },
+    {
+      "id": "ec128751-dec0-48a3-b489-ee43e5a7e0db",
+      "event_type": "added",
+      "amount_cents": -2319,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "7699d052-3b44-4651-a55c-c68c91cdbe71"
+    },
+    {
+      "id": "5aafff57-15bb-46e8-96fd-75d3465eb603",
+      "event_type": "modified",
+      "amount_cents": -2319,
+      "supersedes_version_id": "ec128751-dec0-48a3-b489-ee43e5a7e0db",
+      "canonical_financial_transaction_id": "7699d052-3b44-4651-a55c-c68c91cdbe71"
+    },
+    {
+      "id": "73ba518b-2fbb-40c5-b5bf-176013b29bfd",
+      "event_type": "added",
+      "amount_cents": -2000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "d40fc8c1-0241-4736-b507-7302aef2960b"
+    },
+    {
+      "id": "de9f2902-e5ec-4c59-90ae-9ab58830f9cb",
+      "event_type": "modified",
+      "amount_cents": -2000,
+      "supersedes_version_id": "73ba518b-2fbb-40c5-b5bf-176013b29bfd",
+      "canonical_financial_transaction_id": "ef84e735-e710-4689-aa6d-3dde89f1ec3a"
+    },
+    {
+      "id": "b5961a65-d068-4e7d-a5a9-6bc46761d52d",
+      "event_type": "added",
+      "amount_cents": 283580,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "29ae573e-1ca1-4398-9d1d-a6e0bd7669bf"
+    },
+    {
+      "id": "bca3b138-2349-4d9c-91f2-342a01249464",
+      "event_type": "modified",
+      "amount_cents": 283580,
+      "supersedes_version_id": "b5961a65-d068-4e7d-a5a9-6bc46761d52d",
+      "canonical_financial_transaction_id": "29ae573e-1ca1-4398-9d1d-a6e0bd7669bf"
+    },
+    {
+      "id": "517c64e9-e49e-40ee-a120-95437c871da4",
+      "event_type": "added",
+      "amount_cents": -1500,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "97779043-acf7-4ae3-81dc-43f7a7a0bf84"
+    },
+    {
+      "id": "7fbd4bba-e9ea-4ecd-8c7d-d9f0bac6ab34",
+      "event_type": "modified",
+      "amount_cents": -1500,
+      "supersedes_version_id": "517c64e9-e49e-40ee-a120-95437c871da4",
+      "canonical_financial_transaction_id": "97779043-acf7-4ae3-81dc-43f7a7a0bf84"
+    },
+    {
+      "id": "40daaada-37bb-4a43-884d-b5ac2d492af0",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "94e9d38c-de44-47bf-b475-dd24d08cd439",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "40daaada-37bb-4a43-884d-b5ac2d492af0",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "e96f7f1c-8a14-46f2-ae25-cf2b773ede0b",
+      "event_type": "added",
+      "amount_cents": -603,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "721ea1e8-557d-4270-85b9-f58c5d7af1c6"
+    },
+    {
+      "id": "32aa8488-ec44-409a-bed0-5ea6a57ce32f",
+      "event_type": "modified",
+      "amount_cents": -603,
+      "supersedes_version_id": "e96f7f1c-8a14-46f2-ae25-cf2b773ede0b",
+      "canonical_financial_transaction_id": "721ea1e8-557d-4270-85b9-f58c5d7af1c6"
+    },
+    {
+      "id": "c6430ecf-a486-4689-9b49-fc7a0bb55d95",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "3325f823-bff2-48c5-8f49-187c107f3544",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "c6430ecf-a486-4689-9b49-fc7a0bb55d95",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "e2d38146-69cd-4c93-8e65-a9258629cba6",
+      "event_type": "added",
+      "amount_cents": -1957,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "ab32e926-e6d3-4e30-99fe-0563fe95d77a"
+    },
+    {
+      "id": "43fd4126-1c57-4c5f-8c25-370f968ea283",
+      "event_type": "modified",
+      "amount_cents": -1957,
+      "supersedes_version_id": "e2d38146-69cd-4c93-8e65-a9258629cba6",
+      "canonical_financial_transaction_id": "1aef27d2-733c-443d-90f0-fad0cfdba545"
+    },
+    {
+      "id": "5d7abd70-f375-45a7-9523-4a8219109218",
+      "event_type": "added",
+      "amount_cents": -1265,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "69deb10f-93fb-4158-8982-99204c66b940"
+    },
+    {
+      "id": "cfdc20ff-accc-4b88-ac7a-8a4db6a6e6f2",
+      "event_type": "modified",
+      "amount_cents": -1265,
+      "supersedes_version_id": "5d7abd70-f375-45a7-9523-4a8219109218",
+      "canonical_financial_transaction_id": "69deb10f-93fb-4158-8982-99204c66b940"
+    },
+    {
+      "id": "7c4eecf9-afb1-401b-8ac1-777e405d03a4",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "1a35bcf3-a891-42c1-b38d-e134c7729d2b",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "7c4eecf9-afb1-401b-8ac1-777e405d03a4",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "98b3b814-1f6a-4d17-9504-da045da231a6",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "0e2cdf5b-b842-4e39-aabb-1d26252dd984"
+    },
+    {
+      "id": "40b5c2f2-3896-4e5a-a857-65307273be14",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "98b3b814-1f6a-4d17-9504-da045da231a6",
+      "canonical_financial_transaction_id": "884d0d13-583a-43e5-bf5e-a938053b619c"
+    },
+    {
+      "id": "adb10f74-e814-4482-815d-3f725cc7bacd",
+      "event_type": "added",
+      "amount_cents": 12,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "78d6990a-40a8-4642-9052-121213f6ede1"
+    },
+    {
+      "id": "47de4097-1d78-4520-b40a-fb734b4cd971",
+      "event_type": "modified",
+      "amount_cents": 12,
+      "supersedes_version_id": "adb10f74-e814-4482-815d-3f725cc7bacd",
+      "canonical_financial_transaction_id": "9c53b2f8-39eb-4f5f-bf04-95c490c9f8a5"
+    },
+    {
+      "id": "6bbd08fc-f348-4a55-ae24-431e79eb376d",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "f030e045-338a-4788-89e0-cd28c79e18c4",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "6bbd08fc-f348-4a55-ae24-431e79eb376d",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "8cdfbbbb-c35b-48ec-9d69-e9835d64c291",
+      "event_type": "added",
+      "amount_cents": -2000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "6e8535d7-cbba-4117-91b6-a342c970e530"
+    },
+    {
+      "id": "2cee91c3-b119-40e0-b592-b1d057cf12b4",
+      "event_type": "modified",
+      "amount_cents": -2000,
+      "supersedes_version_id": "8cdfbbbb-c35b-48ec-9d69-e9835d64c291",
+      "canonical_financial_transaction_id": "6e8535d7-cbba-4117-91b6-a342c970e530"
+    },
+    {
+      "id": "0ce636d5-ea1c-4c32-9165-2f0eafa82f54",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "2628ccfb-bf85-4c99-a2cc-3289864eeaec",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "0ce636d5-ea1c-4c32-9165-2f0eafa82f54",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "b11db3cc-98bc-423a-ae12-7c7dcdb26fd6",
+      "event_type": "added",
+      "amount_cents": -1147,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "de94b8c2-2ff1-4c37-990e-45a59516f8d0"
+    },
+    {
+      "id": "050d26b9-04d6-4aa0-ae4a-42c72a627258",
+      "event_type": "modified",
+      "amount_cents": -1147,
+      "supersedes_version_id": "b11db3cc-98bc-423a-ae12-7c7dcdb26fd6",
+      "canonical_financial_transaction_id": "de94b8c2-2ff1-4c37-990e-45a59516f8d0"
+    },
+    {
+      "id": "6384fe42-93e3-4643-aee4-49d559669d43",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "ecf5e06b-50a6-40a1-ac9a-bee46baf1ef9"
+    },
+    {
+      "id": "de2c4301-5c64-47be-83b7-eac00f8c25e2",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "6384fe42-93e3-4643-aee4-49d559669d43",
+      "canonical_financial_transaction_id": "7da2e645-a48d-442a-a11d-38dd7f3de9f5"
+    },
+    {
+      "id": "f2dafc32-59b9-4443-89f9-6cbf8a626a3e",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "1cf957d6-b472-458f-8bd1-35e27de62769",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "f2dafc32-59b9-4443-89f9-6cbf8a626a3e",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "67ba8943-0427-497f-b69e-9a11a70ddbd5",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "547070f9-d50c-40d7-adc0-b036175c9269",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "67ba8943-0427-497f-b69e-9a11a70ddbd5",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "c3d6b862-9187-45e5-aa99-ae95549b832b",
+      "event_type": "added",
+      "amount_cents": -65800,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "d051c7d4-8bed-47c9-8445-4ed6f87c1af6"
+    },
+    {
+      "id": "170fe8de-2495-45cc-83e5-19554e14bed6",
+      "event_type": "modified",
+      "amount_cents": -65800,
+      "supersedes_version_id": "c3d6b862-9187-45e5-aa99-ae95549b832b",
+      "canonical_financial_transaction_id": "d051c7d4-8bed-47c9-8445-4ed6f87c1af6"
+    },
+    {
+      "id": "ec053ce8-7d70-46d9-9493-397b04ca318e",
+      "event_type": "added",
+      "amount_cents": -4688,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "d4bc4b60-cac5-41f6-b903-f3b0dc7ec2ac"
+    },
+    {
+      "id": "a34eb9f2-1b3c-438d-8d98-bfca10299a8f",
+      "event_type": "modified",
+      "amount_cents": -4688,
+      "supersedes_version_id": "ec053ce8-7d70-46d9-9493-397b04ca318e",
+      "canonical_financial_transaction_id": "d4bc4b60-cac5-41f6-b903-f3b0dc7ec2ac"
+    },
+    {
+      "id": "aa102cd1-4e94-447a-888f-85c9f71a1c75",
+      "event_type": "added",
+      "amount_cents": -1900,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "251655ba-20ae-4461-b73d-90276b656623"
+    },
+    {
+      "id": "f0289cc7-74df-4b7c-944e-2af795911ef9",
+      "event_type": "modified",
+      "amount_cents": -1900,
+      "supersedes_version_id": "aa102cd1-4e94-447a-888f-85c9f71a1c75",
+      "canonical_financial_transaction_id": "251655ba-20ae-4461-b73d-90276b656623"
+    },
+    {
+      "id": "eac13041-b226-4acd-8139-3f9a3b8afeca",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "2615ce15-323f-491c-b154-c56cc7b16bb2"
+    },
+    {
+      "id": "841c24f8-a524-4c63-a8b7-df211577f191",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "eac13041-b226-4acd-8139-3f9a3b8afeca",
+      "canonical_financial_transaction_id": "c5b7ddb6-df22-4124-9e56-443ba33097b7"
+    },
+    {
+      "id": "8412d89b-93a1-4f7f-819e-43113e916d8d",
+      "event_type": "added",
+      "amount_cents": -3600,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "017d52f9-6011-4cde-8f9c-92ae9335226c"
+    },
+    {
+      "id": "5ef4be7c-11ce-42d7-9ce0-016e450e66bb",
+      "event_type": "modified",
+      "amount_cents": -3600,
+      "supersedes_version_id": "8412d89b-93a1-4f7f-819e-43113e916d8d",
+      "canonical_financial_transaction_id": "017d52f9-6011-4cde-8f9c-92ae9335226c"
+    },
+    {
+      "id": "3a6349d6-2711-4bba-974f-908e01e032b7",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "36ad0fed-722c-491b-90ff-dab4b902209b",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "3a6349d6-2711-4bba-974f-908e01e032b7",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "c0cb1820-c66c-4c02-9361-e7865d0f1ad5",
+      "event_type": "added",
+      "amount_cents": 12,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "20cf3584-1340-48d8-a3d9-2eee92dfa1a9"
+    },
+    {
+      "id": "96022208-78f6-4a77-afc3-bc417476962d",
+      "event_type": "modified",
+      "amount_cents": 12,
+      "supersedes_version_id": "c0cb1820-c66c-4c02-9361-e7865d0f1ad5",
+      "canonical_financial_transaction_id": "845beed8-46d4-4379-b455-dd4aef41db69"
+    },
+    {
+      "id": "5d82f72f-4c14-48d7-b092-6e8da7b1c328",
+      "event_type": "added",
+      "amount_cents": -500,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "41982a28-a5fc-4ceb-8f01-8e522bdd26a6"
+    },
+    {
+      "id": "4356de73-7761-4f9b-a093-e18b343397a0",
+      "event_type": "modified",
+      "amount_cents": -500,
+      "supersedes_version_id": "5d82f72f-4c14-48d7-b092-6e8da7b1c328",
+      "canonical_financial_transaction_id": "41982a28-a5fc-4ceb-8f01-8e522bdd26a6"
+    },
+    {
+      "id": "498f1076-09c6-428d-a1c9-aea8b5ddb367",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "d5f5a21e-fbbd-4be7-85f5-6f6a283441c2"
+    },
+    {
+      "id": "9b8654b0-0864-4e37-9971-084bd50b3879",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "498f1076-09c6-428d-a1c9-aea8b5ddb367",
+      "canonical_financial_transaction_id": "d5f5a21e-fbbd-4be7-85f5-6f6a283441c2"
+    },
+    {
+      "id": "f571341a-f91a-4c10-bb9e-0b664f8b2e78",
+      "event_type": "added",
+      "amount_cents": -5407,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "13f9000f-1cdc-4dfe-977c-3af959e3e609"
+    },
+    {
+      "id": "8dca612a-6072-4f0b-a133-2b1460d1127a",
+      "event_type": "modified",
+      "amount_cents": -5407,
+      "supersedes_version_id": "f571341a-f91a-4c10-bb9e-0b664f8b2e78",
+      "canonical_financial_transaction_id": "13f9000f-1cdc-4dfe-977c-3af959e3e609"
+    },
+    {
+      "id": "e3624023-ea44-45c5-b374-7aab2b9db2df",
+      "event_type": "added",
+      "amount_cents": -365,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "4c215f20-dbf4-4ead-a058-6f0cdb3cb127"
+    },
+    {
+      "id": "561b3f34-183f-4189-8650-585aafc70e6a",
+      "event_type": "modified",
+      "amount_cents": -365,
+      "supersedes_version_id": "e3624023-ea44-45c5-b374-7aab2b9db2df",
+      "canonical_financial_transaction_id": "4c215f20-dbf4-4ead-a058-6f0cdb3cb127"
+    },
+    {
+      "id": "d800fad9-c926-4b09-bdb7-98c72b56a18e",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "2cf55a92-9b4a-4aec-aed7-3c2c411003b5"
+    },
+    {
+      "id": "c973f8b6-3d80-4f5e-9001-1a61ea6e41ae",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "d800fad9-c926-4b09-bdb7-98c72b56a18e",
+      "canonical_financial_transaction_id": "2cf55a92-9b4a-4aec-aed7-3c2c411003b5"
+    },
+    {
+      "id": "1b2ec6fb-c3af-408e-a831-9a2b824b250d",
+      "event_type": "added",
+      "amount_cents": -1957,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "5b7cc81b-b277-4be5-9612-4fee4abab9de"
+    },
+    {
+      "id": "a98ea47a-90f8-443f-af58-d34ba4afe5c0",
+      "event_type": "modified",
+      "amount_cents": -1957,
+      "supersedes_version_id": "1b2ec6fb-c3af-408e-a831-9a2b824b250d",
+      "canonical_financial_transaction_id": "5dee506d-a078-4920-b4e2-89b851db8bb3"
+    },
+    {
+      "id": "ceb1bc79-8925-491b-865e-7550bc952c77",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "d0baca76-4a89-41fa-9deb-3e7f21ce9a9d"
+    },
+    {
+      "id": "685e1cbf-9d37-40cd-8971-e36403bedaa1",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "ceb1bc79-8925-491b-865e-7550bc952c77",
+      "canonical_financial_transaction_id": "f801b4e0-67d0-4502-bd3a-421d72ad3c8c"
+    },
+    {
+      "id": "24d7edc3-97ca-4093-bc5a-7894b2e6f305",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "9364f991-dd4e-4aa8-8e90-05b426fca204",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "24d7edc3-97ca-4093-bc5a-7894b2e6f305",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "a79db4b2-aa08-468c-8b32-f84f697dc10e",
+      "event_type": "added",
+      "amount_cents": -7056,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "cea8a231-99cb-4eec-a74a-92f5f548c6b2"
+    },
+    {
+      "id": "47eda42c-7ae5-43a3-80dc-093d48db6f3d",
+      "event_type": "modified",
+      "amount_cents": -7056,
+      "supersedes_version_id": "a79db4b2-aa08-468c-8b32-f84f697dc10e",
+      "canonical_financial_transaction_id": "cea8a231-99cb-4eec-a74a-92f5f548c6b2"
+    },
+    {
+      "id": "375ab806-fbfb-4400-bedb-1945912973d3",
+      "event_type": "added",
+      "amount_cents": -5800,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "2452943c-3a02-4ed3-9034-0cc6cd7866f9",
+      "event_type": "modified",
+      "amount_cents": -5800,
+      "supersedes_version_id": "375ab806-fbfb-4400-bedb-1945912973d3",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "fedcf274-e0f4-4ae5-a724-3bd9381509f6",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "c6608c59-7313-4d72-b2c3-5c864e286513"
+    },
+    {
+      "id": "b8f66398-294b-4ad4-84ba-de6c0492431a",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "fedcf274-e0f4-4ae5-a724-3bd9381509f6",
+      "canonical_financial_transaction_id": "6b314ffc-cc7f-44af-8d3c-f5746d7c7143"
+    },
+    {
+      "id": "8fc7646c-2a33-486d-b8a1-654874551b70",
+      "event_type": "added",
+      "amount_cents": 12,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "a8e2161f-98fe-4d86-8c25-b375edc2f6b7"
+    },
+    {
+      "id": "1b41f713-3c07-426f-a71e-57a39b2a3085",
+      "event_type": "modified",
+      "amount_cents": 12,
+      "supersedes_version_id": "8fc7646c-2a33-486d-b8a1-654874551b70",
+      "canonical_financial_transaction_id": "2486206b-7aa5-48a9-b6c7-067edb7ce738"
+    },
+    {
+      "id": "be62b1db-d3de-40ae-b220-40f7d35f396a",
+      "event_type": "added",
+      "amount_cents": 9500,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "bc409199-3e53-46ac-a81e-28d871229bff"
+    },
+    {
+      "id": "c11a71ad-6abb-4541-a12a-b81057d701cb",
+      "event_type": "modified",
+      "amount_cents": 9500,
+      "supersedes_version_id": "be62b1db-d3de-40ae-b220-40f7d35f396a",
+      "canonical_financial_transaction_id": "bc409199-3e53-46ac-a81e-28d871229bff"
+    },
+    {
+      "id": "317129df-8b47-4910-ae82-b9f822ac5d75",
+      "event_type": "added",
+      "amount_cents": -3392,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "b1ab20b7-e045-4497-9bd2-ffb371a3553f"
+    },
+    {
+      "id": "85fb4a9c-e71f-4c4f-881b-24a7c34284c8",
+      "event_type": "modified",
+      "amount_cents": -3392,
+      "supersedes_version_id": "317129df-8b47-4910-ae82-b9f822ac5d75",
+      "canonical_financial_transaction_id": "b1ab20b7-e045-4497-9bd2-ffb371a3553f"
+    },
+    {
+      "id": "e51cdac1-ad9e-46ec-aa6e-99f0ed1c8b24",
+      "event_type": "added",
+      "amount_cents": -1265,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "d9b49353-9fa2-47b5-948e-2da3e26fce74"
+    },
+    {
+      "id": "af91ea0e-fdeb-4090-95fa-bab0b1a68fcc",
+      "event_type": "modified",
+      "amount_cents": -1265,
+      "supersedes_version_id": "e51cdac1-ad9e-46ec-aa6e-99f0ed1c8b24",
+      "canonical_financial_transaction_id": "50a1837f-60ee-4ea0-8fdd-d70520ba8031"
+    },
+    {
+      "id": "6b61d96e-db23-415b-9824-fc015713eeea",
+      "event_type": "added",
+      "amount_cents": -3407,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "d2d27fb6-6c9e-4673-aa52-e867ace27be5"
+    },
+    {
+      "id": "ef0f0456-b098-4d87-8281-ba5b7134cd57",
+      "event_type": "modified",
+      "amount_cents": -3407,
+      "supersedes_version_id": "6b61d96e-db23-415b-9824-fc015713eeea",
+      "canonical_financial_transaction_id": "d2d27fb6-6c9e-4673-aa52-e867ace27be5"
+    },
+    {
+      "id": "bd65a8e9-47d7-4d7d-b464-bbe449840fb9",
+      "event_type": "added",
+      "amount_cents": -1600,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "cde35217-6403-498e-83ca-7fcbae6bef0c"
+    },
+    {
+      "id": "a2b22219-6eeb-49db-b1c9-16e1d79b6e61",
+      "event_type": "modified",
+      "amount_cents": -1600,
+      "supersedes_version_id": "bd65a8e9-47d7-4d7d-b464-bbe449840fb9",
+      "canonical_financial_transaction_id": "cde35217-6403-498e-83ca-7fcbae6bef0c"
+    },
+    {
+      "id": "2d4febf1-63a8-4fb4-89cf-ffd4cea534f8",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "9a85e870-3381-4813-a84f-347f1ecd3dfc"
+    },
+    {
+      "id": "4366d5e3-a9ac-4fe9-a77a-cbac1e29eda1",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "2d4febf1-63a8-4fb4-89cf-ffd4cea534f8",
+      "canonical_financial_transaction_id": "5e6d7036-bb4d-4cdd-b208-6b237e1d41b2"
+    },
+    {
+      "id": "a11355cb-9769-474b-8e1a-b3a9f696b839",
+      "event_type": "added",
+      "amount_cents": -5478,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "9112741a-e286-47a5-ab41-2459236a137c"
+    },
+    {
+      "id": "f1e6caa1-4d53-426c-88e7-82704aa02227",
+      "event_type": "modified",
+      "amount_cents": -5478,
+      "supersedes_version_id": "a11355cb-9769-474b-8e1a-b3a9f696b839",
+      "canonical_financial_transaction_id": "9112741a-e286-47a5-ab41-2459236a137c"
+    },
+    {
+      "id": "df88e304-0f7d-445e-b94e-e3fd336fde2f",
+      "event_type": "added",
+      "amount_cents": -3800,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "3cc54b2a-c0cc-42f4-8594-76e777300251"
+    },
+    {
+      "id": "24bcd1e7-0e0e-4174-bb86-88cf83c6619b",
+      "event_type": "modified",
+      "amount_cents": -3800,
+      "supersedes_version_id": "df88e304-0f7d-445e-b94e-e3fd336fde2f",
+      "canonical_financial_transaction_id": "3cc54b2a-c0cc-42f4-8594-76e777300251"
+    },
+    {
+      "id": "1f885a89-075d-466b-b368-35d8d57ff7e0",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "1a9f4ef4-4672-42ac-b2f3-c67916cc1405"
+    },
+    {
+      "id": "b6ac5ade-ff70-4544-8d4f-34a5b1aff932",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "1f885a89-075d-466b-b368-35d8d57ff7e0",
+      "canonical_financial_transaction_id": "19958509-3a5e-48b8-b6d8-4d966dcb9d33"
+    },
+    {
+      "id": "4dfcdedf-2f9b-42b3-93ce-80d8313c86da",
+      "event_type": "added",
+      "amount_cents": -12141,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "f56a64ba-2c56-4ef7-90e3-2d3c02393676"
+    },
+    {
+      "id": "cea8861a-1413-42b7-8ab2-17f568d2c571",
+      "event_type": "modified",
+      "amount_cents": -12141,
+      "supersedes_version_id": "4dfcdedf-2f9b-42b3-93ce-80d8313c86da",
+      "canonical_financial_transaction_id": "f56a64ba-2c56-4ef7-90e3-2d3c02393676"
+    },
+    {
+      "id": "ff2959d8-4124-448c-8eed-662ddd4f0397",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "ba845d1e-4863-4a9d-9969-005dc1adf484",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "ff2959d8-4124-448c-8eed-662ddd4f0397",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "cb9de7a1-e078-4437-b385-e49c8d55b122",
+      "event_type": "added",
+      "amount_cents": -1788,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "4270b86a-3f9a-4626-9eff-6dd909bfbd0e"
+    },
+    {
+      "id": "e5210de9-7493-4922-a4dc-4bba5fb7e7aa",
+      "event_type": "modified",
+      "amount_cents": -1788,
+      "supersedes_version_id": "cb9de7a1-e078-4437-b385-e49c8d55b122",
+      "canonical_financial_transaction_id": "4270b86a-3f9a-4626-9eff-6dd909bfbd0e"
+    },
+    {
+      "id": "8c5724e9-7fd6-44a7-9f5b-c2897f8a8147",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "548aef08-1191-4664-841d-43067bba29b4"
+    },
+    {
+      "id": "9b65aacf-3eb2-4f17-bfb0-270d3b35cf63",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "8c5724e9-7fd6-44a7-9f5b-c2897f8a8147",
+      "canonical_financial_transaction_id": "548aef08-1191-4664-841d-43067bba29b4"
+    },
+    {
+      "id": "1ca892b1-7ef7-4bf1-80cd-fbff308b6428",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "8ed5750f-f5a2-4b71-810c-b6d0429a35a6"
+    },
+    {
+      "id": "fb22c52a-07d3-4183-8507-72b5ec02a3ee",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "1ca892b1-7ef7-4bf1-80cd-fbff308b6428",
+      "canonical_financial_transaction_id": "0339c0a8-d3c8-4860-9a4e-f450a5175452"
+    },
+    {
+      "id": "e45c7894-0e92-48a2-a822-fb9993e71afb",
+      "event_type": "added",
+      "amount_cents": -1957,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "e7a8046b-9806-4405-84cc-30c9024ef0af"
+    },
+    {
+      "id": "10b56f9c-d16d-49db-b247-74074337a009",
+      "event_type": "modified",
+      "amount_cents": -1957,
+      "supersedes_version_id": "e45c7894-0e92-48a2-a822-fb9993e71afb",
+      "canonical_financial_transaction_id": "3e6c6dc0-9286-4faa-87aa-e689f83771bc"
+    },
+    {
+      "id": "b8dc7dce-4d97-4dcd-818a-90d0fb016c6f",
+      "event_type": "added",
+      "amount_cents": -1192,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "afa25e6a-7107-4c4b-9039-29d812dd2a22"
+    },
+    {
+      "id": "62c7ee92-6a00-4f26-a378-719918a5106f",
+      "event_type": "modified",
+      "amount_cents": -1192,
+      "supersedes_version_id": "b8dc7dce-4d97-4dcd-818a-90d0fb016c6f",
+      "canonical_financial_transaction_id": "afa25e6a-7107-4c4b-9039-29d812dd2a22"
+    },
+    {
+      "id": "9d3408a0-ddbb-4e13-ac89-5991ddc3d69c",
+      "event_type": "added",
+      "amount_cents": -13400,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "8ff0b2ae-a0a6-48b6-b2a7-67785a95b148"
+    },
+    {
+      "id": "1abe3573-4c35-44f5-9726-82e8a10cd9d3",
+      "event_type": "modified",
+      "amount_cents": -13400,
+      "supersedes_version_id": "9d3408a0-ddbb-4e13-ac89-5991ddc3d69c",
+      "canonical_financial_transaction_id": "8ff0b2ae-a0a6-48b6-b2a7-67785a95b148"
+    },
+    {
+      "id": "7a382ede-98ad-4d1f-a99c-4dbe5b30f434",
+      "event_type": "added",
+      "amount_cents": -299,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "b27a0a52-a751-43ed-9d27-d9d346ab7a05"
+    },
+    {
+      "id": "1eef801a-99f5-4ca9-8627-ed12ea6c4ed7",
+      "event_type": "modified",
+      "amount_cents": -299,
+      "supersedes_version_id": "7a382ede-98ad-4d1f-a99c-4dbe5b30f434",
+      "canonical_financial_transaction_id": "b27a0a52-a751-43ed-9d27-d9d346ab7a05"
+    },
+    {
+      "id": "760519d3-d128-4910-b97b-0393d242682c",
+      "event_type": "added",
+      "amount_cents": -299,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "33dd3775-2324-4339-9b9e-78f378172e18"
+    },
+    {
+      "id": "06dea8ff-b830-438d-9cff-e984ee12f776",
+      "event_type": "modified",
+      "amount_cents": -299,
+      "supersedes_version_id": "760519d3-d128-4910-b97b-0393d242682c",
+      "canonical_financial_transaction_id": "33dd3775-2324-4339-9b9e-78f378172e18"
+    },
+    {
+      "id": "3559aeac-b909-4e64-be7b-bf8483255847",
+      "event_type": "added",
+      "amount_cents": 49600,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "cdb454ff-67b3-49f0-8fde-bfec9a63b2d5"
+    },
+    {
+      "id": "8f16c9a9-9a66-478b-aa27-2cc917a78988",
+      "event_type": "modified",
+      "amount_cents": 49600,
+      "supersedes_version_id": "3559aeac-b909-4e64-be7b-bf8483255847",
+      "canonical_financial_transaction_id": "cdb454ff-67b3-49f0-8fde-bfec9a63b2d5"
+    },
+    {
+      "id": "83dbb4bb-f75e-4997-a4f6-2da9936b37ad",
+      "event_type": "added",
+      "amount_cents": -7227,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "8adb800b-72c3-4d01-89b7-0ec757ce4e3f"
+    },
+    {
+      "id": "e5223f62-8a48-4194-bfb2-e369ed057682",
+      "event_type": "modified",
+      "amount_cents": -7227,
+      "supersedes_version_id": "83dbb4bb-f75e-4997-a4f6-2da9936b37ad",
+      "canonical_financial_transaction_id": "8adb800b-72c3-4d01-89b7-0ec757ce4e3f"
+    },
+    {
+      "id": "7d2ef2d6-b9fd-4195-908a-6ec93172e1f9",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "97bca96d-d971-4c74-a3d1-2d46b3e3f9e7"
+    },
+    {
+      "id": "8e5946ef-0a1d-4776-8f67-ac007da7b7c4",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "7d2ef2d6-b9fd-4195-908a-6ec93172e1f9",
+      "canonical_financial_transaction_id": "97bca96d-d971-4c74-a3d1-2d46b3e3f9e7"
+    },
+    {
+      "id": "275a6e04-947d-4315-bd6e-df8128adbb73",
+      "event_type": "added",
+      "amount_cents": -2000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "67e26c12-a0be-4ee9-9d15-b30325c8ebe0"
+    },
+    {
+      "id": "f6dd4ac9-bf90-4390-ac80-e12c73b45241",
+      "event_type": "modified",
+      "amount_cents": -2000,
+      "supersedes_version_id": "275a6e04-947d-4315-bd6e-df8128adbb73",
+      "canonical_financial_transaction_id": "555c9187-e836-4e25-9206-7ca3059f8169"
+    },
+    {
+      "id": "397ee18b-c05b-4718-87a6-2bb57ab9fe31",
+      "event_type": "added",
+      "amount_cents": -18600,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "ea371ef9-c916-4638-9ccb-af8972c9d617"
+    },
+    {
+      "id": "7a3e402c-6651-42b0-afcd-2bd16b0cbdfe",
+      "event_type": "modified",
+      "amount_cents": -18600,
+      "supersedes_version_id": "397ee18b-c05b-4718-87a6-2bb57ab9fe31",
+      "canonical_financial_transaction_id": "ea371ef9-c916-4638-9ccb-af8972c9d617"
+    },
+    {
+      "id": "8f67fd0c-7447-4b9b-8173-9dd52782cab6",
+      "event_type": "added",
+      "amount_cents": -1699,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "d44b30ad-68b0-4c4d-8b08-06aca55b929d",
+      "event_type": "modified",
+      "amount_cents": -1699,
+      "supersedes_version_id": "8f67fd0c-7447-4b9b-8173-9dd52782cab6",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "697c140c-5de9-41e4-b787-0a7ff91d3827",
+      "event_type": "added",
+      "amount_cents": -2890,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "8ab6005c-0cf5-4e9c-a6c0-9bc3834cf41e"
+    },
+    {
+      "id": "3115b351-38bc-4eff-bf46-6c9750701fc5",
+      "event_type": "modified",
+      "amount_cents": -2890,
+      "supersedes_version_id": "697c140c-5de9-41e4-b787-0a7ff91d3827",
+      "canonical_financial_transaction_id": "8ab6005c-0cf5-4e9c-a6c0-9bc3834cf41e"
+    },
+    {
+      "id": "4e7343cc-e284-437e-a925-e4009f9cd3c3",
+      "event_type": "added",
+      "amount_cents": -74400,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "7ce84afd-4727-461e-abe3-cf0257a6f609"
+    },
+    {
+      "id": "f292867a-7bad-4015-b7e4-ab7cbcbd6507",
+      "event_type": "modified",
+      "amount_cents": -74400,
+      "supersedes_version_id": "4e7343cc-e284-437e-a925-e4009f9cd3c3",
+      "canonical_financial_transaction_id": "7ce84afd-4727-461e-abe3-cf0257a6f609"
+    },
+    {
+      "id": "3b0be81a-e0a3-4f28-abd4-4310c9f02409",
+      "event_type": "added",
+      "amount_cents": -1957,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "16ab14a6-5739-4009-b526-982729fd2faf"
+    },
+    {
+      "id": "10e87dc9-2418-461c-80dc-d11d9aa5a426",
+      "event_type": "modified",
+      "amount_cents": -1957,
+      "supersedes_version_id": "3b0be81a-e0a3-4f28-abd4-4310c9f02409",
+      "canonical_financial_transaction_id": "ab8500ec-e474-468b-a60e-059bdb49d024"
+    },
+    {
+      "id": "e3ba8d35-0c65-40d4-8395-f4d3c0826959",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "78634cf4-a683-4e61-83f3-7a50ef360c92",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "e3ba8d35-0c65-40d4-8395-f4d3c0826959",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "e9cecafa-76ea-40e7-866b-4178db38d28f",
+      "event_type": "added",
+      "amount_cents": -8209,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "060b4ae9-885d-4023-81c8-98389a44f77a"
+    },
+    {
+      "id": "48b43dd5-f785-4a7c-80ee-47ba530dc800",
+      "event_type": "modified",
+      "amount_cents": -8209,
+      "supersedes_version_id": "e9cecafa-76ea-40e7-866b-4178db38d28f",
+      "canonical_financial_transaction_id": "060b4ae9-885d-4023-81c8-98389a44f77a"
+    },
+    {
+      "id": "f004c860-0f28-4275-b288-a62078747b65",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "ccbc27a0-fa0d-4fbc-b7d5-3741b345e20f"
+    },
+    {
+      "id": "54738ad2-fd91-40b7-9d0f-79fe026e6139",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "f004c860-0f28-4275-b288-a62078747b65",
+      "canonical_financial_transaction_id": "a5002fd6-a16d-4627-b8b6-08803c75146f"
+    },
+    {
+      "id": "fbc31959-4bbc-4a37-beac-0cf9b250e315",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "b69deb53-4b32-43e5-a362-32f9ccaa7898"
+    },
+    {
+      "id": "ed03e4e0-586e-4bd5-b4c8-d51f392f3831",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "fbc31959-4bbc-4a37-beac-0cf9b250e315",
+      "canonical_financial_transaction_id": "4a00f015-aaa8-467c-9584-36d8aa2cf079"
+    },
+    {
+      "id": "5605fe0a-afe7-4005-83e0-a4f6d17a4c8d",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "a56929ec-0ed3-431e-b618-caa63befe27b",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "5605fe0a-afe7-4005-83e0-a4f6d17a4c8d",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "89bdf595-4551-4e1a-9b08-369a87312e71",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "9867920c-e5a3-4768-a48c-e2458e8e51c1",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "89bdf595-4551-4e1a-9b08-369a87312e71",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "bc5f0c45-df7e-4e5e-9649-3000d104639a",
+      "event_type": "added",
+      "amount_cents": -2000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "f4eed4a3-ac33-4cb3-bf20-59f754b2592e"
+    },
+    {
+      "id": "1f618859-1099-4a29-a640-e1cc8e84e473",
+      "event_type": "modified",
+      "amount_cents": -2000,
+      "supersedes_version_id": "bc5f0c45-df7e-4e5e-9649-3000d104639a",
+      "canonical_financial_transaction_id": "f4eed4a3-ac33-4cb3-bf20-59f754b2592e"
+    },
+    {
+      "id": "8926e6bc-6ee1-4f60-9514-4dc341f3b2a2",
+      "event_type": "added",
+      "amount_cents": -5000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "06e7dd3a-5d90-460f-9333-f932b39ccf76"
+    },
+    {
+      "id": "5171b4f7-d413-4e27-a7f2-f569066cc9a0",
+      "event_type": "modified",
+      "amount_cents": -5000,
+      "supersedes_version_id": "8926e6bc-6ee1-4f60-9514-4dc341f3b2a2",
+      "canonical_financial_transaction_id": "06e7dd3a-5d90-460f-9333-f932b39ccf76"
+    },
+    {
+      "id": "229ca83e-f329-4271-b5e0-a27fe8843d35",
+      "event_type": "added",
+      "amount_cents": -1957,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "1d2d8d41-4fa0-447e-9287-499c93361b70"
+    },
+    {
+      "id": "7eaed765-8d4e-44b7-be11-98bbf30fa9b2",
+      "event_type": "modified",
+      "amount_cents": -1957,
+      "supersedes_version_id": "229ca83e-f329-4271-b5e0-a27fe8843d35",
+      "canonical_financial_transaction_id": "f9aa84e3-5329-4a3f-9444-eaf2ebbefd64"
+    },
+    {
+      "id": "20ed46f8-35c7-4887-8c91-f2ab3be26351",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "7b30fe2d-04e0-410d-8718-8d2ccce23b0b",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "20ed46f8-35c7-4887-8c91-f2ab3be26351",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "58cb79fb-1fc9-4394-b72e-eb07c9eeab9c",
+      "event_type": "added",
+      "amount_cents": -1309,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "6ef18c1e-41bd-41d0-b3b2-ade2433c7283"
+    },
+    {
+      "id": "973fffba-18d3-4f78-be96-5afbf172d029",
+      "event_type": "modified",
+      "amount_cents": -1309,
+      "supersedes_version_id": "58cb79fb-1fc9-4394-b72e-eb07c9eeab9c",
+      "canonical_financial_transaction_id": "6ef18c1e-41bd-41d0-b3b2-ade2433c7283"
+    },
+    {
+      "id": "c66af4e9-4aed-4e8d-899e-512a58ffe3d4",
+      "event_type": "added",
+      "amount_cents": -1265,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "c73e93e6-0508-4855-9d10-4467ab2c71d3"
+    },
+    {
+      "id": "2999093b-1dd9-49cc-a996-c81ad7302e5f",
+      "event_type": "modified",
+      "amount_cents": -1265,
+      "supersedes_version_id": "c66af4e9-4aed-4e8d-899e-512a58ffe3d4",
+      "canonical_financial_transaction_id": "7a4c5a67-524d-47bb-860f-39a7374f2df8"
+    },
+    {
+      "id": "db7e7928-7317-433c-b84a-106a7562b4cc",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "0d710e64-0a1a-492b-b547-8f83c518bc71"
+    },
+    {
+      "id": "4d9a8eb0-873a-4c74-8fc2-a6e91db050b9",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "db7e7928-7317-433c-b84a-106a7562b4cc",
+      "canonical_financial_transaction_id": "07e1f386-adcb-413c-b6fe-6c1899ab3478"
+    },
+    {
+      "id": "dc2c3e1c-8acc-496e-a83a-c60c01b100d5",
+      "event_type": "added",
+      "amount_cents": -1174,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "12b83fe0-e719-46a2-8587-2061448fc5aa"
+    },
+    {
+      "id": "4f57f496-7642-4fbb-a161-ee7f62d76cd1",
+      "event_type": "modified",
+      "amount_cents": -1174,
+      "supersedes_version_id": "dc2c3e1c-8acc-496e-a83a-c60c01b100d5",
+      "canonical_financial_transaction_id": "12b83fe0-e719-46a2-8587-2061448fc5aa"
+    },
+    {
+      "id": "d58d5bc3-fb40-4e1d-aea3-fa8ec4b432b1",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "a8fe0510-26ab-4f6b-a4ad-bd1eb248f8ef",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "d58d5bc3-fb40-4e1d-aea3-fa8ec4b432b1",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "82e4690b-68dc-4348-a7e9-56738a6ef7e6",
+      "event_type": "added",
+      "amount_cents": -2000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "c5790b20-5dec-4978-bb71-ce926d7a84c7"
+    },
+    {
+      "id": "10d35dc6-285d-46b0-b004-b4f8cb6fefc1",
+      "event_type": "modified",
+      "amount_cents": -2000,
+      "supersedes_version_id": "82e4690b-68dc-4348-a7e9-56738a6ef7e6",
+      "canonical_financial_transaction_id": "c5790b20-5dec-4978-bb71-ce926d7a84c7"
+    },
+    {
+      "id": "bed9e84b-a331-4230-b512-755827717f23",
+      "event_type": "added",
+      "amount_cents": -9528,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "08dc1160-9612-4d36-84f4-54196926fd9d"
+    },
+    {
+      "id": "7b7ae242-d73d-434c-a6f9-3134115049cd",
+      "event_type": "modified",
+      "amount_cents": -9528,
+      "supersedes_version_id": "bed9e84b-a331-4230-b512-755827717f23",
+      "canonical_financial_transaction_id": "08dc1160-9612-4d36-84f4-54196926fd9d"
+    },
+    {
+      "id": "98b63036-e6d8-4019-91eb-bf84f7b4d02e",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "963cf7f9-1f28-4182-852b-f5b9e9cc19a4"
+    },
+    {
+      "id": "cc590729-d0c2-4a53-9cb1-cc4c23f2cd70",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "98b63036-e6d8-4019-91eb-bf84f7b4d02e",
+      "canonical_financial_transaction_id": "7a50dbb6-1f1b-4af3-b566-6cd557428d19"
+    },
+    {
+      "id": "7ebfeb09-0c62-4378-b04b-2ed1bc86d4fc",
+      "event_type": "added",
+      "amount_cents": 12,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "22607b48-6c0e-4c1a-9d29-92f5d4aca731"
+    },
+    {
+      "id": "253436a1-e882-49b6-ad6d-ea2fe0cfc640",
+      "event_type": "modified",
+      "amount_cents": 12,
+      "supersedes_version_id": "7ebfeb09-0c62-4378-b04b-2ed1bc86d4fc",
+      "canonical_financial_transaction_id": "107dfc31-d5d0-47cd-80d9-6c26ac7a26e2"
+    },
+    {
+      "id": "480e9596-abbb-491f-aec8-3c7d92f0f794",
+      "event_type": "added",
+      "amount_cents": -4325,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "b64c4c67-df60-4f06-9734-8a2889e7b2df"
+    },
+    {
+      "id": "21e42599-a179-468d-b611-46192d4e054b",
+      "event_type": "modified",
+      "amount_cents": -4325,
+      "supersedes_version_id": "480e9596-abbb-491f-aec8-3c7d92f0f794",
+      "canonical_financial_transaction_id": "b64c4c67-df60-4f06-9734-8a2889e7b2df"
+    },
+    {
+      "id": "5271867a-8a8c-4911-87a1-4ddbc38dd39d",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "eaf26b6e-5d8f-4253-97dc-271133c1adab",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "5271867a-8a8c-4911-87a1-4ddbc38dd39d",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "ba4089b8-3200-4a0c-a6bb-b710e1275453",
+      "event_type": "added",
+      "amount_cents": -4198,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "71d8e3e0-f66e-4228-b29f-ec5d6947a4a4"
+    },
+    {
+      "id": "64041b01-6f0c-443a-bc6e-15a1ca493af7",
+      "event_type": "modified",
+      "amount_cents": -4198,
+      "supersedes_version_id": "ba4089b8-3200-4a0c-a6bb-b710e1275453",
+      "canonical_financial_transaction_id": "71d8e3e0-f66e-4228-b29f-ec5d6947a4a4"
+    },
+    {
+      "id": "facb190c-c789-45b7-8846-22606dc99808",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "95592a23-5303-4ae9-a86c-b9299fea10b4",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "facb190c-c789-45b7-8846-22606dc99808",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "7000c7a3-29b3-4bda-b981-c1b4d3f05ae1",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "10f3bda6-523c-4645-b2b6-99e0818e6878"
+    },
+    {
+      "id": "56378d97-f77d-43b5-a556-4459181b8237",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "7000c7a3-29b3-4bda-b981-c1b4d3f05ae1",
+      "canonical_financial_transaction_id": "88182c8a-6efc-4bc7-a4b4-0ad63b5453d7"
+    },
+    {
+      "id": "09f14045-cb69-4242-9fe5-e3d4ccccad10",
+      "event_type": "added",
+      "amount_cents": -1265,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "ab46eb0c-6419-46b4-bd7e-893d551de648"
+    },
+    {
+      "id": "61f844c0-f189-4243-802b-6bbb23b46fa0",
+      "event_type": "modified",
+      "amount_cents": -1265,
+      "supersedes_version_id": "09f14045-cb69-4242-9fe5-e3d4ccccad10",
+      "canonical_financial_transaction_id": "401ad1aa-05e1-4552-9cba-ba78ce286639"
+    },
+    {
+      "id": "370bf97d-2544-4e3a-b410-78cde17f1ee2",
+      "event_type": "added",
+      "amount_cents": 12,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "d199e02d-083b-49d9-9d6e-16d4d3f14c8c"
+    },
+    {
+      "id": "ab114506-d429-454d-addf-9ae070667c2b",
+      "event_type": "modified",
+      "amount_cents": 12,
+      "supersedes_version_id": "370bf97d-2544-4e3a-b410-78cde17f1ee2",
+      "canonical_financial_transaction_id": "141c03c9-fea1-4d33-b029-c2c3f4dd9de5"
+    },
+    {
+      "id": "f870c0ff-60a0-443e-8fd5-4d375f7f4464",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "4d3b5026-b8a8-4921-83fd-22f007cb413b"
+    },
+    {
+      "id": "7d5888e5-c765-41a1-b298-17e7ca9ac393",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "f870c0ff-60a0-443e-8fd5-4d375f7f4464",
+      "canonical_financial_transaction_id": "a75b6f2d-5d2e-4243-bf84-f13d018cdaac"
+    },
+    {
+      "id": "47b208a2-94d1-47a3-b5ad-9b0904a9ff5d",
+      "event_type": "added",
+      "amount_cents": -993,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "857d9d0f-e7bd-414a-861e-212629d69121"
+    },
+    {
+      "id": "008399d1-2256-47f8-84de-6a941ec8963b",
+      "event_type": "modified",
+      "amount_cents": -993,
+      "supersedes_version_id": "47b208a2-94d1-47a3-b5ad-9b0904a9ff5d",
+      "canonical_financial_transaction_id": "857d9d0f-e7bd-414a-861e-212629d69121"
+    },
+    {
+      "id": "f9f52b90-df7f-46c6-b441-ba1b4ddb4475",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "53002cb0-409d-4e2f-b736-2293e07cf94c",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "f9f52b90-df7f-46c6-b441-ba1b4ddb4475",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "18e008cc-723d-4a93-a050-c168c2db12ed",
+      "event_type": "added",
+      "amount_cents": -1265,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "e68725f9-5ce2-4cc8-a9bb-28620ffbff19"
+    },
+    {
+      "id": "06987e2c-ad6a-4be5-981f-fe897441112d",
+      "event_type": "modified",
+      "amount_cents": -1265,
+      "supersedes_version_id": "18e008cc-723d-4a93-a050-c168c2db12ed",
+      "canonical_financial_transaction_id": "d779c46a-0a6a-49e0-baee-4ab6a62c1157"
+    },
+    {
+      "id": "19423600-8d97-4e1e-b3d2-e83d5589bef7",
+      "event_type": "added",
+      "amount_cents": -3084,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "ee84ad0d-3b7b-4e37-84f3-b10dd4588155"
+    },
+    {
+      "id": "5fea1a78-a10d-4caf-bdb0-baab54e243fd",
+      "event_type": "modified",
+      "amount_cents": -3084,
+      "supersedes_version_id": "19423600-8d97-4e1e-b3d2-e83d5589bef7",
+      "canonical_financial_transaction_id": "ee84ad0d-3b7b-4e37-84f3-b10dd4588155"
+    },
+    {
+      "id": "9dc426df-9fa4-49a8-8ea9-43ec9b0a97a6",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "6609ed0a-c95b-41d2-9271-87cbc4a47cb2",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "9dc426df-9fa4-49a8-8ea9-43ec9b0a97a6",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "743710c1-ec5c-467b-8c3a-8d6b074af79a",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "86ac2e87-fac7-480e-8af6-a20f5078a8fa",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "743710c1-ec5c-467b-8c3a-8d6b074af79a",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "90c8f360-07da-4230-ac03-70a1cdc59601",
+      "event_type": "added",
+      "amount_cents": -800,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "c0f35454-9dbb-4401-879e-f166ab5fc1cf"
+    },
+    {
+      "id": "1e44408d-4141-4d64-bd93-002f0780d1a0",
+      "event_type": "modified",
+      "amount_cents": -800,
+      "supersedes_version_id": "90c8f360-07da-4230-ac03-70a1cdc59601",
+      "canonical_financial_transaction_id": "c0f35454-9dbb-4401-879e-f166ab5fc1cf"
+    },
+    {
+      "id": "dc3835dc-53cf-4c29-8130-0dd3be9e7c93",
+      "event_type": "added",
+      "amount_cents": -1265,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "59afcad4-a878-4dd8-a94f-9f62c1c2fc78"
+    },
+    {
+      "id": "6370cb03-5904-472a-b26b-0ff1b0d49b58",
+      "event_type": "modified",
+      "amount_cents": -1265,
+      "supersedes_version_id": "dc3835dc-53cf-4c29-8130-0dd3be9e7c93",
+      "canonical_financial_transaction_id": "e784bebf-1044-4fb0-af84-c61f50f0adf2"
+    },
+    {
+      "id": "47fc64b2-2a34-4ff2-b6dc-0899f70783f3",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "94b91e51-43eb-4190-8bcf-8a956730c1c8"
+    },
+    {
+      "id": "302d1201-c3d0-4f96-a9dc-7ac393847374",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "47fc64b2-2a34-4ff2-b6dc-0899f70783f3",
+      "canonical_financial_transaction_id": "532d80b2-7dd9-4e96-ab44-b113531e9a5c"
+    },
+    {
+      "id": "b1621198-f67b-40af-b366-d43c3959fe19",
+      "event_type": "added",
+      "amount_cents": -2000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "68db92a3-5f29-4727-9caf-303e218b6ea3"
+    },
+    {
+      "id": "366bdf2c-e15c-4b53-aad5-525c66173b78",
+      "event_type": "modified",
+      "amount_cents": -2000,
+      "supersedes_version_id": "b1621198-f67b-40af-b366-d43c3959fe19",
+      "canonical_financial_transaction_id": "01b35a16-9a19-40c6-a8b0-ff956966e871"
+    },
+    {
+      "id": "9e82089b-4df3-4dd1-a78c-5926d03acda0",
+      "event_type": "added",
+      "amount_cents": -300,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "83e8e7c7-c8e0-42d5-ac02-b1f9bdf7b86a"
+    },
+    {
+      "id": "53f22690-5219-4a82-8be4-06bc1b3e81f3",
+      "event_type": "modified",
+      "amount_cents": -300,
+      "supersedes_version_id": "9e82089b-4df3-4dd1-a78c-5926d03acda0",
+      "canonical_financial_transaction_id": "83e8e7c7-c8e0-42d5-ac02-b1f9bdf7b86a"
+    },
+    {
+      "id": "b8e401fd-aaec-4dec-a7c6-82c07b24aca4",
+      "event_type": "added",
+      "amount_cents": -2000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "1780f7f6-ffba-4c7a-9a46-f9b13418ec27"
+    },
+    {
+      "id": "eb15bb5e-c340-4f84-9741-befc5110314c",
+      "event_type": "modified",
+      "amount_cents": -2000,
+      "supersedes_version_id": "b8e401fd-aaec-4dec-a7c6-82c07b24aca4",
+      "canonical_financial_transaction_id": "1780f7f6-ffba-4c7a-9a46-f9b13418ec27"
+    },
+    {
+      "id": "ad993dc0-6aef-45c9-8b42-75c58e05a328",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "ee217efb-9950-4be7-b6bf-df481dd808a3",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "ad993dc0-6aef-45c9-8b42-75c58e05a328",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "3c62a80c-54c0-4a0f-bf09-27f8615d9497",
+      "event_type": "added",
+      "amount_cents": -3935,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "f8022c4a-0099-4fb7-b3d3-d353fe6a17e2"
+    },
+    {
+      "id": "f70bb2f5-d6e7-4809-a308-fb1f9cd6150a",
+      "event_type": "modified",
+      "amount_cents": -3935,
+      "supersedes_version_id": "3c62a80c-54c0-4a0f-bf09-27f8615d9497",
+      "canonical_financial_transaction_id": "f8022c4a-0099-4fb7-b3d3-d353fe6a17e2"
+    },
+    {
+      "id": "86e7c3b3-d265-4cf2-9cf9-0f087c4f189d",
+      "event_type": "added",
+      "amount_cents": -761,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "c103e3ed-415b-44a5-aa58-1e6838482d9f"
+    },
+    {
+      "id": "f17c7649-12d6-4797-a334-c04347f89050",
+      "event_type": "modified",
+      "amount_cents": -761,
+      "supersedes_version_id": "86e7c3b3-d265-4cf2-9cf9-0f087c4f189d",
+      "canonical_financial_transaction_id": "c103e3ed-415b-44a5-aa58-1e6838482d9f"
+    },
+    {
+      "id": "0f381dbe-206f-44cc-aa0f-6e243cfa41ab",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "1a215022-25ea-4b1c-8003-52ee11ed4c80",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "0f381dbe-206f-44cc-aa0f-6e243cfa41ab",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "fd97357b-d280-4e42-a493-3843073673c5",
+      "event_type": "added",
+      "amount_cents": -2650,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "8eaee6ce-3657-408f-81b4-3bb0654e05b7"
+    },
+    {
+      "id": "b9a44007-6550-4390-beb8-ff7cbbbe8182",
+      "event_type": "modified",
+      "amount_cents": -2650,
+      "supersedes_version_id": "fd97357b-d280-4e42-a493-3843073673c5",
+      "canonical_financial_transaction_id": "8eaee6ce-3657-408f-81b4-3bb0654e05b7"
+    },
+    {
+      "id": "87c1cb9d-408d-4532-88e2-bc4d7b500153",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "db992b4a-e063-4e3f-9ed1-3dfc5123960c",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "87c1cb9d-408d-4532-88e2-bc4d7b500153",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "fb533a25-4c6d-4976-b8cd-ac1a59714041",
+      "event_type": "added",
+      "amount_cents": -1957,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "75161d0a-5ad9-4dca-abea-656dafef359d"
+    },
+    {
+      "id": "dde41c46-f8b6-4a94-83ff-71ad59a7c51e",
+      "event_type": "modified",
+      "amount_cents": -1957,
+      "supersedes_version_id": "fb533a25-4c6d-4976-b8cd-ac1a59714041",
+      "canonical_financial_transaction_id": "75161d0a-5ad9-4dca-abea-656dafef359d"
+    },
+    {
+      "id": "37e51c1c-90f9-4bce-804a-72bb9dacf3a2",
+      "event_type": "added",
+      "amount_cents": -6900,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "a9520ca0-d642-44cf-afc6-480b06463477"
+    },
+    {
+      "id": "53c34a9a-3cee-4df2-a3fe-70d2875063f6",
+      "event_type": "modified",
+      "amount_cents": -6900,
+      "supersedes_version_id": "37e51c1c-90f9-4bce-804a-72bb9dacf3a2",
+      "canonical_financial_transaction_id": "a9520ca0-d642-44cf-afc6-480b06463477"
+    },
+    {
+      "id": "9f44fd56-2e88-48b2-8183-b1b123d46fda",
+      "event_type": "added",
+      "amount_cents": -2000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "363d6a22-0956-4646-88b2-a3abe1892800"
+    },
+    {
+      "id": "40ef61c9-35b7-4d1e-87f2-aa70c5b450c7",
+      "event_type": "modified",
+      "amount_cents": -2000,
+      "supersedes_version_id": "9f44fd56-2e88-48b2-8183-b1b123d46fda",
+      "canonical_financial_transaction_id": "30acb24d-12ae-4a07-bc76-14b04cf5094c"
+    },
+    {
+      "id": "1dbe40b3-f85b-4b22-b535-6fe9a566695e",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "8179a367-d59d-49e0-9cf0-9f84bf8a5f36",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "1dbe40b3-f85b-4b22-b535-6fe9a566695e",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "a1c2f6e5-3435-45c5-87fa-f2a87c2b2681",
+      "event_type": "added",
+      "amount_cents": 12,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "0ac8eecd-eea5-47cd-88d9-44a169eaa942"
+    },
+    {
+      "id": "27bf64cf-8db7-4521-845f-a0f41ac71b51",
+      "event_type": "modified",
+      "amount_cents": 12,
+      "supersedes_version_id": "a1c2f6e5-3435-45c5-87fa-f2a87c2b2681",
+      "canonical_financial_transaction_id": "0ac8eecd-eea5-47cd-88d9-44a169eaa942"
+    },
+    {
+      "id": "804956e8-4143-4a05-84f2-b6459b5af564",
+      "event_type": "added",
+      "amount_cents": -10270,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "f2ca2ee1-6d08-484e-80f5-7e52d2e42459"
+    },
+    {
+      "id": "1e38b796-bb6b-43f8-9b12-614a9207a2d6",
+      "event_type": "modified",
+      "amount_cents": -10270,
+      "supersedes_version_id": "804956e8-4143-4a05-84f2-b6459b5af564",
+      "canonical_financial_transaction_id": "f2ca2ee1-6d08-484e-80f5-7e52d2e42459"
+    },
+    {
+      "id": "fd4905f4-350a-4be1-ba95-9cfe796de0d5",
+      "event_type": "added",
+      "amount_cents": -2000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "dcbbff14-9110-49b5-97d7-c8a9e7a4bf10"
+    },
+    {
+      "id": "755ae4d3-81fb-41cd-8d09-b4ba1bf4927f",
+      "event_type": "modified",
+      "amount_cents": -2000,
+      "supersedes_version_id": "fd4905f4-350a-4be1-ba95-9cfe796de0d5",
+      "canonical_financial_transaction_id": "a339b922-9b3f-41e6-8994-f818c6a4799f"
+    },
+    {
+      "id": "3c0ed921-052e-4cda-85d1-4bcf08b6e57f",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "cbd6a9ae-8f8c-4861-8668-b6070a28bd86",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "3c0ed921-052e-4cda-85d1-4bcf08b6e57f",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "05d950aa-a807-4baa-9c76-782dcb719134",
+      "event_type": "added",
+      "amount_cents": -1029,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "9c5ee73a-ac68-4f9d-9d1f-a386d440e25e"
+    },
+    {
+      "id": "b051d644-2f09-4e08-bd9f-e4f540c30567",
+      "event_type": "modified",
+      "amount_cents": -1029,
+      "supersedes_version_id": "05d950aa-a807-4baa-9c76-782dcb719134",
+      "canonical_financial_transaction_id": "9c5ee73a-ac68-4f9d-9d1f-a386d440e25e"
+    },
+    {
+      "id": "6d4b78a7-edaa-4286-8617-315330ebdcf6",
+      "event_type": "added",
+      "amount_cents": -1591,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "4a769629-450a-4275-ab8b-090023d88b76"
+    },
+    {
+      "id": "828b61dd-a3f1-4072-908b-5cd7757eb40c",
+      "event_type": "modified",
+      "amount_cents": -1591,
+      "supersedes_version_id": "6d4b78a7-edaa-4286-8617-315330ebdcf6",
+      "canonical_financial_transaction_id": "4a769629-450a-4275-ab8b-090023d88b76"
+    },
+    {
+      "id": "97fad3b9-d1ef-4b96-a39e-eb7b7ed51a84",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "87d4d2ae-f022-4d60-bcf8-315d7e4698d0",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "97fad3b9-d1ef-4b96-a39e-eb7b7ed51a84",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "1257941d-508f-4009-a8cd-28a124806a26",
+      "event_type": "added",
+      "amount_cents": -1265,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "0c88276e-544c-457c-9eb2-8889994ad99b"
+    },
+    {
+      "id": "e8074067-02ab-4d5c-a906-ba55a9ef82c6",
+      "event_type": "modified",
+      "amount_cents": -1265,
+      "supersedes_version_id": "1257941d-508f-4009-a8cd-28a124806a26",
+      "canonical_financial_transaction_id": "0c88276e-544c-457c-9eb2-8889994ad99b"
+    },
+    {
+      "id": "4d5dad3e-9b4f-4a96-9188-a7958b05c712",
+      "event_type": "added",
+      "amount_cents": -1957,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "51341db4-d41c-400d-8805-31f7400ebf01"
+    },
+    {
+      "id": "3e18211f-b081-43aa-9d3b-5771419c7b6a",
+      "event_type": "modified",
+      "amount_cents": -1957,
+      "supersedes_version_id": "4d5dad3e-9b4f-4a96-9188-a7958b05c712",
+      "canonical_financial_transaction_id": "98d0ad28-3855-4627-b496-eeb104c321db"
+    },
+    {
+      "id": "ee9e9a8f-b3bf-4b21-b983-7be25fd8768d",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "e0fd3120-85b4-4879-a56c-1da92de868b9"
+    },
+    {
+      "id": "f3667a6e-c474-4903-8f91-bec96a863cd8",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "ee9e9a8f-b3bf-4b21-b983-7be25fd8768d",
+      "canonical_financial_transaction_id": "f5ba73c3-814b-4dc8-bd0f-9c9a6a48b3e0"
+    },
+    {
+      "id": "4322b70c-e51c-4486-8c6e-3c2dba2c0b60",
+      "event_type": "added",
+      "amount_cents": -383,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "00e64f2b-7fcc-4e12-9fbd-5fef09fa3d18"
+    },
+    {
+      "id": "15736259-f4f4-4bb1-95bf-bd81495f9c78",
+      "event_type": "modified",
+      "amount_cents": -383,
+      "supersedes_version_id": "4322b70c-e51c-4486-8c6e-3c2dba2c0b60",
+      "canonical_financial_transaction_id": "00e64f2b-7fcc-4e12-9fbd-5fef09fa3d18"
+    },
+    {
+      "id": "0bc5133f-0017-4fbb-9a2b-89d796d20c1d",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "ea59f595-226e-404b-bea4-7dfba290fac0",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "0bc5133f-0017-4fbb-9a2b-89d796d20c1d",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "5f0804cf-7e05-4930-bf25-69a3727eef6c",
+      "event_type": "added",
+      "amount_cents": -1234,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "be42390f-ec90-405d-8a44-f87b5e4d1a2d"
+    },
+    {
+      "id": "7a828e39-48ac-4fd5-8b66-311dc71fc96c",
+      "event_type": "added",
+      "amount_cents": -16650,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "474a9a90-b304-42d0-b750-bc30aede35eb"
+    },
+    {
+      "id": "a7196592-cee3-4946-b138-c1418ae12380",
+      "event_type": "modified",
+      "amount_cents": -16650,
+      "supersedes_version_id": "7a828e39-48ac-4fd5-8b66-311dc71fc96c",
+      "canonical_financial_transaction_id": "474a9a90-b304-42d0-b750-bc30aede35eb"
+    },
+    {
+      "id": "a86ec6e0-d252-48f5-bbef-ce1042cb318e",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "28fb00a5-9fed-4d61-9792-9129921a668c",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "a86ec6e0-d252-48f5-bbef-ce1042cb318e",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "7b38d9f0-a9fb-4cb0-bcd9-9e4f95c1b675",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "d4467d3f-9936-4e29-b8fa-5bf5d38e4cb5",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "7b38d9f0-a9fb-4cb0-bcd9-9e4f95c1b675",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "5d88969f-9fae-470a-8859-cfe5837922c2",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "2891a86b-1609-432a-a9ee-22e19b212e5c"
+    },
+    {
+      "id": "f988be69-07df-46be-bc68-0939db26e20c",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "5d88969f-9fae-470a-8859-cfe5837922c2",
+      "canonical_financial_transaction_id": "52090bf8-49c7-4868-821a-c7069af84292"
+    },
+    {
+      "id": "c849ac84-bbda-44d0-bdaa-97624616d7ec",
+      "event_type": "added",
+      "amount_cents": -2155,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "d7317b4c-255d-4975-9379-8becf95f442a"
+    },
+    {
+      "id": "d3287b5a-8fa2-4363-8052-964d7f8983f9",
+      "event_type": "modified",
+      "amount_cents": -2155,
+      "supersedes_version_id": "c849ac84-bbda-44d0-bdaa-97624616d7ec",
+      "canonical_financial_transaction_id": "d7317b4c-255d-4975-9379-8becf95f442a"
+    },
+    {
+      "id": "8910062d-f865-4225-9987-1be8c1afccbc",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "2fce3d9e-5d9a-4c2e-95f2-763140c88dd8",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "8910062d-f865-4225-9987-1be8c1afccbc",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "dad90a6d-2a0d-40e7-ae77-312a33ce49c3",
+      "event_type": "added",
+      "amount_cents": -2000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "678ae69f-98e5-4743-8548-745bdf8c0193"
+    },
+    {
+      "id": "46663a9c-2968-473f-baca-a7923f82ab5a",
+      "event_type": "modified",
+      "amount_cents": -2000,
+      "supersedes_version_id": "dad90a6d-2a0d-40e7-ae77-312a33ce49c3",
+      "canonical_financial_transaction_id": "9516d645-3bd1-45d2-a6a2-0998fa0ec1eb"
+    },
+    {
+      "id": "b6b5d6a2-13cf-4dcb-8e0b-f481f85524ae",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "1768be29-845d-4f10-84da-d66bdb952d96"
+    },
+    {
+      "id": "ca478207-a4d4-464f-b274-140b33e42b73",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "b6b5d6a2-13cf-4dcb-8e0b-f481f85524ae",
+      "canonical_financial_transaction_id": "1768be29-845d-4f10-84da-d66bdb952d96"
+    },
+    {
+      "id": "afd959b8-2aff-4b51-bed6-532829db0d77",
+      "event_type": "added",
+      "amount_cents": -1350,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "e7881b76-2777-4559-b7d9-df318db98dce"
+    },
+    {
+      "id": "be7984a4-9cbc-4590-a492-04d6ef4aa7fe",
+      "event_type": "modified",
+      "amount_cents": -1350,
+      "supersedes_version_id": "afd959b8-2aff-4b51-bed6-532829db0d77",
+      "canonical_financial_transaction_id": "e7881b76-2777-4559-b7d9-df318db98dce"
+    },
+    {
+      "id": "f4d1b4f2-2474-499c-8cbd-e593c6a29511",
+      "event_type": "added",
+      "amount_cents": -2000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "ff9e3115-3150-407e-9400-030e3c33875f"
+    },
+    {
+      "id": "53a0625b-9d9f-4044-b736-d4f0afeef2df",
+      "event_type": "modified",
+      "amount_cents": -2000,
+      "supersedes_version_id": "f4d1b4f2-2474-499c-8cbd-e593c6a29511",
+      "canonical_financial_transaction_id": "ff9e3115-3150-407e-9400-030e3c33875f"
+    },
+    {
+      "id": "3df045d2-aa5f-4b6f-9ab9-a88c89fa0738",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "b4f6fdf8-b3ef-4b5d-8188-d18b075479b7",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "3df045d2-aa5f-4b6f-9ab9-a88c89fa0738",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "2cd8e411-eec1-4c74-b5bf-a987e4630187",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "7a9a6a69-df58-47b1-9ce9-15a92c1872de",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "2cd8e411-eec1-4c74-b5bf-a987e4630187",
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "4df76109-5ce1-4d8d-9b71-7d15399d254d",
+      "event_type": "added",
+      "amount_cents": -2000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "86c395d5-fc59-4a01-81b0-9edb32f017c6"
+    },
+    {
+      "id": "eaf6a92c-faf3-48a4-8f68-49607ec4c17e",
+      "event_type": "modified",
+      "amount_cents": -2000,
+      "supersedes_version_id": "4df76109-5ce1-4d8d-9b71-7d15399d254d",
+      "canonical_financial_transaction_id": "86c395d5-fc59-4a01-81b0-9edb32f017c6"
+    },
+    {
+      "id": "8a2672ea-4617-4336-ba04-43ca5ecd0b39",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "66cc0c11-a4a2-47ee-b28d-e65df0d18f3c"
+    },
+    {
+      "id": "cfe3c584-a97a-408a-84f7-9e98f7e9704a",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "8a2672ea-4617-4336-ba04-43ca5ecd0b39",
+      "canonical_financial_transaction_id": "e34d8546-2d54-4e09-a0bf-e770e54a125b"
+    },
+    {
+      "id": "e5cb31e1-a3f5-4460-8da8-81ab2bb7e9df",
+      "event_type": "added",
+      "amount_cents": -1234,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "5560c92a-fab7-451b-a905-6e4bea053855"
+    },
+    {
+      "id": "32a84d6e-463a-4d83-ac71-bc4bb1c86edb",
+      "event_type": "added",
+      "amount_cents": 12,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "55dad5da-3393-4f38-b3a4-bbb16567ad14"
+    },
+    {
+      "id": "31b75fca-22eb-4d91-a912-fe5b8532e97e",
+      "event_type": "modified",
+      "amount_cents": 12,
+      "supersedes_version_id": "32a84d6e-463a-4d83-ac71-bc4bb1c86edb",
+      "canonical_financial_transaction_id": "85bccc2a-733b-4f77-8433-a9a468455f53"
+    },
+    {
+      "id": "12ace0e7-8061-476a-a495-b9d4c02b7fdc",
+      "event_type": "added",
+      "amount_cents": 81000,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "7590d41a-eef0-43f9-aea8-d467a7f21161"
+    },
+    {
+      "id": "be65eb87-6788-4d28-bb1f-943266882e6a",
+      "event_type": "modified",
+      "amount_cents": 81000,
+      "supersedes_version_id": "12ace0e7-8061-476a-a495-b9d4c02b7fdc",
+      "canonical_financial_transaction_id": "8a83d10f-fe5c-4a2b-a5f7-7ea613402cad"
+    },
+    {
+      "id": "e2be2497-89c5-4382-b3f4-261de7cfde08",
+      "event_type": "added",
+      "amount_cents": -1128,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": "4da51a59-ca12-4cef-b887-e8cc8a2bdb85"
+    },
+    {
+      "id": "96239ecf-b12e-492a-9942-badcdf91c27b",
+      "event_type": "modified",
+      "amount_cents": -1128,
+      "supersedes_version_id": "e2be2497-89c5-4382-b3f4-261de7cfde08",
+      "canonical_financial_transaction_id": "4da51a59-ca12-4cef-b887-e8cc8a2bdb85"
+    },
+    {
+      "id": "31076698-0839-4536-8dcc-e14db01eecc2",
+      "event_type": "added",
+      "amount_cents": null,
+      "supersedes_version_id": null,
+      "canonical_financial_transaction_id": null
+    },
+    {
+      "id": "a54a85e4-cdf0-4858-9344-2a3fde56d951",
+      "event_type": "modified",
+      "amount_cents": null,
+      "supersedes_version_id": "31076698-0839-4536-8dcc-e14db01eecc2",
+      "canonical_financial_transaction_id": null
+    }
+  ],
+  "observedAt": "2026-09-21T18:05:54.223Z"
+}

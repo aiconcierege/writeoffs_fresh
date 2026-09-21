@@ -23,6 +23,8 @@ export type PlaidTransactionEvent = {
   original_description: string | null
   pending: boolean | null
   payment_channel: string | null
+  rejection_reason?: string
+  raw_source?: Record<string, unknown>
   provider_evidence: Record<string, unknown>
 }
 

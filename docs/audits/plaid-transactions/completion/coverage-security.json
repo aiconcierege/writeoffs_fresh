@@ -1,0 +1,7 @@
+{
+  "ownAccounts": 2,
+  "crossTenantCoverageIsolated": true,
+  "quarantineEvidenceIsolated": true,
+  "mfaRequired": true,
+  "unauthenticatedStatus": 401
+}

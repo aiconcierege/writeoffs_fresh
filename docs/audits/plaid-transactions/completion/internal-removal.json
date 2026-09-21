@@ -1,0 +1,17 @@
+{
+  "kind": "INTERNAL DETERMINISTIC TEST — not provider removal",
+  "beforeExpenses": 20800,
+  "afterExpenses": 10400,
+  "removedExpenseCents": 10400,
+  "homeEqualsReports": true,
+  "transactionsExcluded": true,
+  "questionExcluded": true,
+  "staleWriteRejected": true,
+  "replayDuplicates": 2,
+  "retainedVersions": 4,
+  "index": {
+    "published": 1,
+    "conflicted": 0,
+    "failed": 0
+  }
+}

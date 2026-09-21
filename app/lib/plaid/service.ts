@@ -7,7 +7,7 @@ import { createServerAdminSupabase } from '../../../utils/supabase/admin'
 import { createPlaidGateway, newItemLinkRequest, updateModeLinkRequest } from './client'
 import { requirePlaidConfig, requirePlaidLink } from './config'
 import { decryptPlaidAccessToken, encryptPlaidAccessToken } from './token-crypto'
-import { normalizePlaidAccount, normalizePlaidRemoval, normalizePlaidTransaction } from './normalize'
+import { normalizePlaidAccount, normalizePlaidRemoval, normalizePlaidSyncTransaction } from './normalize'
 import type { PlaidGateway, PlaidTransactionEvent } from './types'
 
 type Row = Record<string, unknown>
@@ -133,7 +133,7 @@ export async function exchangePlaidPublicToken(input: {
   }
 }
 
-async function fetchCompleteSync(input: {
+export async function fetchCompleteSync(input: {
   gateway: PlaidGateway
   accessToken: string
   startingCursor?: string
@@ -145,8 +145,8 @@ async function fetchCompleteSync(input: {
       for (let pageNumber = 0; pageNumber < 100; pageNumber += 1) {
         const page = await input.gateway.syncTransactions(input.accessToken, cursor)
         events.push(
-          ...page.added.map((value) => normalizePlaidTransaction(value, 'added')),
-          ...page.modified.map((value) => normalizePlaidTransaction(value, 'modified')),
+          ...page.added.map((value) => normalizePlaidSyncTransaction(value, 'added')),
+          ...page.modified.map((value) => normalizePlaidSyncTransaction(value, 'modified')),
           ...page.removed.map(normalizePlaidRemoval),
         )
         cursor = page.next_cursor
@@ -179,7 +179,7 @@ export async function syncPlaidItem(itemRecordId: string, suppliedGateway?: Plai
     const accessToken = decryptPlaidAccessToken(String(claim.access_token_ciphertext))
     const [accountsResponse, sync] = await Promise.all([
       gateway.getAccounts(accessToken),
-      fetchCompleteSync({ gateway, accessToken, startingCursor: claim.sync_cursor as string | undefined }),
+      fetchCompleteSync({ gateway, accessToken, startingCursor: typeof claim.sync_cursor === 'string' ? claim.sync_cursor : undefined }),
     ])
     const accounts = accountsResponse.accounts.map(normalizePlaidAccount).filter((value) => value !== null)
     if (!accounts.length) throw new Error('NO_SUPPORTED_ACCOUNTS')

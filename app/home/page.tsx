@@ -1,3 +1,5 @@
+import {SourceCoverageNotice} from '../components/SourceCoverageNotice'
+import {loadSourceCoverage} from '../lib/bookkeeping/source-coverage-loader'
 import {requestUser} from '../lib/performance/request-identity'
 import {timedRender} from '../lib/performance/request-timing'
 import {WorkRefresh} from '../components/WorkRefresh'
@@ -27,16 +29,19 @@ async function HomePage(){
  if(!membership.businessId)redirect('/membership')
  const needsSetup=businessResult.data?onboardingNeedsFollowUp(businessResult.data as OnboardingBusinessData):true
  if(needsSetup)redirect('/onboarding')
- const[summary,work,recentActivity]=await Promise.all([
+ const[summary,work,recentActivity,coverage]=await Promise.all([
   getAuthenticatedCanonicalReport({supabase,periodStart:coveredStart,periodEnd:today,currency:'USD'}),
   loadBettiWork({db:supabase,businessId:membership.businessId,scope:membership.plan??'expenses',processingEnabled:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'})
    .catch(()=>{console.error('HOME_WORK_PROJECTION_UNAVAILABLE');return null}),
   getHomeRecentActivity(supabase,user.id,coveredStart,today),
+  loadSourceCoverage(supabase).catch(()=>null),
  ])
- const betti=work?homeCommand(work,businessResult.data?.onboarding_start_method??null):unavailableHomeCommand
+ let betti=work?homeCommand(work,businessResult.data?.onboarding_start_method??null):unavailableHomeCommand
+ if(coverage?.needsRecords&&betti.state==='caught-up')betti={...betti,state:'waiting',heading:'Your available records are organized.',supporting:'Send me statements for the missing months and I’ll work on those too.'}
  const dateLabel=(day:string)=>new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}).format(new Date(`${day}T00:00:00Z`))
  return <div className="home-page home-command-center wo-experience" data-customer-action-count={work?.customer.actionableCount}><WorkRefresh active={!work||Boolean(work.betti.jobs.length)}/><div className="home-shell">
   <HomeBettiHero projection={betti}/>
+  <SourceCoverageNotice coverage={coverage}/>
   {betti.education&&<p className="home-first-use">{betti.education}</p>}
 
   <section className="home-financial home-business-snapshot" aria-labelledby="financial-heading"><div className="home-section-heading"><div><p className="home-kicker">Your business</p><h2 id="financial-heading">Your working books</h2><p>{dateLabel(coveredStart)} – {dateLabel(today)}</p></div><Link href="/reports">See reports <span aria-hidden="true">→</span></Link></div><FinancialRelationship business={isBusiness} income={summary.businessIncomeCents} expenses={summary.businessExpensesCents} profit={summary.businessProfitCents}/><p className="home-working-note">Based on the records available so far. Tax-time deductions are tracked separately.</p>{!isBusiness&&<p className="home-help-copy">Your Expenses membership organizes business spending. Income and profit are outside its reporting scope.</p>}</section>

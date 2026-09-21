@@ -1,0 +1,50 @@
+{
+  "realUpload": true,
+  "documentId": "7bd4fca2-953c-423c-afc9-8fcd193ab00c",
+  "accountId": "bdbb7562-1c60-44a9-bf79-f1624473f199",
+  "before": {
+    "id": "bdbb7562-1c60-44a9-bf79-f1624473f199",
+    "name": "Plaid checking",
+    "mask": "7064",
+    "bank": {
+      "from": "2026-03-21",
+      "through": "2026-09-21"
+    },
+    "quarantined": 35,
+    "recordsNeeded": [
+      {
+        "from": "2024-02-01",
+        "through": "2026-03-20"
+      }
+    ],
+    "unconfirmed": [
+      {
+        "from": "2024-02-01",
+        "through": "2026-09-21"
+      }
+    ]
+  },
+  "after": {
+    "id": "bdbb7562-1c60-44a9-bf79-f1624473f199",
+    "name": "Plaid checking",
+    "mask": "7064",
+    "bank": {
+      "from": "2026-03-21",
+      "through": "2026-09-21"
+    },
+    "quarantined": 35,
+    "recordsNeeded": [
+      {
+        "from": "2024-02-01",
+        "through": "2026-03-20"
+      }
+    ],
+    "unconfirmed": [
+      {
+        "from": "2024-02-01",
+        "through": "2026-09-21"
+      }
+    ]
+  },
+  "duplicateDocumentSameId": true
+}

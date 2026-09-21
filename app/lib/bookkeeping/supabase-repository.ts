@@ -649,7 +649,10 @@ export class SupabaseBookkeepingRepository
         const links=sources.filter(r=>r.bookkeeping_record_id===event.bookkeepingRecordId)
         if(links.length>1)fail('map bookkeeping review issue',{message:'multiple active financial sources'})
         const sourceId=links[0]?requiredString(links[0],'financial_transaction_id'):null,source=sourceId?financialMap.get(sourceId):null
-        if(sourceId&&(!source||!plaidFinancialTransactionIsCurrent({id:sourceId,state:plaidState})))fail('map bookkeeping review issue',{message:'active financial source is missing'})
+        if(sourceId&&!source)fail('map bookkeeping review issue',{message:'active financial source is missing'})
+        // Provider revisions retain their historical questions. A removed or
+        // superseded source is no longer customer work, not a broken relation.
+        if(sourceId&&!plaidFinancialTransactionIsCurrent({id:sourceId,state:plaidState}))continue
         const record=mapRecord(source?{...row,authoritative_amount_cents:Number(source.amount_cents),authoritative_currency:source.currency}:row)
         result.push({event,record,decision:mapDecision(decision,allocations.filter(a=>a.bookkeeping_decision_id===decision.id).map(a=>({
           kind:requiredString(a,'allocation_kind') as BookkeepingDecisionInput['allocations'][number]['kind'],amountCents:Number(a.amount_cents),taxCategoryKey:nullableString(a,'tax_category_key'),memo:nullableString(a,'memo'),
