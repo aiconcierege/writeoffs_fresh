@@ -1,0 +1,75 @@
+{
+  "realSandbox": true,
+  "providerResponse": {
+    "request_id": "9a6b2c8990d6c65",
+    "webhook_fired": true
+  },
+  "itemRecordId": "76a9afbf-9872-4989-ac54-57662174bfe8",
+  "webhook": {
+    "id": "45fe8748-f460-4f76-92fe-d5949f5e4f02",
+    "webhook_type": "ITEM",
+    "webhook_code": "NEW_ACCOUNTS_AVAILABLE",
+    "received_at": "2026-09-21T20:07:45.936909+00:00",
+    "processed_at": "2026-09-21T20:07:45.936909+00:00"
+  },
+  "before": [
+    {
+      "id": "2a327783-e9cd-4af5-ab69-30d19e47d6f8",
+      "connection_status": "reconnect_required",
+      "consent_status": "active",
+      "update_reason": "ITEM_LOGIN_REQUIRED",
+      "new_accounts_available": false,
+      "update_state_version": 1,
+      "last_successful_sync_at": "2026-09-21T19:36:00.972954+00:00",
+      "hasCursor": true
+    },
+    {
+      "id": "76a9afbf-9872-4989-ac54-57662174bfe8",
+      "connection_status": "needs_attention",
+      "consent_status": "active",
+      "update_reason": null,
+      "new_accounts_available": false,
+      "update_state_version": 10,
+      "last_successful_sync_at": "2026-09-21T19:53:04.229013+00:00",
+      "hasCursor": true
+    }
+  ],
+  "after": [
+    {
+      "id": "2a327783-e9cd-4af5-ab69-30d19e47d6f8",
+      "connection_status": "reconnect_required",
+      "consent_status": "active",
+      "update_reason": "ITEM_LOGIN_REQUIRED",
+      "new_accounts_available": false,
+      "update_state_version": 1,
+      "last_successful_sync_at": "2026-09-21T19:36:00.972954+00:00",
+      "hasCursor": true
+    },
+    {
+      "id": "76a9afbf-9872-4989-ac54-57662174bfe8",
+      "connection_status": "needs_attention",
+      "consent_status": "active",
+      "update_reason": null,
+      "new_accounts_available": true,
+      "update_state_version": 11,
+      "last_successful_sync_at": "2026-09-21T19:53:04.229013+00:00",
+      "hasCursor": true
+    }
+  ],
+  "authorizedAccountsBefore": [
+    {
+      "plaid_account_id": "LLXQgy3LjxUyl56Wdgp7TRkdXrqAamCDenmlo"
+    },
+    {
+      "plaid_account_id": "NoXMAbdowaFeX5J14B8dhgZ1jP4BGjc7BDQeP"
+    }
+  ],
+  "authorizedAccountsAfter": [
+    {
+      "plaid_account_id": "LLXQgy3LjxUyl56Wdgp7TRkdXrqAamCDenmlo"
+    },
+    {
+      "plaid_account_id": "NoXMAbdowaFeX5J14B8dhgZ1jP4BGjc7BDQeP"
+    }
+  ]
+}

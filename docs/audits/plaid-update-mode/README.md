@@ -2,13 +2,13 @@
 
 ## Release decision
 
-**NO — do not mark “Build update mode” complete yet.**
+**YES — “Build update mode” is ready to mark complete.**
 
-The existing architecture was extended and the main Update Mode flows passed on public dedicated staging. Certification also found a real API MFA gap. Its correction passes locally against staging, but the final candidate still needs deployment and public security recertification. Automatic approval review rejected a second Vercel `--prod` deployment even after the project binding was verified. An explicit approval request for the dedicated staging primary slot is pending. No workaround deployment or indirect push was used.
+The existing architecture was extended and certified on public dedicated staging. The API MFA gap discovered during certification is now fixed and publicly retested: all four customer Plaid APIs reject AAL1 requests with HTTP 403. Real Sandbox Link account authorization and prompt dismissal passed on the final build while an unrelated bank remained broken.
 
 Public staging: https://writeoffs-fresh-staging.vercel.app
 
-Already deployed intermediate candidate: `https://writeoffs-fresh-staging-hkqeummay-ricks-projects-3ba59ab5.vercel.app`, deployment `dpl_6RQUqPtsmva5Ew66boZqvq7sBCdc`, dedicated project `prj_o56739F1pzd0TjFirEYoLMaa6oIJ` (`writeoffs-fresh-staging`). This is **not** the final release: MFA enforcement, final prompt cleanup, and Home read resilience are local changes awaiting deployment.
+Final application release: commit `f4e5036`, deployment `dpl_3ehgFBYkNVy8bvgo1Pm6U14ET87Y`, `https://writeoffs-fresh-staging-aaclck0zs-ricks-projects-3ba59ab5.vercel.app`, dedicated project `prj_o56739F1pzd0TjFirEYoLMaa6oIJ`. Rick explicitly approved this dedicated staging primary-slot deployment. The application build passed Vercel’s optimized Turbopack build.
 
 Main, real Production, Rick’s customer, `days_requested = 730`, historical coverage policy, and the Transactions Refresh policy were not changed. No `/transactions/refresh` call was made for this task.
 
@@ -38,10 +38,10 @@ Main, real Production, Rick’s customer, `days_requested = 730`, historical cov
 
 | Requirement | Existing implementation | Correction | Real Sandbox evidence | Internal evidence | Result |
 |---|---|---|---|---|---|
-| 1. Activate entry point | Item errors and pending notices recorded; Settings had generic review | Durable reasons, Home entry point, Item-specific buttons | Genuine `reset_login` → signed ERROR; genuine PENDING_DISCONNECT | PENDING_EXPIRATION state, stale notice and version tests | Functional PASS; final security release pending |
-| 2. Messaging and UI | Generic Settings status; no Home prompt | Shared calm copy, affected-connection link, explicit MFA, read-failure resilience | Public Home/Settings screenshots, actual Link launches | Shared copy tests, all four MFA guards, bounded Home read test | PARTIAL until final public deploy |
-| 3. Dismiss prompts | Account flag cleared; login/error state depended on subsequent sync | Atomic completion, version guard, direct refresh, LOGIN_REPAIRED clearing and sync | Real login repair; renewal; external provider repair followed by genuine LOGIN_REPAIRED | Replay, concurrent newer notice, revoked/deleted/disconnected guards | Functional PASS; final UI/security release pending |
-| 4. New accounts | Existing flag and account-selection request | Preserve existing flow; prevent generic re-repair loop after account authorization changes | Genuine NEW_ACCOUNTS_AVAILABLE → Link account selection → authorization → Item-specific sync, while bank B remains broken | Selection disabled for normal repair, ownership and replay tests | Functional PASS; final prompt/security release pending |
+| 1. Activate entry point | Item errors and pending notices recorded; Settings had generic review | Durable reasons, Home entry point, Item-specific buttons | Genuine `reset_login` → signed ERROR; genuine PENDING_DISCONNECT | PENDING_EXPIRATION state, stale notice and version tests | PASS |
+| 2. Messaging and UI | Generic Settings status; no Home prompt | Shared calm copy, affected-connection link, explicit MFA, read-failure resilience | Public Home/Settings screenshots, actual Link launches | Shared copy tests, all four MFA guards, bounded Home read test | PASS |
+| 3. Dismiss prompts | Account flag cleared; login/error state depended on subsequent sync | Atomic completion, version guard, direct refresh, LOGIN_REPAIRED clearing and sync | Real login repair; renewal; external provider repair followed by genuine LOGIN_REPAIRED | Replay, concurrent newer notice, revoked/deleted/disconnected guards | PASS |
+| 4. New accounts | Existing flag and account-selection request | Preserve existing flow; prevent generic re-repair loop after account authorization changes | Genuine NEW_ACCOUNTS_AVAILABLE → Link account selection → authorization → Item-specific sync, while bank B remains broken | Selection disabled for normal repair, ownership and replay tests | PASS |
 
 ## Real provider/browser evidence
 
@@ -67,13 +67,22 @@ The Sandbox new-account scenario replaced the set of accounts shared with WriteO
 ## Security and deterministic checks
 
 - [Local route tests against staging identities](evidence/security-local-staging-db.json): foreign Item token HTTP 503; foreign repair HTTP 502; AAL1 HTTP 403 for all four customer APIs; unsigned webhook HTTP 401; direct credential-table read and service-only completion RPC denied. Item versions unchanged.
-- **Those MFA results are local, not public-staging results.** The intermediate public candidate still returned HTTP 200 to the AAL1 Link-token test; the final correction has not yet been deployed.
+- [Final public security recertification](evidence/security-public-staging.json): all four APIs return HTTP 403 without MFA; cross-tenant token/repair denied; unsigned webhook HTTP 401; service RPC and credentials denied; Item versions unchanged. The earlier intermediate-build AAL1 finding is closed.
+- [Final genuine new-account webhook](evidence/new-accounts-final-webhook.json) and [final browser authorization](evidence/new-accounts-final-completion.json): prompt cleared on the same page, provider authorization verified, A sync resumed, B unchanged.
 - [Rollback-only database assertions](state-certification.sql): expiration/disconnect survive ordinary sync, duplicate completion, exact webhook replay, stale signed notice, stale completion after a newer notice, login repair and sync, different-Item isolation, pending deletion, disconnected Item.
 - Existing Transactions rollback regression rerun successfully after the migration: initial cursor, modified source revisions, replay, quarantined malformed amount, removal, membership/deletion guards. [Execution result](evidence/transactions-rollback-regression.json); the SQL raises on any failed assertion and ended successfully with rollback.
 - Webhook persistence uses issued-at from the already-verified JWT, overriding any body-supplied value. This does not invent a Plaid event sequence number: a newly signed, newly delivered notification is still treated as current evidence. Exact duplicates and older signed notices are covered.
 - Provider errors/logging remain fixed-code/safe metadata only. No credentials in evidence files or browser responses. No access token or client secret was moved to client code.
 
+## Final public recertification
+
+[Bank B credential repair](evidence/login-final-completion.json) also passed on the final application build: HTTP 200, prompt removed without re-entry, provider healthy, cursor retained, B sync resumed, and A state/version/last-sync unchanged.
+
 ## Screenshots reviewed
+
+Final build: [Home mobile](evidence/final-home-390.png), [Home desktop](evidence/final-home-1280.png), [Bank connections mobile](evidence/final-banking-390.png), [Bank connections desktop](evidence/final-banking-1280.png). All four were opened and visually inspected. They show Bank B’s reconnect prompt while Bank A’s completed account authorization no longer has a repair button.
+
+Earlier proactive-renewal state:
 
 - [Home mobile renewal](evidence/home-renew-mobile.png)
 - [Home desktop renewal](evidence/home-renew-desktop.png)
@@ -86,18 +95,19 @@ The notice is restrained and separate from the financial hero; it names the affe
 
 - Full Vitest: **1,816 passed, 143 skipped** (251 passed files, 42 environment-gated files skipped).
 - TypeScript: passed.
-- Optimized local Webpack build: passed. The earlier intermediate staging candidate also passed Vercel’s default optimized build. Final Vercel build/public verification remain pending.
+- Optimized local Webpack build: passed. The final staging application candidate passed Vercel’s default optimized Turbopack build and public security/browser verification.
 - Lint: 0 errors, 16 existing warnings; no new warnings.
 - Production dependency audit: 0 vulnerabilities. Full dependency audit: 2 existing moderate development-tool advisories, 0 high/critical.
-- Focused rollback tests and real Sandbox tests described above passed, except the explicitly documented unsupported expiration trigger and the discovered public AAL1 gap awaiting deployment.
+- Focused rollback tests and real Sandbox tests described above passed, with the expiration trigger limitation explicitly distinguished from a real provider event. The public AAL1 finding is fixed and recertified.
 - Secret scan: no leaks in the staged diff. `git diff --check`: passed. [Validation evidence](evidence/validation.json).
 
-## Remaining release steps
+## Plaid Dashboard action
 
-1. Resolve automatic approval review’s dedicated-staging-primary-slot block (approval request already sent).
-2. Push the locally committed, reviewed final candidate to `v2-onboarding-staging` as authorized; deploy only `writeoffs-fresh-staging`, main and real Production untouched.
-3. Publicly rerun MFA/tenant checks, repair prompt dismissal, new-account authorization, and Home smoke against the final build.
-4. Only after those pass, mark **“Build update mode”** complete in Plaid Launch Center. No additional Dashboard configuration change has been identified for these four capabilities.
+Rick can mark all four items under **“Build update mode”** complete. No additional Plaid Dashboard configuration change is required by this certification. The unsupported Sandbox expiration trigger remains clearly separated from the internal condition test and real Link completion.
+
+## Release validation note
+
+The pre-push hook repeats the complete CI command, including local default Turbopack, which hits the existing macOS sandbox port-binding limitation. Full tests, typecheck, lint, local optimized Webpack build, security checks, and the exact application commit’s Vercel Turbopack build passed separately. The staging push uses a one-time hook bypass; the hook itself is unchanged.
 
 ## Official references
 

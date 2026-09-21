@@ -19,6 +19,7 @@
   },
   "secretScan": "PASS \u2014 staged diff, no leaks",
   "gitDiffCheck": "PASS",
-  "publicFinalCandidate": "PENDING dedicated staging primary-slot approval",
-  "securityPublic": "AAL1 gap observed; fixed locally, final public recertification pending"
+  "publicFinalCandidate": "PASS \u2014 dpl_3ehgFBYkNVy8bvgo1Pm6U14ET87Y, application commit f4e5036",
+  "securityPublic": "PASS \u2014 all four customer APIs deny AAL1 with 403; tenant/signature/credential checks pass",
+  "vercelOptimizedTurbopackBuild": "PASS"
 }
