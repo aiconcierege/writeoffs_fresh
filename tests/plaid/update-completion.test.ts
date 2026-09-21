@@ -8,17 +8,28 @@ const itemId = '11111111-1111-4111-8111-111111111111'
 function fixture(item: unknown = { id: itemId, access_token_ciphertext: 'encrypted' }) {
   const table = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), neq: vi.fn().mockReturnThis(),
     maybeSingle: vi.fn().mockResolvedValue({ data: item }), update: vi.fn().mockReturnThis() }
-  m.admin.mockReturnValue({ from: () => table })
+  const rpc = vi.fn().mockResolvedValue({ data: true, error: null })
+  m.admin.mockReturnValue({ from: () => table, rpc })
   const supabase = { auth: { getUser: async () => ({ data: { user: { id: 'owner' } } }) }, from: () => ({
     select: () => ({ eq: () => ({ single: async () => ({ data: { id: 'owned-business' } }) }) }),
   }) }
-  return { table, supabase: supabase as never }
+  return { table, rpc, supabase: supabase as never }
 }
 beforeEach(() => { vi.clearAllMocks(); m.accounts.mockResolvedValue({ accounts: [], item: { error: null } }); m.decrypt.mockReturnValue('private') })
 describe('Plaid update-mode completion', () => {
+  it('rejects a newer notice arriving during Link instead of clearing it', async () => {
+    const { rpc, supabase } = fixture()
+    rpc.mockResolvedValue({ data: false })
+    await expect(completePlaidUpdate({ supabase, itemRecordId: itemId, expectedVersion: 2 })).rejects.toThrow('ITEM_UPDATE_CHANGED')
+  })
+  it('requires a version from the launched update session', async () => {
+    const { supabase } = fixture()
+    await expect(completePlaidUpdate({ supabase, itemRecordId: itemId, expectedVersion: NaN })).rejects.toThrow('INVALID_UPDATE_VERSION')
+    expect(m.accounts).not.toHaveBeenCalled()
+  })
   it('requires the authenticated business to own the Item', async () => {
     const { table, supabase } = fixture(null)
-    await expect(completePlaidUpdate({ supabase, itemRecordId: itemId })).rejects.toThrow('ITEM_NOT_FOUND')
+    await expect(completePlaidUpdate({ supabase, itemRecordId: itemId, expectedVersion: 2 })).rejects.toThrow('ITEM_NOT_FOUND')
     expect(table.eq).toHaveBeenCalledWith('business_id', 'owned-business')
     expect(m.accounts).not.toHaveBeenCalled()
     expect(table.update).not.toHaveBeenCalled()
@@ -26,13 +37,13 @@ describe('Plaid update-mode completion', () => {
   it('does not clear consent state when provider access remains broken', async () => {
     const { table, supabase } = fixture()
     m.accounts.mockResolvedValue({ accounts: [], item: { error: { error_code: 'ITEM_LOGIN_REQUIRED' } } })
-    await expect(completePlaidUpdate({ supabase, itemRecordId: itemId })).rejects.toThrow('ITEM_ACCESS_UNAVAILABLE')
+    await expect(completePlaidUpdate({ supabase, itemRecordId: itemId, expectedVersion: 2 })).rejects.toThrow('ITEM_ACCESS_UNAVAILABLE')
     expect(table.update).not.toHaveBeenCalled()
   })
   it('clears the new-account prompt only after provider access succeeds', async () => {
-    const { table, supabase } = fixture()
-    await completePlaidUpdate({ supabase, itemRecordId: itemId })
-    expect(table.update).toHaveBeenCalledWith({ new_accounts_available: false, consent_status: 'active' })
+    const { table, rpc, supabase } = fixture()
+    await completePlaidUpdate({ supabase, itemRecordId: itemId, expectedVersion: 2 })
+    expect(rpc).toHaveBeenCalledWith('complete_plaid_update', { p_item_record_id: itemId, p_business_id: 'owned-business', p_expected_version: 2 })
     expect(table.neq).toHaveBeenCalledWith('connection_status', 'disconnected')
   })
 })

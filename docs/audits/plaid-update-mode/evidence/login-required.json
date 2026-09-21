@@ -1,0 +1,59 @@
+{
+  "realSandbox": true,
+  "providerResponse": {
+    "request_id": "9d5a3f6e6bc9d3f",
+    "reset_login": true
+  },
+  "itemRecordId": "76a9afbf-9872-4989-ac54-57662174bfe8",
+  "webhook": {
+    "id": "9fc58dc0-388a-4da7-918f-d3320bd87fab",
+    "webhook_type": "ITEM",
+    "webhook_code": "ERROR",
+    "received_at": "2026-09-21T19:37:40.953285+00:00",
+    "processed_at": "2026-09-21T19:37:40.953285+00:00"
+  },
+  "before": [
+    {
+      "id": "76a9afbf-9872-4989-ac54-57662174bfe8",
+      "connection_status": "updating",
+      "consent_status": "active",
+      "update_reason": null,
+      "new_accounts_available": false,
+      "update_state_version": 0,
+      "last_successful_sync_at": "2026-09-21T19:35:32.254268+00:00",
+      "hasCursor": true
+    },
+    {
+      "id": "2a327783-e9cd-4af5-ab69-30d19e47d6f8",
+      "connection_status": "connected",
+      "consent_status": "active",
+      "update_reason": null,
+      "new_accounts_available": false,
+      "update_state_version": 0,
+      "last_successful_sync_at": "2026-09-21T19:36:00.972954+00:00",
+      "hasCursor": true
+    }
+  ],
+  "after": [
+    {
+      "id": "2a327783-e9cd-4af5-ab69-30d19e47d6f8",
+      "connection_status": "connected",
+      "consent_status": "active",
+      "update_reason": null,
+      "new_accounts_available": false,
+      "update_state_version": 0,
+      "last_successful_sync_at": "2026-09-21T19:36:00.972954+00:00",
+      "hasCursor": true
+    },
+    {
+      "id": "76a9afbf-9872-4989-ac54-57662174bfe8",
+      "connection_status": "reconnect_required",
+      "consent_status": "active",
+      "update_reason": "ITEM_LOGIN_REQUIRED",
+      "new_accounts_available": false,
+      "update_state_version": 1,
+      "last_successful_sync_at": "2026-09-21T19:35:32.254268+00:00",
+      "hasCursor": true
+    }
+  ]
+}

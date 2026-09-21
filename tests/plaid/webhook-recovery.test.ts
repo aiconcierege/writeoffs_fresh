@@ -5,7 +5,7 @@ vi.mock('../../app/lib/plaid/service', () => ({ syncPlaidItem: m.sync }))
 vi.mock('../../app/lib/plaid/client', () => ({ createPlaidGateway: () => ({}) }))
 import { processPlaidWebhookSync } from '../../app/lib/plaid/webhooks'
 function fixture() {
-  const query = { update: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), is: vi.fn().mockReturnThis(),
+  const query = { in: vi.fn().mockReturnThis(), update: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), is: vi.fn().mockReturnThis(),
     lte: vi.fn().mockResolvedValue({ error: null }) }
   m.admin.mockReturnValue({ from: () => query })
   return query
@@ -30,5 +30,5 @@ it('completes only deliveries received before this successful sync began', async
   await processPlaidWebhookSync('item')
   expect(query.update.mock.calls[1][0]).toHaveProperty('processed_at')
   expect(query.lte.mock.calls[0]).toEqual(query.lte.mock.calls[1])
-  expect(query.eq).toHaveBeenCalledWith('webhook_code', 'SYNC_UPDATES_AVAILABLE')
+  expect(query.in).toHaveBeenCalledWith('webhook_code', ['SYNC_UPDATES_AVAILABLE', 'LOGIN_REPAIRED', 'UPDATE_COMPLETED'])
 })

@@ -1,3 +1,5 @@
+import {bankConnectionAttention} from '../lib/plaid/connection-attention'
+import {BankConnectionNotice} from '../components/BankConnectionNotice'
 import {SourceCoverageNotice} from '../components/SourceCoverageNotice'
 import {loadSourceCoverage} from '../lib/bookkeeping/source-coverage-loader'
 import {requestUser} from '../lib/performance/request-identity'
@@ -29,26 +31,28 @@ async function HomePage(){
  if(!membership.businessId)redirect('/membership')
  const needsSetup=businessResult.data?onboardingNeedsFollowUp(businessResult.data as OnboardingBusinessData):true
  if(needsSetup)redirect('/onboarding')
- const[summary,work,recentActivity,coverage]=await Promise.all([
-  getAuthenticatedCanonicalReport({supabase,periodStart:coveredStart,periodEnd:today,currency:'USD'}),
+ const[summary,work,recentActivity,coverage,connections]=await Promise.all([
+  getAuthenticatedCanonicalReport({supabase,periodStart:coveredStart,periodEnd:today,currency:'USD'}).catch(()=>{console.error('HOME_REPORT_UNAVAILABLE');return null}),
   loadBettiWork({db:supabase,businessId:membership.businessId,scope:membership.plan??'expenses',processingEnabled:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'})
    .catch(()=>{console.error('HOME_WORK_PROJECTION_UNAVAILABLE');return null}),
-  getHomeRecentActivity(supabase,user.id,coveredStart,today),
+  getHomeRecentActivity(supabase,user.id,coveredStart,today).catch(()=>{console.error('HOME_RECENT_ACTIVITY_UNAVAILABLE');return null}),
   loadSourceCoverage(supabase).catch(()=>null),
+  supabase.rpc('list_plaid_connections'),
  ])
  let betti=work?homeCommand(work,businessResult.data?.onboarding_start_method??null):unavailableHomeCommand
  if(coverage?.needsRecords&&betti.state==='caught-up')betti={...betti,state:'waiting',heading:'Your available records are organized.',supporting:'Send me statements for the missing months and I’ll work on those too.'}
  const dateLabel=(day:string)=>new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}).format(new Date(`${day}T00:00:00Z`))
- return <div className="home-page home-command-center wo-experience" data-customer-action-count={work?.customer.actionableCount}><WorkRefresh active={!work||Boolean(work.betti.jobs.length)}/><div className="home-shell">
+ return <div className="home-page home-command-center wo-experience" data-customer-action-count={work?.customer.actionableCount}><WorkRefresh active={!work||Boolean(work.betti.jobs.length)||Boolean(connections.data?.some(bankConnectionAttention))}/><div className="home-shell">
   <HomeBettiHero projection={betti}/>
+  <BankConnectionNotice connections={connections.data}/>
   <SourceCoverageNotice coverage={coverage}/>
   {betti.education&&<p className="home-first-use">{betti.education}</p>}
 
-  <section className="home-financial home-business-snapshot" aria-labelledby="financial-heading"><div className="home-section-heading"><div><p className="home-kicker">Your business</p><h2 id="financial-heading">Your working books</h2><p>{dateLabel(coveredStart)} – {dateLabel(today)}</p></div><Link href="/reports">See reports <span aria-hidden="true">→</span></Link></div><FinancialRelationship business={isBusiness} income={summary.businessIncomeCents} expenses={summary.businessExpensesCents} profit={summary.businessProfitCents}/><p className="home-working-note">Based on the records available so far. Tax-time deductions are tracked separately.</p>{!isBusiness&&<p className="home-help-copy">Your Expenses membership organizes business spending. Income and profit are outside its reporting scope.</p>}</section>
+  <section className="home-financial home-business-snapshot" aria-labelledby="financial-heading"><div className="home-section-heading"><div><p className="home-kicker">Your business</p><h2 id="financial-heading">Your working books</h2><p>{dateLabel(coveredStart)} – {dateLabel(today)}</p></div><Link href="/reports">See reports <span aria-hidden="true">→</span></Link></div>{summary?<FinancialRelationship business={isBusiness} income={summary.businessIncomeCents} expenses={summary.businessExpensesCents} profit={summary.businessProfitCents}/>:<p role="status">Your totals aren’t available right now. Please try again in a moment.</p>}<p className="home-working-note">Based on the records available so far. Tax-time deductions are tracked separately.</p>{!isBusiness&&<p className="home-help-copy">Your Expenses membership organizes business spending. Income and profit are outside its reporting scope.</p>}</section>
 
   <HomeQuickActions business={isBusiness}/>
-  {summary.businessMilesMilli>0&&<p className="home-mileage-summary"><Link href="/mileage">{new Intl.NumberFormat('en-US',{maximumFractionDigits:3}).format(summary.businessMilesMilli/1000)} business miles recorded →</Link></p>}
-  <HomeRecentActivity activity={recentActivity}/>
+  {summary&&summary.businessMilesMilli>0&&<p className="home-mileage-summary"><Link href="/mileage">{new Intl.NumberFormat('en-US',{maximumFractionDigits:3}).format(summary.businessMilesMilli/1000)} business miles recorded →</Link></p>}
+  {recentActivity?<HomeRecentActivity activity={recentActivity}/>:<p role="status">Recent activity couldn’t load. <Link href="/transactions">View transactions</Link></p>}
  </div></div>
 }
 

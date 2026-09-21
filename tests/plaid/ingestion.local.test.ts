@@ -119,7 +119,8 @@ suite('Plaid ingestion against local PostgreSQL', () => {
       item_id: initialGateway.itemId, environment: 'sandbox',
       initial_update_complete: true, historical_update_complete: true,
     })
-    const readinessDelivery = `signed-delivery-readiness-${crypto.randomUUID()}`
+    // Internal test only: verification is covered separately; persistence consumes verified JWT claims.
+    const readinessDelivery = `e30.${Buffer.from(JSON.stringify({ iat: Math.floor(Date.now()/1000), jti: crypto.randomUUID() })).toString('base64url')}.test`
     expect(await recordPlaidWebhook(readinessBody, readinessDelivery))
       .toMatchObject({ duplicate: false, itemId, shouldSync: true })
     expect(await recordPlaidWebhook(readinessBody, readinessDelivery))
@@ -174,7 +175,7 @@ suite('Plaid ingestion against local PostgreSQL', () => {
     await recordPlaidWebhook(JSON.stringify({
       webhook_type: 'ITEM', webhook_code: 'USER_PERMISSION_REVOKED',
       item_id: initialGateway.itemId, environment: 'sandbox',
-    }), 'signed-delivery-revoked-after-disconnect')
+    }), readinessDelivery.replace('.test', '.revoked'))
     const { data: stillDisconnected } = await admin.from('plaid_items')
       .select('connection_status,consent_status').eq('id', itemId).single()
     expect(stillDisconnected).toEqual({ connection_status: 'disconnected', consent_status: 'disconnected' })

@@ -29,6 +29,21 @@ export function deriveHomeRecentActivity(rows:TransactionReadRow[]):HomeRecentAc
 }
 
 export async function getHomeRecentActivity(supabase:SupabaseClient,userId:string,start:string,end:string){
- const rows=await listTransactionReadModel({supabase,userId,start,end,limit:250})
- return deriveHomeRecentActivity(rows)
+ // Resolve bounded groups through the same canonical read model. Passing every
+ // historical record ID in one PostgREST URL exceeds request limits for multiple
+ // 730-day bank connections. Keep the existing 250-row recent-activity window.
+ const rows:TransactionReadRow[]=[]
+ const business=await supabase.from('businesses').select('id').eq('owner_user_id',userId).single()
+ if(business.error||!business.data)throw new Error('Could not load recent activity.')
+ for(let offset=0;rows.length<250;offset+=100){
+  const candidates=await supabase.from('active_bookkeeping_records').select('id')
+   .eq('business_id',business.data.id).gte('occurred_on',start).lte('occurred_on',end)
+   .order('occurred_on',{ascending:false}).order('id',{ascending:false}).range(offset,offset+99)
+  if(candidates.error)throw new Error('Could not load recent activity.')
+  if(!candidates.data?.length)break
+  rows.push(...await listTransactionReadModel({supabase,userId,start,end,limit:100,
+   recordIds:candidates.data.map(row=>row.id),legacyIds:[]}))
+  if(candidates.data.length<100)break
+ }
+ return deriveHomeRecentActivity(rows.slice(0,250))
 }

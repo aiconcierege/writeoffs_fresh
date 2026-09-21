@@ -1,3 +1,4 @@
+import { hasPlaidMfa } from '../../../lib/plaid/mfa'
 import { NextResponse } from 'next/server'
 import { getAuthenticatedContext, unauthorizedResponse } from '../../../lib/auth/require-user'
 import { createPlaidLinkToken } from '../../../lib/plaid/service'
@@ -32,6 +33,7 @@ function linkFailureCode(cause: unknown) {
 export async function POST(request: Request) {
   const { supabase, user } = await getAuthenticatedContext()
   if (!user) return unauthorizedResponse()
+  if (!await hasPlaidMfa(supabase)) return NextResponse.json({ error: 'verification_required', message: 'Verify your identity to manage your bank connection.' }, { status: 403 })
   try {
     const body = await request.json().catch(() => ({})) as { itemId?: unknown }
     if (body.itemId != null && typeof body.itemId !== 'string') {
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
         ?`Your Expenses membership includes ${limit} bank connections. Upgrade to Business to add another.`
         :`Your Business membership currently includes ${limit} bank connections.`},{status:403})}
     const result = await createPlaidLinkToken({ supabase, itemRecordId: body.itemId ?? null })
-    return NextResponse.json({ linkToken: result.link_token, expiration: result.expiration }, {
+    return NextResponse.json({ linkToken: result.link_token, expiration: result.expiration, updateVersion: 'updateVersion' in result ? result.updateVersion : undefined }, {
       headers: { 'Cache-Control': 'no-store' },
     })
   } catch (cause) {

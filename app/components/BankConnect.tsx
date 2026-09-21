@@ -1,5 +1,7 @@
 'use client'
 
+import { WorkRefresh } from './WorkRefresh'
+import { bankConnectionAttention } from '../lib/plaid/connection-attention'
 import { persistAccountUse } from '../lib/bookkeeping/account-use-request'
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
@@ -10,6 +12,8 @@ type Connection = {
   id: string
   institution_name: string | null
   connection_status: string
+  update_reason?: string | null
+  new_accounts_available?: boolean
   last_successful_sync_at: string | null
 }
 
@@ -28,11 +32,13 @@ const ACCOUNT_USE_LABELS: Record<AccountUseDesignation, string> = {
 
 const OAUTH_LINK_TOKEN_KEY = 'writeoffs:plaid-oauth-link-token'
 const OAUTH_MODE_ITEM_KEY = 'writeoffs:plaid-oauth-mode-item'
+const OAUTH_UPDATE_VERSION_KEY = 'writeoffs:plaid-update-version'
 const OAUTH_RETURN_PATH_KEY = 'writeoffs:plaid-oauth-return-path'
 
 function clearOAuthResumeState() {
   sessionStorage.removeItem(OAUTH_LINK_TOKEN_KEY)
   sessionStorage.removeItem(OAUTH_MODE_ITEM_KEY)
+  sessionStorage.removeItem(OAUTH_UPDATE_VERSION_KEY)
   sessionStorage.removeItem(OAUTH_RETURN_PATH_KEY)
 }
 
@@ -60,6 +66,7 @@ export default function BankConnect(input: {
   const router = useRouter()
   const pathname = usePathname()
   const [token, setToken] = useState<string | null>(null)
+  const [updateVersion, setUpdateVersion] = useState<number | null>(null)
   const [modeItemId, setModeItemId] = useState<string | null>(null)
   const [receivedRedirectUri, setReceivedRedirectUri] = useState<string | undefined>()
   const [message, setMessage] = useState<string | null>(null)
@@ -89,19 +96,22 @@ export default function BankConnect(input: {
         setMessage(body.sync?.pending || body.sync?.status === 'updating'
           ? 'Connected. Transactions are still updating…' : 'You’re up to date ✓')
       } else {
-        const response = await fetch('/api/plaid/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updatedItemId: modeItemId }) })
-        if (!response.ok) throw new Error('The account was reconnected, but its update is still pending.')
+        const response = await fetch('/api/plaid/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updatedItemId: modeItemId, updateVersion }) })
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}))
+          throw new Error(body.message || 'We couldn’t finish updating this connection. Please try again.')
+        }
       }
       exchangeRequest.current = null
-      if (modeItemId) setMessage('You’re up to date ✓')
+      if (modeItemId) setMessage('Your bank is connected. I’ll update your transactions from here.')
       const returnPath = sessionStorage.getItem(OAUTH_RETURN_PATH_KEY)
       clearOAuthResumeState()
-      if (returnPath && returnPath.startsWith('/') && !returnPath.startsWith('//')) router.replace(returnPath)
+      if (returnPath && returnPath !== pathname && returnPath.startsWith('/') && !returnPath.startsWith('//')) router.replace(returnPath)
       else router.refresh()
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'The account could not be connected.')
     } finally { setBusy(false); setToken(null); setModeItemId(null); setReceivedRedirectUri(undefined) }
-  }, [modeItemId, router])
+  }, [modeItemId, updateVersion, pathname, router])
   const onExit = useCallback<PlaidLinkOnExit>(() => {
     clearOAuthResumeState()
     setToken(null)
@@ -125,6 +135,8 @@ export default function BankConnect(input: {
       window.history.replaceState({}, '', pathname)
       return
     }
+    const version = sessionStorage.getItem(OAUTH_UPDATE_VERSION_KEY)
+    setUpdateVersion(version === null ? null : Number(version))
     setModeItemId(sessionStorage.getItem(OAUTH_MODE_ITEM_KEY) || null)
     setReceivedRedirectUri(url.href)
     setToken(resumedToken)
@@ -161,6 +173,9 @@ export default function BankConnect(input: {
       })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(body.message || 'Bank connection setup is unavailable right now.')
+      setUpdateVersion(body.updateVersion ?? null)
+      if (Number.isSafeInteger(body.updateVersion)) sessionStorage.setItem(OAUTH_UPDATE_VERSION_KEY, String(body.updateVersion))
+      else sessionStorage.removeItem(OAUTH_UPDATE_VERSION_KEY)
       sessionStorage.setItem(OAUTH_LINK_TOKEN_KEY, body.linkToken)
       sessionStorage.setItem(OAUTH_RETURN_PATH_KEY, pathname)
       if (itemId) sessionStorage.setItem(OAUTH_MODE_ITEM_KEY, itemId)
@@ -206,22 +221,23 @@ export default function BankConnect(input: {
         </div></>
       : <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">New bank connections are not available in this environment. You can still choose how you use accounts already connected.</div>}</div>
 
-  return <div className="space-y-5">
+  return <div className="space-y-5"><WorkRefresh active={!token && input.connections.some(connection => Boolean(bankConnectionAttention(connection)))}/>
     {input.accounts.length===0&&connectionControls}
     {message && <p role="status" aria-live="polite" className="text-sm text-slate-700">{message}</p>}
     {input.accounts.length>0&&<div className="sticky top-16 z-10 border-b border-[#dce3de] bg-[#fbfaf7]/95 py-4 backdrop-blur"><h2 className="text-xl font-semibold">Tell Betti how you use these accounts</h2><p className="mt-2 text-sm leading-6 text-[#59665f]">This helps me know which purchases belong in your books.</p><p className="mt-2 text-sm leading-6">For each account, choose whether you use it only for business or for business and personal spending.</p><p className="mt-2 text-sm font-semibold" role="status">{input.accounts.filter(a=>a.connection_status==='active'&&!accountUseById[a.id]).length} accounts still need a choice</p></div>}
     <ul className="space-y-8">
       {input.connections.map((connection) => {
+        const attention = bankConnectionAttention(connection)
         const accounts = input.accounts.filter((account) => account.item_record_id === connection.id)
-        return <li key={connection.id} className="border-t border-[#dce3de] py-5">
-          <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-950">{connection.institution_name || 'Connected institution'}</h2><p className="mt-1 text-sm text-slate-600">{connectionLabel(connection.connection_status)}</p>{connection.last_successful_sync_at && <p className="mt-1 text-xs text-slate-500">Last updated {new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: displayTimeZone }).format(new Date(connection.last_successful_sync_at))}</p>}</div>{input.enabled && <div className="flex gap-2">{['reconnect_required', 'needs_attention'].includes(connection.connection_status) && <button type="button" disabled={busy} onClick={() => void start(connection.id)} className="btn btn-secondary min-h-11">Review connection</button>}{connection.connection_status !== 'disconnected' && <button type="button" disabled={busy} onClick={() => void disconnect(connection.id)} className="min-h-11 rounded-md px-3 text-sm font-semibold text-red-700 hover:bg-red-50">Disconnect</button>}</div>}</div>
+        return <li id={`bank-connection-${connection.id}`} key={connection.id} className="border-t border-[#dce3de] py-5">
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-950">{connection.institution_name || 'Connected institution'}</h2><p className="mt-1 text-sm text-slate-600">{attention?.message ?? (connection.connection_status === 'needs_attention' && accounts.some(account => account.connection_status !== 'active') ? 'Some accounts are no longer connected.' : connectionLabel(connection.connection_status))}</p>{connection.last_successful_sync_at && <p className="mt-1 text-xs text-slate-500">Last updated {new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: displayTimeZone }).format(new Date(connection.last_successful_sync_at))}</p>}</div>{input.enabled && <div className="flex gap-2">{attention && <button type="button" disabled={busy} onClick={() => void start(connection.id)} className="btn btn-secondary min-h-11">{attention.action}</button>}{connection.connection_status !== 'disconnected' && <button type="button" disabled={busy} onClick={() => void disconnect(connection.id)} className="min-h-11 rounded-md px-3 text-sm font-semibold text-red-700 hover:bg-red-50">Disconnect</button>}</div>}</div>
           {accounts.length > 0 && <ul className="mt-4 space-y-3">{accounts.map((account) => {
             const selected = accountUseById[account.id]
             const state = accountUseState[account.id]
             return <li key={account.id} className="border-b border-[#e1e6e2] py-5">
               <div className="text-sm"><strong className="text-slate-950">{account.display_name}</strong>
                 <span className="text-slate-600">{account.mask_last_four ? ` •••• ${account.mask_last_four}` : ''}
-                  {account.connection_status !== 'active' ? ' — Needs attention' : ''}</span></div>
+                  {account.connection_status !== 'active' ? ' — No longer connected' : ''}</span></div>
               <p className="mt-1 text-sm text-slate-600">Current choice: <strong className="text-slate-800">
                 {selected ? ACCOUNT_USE_LABELS[selected] : 'Not chosen yet'}</strong></p>
               <fieldset className="mt-4" disabled={state?.saving}>

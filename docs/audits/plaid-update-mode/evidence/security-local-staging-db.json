@@ -1,0 +1,16 @@
+{
+  "publicStaging": false,
+  "origin": "http://localhost:3107",
+  "crossTenantToken": 503,
+  "crossTenantRepair": 502,
+  "noMfa": 403,
+  "noMfaMutations": {
+    "sync": 403,
+    "exchange": 403,
+    "disconnect": 403
+  },
+  "unsignedWebhook": 401,
+  "serviceRpcDenied": true,
+  "credentialTableDenied": true,
+  "unchangedItemVersions": true
+}

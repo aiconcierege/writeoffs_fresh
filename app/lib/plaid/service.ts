@@ -54,16 +54,17 @@ export async function createPlaidLinkToken(input: {
   if (!UUID.test(input.itemRecordId)) throw new Error('INVALID_ITEM')
   const admin = createServerAdminSupabase()
   const { data: item, error: itemReadError } = await admin.from('plaid_items')
-    .select('id,business_id,plaid_item_id,access_token_ciphertext,connection_status,consent_status,new_accounts_available')
+    .select('id,business_id,plaid_item_id,access_token_ciphertext,connection_status,consent_status,new_accounts_available,update_state_version')
     .eq('id', input.itemRecordId).eq('business_id', owner.businessId).maybeSingle()
   if (itemReadError || !item || item.connection_status === 'disconnected') throw new Error('ITEM_NOT_FOUND')
-  return gateway.createLinkToken(updateModeLinkRequest({
+  const token = await gateway.createLinkToken(updateModeLinkRequest({
     clientUserId,
     accessToken: decryptPlaidAccessToken(item.access_token_ciphertext),
     accountSelectionEnabled: item.new_accounts_available,
     webhook: config.webhook,
     redirectUri: config.redirectUri,
   }) as unknown as Record<string, unknown>)
+  return { ...token, updateVersion: item.update_state_version as number }
 }
 
 export async function exchangePlaidPublicToken(input: {
@@ -206,7 +207,8 @@ export async function syncPlaidItem(itemRecordId: string, suppliedGateway?: Plai
 
 // Update-mode success retains the same Item and credential. Verify provider access
 // before clearing its account-selection prompt or restoring consent.
-export async function completePlaidUpdate(input: { supabase: SupabaseClient; itemRecordId: string }) {
+export async function completePlaidUpdate(input: { supabase: SupabaseClient; itemRecordId: string; expectedVersion: number }) {
+  if (!Number.isSafeInteger(input.expectedVersion) || input.expectedVersion < 0) throw new Error('INVALID_UPDATE_VERSION')
   if (!UUID.test(input.itemRecordId)) throw new Error('INVALID_ITEM')
   const owner = await requireBusiness(input.supabase)
   const admin = createServerAdminSupabase()
@@ -216,9 +218,10 @@ export async function completePlaidUpdate(input: { supabase: SupabaseClient; ite
   if (error || !item) throw new Error('ITEM_NOT_FOUND')
   const provider = await createPlaidGateway().getAccounts(decryptPlaidAccessToken(item.access_token_ciphertext))
   if (provider.item?.error) throw new Error('ITEM_ACCESS_UNAVAILABLE')
-  const updated = await admin.from('plaid_items').update({ new_accounts_available: false, consent_status: 'active' })
-    .eq('id', item.id).eq('business_id', owner.businessId).neq('connection_status', 'disconnected')
-  if (updated.error) throw new Error('ITEM_UPDATE_FAILED')
+  const updated = await admin.rpc('complete_plaid_update', {
+    p_item_record_id: item.id, p_business_id: owner.businessId, p_expected_version: input.expectedVersion,
+  })
+  if (updated.error || updated.data !== true) throw new Error('ITEM_UPDATE_CHANGED')
 }
 
 export async function syncPlaidItemsForCustomer(input: { supabase: SupabaseClient; gateway?: PlaidGateway }) {

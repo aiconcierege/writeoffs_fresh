@@ -49,7 +49,7 @@ describe('Home uses the shared work projection', () => {
     expect(source).toContain('getAuthenticatedCanonicalReport')
     expect(source).toContain('income={summary.businessIncomeCents} expenses={summary.businessExpensesCents} profit={summary.businessProfitCents}')
     expect(source).toContain('loadBettiWork')
-    expect(source).not.toMatch(/getCurrentAskableQuestionQueue|summarizeReceiptDocumentation|loadGuidedWorkSummary|loadStatementAccountUse|\.rpc\(|\.update\(|\.insert\(/)
+    expect(source).not.toMatch(/getCurrentAskableQuestionQueue|summarizeReceiptDocumentation|loadGuidedWorkSummary|loadStatementAccountUse|\.rpc\((?!'list_plaid_connections'\))|\.update\(|\.insert\(/)
     expect(source.indexOf('<HomeQuickActions')).toBeLessThan(source.indexOf('<HomeRecentActivity'))
   })
 })

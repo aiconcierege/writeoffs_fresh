@@ -1,0 +1,56 @@
+{
+  "realBrowser": true,
+  "publicStaging": "https://writeoffs-fresh-staging.vercel.app",
+  "version": 3,
+  "completion": {
+    "status": 200
+  },
+  "before": [
+    {
+      "id": "76a9afbf-9872-4989-ac54-57662174bfe8",
+      "connection_status": "needs_attention",
+      "consent_status": "active",
+      "update_reason": "PENDING_DISCONNECT",
+      "new_accounts_available": false,
+      "update_state_version": 3,
+      "last_successful_sync_at": "2026-09-21T19:38:12.986847+00:00",
+      "hasCursor": true
+    },
+    {
+      "id": "2a327783-e9cd-4af5-ab69-30d19e47d6f8",
+      "connection_status": "connected",
+      "consent_status": "active",
+      "update_reason": null,
+      "new_accounts_available": false,
+      "update_state_version": 0,
+      "last_successful_sync_at": "2026-09-21T19:36:00.972954+00:00",
+      "hasCursor": true
+    }
+  ],
+  "after": [
+    {
+      "id": "2a327783-e9cd-4af5-ab69-30d19e47d6f8",
+      "connection_status": "connected",
+      "consent_status": "active",
+      "update_reason": null,
+      "new_accounts_available": false,
+      "update_state_version": 0,
+      "last_successful_sync_at": "2026-09-21T19:36:00.972954+00:00",
+      "hasCursor": true
+    },
+    {
+      "id": "76a9afbf-9872-4989-ac54-57662174bfe8",
+      "connection_status": "updating",
+      "consent_status": "active",
+      "update_reason": null,
+      "new_accounts_available": false,
+      "update_state_version": 4,
+      "last_successful_sync_at": "2026-09-21T19:40:28.513171+00:00",
+      "hasCursor": true
+    }
+  ],
+  "providerHealthy": true,
+  "authorizedProviderAccountIds": [
+    "LLXQgy3LjxUyl56Wdgp7TRkdXrqAamCDenmlo"
+  ]
+}

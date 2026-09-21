@@ -1,3 +1,4 @@
+vi.mock('../../app/lib/plaid/mfa', () => ({ hasPlaidMfa: async () => true }))
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { entitlementsFromMembership } from '../../app/lib/membership/entitlements'
 import { nextRequiredCustomerDestination } from '../../app/lib/auth/prerequisite-policy'
