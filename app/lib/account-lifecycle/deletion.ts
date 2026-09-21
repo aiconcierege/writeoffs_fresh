@@ -6,6 +6,7 @@ import {createServerAdminSupabase} from '../../../utils/supabase/admin'
 import {createStripeClient} from '../membership/stripe'
 import {createPlaidGateway} from '../plaid/client'
 import {decryptPlaidAccessToken} from '../plaid/token-crypto'
+import {removePlaidItemIdempotently} from '../plaid/remove-item'
 import {enqueueLifecycleNotice,recordLifecycleNotificationPreparationFailure} from './notifications'
 
 type Row=Record<string,unknown>
@@ -37,7 +38,7 @@ async function revokePlaidItems(admin:SupabaseClient,businessId:string){
   const gateway=createPlaidGateway()
   for(const item of items.data??[]){
     if(item.connection_status==='disconnected')continue
-    if(item.consent_status!=='revoked')await gateway.removeItem(decryptPlaidAccessToken(String(item.access_token_ciphertext)))
+    if(item.consent_status!=='revoked')await removePlaidItemIdempotently(gateway,decryptPlaidAccessToken(String(item.access_token_ciphertext)))
     const result=await admin.rpc('disconnect_plaid_item_state',{p_item_record_id:item.id,p_business_id:businessId})
     if(result.error||result.data!==true)throw new Error('PLAID_DISCONNECT_FAILED')
   }
@@ -89,6 +90,7 @@ export async function drainAccountDeletionQueue(limit=5){
       const semanticKey=`deletion-completed:${id}`;if(businessId&&userId)try{const recipient=await notificationIdentity(admin,userId,businessId);await enqueueLifecycleNotice(admin,{semanticKey,type:'deletion_completed',email:recipient.email,timeZone:recipient.timeZone,scheduledFor:'2099-01-01T00:00:00.000Z'})}catch{await recordLifecycleNotificationPreparationFailure(String(request.user_identity_hash),semanticKey).catch(()=>undefined)}
       if(businessId)await revokePlaidItems(admin,businessId)
       if(userId)await deletePrivateObjects(admin,userId)
+      if(businessId&&userId&&request.reason==='retention_expired'){const keyed=await admin.from('account_deletion_requests').update({business_identity_hash:identityHash('business',businessId),user_identity_hash:identityHash('user',userId)}).eq('id',id).eq('lease_token',leaseToken);if(keyed.error)throw new Error('DELETION_IDENTITY_FAILED')}
       if(businessId){const deleted=await admin.rpc('delete_customer_application_data',{p_request_id:id,p_lease_token:leaseToken,p_now:new Date().toISOString()});if(deleted.error)throw new Error('APPLICATION_DATA_DELETE_FAILED')}
       if(userId){const auth=await admin.auth.admin.deleteUser(userId);if(auth.error)throw new Error('AUTH_DELETE_FAILED')}
       const completed=await admin.rpc('complete_account_deletion',{p_request_id:id,p_lease_token:leaseToken,p_now:new Date().toISOString()})

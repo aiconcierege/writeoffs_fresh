@@ -1,0 +1,6 @@
+{
+  "publicStaging": "https://writeoffs-fresh-staging.vercel.app",
+  "http": 200,
+  "canceled": true,
+  "reconnectRequired": true
+}

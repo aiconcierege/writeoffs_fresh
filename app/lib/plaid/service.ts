@@ -9,6 +9,7 @@ import { requirePlaidConfig, requirePlaidLink } from './config'
 import { decryptPlaidAccessToken, encryptPlaidAccessToken } from './token-crypto'
 import { normalizePlaidAccount, normalizePlaidRemoval, normalizePlaidSyncTransaction } from './normalize'
 import type { PlaidGateway, PlaidTransactionEvent } from './types'
+import { removePlaidItemIdempotently } from './remove-item'
 
 type Row = Record<string, unknown>
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -248,7 +249,7 @@ export async function disconnectPlaidItem(input: {
   if (item.connection_status !== 'disconnected') {
     const gateway = input.gateway ?? createPlaidGateway()
     if (item.consent_status !== 'revoked') {
-      await gateway.removeItem(decryptPlaidAccessToken(item.access_token_ciphertext))
+      await removePlaidItemIdempotently(gateway, decryptPlaidAccessToken(item.access_token_ciphertext))
     }
     const { data: disconnected, error: disconnectError } = await admin.rpc('disconnect_plaid_item_state', {
       p_item_record_id: item.id, p_business_id: owner.businessId,

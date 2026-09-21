@@ -1,0 +1,16 @@
+{
+  "realPlaidSandbox": true,
+  "publicStaging": "https://writeoffs-fresh-staging.vercel.app",
+  "http": 200,
+  "replayHttp": 200,
+  "providerCode": "Plaid 400: ITEM_NOT_FOUND",
+  "connection": "disconnected",
+  "tokenErased": true,
+  "cursorErased": true,
+  "leaseCleared": true,
+  "queuedSyncDenied": true,
+  "postRemovalWebhook": "INTERNAL DETERMINISTIC — canonical handler, no import",
+  "duplicateSafe": true,
+  "historicalVersionsBefore": 4,
+  "historicalVersionsAfter": 4
+}
