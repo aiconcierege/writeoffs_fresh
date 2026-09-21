@@ -1,0 +1,50 @@
+[
+  {
+    "level": "info",
+    "message": "plaid_webhook_received {\n  itemRecordId: '1e084a5a-72d1-40b7-9c0b-30126b8a1d14',\n  duplicate: false,\n  syncScheduled: false,\n  durationMs: 170\n}",
+    "messageTruncated": false,
+    "rowId": "1790008054582",
+    "source": "function",
+    "timestampInMs": 1790008054582,
+    "requestMethod": "POST",
+    "requestPath": "/api/plaid/webhook",
+    "domain": "writeoffs-fresh-staging.vercel.app",
+    "responseStatusCode": -1
+  },
+  {
+    "level": "info",
+    "message": "plaid_webhook_received {\n  itemRecordId: '1e084a5a-72d1-40b7-9c0b-30126b8a1d14',\n  duplicate: false,\n  syncScheduled: false,\n  durationMs: 198\n}",
+    "messageTruncated": false,
+    "rowId": "1790008089230",
+    "source": "function",
+    "timestampInMs": 1790008089230,
+    "requestMethod": "POST",
+    "requestPath": "/api/plaid/webhook",
+    "domain": "writeoffs-fresh-staging.vercel.app",
+    "responseStatusCode": -1
+  },
+  {
+    "level": "info",
+    "message": "plaid_webhook_received {\n  itemRecordId: '1e084a5a-72d1-40b7-9c0b-30126b8a1d14',\n  duplicate: false,\n  syncScheduled: true,\n  durationMs: 238\n}",
+    "messageTruncated": false,
+    "rowId": "1790008135183",
+    "source": "function",
+    "timestampInMs": 1790008135183,
+    "requestMethod": "POST",
+    "requestPath": "/api/plaid/webhook",
+    "domain": "writeoffs-fresh-staging.vercel.app",
+    "responseStatusCode": -1
+  },
+  {
+    "level": "info",
+    "message": "plaid_webhook_received {\n  itemRecordId: '1e084a5a-72d1-40b7-9c0b-30126b8a1d14',\n  duplicate: false,\n  syncScheduled: false,\n  durationMs: 219\n}",
+    "messageTruncated": false,
+    "rowId": "1790008535015",
+    "source": "function",
+    "timestampInMs": 1790008535015,
+    "requestMethod": "POST",
+    "requestPath": "/api/plaid/webhook",
+    "domain": "writeoffs-fresh-staging.vercel.app",
+    "responseStatusCode": -1
+  }
+]

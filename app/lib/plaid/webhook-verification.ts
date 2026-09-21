@@ -14,6 +14,7 @@ export async function verifyPlaidWebhook(input: {
   if (header.alg !== 'ES256' || typeof header.kid !== 'string') return false
   try {
     const jwk = await input.gateway.getWebhookVerificationKey(header.kid)
+    if (jwk.expired_at != null) return false
     const key = await importJWK(jwk as JWK, 'ES256')
     await jwtVerify(input.verification, key, { algorithms: ['ES256'], maxTokenAge: '5 min' })
     const payload = decodeJwt(input.verification)

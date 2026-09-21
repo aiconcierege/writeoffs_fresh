@@ -89,7 +89,7 @@ export default function BankConnect(input: {
         setMessage(body.sync?.pending || body.sync?.status === 'updating'
           ? 'Connected. Transactions are still updating…' : 'You’re up to date ✓')
       } else {
-        const response = await fetch('/api/plaid/sync', { method: 'POST' })
+        const response = await fetch('/api/plaid/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updatedItemId: modeItemId }) })
         if (!response.ok) throw new Error('The account was reconnected, but its update is still pending.')
       }
       exchangeRequest.current = null
@@ -214,7 +214,7 @@ export default function BankConnect(input: {
       {input.connections.map((connection) => {
         const accounts = input.accounts.filter((account) => account.item_record_id === connection.id)
         return <li key={connection.id} className="border-t border-[#dce3de] py-5">
-          <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-950">{connection.institution_name || 'Connected institution'}</h2><p className="mt-1 text-sm text-slate-600">{connectionLabel(connection.connection_status)}</p>{connection.last_successful_sync_at && <p className="mt-1 text-xs text-slate-500">Last updated {new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: displayTimeZone }).format(new Date(connection.last_successful_sync_at))}</p>}</div>{input.enabled && <div className="flex gap-2">{['reconnect_required', 'needs_attention'].includes(connection.connection_status) && <button type="button" disabled={busy} onClick={() => void start(connection.id)} className="btn btn-secondary min-h-11">Reconnect account</button>}{connection.connection_status !== 'disconnected' && <button type="button" disabled={busy} onClick={() => void disconnect(connection.id)} className="min-h-11 rounded-md px-3 text-sm font-semibold text-red-700 hover:bg-red-50">Disconnect</button>}</div>}</div>
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-950">{connection.institution_name || 'Connected institution'}</h2><p className="mt-1 text-sm text-slate-600">{connectionLabel(connection.connection_status)}</p>{connection.last_successful_sync_at && <p className="mt-1 text-xs text-slate-500">Last updated {new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: displayTimeZone }).format(new Date(connection.last_successful_sync_at))}</p>}</div>{input.enabled && <div className="flex gap-2">{['reconnect_required', 'needs_attention'].includes(connection.connection_status) && <button type="button" disabled={busy} onClick={() => void start(connection.id)} className="btn btn-secondary min-h-11">Review connection</button>}{connection.connection_status !== 'disconnected' && <button type="button" disabled={busy} onClick={() => void disconnect(connection.id)} className="min-h-11 rounded-md px-3 text-sm font-semibold text-red-700 hover:bg-red-50">Disconnect</button>}</div>}</div>
           {accounts.length > 0 && <ul className="mt-4 space-y-3">{accounts.map((account) => {
             const selected = accountUseById[account.id]
             const state = accountUseState[account.id]

@@ -1,3 +1,4 @@
+import { retryPendingPlaidWebhooks } from '../../../../lib/plaid/webhooks'
 import { timingSafeEqual } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { drainCanonicalDocumentJobs, documentQueueHealth } from '../../../../lib/documents/durable-processing'
@@ -48,6 +49,7 @@ async function run(request: Request) {
   const shadow = expensiveProcessingEnabled
     ? await measure('receiptUnderstanding',()=>drainReceiptUnderstandingJobs({ batchSize: 1 }))
     : { paused: true, claimed: 0, completed: 0, failed: 0 }
+  await measure('plaidWebhooks', () => retryPendingPlaidWebhooks())
   const actionIndexAfter=actionIndexEnabled()?await measure('indexAfter',()=>refreshBettiActionIndex({limit:12})):null
   return NextResponse.json({ documents,bookkeeping,weeklyReviews,shadow,accountLifecycle,lifecycleNotifications,expensiveProcessingEnabled,membershipsExpired:expiration.data,health: await documentQueueHealth(),actionIndexBefore,actionIndexAfter })
   } finally {console.info('BOOKKEEPING_DRAIN_TIMING',{...timings,total:Math.round(performance.now()-started)})}

@@ -19,6 +19,11 @@ describe('Plaid Link request contract', () => {
     expect(JSON.stringify(request)).not.toMatch(/auth|identity|balance|transfer|income|liabilit|investment/i)
   })
 
+  it('enables account selection only for a new-accounts update', () => {
+    expect(updateModeLinkRequest({ clientUserId: 'owner', accessToken: 'private', accountSelectionEnabled: true }).update.account_selection_enabled).toBe(true)
+    expect(updateModeLinkRequest({ clientUserId: 'owner', accessToken: 'private' }).update.account_selection_enabled).toBe(false)
+  })
+
   it('uses the existing credential in update mode without adding products', () => {
     const request = updateModeLinkRequest({ clientUserId: 'stable-hash', accessToken: 'server-secret',
       redirectUri: 'https://example.test/settings/banking' })

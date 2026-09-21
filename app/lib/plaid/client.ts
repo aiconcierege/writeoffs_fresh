@@ -69,6 +69,7 @@ export function newItemLinkRequest(input: {
 export function updateModeLinkRequest(input: {
   clientUserId: string
   accessToken: string
+  accountSelectionEnabled?: boolean
   webhook?: string
   redirectUri?: string
 }) {
@@ -76,5 +77,7 @@ export function updateModeLinkRequest(input: {
     client_name: 'WriteOffs', language: 'en', country_codes: [CountryCode.Us],
     user: { client_user_id: input.clientUserId }, access_token: input.accessToken,
     webhook: input.webhook, redirect_uri: input.redirectUri,
+    update: { account_selection_enabled: input.accountSelectionEnabled === true },
+    ...(input.accountSelectionEnabled ? { account_filters: newItemLinkRequest({ clientUserId: input.clientUserId }).account_filters } : {}),
   } satisfies LinkTokenCreateRequest
 }

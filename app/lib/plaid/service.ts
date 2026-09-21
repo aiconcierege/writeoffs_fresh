@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { createHash, randomUUID } from 'node:crypto'
+import { can, entitlementsFromMembership } from '../membership/entitlements'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServerAdminSupabase } from '../../../utils/supabase/admin'
 import { createPlaidGateway, newItemLinkRequest, updateModeLinkRequest } from './client'
@@ -53,12 +54,13 @@ export async function createPlaidLinkToken(input: {
   if (!UUID.test(input.itemRecordId)) throw new Error('INVALID_ITEM')
   const admin = createServerAdminSupabase()
   const { data: item, error: itemReadError } = await admin.from('plaid_items')
-    .select('id,business_id,plaid_item_id,access_token_ciphertext,connection_status,consent_status')
+    .select('id,business_id,plaid_item_id,access_token_ciphertext,connection_status,consent_status,new_accounts_available')
     .eq('id', input.itemRecordId).eq('business_id', owner.businessId).maybeSingle()
   if (itemReadError || !item || item.connection_status === 'disconnected') throw new Error('ITEM_NOT_FOUND')
   return gateway.createLinkToken(updateModeLinkRequest({
     clientUserId,
     accessToken: decryptPlaidAccessToken(item.access_token_ciphertext),
+    accountSelectionEnabled: item.new_accounts_available,
     webhook: config.webhook,
     redirectUri: config.redirectUri,
   }) as unknown as Record<string, unknown>)
@@ -168,9 +170,9 @@ export async function syncPlaidItem(itemRecordId: string, suppliedGateway?: Plai
   if (claimError) throw new Error(`PLAID_SYNC_CLAIM_FAILED:${claimError.message}`)
   const claim = Array.isArray(claims) ? claims[0] as Row | undefined : claims as Row | null
   if (!claim) return { busy: true }
-  const membership=await admin.from('business_memberships').select('lifecycle,access_through,grace_through').eq('business_id',String(claim.business_id)).maybeSingle()
+  const membership=await admin.from('business_memberships').select('*').eq('business_id',String(claim.business_id)).maybeSingle()
   const now=Date.now(),access=membership.data?.access_through?new Date(membership.data.access_through).getTime():Infinity,grace=membership.data?.grace_through?new Date(membership.data.grace_through).getTime():0
-  const active=membership.data&&((['active','canceling'].includes(membership.data.lifecycle)&&access>now)||(membership.data.lifecycle==='payment_issue'&&grace>now))
+  const active=!membership.error&&can(entitlementsFromMembership(membership.data as Row|null),'autonomous_processing')&&membership.data&&((['active','canceling'].includes(membership.data.lifecycle)&&access>now)||(membership.data.lifecycle==='payment_issue'&&grace>now))
   if(!active){await admin.rpc('fail_plaid_item_sync',{p_item_record_id:itemRecordId,p_lease_id:leaseId,p_error_code:'MEMBERSHIP_INACTIVE',p_error_type:'ACCESS',p_reconnect_required:false});return{busy:false,skipped:true}}
   const gateway = suppliedGateway ?? createPlaidGateway()
   try {
@@ -200,6 +202,23 @@ export async function syncPlaidItem(itemRecordId: string, suppliedGateway?: Plai
     })
     throw error
   }
+}
+
+// Update-mode success retains the same Item and credential. Verify provider access
+// before clearing its account-selection prompt or restoring consent.
+export async function completePlaidUpdate(input: { supabase: SupabaseClient; itemRecordId: string }) {
+  if (!UUID.test(input.itemRecordId)) throw new Error('INVALID_ITEM')
+  const owner = await requireBusiness(input.supabase)
+  const admin = createServerAdminSupabase()
+  const { data: item, error } = await admin.from('plaid_items')
+    .select('id,access_token_ciphertext').eq('id', input.itemRecordId)
+    .eq('business_id', owner.businessId).neq('connection_status', 'disconnected').maybeSingle()
+  if (error || !item) throw new Error('ITEM_NOT_FOUND')
+  const provider = await createPlaidGateway().getAccounts(decryptPlaidAccessToken(item.access_token_ciphertext))
+  if (provider.item?.error) throw new Error('ITEM_ACCESS_UNAVAILABLE')
+  const updated = await admin.from('plaid_items').update({ new_accounts_available: false, consent_status: 'active' })
+    .eq('id', item.id).eq('business_id', owner.businessId).neq('connection_status', 'disconnected')
+  if (updated.error) throw new Error('ITEM_UPDATE_FAILED')
 }
 
 export async function syncPlaidItemsForCustomer(input: { supabase: SupabaseClient; gateway?: PlaidGateway }) {

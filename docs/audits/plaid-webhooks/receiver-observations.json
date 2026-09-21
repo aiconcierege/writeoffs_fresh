@@ -1,0 +1,301 @@
+[
+  {
+    "webhook": "https://writeoffs-fresh-staging.vercel.app/api/plaid/webhook",
+    "state": {
+      "id": "1e084a5a-72d1-40b7-9c0b-30126b8a1d14",
+      "connection_status": "needs_attention",
+      "consent_status": "active",
+      "new_accounts_available": true,
+      "sync_requested_at": null,
+      "last_successful_sync_at": "2026-09-21T16:27:26.592011+00:00"
+    },
+    "events": [
+      {
+        "id": "3decec30-1bdb-4949-8d27-e529d762be95",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "INITIAL_UPDATE",
+        "received_at": "2026-09-21T16:27:27.952099+00:00",
+        "processed_at": "2026-09-21T16:27:27.952099+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "5b27ad53-1798-4d35-ba85-20527231f588",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "HISTORICAL_UPDATE",
+        "received_at": "2026-09-21T16:27:34.553578+00:00",
+        "processed_at": "2026-09-21T16:27:34.553578+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "0cc51082-1b3c-498f-8fee-57fd3519c876",
+        "webhook_type": "ITEM",
+        "webhook_code": "NEW_ACCOUNTS_AVAILABLE",
+        "received_at": "2026-09-21T16:28:09.196985+00:00",
+        "processed_at": "2026-09-21T16:28:09.196985+00:00",
+        "last_attempt_at": null
+      }
+    ],
+    "transactionVersions": 342,
+    "observedAt": "2026-09-21T16:28:26.770Z"
+  },
+  {
+    "webhook": "https://writeoffs-fresh-staging.vercel.app/api/plaid/webhook",
+    "state": {
+      "id": "1e084a5a-72d1-40b7-9c0b-30126b8a1d14",
+      "connection_status": "needs_attention",
+      "consent_status": "active",
+      "new_accounts_available": true,
+      "sync_requested_at": null,
+      "last_successful_sync_at": "2026-09-21T16:28:56.02434+00:00"
+    },
+    "events": [
+      {
+        "id": "3decec30-1bdb-4949-8d27-e529d762be95",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "INITIAL_UPDATE",
+        "received_at": "2026-09-21T16:27:27.952099+00:00",
+        "processed_at": "2026-09-21T16:27:27.952099+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "5b27ad53-1798-4d35-ba85-20527231f588",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "HISTORICAL_UPDATE",
+        "received_at": "2026-09-21T16:27:34.553578+00:00",
+        "processed_at": "2026-09-21T16:27:34.553578+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "0cc51082-1b3c-498f-8fee-57fd3519c876",
+        "webhook_type": "ITEM",
+        "webhook_code": "NEW_ACCOUNTS_AVAILABLE",
+        "received_at": "2026-09-21T16:28:09.196985+00:00",
+        "processed_at": "2026-09-21T16:28:09.196985+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "27b36cae-4e18-48a4-b69e-f703f405e0cd",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "SYNC_UPDATES_AVAILABLE",
+        "received_at": "2026-09-21T16:28:55.13301+00:00",
+        "processed_at": "2026-09-21T16:28:56.064+00:00",
+        "last_attempt_at": "2026-09-21T16:28:55.186+00:00"
+      }
+    ],
+    "transactionVersions": 342,
+    "observedAt": "2026-09-21T16:29:37.056Z"
+  },
+  {
+    "webhook": "https://writeoffs-fresh-staging.vercel.app/api/plaid/webhook",
+    "state": {
+      "id": "1e084a5a-72d1-40b7-9c0b-30126b8a1d14",
+      "connection_status": "needs_attention",
+      "consent_status": "active",
+      "new_accounts_available": true,
+      "sync_requested_at": null,
+      "last_successful_sync_at": "2026-09-21T16:35:36.870505+00:00"
+    },
+    "events": [
+      {
+        "id": "3decec30-1bdb-4949-8d27-e529d762be95",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "INITIAL_UPDATE",
+        "received_at": "2026-09-21T16:27:27.952099+00:00",
+        "processed_at": "2026-09-21T16:27:27.952099+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "5b27ad53-1798-4d35-ba85-20527231f588",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "HISTORICAL_UPDATE",
+        "received_at": "2026-09-21T16:27:34.553578+00:00",
+        "processed_at": "2026-09-21T16:27:34.553578+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "0cc51082-1b3c-498f-8fee-57fd3519c876",
+        "webhook_type": "ITEM",
+        "webhook_code": "NEW_ACCOUNTS_AVAILABLE",
+        "received_at": "2026-09-21T16:28:09.196985+00:00",
+        "processed_at": "2026-09-21T16:28:09.196985+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "27b36cae-4e18-48a4-b69e-f703f405e0cd",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "SYNC_UPDATES_AVAILABLE",
+        "received_at": "2026-09-21T16:28:55.13301+00:00",
+        "processed_at": "2026-09-21T16:28:56.064+00:00",
+        "last_attempt_at": "2026-09-21T16:28:55.186+00:00"
+      },
+      {
+        "id": "cc8fa666-a365-4849-af60-af1606056c3f",
+        "webhook_type": "ITEM",
+        "webhook_code": "NEW_ACCOUNTS_AVAILABLE",
+        "received_at": "2026-09-21T16:35:34.9849+00:00",
+        "processed_at": "2026-09-21T16:35:34.9849+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "fb6cb64b-af4f-43c0-85cb-9d30c64fc970",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "SYNC_UPDATES_AVAILABLE",
+        "received_at": "2026-09-21T16:35:35.39202+00:00",
+        "processed_at": "2026-09-21T16:35:36.906+00:00",
+        "last_attempt_at": "2026-09-21T16:35:35.416+00:00"
+      }
+    ],
+    "transactionVersions": 342,
+    "observedAt": "2026-09-21T16:36:27.594Z"
+  },
+  {
+    "webhook": "https://writeoffs-fresh-staging.vercel.app/api/plaid/webhook",
+    "state": {
+      "id": "1e084a5a-72d1-40b7-9c0b-30126b8a1d14",
+      "connection_status": "needs_attention",
+      "consent_status": "active",
+      "new_accounts_available": false,
+      "sync_requested_at": null,
+      "last_successful_sync_at": "2026-09-21T16:35:36.870505+00:00"
+    },
+    "events": [
+      {
+        "id": "3decec30-1bdb-4949-8d27-e529d762be95",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "INITIAL_UPDATE",
+        "received_at": "2026-09-21T16:27:27.952099+00:00",
+        "processed_at": "2026-09-21T16:27:27.952099+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "5b27ad53-1798-4d35-ba85-20527231f588",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "HISTORICAL_UPDATE",
+        "received_at": "2026-09-21T16:27:34.553578+00:00",
+        "processed_at": "2026-09-21T16:27:34.553578+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "0cc51082-1b3c-498f-8fee-57fd3519c876",
+        "webhook_type": "ITEM",
+        "webhook_code": "NEW_ACCOUNTS_AVAILABLE",
+        "received_at": "2026-09-21T16:28:09.196985+00:00",
+        "processed_at": "2026-09-21T16:28:09.196985+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "27b36cae-4e18-48a4-b69e-f703f405e0cd",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "SYNC_UPDATES_AVAILABLE",
+        "received_at": "2026-09-21T16:28:55.13301+00:00",
+        "processed_at": "2026-09-21T16:28:56.064+00:00",
+        "last_attempt_at": "2026-09-21T16:28:55.186+00:00"
+      },
+      {
+        "id": "cc8fa666-a365-4849-af60-af1606056c3f",
+        "webhook_type": "ITEM",
+        "webhook_code": "NEW_ACCOUNTS_AVAILABLE",
+        "received_at": "2026-09-21T16:35:34.9849+00:00",
+        "processed_at": "2026-09-21T16:35:34.9849+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "fb6cb64b-af4f-43c0-85cb-9d30c64fc970",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "SYNC_UPDATES_AVAILABLE",
+        "received_at": "2026-09-21T16:35:35.39202+00:00",
+        "processed_at": "2026-09-21T16:35:36.906+00:00",
+        "last_attempt_at": "2026-09-21T16:35:35.416+00:00"
+      }
+    ],
+    "transactionVersions": 342,
+    "observedAt": "2026-09-21T16:39:20.646Z"
+  },
+  {
+    "webhook": "https://writeoffs-fresh-staging.vercel.app/api/plaid/webhook",
+    "state": {
+      "id": "1e084a5a-72d1-40b7-9c0b-30126b8a1d14",
+      "connection_status": "needs_attention",
+      "consent_status": "active",
+      "new_accounts_available": true,
+      "sync_requested_at": null,
+      "last_successful_sync_at": "2026-09-21T16:47:06.038732+00:00"
+    },
+    "events": [
+      {
+        "id": "3decec30-1bdb-4949-8d27-e529d762be95",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "INITIAL_UPDATE",
+        "received_at": "2026-09-21T16:27:27.952099+00:00",
+        "processed_at": "2026-09-21T16:27:27.952099+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "5b27ad53-1798-4d35-ba85-20527231f588",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "HISTORICAL_UPDATE",
+        "received_at": "2026-09-21T16:27:34.553578+00:00",
+        "processed_at": "2026-09-21T16:27:34.553578+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "0cc51082-1b3c-498f-8fee-57fd3519c876",
+        "webhook_type": "ITEM",
+        "webhook_code": "NEW_ACCOUNTS_AVAILABLE",
+        "received_at": "2026-09-21T16:28:09.196985+00:00",
+        "processed_at": "2026-09-21T16:28:09.196985+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "27b36cae-4e18-48a4-b69e-f703f405e0cd",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "SYNC_UPDATES_AVAILABLE",
+        "received_at": "2026-09-21T16:28:55.13301+00:00",
+        "processed_at": "2026-09-21T16:28:56.064+00:00",
+        "last_attempt_at": "2026-09-21T16:28:55.186+00:00"
+      },
+      {
+        "id": "cc8fa666-a365-4849-af60-af1606056c3f",
+        "webhook_type": "ITEM",
+        "webhook_code": "NEW_ACCOUNTS_AVAILABLE",
+        "received_at": "2026-09-21T16:35:34.9849+00:00",
+        "processed_at": "2026-09-21T16:35:34.9849+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "fb6cb64b-af4f-43c0-85cb-9d30c64fc970",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "SYNC_UPDATES_AVAILABLE",
+        "received_at": "2026-09-21T16:35:35.39202+00:00",
+        "processed_at": "2026-09-21T16:35:36.906+00:00",
+        "last_attempt_at": "2026-09-21T16:35:35.416+00:00"
+      },
+      {
+        "id": "ac2ff787-3cb0-4364-b2c4-d37a8f0d6a58",
+        "webhook_type": "ITEM",
+        "webhook_code": "NEW_ACCOUNTS_AVAILABLE",
+        "received_at": "2026-09-21T16:42:21.911029+00:00",
+        "processed_at": "2026-09-21T16:42:21.911029+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "36abe048-bb81-4b31-8ead-2d47ce8db0d3",
+        "webhook_type": "ITEM",
+        "webhook_code": "NEW_ACCOUNTS_AVAILABLE",
+        "received_at": "2026-09-21T16:47:04.733302+00:00",
+        "processed_at": "2026-09-21T16:47:04.733302+00:00",
+        "last_attempt_at": null
+      },
+      {
+        "id": "55a761af-8708-4d9a-8a57-8e8f1dc952f9",
+        "webhook_type": "TRANSACTIONS",
+        "webhook_code": "SYNC_UPDATES_AVAILABLE",
+        "received_at": "2026-09-21T16:47:05.051012+00:00",
+        "processed_at": "2026-09-21T16:47:06.067+00:00",
+        "last_attempt_at": "2026-09-21T16:47:05.091+00:00"
+      }
+    ],
+    "transactionVersions": 342,
+    "observedAt": "2026-09-21T16:47:35.191Z"
+  }
+]
