@@ -88,3 +88,23 @@
 }
 .reports-date-controls { display:flex; gap:1rem; flex-wrap:wrap; }
 @media(max-width:639px) { .reports-date-controls { justify-content:space-between; } .reports-month { gap:.5rem; } }
+
+/* Align report controls and exports with the shared authenticated workspace. */
+.reports-page.authenticated-page { padding-top:1.5rem; }
+.reports-page .reports-heading { align-items:flex-start; margin-bottom:1.75rem; }
+.reports-page .reports-heading h1 { margin-top:0; }
+.reports-page .reports-eyebrow { margin-bottom:.35rem; }
+.reports-page .reports-tax-time { padding:1.75rem; border:1px solid #d4e0d6; border-radius:1.25rem; background:#edf3e9; }
+.reports-page .reports-rows>div { align-items:baseline; }
+@media(max-width:639px) {
+ .reports-page.authenticated-page { padding-top:1rem; }
+ .reports-page .reports-heading { flex-wrap:wrap; gap:.75rem; }
+ .reports-page .reports-heading .btn { min-height:44px; }
+ .reports-page .reports-tax-time { padding:1.25rem; }
+ .reports-page .reports-periods { width:100%; display:grid; grid-template-columns:1fr 1fr; }
+ .reports-page .reports-periods button { padding:.65rem .5rem; }
+ .reports-page .reports-summary dt { font-size:.9rem; }
+}
+@media(max-width:639px) { .reports-page .reports-heading { flex-wrap:wrap; gap:.5rem; } .reports-page .reports-heading .btn { font-size:.85rem; padding:.6rem .7rem; gap:.4rem; } }
+
+@media(max-width:639px) { .reports-summary dl { grid-template-columns:repeat(auto-fit,minmax(min(100%,8rem),1fr)); } }

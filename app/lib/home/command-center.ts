@@ -14,7 +14,6 @@ const dateLabel = (day: string) => new Intl.DateTimeFormat('en-US', { month: 'lo
 export function homeCommand(work: GuidedWorkProjection, startMethod: string | null): HomeCommand {
   const next = work.nextAction
   const context: string[] = []
-  if (work.customer.actionableCount) context.push(`${work.customer.actionableCount} ${work.customer.actionableCount===1?'thing needs':'things need'} you`)
   if (next?.type === 'provide_records') {
     const documents = startMethod === 'statement_uploads' || startMethod === 'receipts'
     return { state: 'welcome', heading: 'I’m ready to start your books.',
@@ -35,7 +34,7 @@ export function homeCommand(work: GuidedWorkProjection, startMethod: string | nu
     return { state: 'needs-customer',
       heading: next.type==='account_use'?'I have a question before I get started.':'I’ve worked on your books. I have a few questions for you.',
       supporting: 'Tell me what you know. I’ll take care of the bookkeeping from there.',
-      action: { href, label: next.type === 'account_use' && !href.startsWith('/check-in') ? 'Tell Betti about your account' : 'Continue with Betti' }, context }
+      action: { href, label: next.type === 'account_use' && !href.startsWith('/check-in') ? 'Tell Betti about your account' : 'Answer Betti’s questions' }, context }
   }
   if (work.betti.genuinelyProcessing > 0) return { state: 'working', heading: 'I’m updating your books.',
     supporting: 'I’m using the records and facts you’ve shared to finish what I can. You don’t need to wait here.', action: null, context: ['I’ll ask if I need anything else.'] }

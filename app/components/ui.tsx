@@ -44,3 +44,8 @@ export function MoneyDisplay({ cents, positive, className = '' }: { cents: numbe
   const formatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100)
   return <span className={classes('money-display', positive && 'money-positive', className)}>{formatted}</span>
 }
+
+/** Shared presentation frame; data and workflow authority stay with each page. */
+export function AuthenticatedPage({ title, description, actions, children, className = '' }: { title: ReactNode; description?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {
+  return <div className={classes('authenticated-page', className)}><PageHeader title={title} description={description} actions={actions} />{children}</div>
+}

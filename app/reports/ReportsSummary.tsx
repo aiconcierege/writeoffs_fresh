@@ -48,8 +48,8 @@ export function ReportsSummary({scope,readOnly,annual}:{scope:'expenses'|'busine
     return () => controller.abort()
   }, [period.start, period.end, retry])
   const business = scope === 'business'
-  return <div className="reports-page wo-experience">
-    <header className="reports-heading"><div><p className="reports-eyebrow">Your business, in view</p><h1>Reports</h1></div><Link className="reports-link" href="#tax-time">Tax-time & exports <span aria-hidden="true">↓</span></Link></header>
+  return <div className="reports-page authenticated-page wo-experience">
+    <header className="reports-heading"><div><p className="reports-eyebrow">Your business, in view</p><h1>Reports</h1></div><Link className="btn btn-secondary" href="#tax-time">Tax-time & exports <span aria-hidden="true">↓</span></Link></header>
     {readOnly && <p className="reports-note">Historical records · read only</p>}
     <div className="reports-controls"><div role="group" aria-label="Report period" className="reports-periods">{([['ytd','Year to date'],['month','Monthly'],['quarter','Quarterly'],['annual','Annual']] as const).map(([value,label]) => <button key={value} aria-pressed={kind===value} onClick={()=>{setKind(value);if(value==='ytd'){const today=new Date().toISOString().slice(0,10);setAnchor(period.year===Number(today.slice(0,4))?today:`${period.year}-12-31`)}}}>{label}</button>)}</div>
       <div className="reports-date-controls">

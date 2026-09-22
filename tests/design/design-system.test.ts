@@ -83,7 +83,7 @@ describe('WriteOffs product design system', () => {
     expect(read('app/receipts/ReceiptUploadAction.tsx')).toContain("'btn btn-primary min-h-12'")
     expect(read('app/receipts/ReceiptUploadAction.tsx')).toContain("variant==='guided'?'btn btn-secondary min-h-12'")
     const mileage = read('app/mileage/MileageClient.tsx')
-    expect(mileage).toContain('First, tell us which vehicle you use for business')
+    expect(mileage).toContain('First, add your vehicle')
     expect(mileage).toContain('You only need to do this once')
   })
 

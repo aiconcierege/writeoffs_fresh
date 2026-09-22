@@ -711,3 +711,70 @@ body { background: var(--canvas); color: var(--ink); }
 .review-bulk-actions { position:sticky;top:4.25rem;z-index:10;padding:.75rem;background:#f4f7f3;border-block:1px solid #dce3de;margin:.5rem 0;box-shadow:0 4px 10px #17211d08; }
 .review-bulk-actions p { margin-bottom:.6rem;font-size:.875rem;line-height:1.5; }
 @media(max-width:639px) { .review-bulk-actions { position:sticky;top:3.75rem; }.review-row-select { scroll-margin-top:17rem; }.transaction-work-views a { padding:.5rem .6rem;font-size:.875rem; }.review-row-open { gap:.45rem; } }
+
+/* Authenticated records and tools share the conversation's restrained surfaces. */
+.authenticated-page { --page-green:#edf3e9; --page-border:#d7e1d7; width:100%; max-width:72rem; margin-inline:auto; padding:1.5rem 0 4rem; }
+.authenticated-page>.page-header,.authenticated-page>header { margin-bottom:1.75rem; }
+.authenticated-page .page-title { margin-top:0; font-size:clamp(2rem,3.5vw,2.65rem); line-height:1.15; color:#16384a; }
+.authenticated-page .page-description { max-width:48ch; margin-top:.65rem; line-height:1.6; }
+.quiet-page-link { display:inline-flex; align-items:center; min-height:44px; font-weight:600; color:#243186; gap:.5rem; }
+.authenticated-toolbar { margin-bottom:1.25rem; }
+.authenticated-toolbar .transaction-work-views { display:flex; border:0; background:var(--page-green); padding:.3rem; gap:.25rem; border-radius:1rem; margin:0 0 1rem; width:fit-content; max-width:100%; }
+.authenticated-toolbar .transaction-work-views a { border:0; border-radius:.7rem; padding:.65rem 1rem; }
+.authenticated-toolbar .transaction-work-views a[aria-current] { background:#fffefa; color:#243186; box-shadow:0 1px 5px #16384a12; }
+.authenticated-toolbar .transaction-filters { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:start; gap:.65rem; margin:0; }
+.authenticated-toolbar .transaction-filters>input.field { width:100%; min-width:0; }
+.authenticated-toolbar .transaction-filters>details { display:block; }
+.authenticated-toolbar .transaction-filters>details[open] { grid-column:1/-1; }
+.authenticated-toolbar .transaction-filters>details>summary { border:1px solid var(--page-border); border-radius:.75rem; background:#fffefa; min-height:48px; }
+.authenticated-toolbar .transaction-filters>details>div { grid-column:1/-1; padding:1.25rem; background:var(--page-green); border-radius:1rem; }
+.authenticated-ledger { border:1px solid var(--page-border); border-radius:1.25rem; background:linear-gradient(120deg,#f6f9f2,#fffefa 45%); padding:0 1.25rem; box-shadow:0 8px 30px #17372c04; }
+.authenticated-ledger .review-select-heading { padding:.65rem 0; border-bottom:1px solid var(--page-border); color:#52645b; }
+.authenticated-ledger .record-list { border-top:0; }
+.authenticated-ledger .review-transaction-row:last-child { border-bottom:0; }
+.authenticated-ledger .review-row-open { padding:1rem .5rem; min-height:88px; }
+.transaction-merchant { color:#16384a; font-weight:650; font-size:1.05rem; overflow-wrap:anywhere; }
+.transaction-amount { color:#16384a; font-size:1.1rem; font-weight:650; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.mileage-workspace { margin-top:1.75rem; display:grid; gap:2rem; }
+.mileage-entry { min-width:0; }
+.authenticated-form-surface { padding:clamp(1.25rem,3vw,2rem); background:linear-gradient(125deg,#edf3e9,#fffefa 75%); border:1px solid var(--page-border); border-radius:1.25rem; }
+.authenticated-form-surface h2 { font-size:1.5rem; line-height:1.3; letter-spacing:-.025em; color:#16384a; font-weight:650; }
+.authenticated-page .field { background:#fffefa; min-width:0; min-height:48px; border-radius:.75rem; }
+.mileage-vehicle-context { min-width:0; }
+.mileage-vehicle-context>details { margin-top:0; border-top:1px solid var(--page-border); padding:1rem 0; }
+.mileage-vehicle-context>details>summary { min-height:44px; display:list-item; padding:.5rem 0; color:#16384a; }
+.vehicle-details-form { padding:1rem 0; border-top:1px solid var(--page-border); }
+.vehicle-use-choice legend { font-weight:600; font-size:.95rem; }
+.vehicle-use-choice>div { display:flex; flex-wrap:wrap; gap:.75rem; margin-top:.6rem; }
+.vehicle-use-choice label { display:flex; align-items:center; gap:.65rem; padding:.75rem 1rem; min-height:48px; border:1px solid #bbcabc; border-radius:.75rem; background:#fffefa; cursor:pointer; }
+.vehicle-use-choice label:has(input:checked) { border-color:#243186; background:#f1f2fb; box-shadow:inset 0 0 0 1px #243186; }
+.vehicle-use-choice input { width:1.1rem; height:1.1rem; accent-color:#243186; }
+.authenticated-page :is(button,a,input,select,summary):focus-visible { outline:3px solid #243186; outline-offset:3px; }
+@media(min-width:1024px) { .mileage-workspace:has(.mileage-vehicle-context details) { grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); align-items:start; } .mileage-workspace:not(:has(.mileage-vehicle-context details)) { max-width:48rem; } }
+@media(max-width:639px) {
+ .authenticated-page { padding-top:1rem; }
+ .authenticated-page>header { gap:.5rem; margin-bottom:1.25rem; }
+ .authenticated-toolbar .transaction-work-views { width:100%; display:grid; grid-template-columns:1fr 1fr; }
+ .authenticated-toolbar .transaction-work-views a { justify-content:center; padding:.6rem .4rem; font-size:.9rem; }
+ .authenticated-toolbar .transaction-filters { grid-template-columns:minmax(0,1fr) auto; }
+ .authenticated-toolbar .transaction-filters>details { grid-column:1/-1; }
+ .authenticated-toolbar .transaction-filters>details>summary { display:flex; justify-content:center; }
+ .authenticated-ledger { padding:0 .65rem; border-radius:1rem; }
+ .authenticated-ledger .review-select-heading { font-size:.8rem; }
+ .authenticated-ledger .review-row-select { width:32px; }
+ .authenticated-ledger .review-row-open { grid-template-columns:minmax(0,1fr) auto; padding:1rem .2rem 1rem .4rem; align-items:start; }
+ .authenticated-ledger .review-row-open>span[aria-hidden] { display:none; }
+ .transaction-merchant { font-size:.95rem; }
+ .transaction-amount { font-size:1rem; }
+ .mileage-workspace { gap:1.25rem; margin-top:1.25rem; }
+ .mileage-page .record-row { overflow-wrap:anywhere; }
+}
+
+@media(max-width:639px) { .transactions-page>header { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; } .transactions-page>header .quiet-page-link { font-size:.875rem; } }
+.mileage-page { padding-bottom:1.5rem; }
+.mileage-page .empty-state { padding:2rem 1rem; }
+.mileage-vehicle-context:empty { display:none; }
+@media(max-width:639px) { .vehicle-optional-fields label>span { display:block; } }
+
+.vehicle-optional-fields { grid-template-columns:repeat(auto-fit,minmax(min(100%,5.5rem),1fr)); }
+.wo-header-inner>a img { object-fit:contain; object-position:left center; }

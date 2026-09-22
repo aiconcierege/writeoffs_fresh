@@ -26,7 +26,8 @@ describe('authenticated visual alignment', () => {
     expect(source('app/questions/QuestionFlow.tsx')).toContain('state="question"')
     expect(source('app/questions/QuestionFlow.tsx')).toContain('state="caught-up"')
     expect(source('app/receipts/page_inner.tsx')).toContain('state="working"')
-    expect(source('app/mileage/MileageClient.tsx')).toContain('state="welcome"')
+    expect(source('app/mileage/MileageClient.tsx')).toContain('AuthenticatedPage')
+    expect(source('app/mileage/MileageClient.tsx')).not.toContain('BettiPageIntro')
     expect(source('app/get-started/GetStartedFlow.tsx')).toContain('state="welcome"')
     for (const path of ['app/reports/ReportsSummary.tsx', 'app/invoices/InvoicesClient.tsx', 'app/settings/page.tsx']) {
       expect(source(path)).not.toContain('BettiIllustration')
@@ -37,6 +38,7 @@ describe('authenticated visual alignment', () => {
     const transactions = source('app/transactions/TransactionReview.tsx')
     expect(transactions).toContain('review-transaction-row')
     expect(transactions).toContain('attachedReceiptLabel(row)')
-    expect(transactions).toContain('truncate font-semibold')
+    expect(transactions).toContain('transaction-merchant')
+    expect(transactions).toContain('transaction-amount')
   })
 })
