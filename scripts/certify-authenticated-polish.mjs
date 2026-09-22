@@ -24,7 +24,7 @@ const browser=await chromium.launch({headless:true}),results=[]
 try{
  const context=await browser.newContext({timezoneId:'America/Phoenix'})
  await context.addCookies([...cookies].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:origin.startsWith('https:'),sameSite:'Lax'})))
- const page=await context.newPage();const errors=[];page.on('pageerror',()=>errors.push('browser runtime error'))
+ const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(/hydration/i.test(error.message)?'hydration':/chunk/i.test(error.message)?'chunk-load':error.name))
  if(process.env.POLISH_INSPECT==='1'){const r=await context.request.get(origin+'/api/bookkeeping/work');assert(r.ok());const w=await r.json();console.log(JSON.stringify({next:w.nextAction?.type,prompt:w.nextAction?.question?.prompt,actions:w.customer?.actionable?.map(a=>({type:a.type,prompt:a.question?.prompt})),deferred:w.customer?.deferredCount}));await browser.close();process.exit()}
  if(process.env.POLISH_VEHICLE_ONLY==='1'){
   await page.goto(origin+'/mileage',{waitUntil:'networkidle'})
@@ -113,7 +113,7 @@ try{
    results.push({route,width,...metrics})
   }
  }
- if(process.env.POLISH_SKIP_EXTRA==='1'){assert.equal(errors.length,0);await writeFile(`${dir}/results.json`,JSON.stringify({origin,results,browserErrors:errors.length},null,2)+'\n');console.log('Selected presentation screenshots captured.');process.exitCode=0;await browser.close();process.exit()}
+ if(process.env.POLISH_SKIP_EXTRA==='1'){await writeFile(`${dir}/browser-errors.json`,JSON.stringify(errors)+'\n');assert.equal(errors.length,0);await writeFile(`${dir}/results.json`,JSON.stringify({origin,results,browserErrors:errors.length},null,2)+'\n');console.log('Selected presentation screenshots captured.');process.exitCode=0;await browser.close();process.exit()}
  if(process.env.POLISH_INVOICE_CREATE==='1'){
   await page.goto(origin+'/reports',{waitUntil:'networkidle'})
   const before=await page.locator('.reports-summary').innerText()
@@ -140,8 +140,15 @@ try{
    await page.locator('.invoice-create-toggle').focus();await page.keyboard.press('Enter')
    assert(await page.getByLabel('Customer',{exact:true}).isVisible(),'Keyboard opens invoice creation')
    await page.screenshot({path:`${dir}/invoices-create-${width}.png`,fullPage:true})
+   await page.getByLabel('Customer',{exact:true}).fill('Unsaved synthetic draft')
+   const email=page.locator('.workspace-disclosure summary').filter({hasText:'Add customer email'});await email.focus();await page.keyboard.press('Enter')
+   assert(await page.getByLabel(/Customer email/).isVisible(),'Optional email opens by keyboard')
+   await page.getByRole('button',{name:/Back to invoices/}).click()
+   await page.waitForFunction(()=>document.activeElement===document.querySelector('.invoice-create-toggle'),{},{timeout:5000})
+   assert(await page.locator('.invoice-create-toggle').evaluate(el=>el===document.activeElement),'Closing returns keyboard focus')
+   await page.locator('.invoice-create-toggle').click();assert.equal(await page.getByLabel('Customer',{exact:true}).inputValue(),'Unsaved synthetic draft','Closing preserves the unsaved draft')
   }
-  await writeFile(`${dir}/invoice-behavior.json`,JSON.stringify({syntheticOnly:true,createdThroughUI:createdThisRun,reusedExistingInvoice:!createdThisRun,canonicalReportsUnchanged:true,returningActivityFirst:true,keyboardCreation:true},null,2)+'\n')
+  await writeFile(`${dir}/invoice-behavior.json`,JSON.stringify({syntheticOnly:true,createdThroughUI:createdThisRun,reusedExistingInvoice:!createdThisRun,canonicalReportsUnchanged:true,returningActivityFirst:true,keyboardCreation:true,keyboardOptionalFields:true,closeRestoresFocus:true,closePreservesDraft:true},null,2)+'\n')
  }
  for(const width of [390,430,1280,1440]){
   await page.setViewportSize({width,height:900})

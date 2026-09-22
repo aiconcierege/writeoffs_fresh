@@ -29,7 +29,7 @@
 .workspace-group>legend { width:100%; color:#08765b; font-size:.7rem; font-weight:750; text-transform:uppercase; letter-spacing:.14em; margin-bottom:1rem; }
 .workspace-group>div { min-width:0; }
 .workspace-disclosure { min-width:0; }
-.workspace-disclosure>summary { display:flex; justify-content:space-between; align-items:center; gap:1rem; min-height:44px; list-style:none; color:#243186; font-size:.85rem; font-weight:550; cursor:pointer; }
+.signature-page .workspace-disclosure>summary { display:flex; justify-content:space-between; align-items:center; gap:1rem; min-height:44px; list-style:none; color:#243186; font-size:.85rem; font-weight:550; cursor:pointer; }
 .workspace-disclosure>summary::-webkit-details-marker { display:none; }
 .workspace-disclosure>summary>span { font-size:1.2rem; font-weight:400; }
 .workspace-disclosure[open]>summary>span { transform:rotate(45deg); }
@@ -102,7 +102,7 @@
 /* A single mileage workbench: fast entry + a subordinate vehicle rail. */
 .signature-page .mileage-workspace { display:grid; grid-template-columns:minmax(0,1.65fr) minmax(0,1fr); gap:0; overflow:hidden; margin-top:0; align-items:stretch; }
 .signature-page .mileage-entry { padding:1.75rem 2rem; scroll-margin-top:6rem; }
-.signature-page .mileage-vehicle-context { border:0; padding:1.75rem; background:#f6f8fa; border-left:1px solid #e0e7eb; }
+.signature-page .mileage-vehicle-context { align-self:stretch; border:0; padding:1.75rem; background:#f6f8fa; border-left:1px solid #e0e7eb; }
 .mileage-vehicle-context>h2 { font-size:1.35rem; letter-spacing:-.03em; font-weight:650; color:#123747; margin:.4rem 0; }
 .vehicle-description { color:#60747d; font-size:.82rem; line-height:1.5; }
 .vehicle-settings { border:0; margin-top:1.5rem; }
@@ -219,3 +219,17 @@
 
 .mileage-history-entry { max-width:72rem; margin:1.25rem auto 2rem; padding:.5rem 0; border-top:1px solid #dce5e8; }
 .mileage-history-entry>summary { display:flex; min-height:44px; align-items:center; color:#243186; font-weight:600; cursor:pointer; font-size:.9rem; }
+
+.signature-page .mileage-log-overview { display:block; margin:0; text-align:right; }
+.signature-page .mileage-log-overview>p { margin-top:.25rem; }
+@media(max-width:639px) {
+ .signature-page .mileage-log-overview { display:flex; align-items:end; text-align:left; gap:1.5rem; }
+ .signature-page .mileage-log-overview .workspace-kicker { display:none; }
+ .signature-page .mileage-log-overview strong { font-size:1.5rem; }
+ .signature-page .mileage-log-overview strong small { font-size:.75rem; }
+ .signature-page .mileage-log-overview>p { font-size:.75rem; }
+}
+
+.vehicle-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; margin:1.3rem 0; padding-bottom:1.2rem; border-bottom:1px solid #dce5e8; }
+.vehicle-summary dt { font-size:.75rem; color:#536872; }
+.vehicle-summary dd { margin-top:.3rem; font-size:.95rem; font-weight:600; color:#123747; }

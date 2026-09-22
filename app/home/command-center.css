@@ -166,3 +166,19 @@
 .home-recent-heading>a { color:#243186; font-size:.9rem; font-weight:600; display:inline-flex; align-items:center; gap:.75rem; min-height:44px; }
 
 .home-command-center .home-betti-message h1 { text-wrap:balance; }
+/* Phone composition gives the current thought the full reading width. */
+@media(max-width:639px) {
+ .home-command-center .home-betti-hero { grid-template-columns:minmax(0,1fr) 5.25rem; gap:.7rem; }
+ .home-command-center .home-betti-identity { grid-column:1; grid-row:1; align-self:center; }
+ .home-command-center .home-betti-portrait { grid-column:2; grid-row:1; width:5.25rem; height:4.75rem; justify-self:end; }
+ .home-command-center .home-betti-portrait img { max-height:4.75rem; }
+ .home-command-center .home-betti-message h1 { grid-column:1/-1; grid-row:2; max-width:none; font-size:1.85rem; text-wrap:balance; }
+}
+@container home-content (max-width:18rem) {
+ .home-command-center .home-betti-hero { grid-template-columns:minmax(0,1fr); }
+ .home-command-center .home-betti-identity { grid-column:1; }
+ .home-command-center .home-betti-portrait { grid-column:1; grid-row:2; justify-self:start; }
+ .home-command-center .home-betti-message h1 { grid-row:3; }
+ .home-command-center .home-betti-thought { grid-row:4; }
+ .home-command-center .home-betti-action { grid-row:5; }
+}
