@@ -8,7 +8,7 @@ on:
         required: true
         default: backup
         type: choice
-        options: [backup, inspect-retention, certify-ledger, diagnose-ledger]
+        options: [backup, inspect-retention, certify-ledger, diagnose-ledger, certify-ledger-boundaries]
       backup_class:
         description: Backup retention class
         required: true
@@ -86,7 +86,7 @@ jobs:
           retention-days: 14
 
   certify-ledger:
-    if: (inputs.operation == 'certify-ledger' || inputs.operation == 'diagnose-ledger') && github.ref == 'refs/heads/v2-onboarding-staging'
+    if: (inputs.operation == 'certify-ledger' || inputs.operation == 'diagnose-ledger' || inputs.operation == 'certify-ledger-boundaries') && github.ref == 'refs/heads/v2-onboarding-staging'
     environment: staging-backup
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -101,6 +101,7 @@ jobs:
         run: node scripts/backup/certify-live-deletion-ledger.mjs > ledger-certification.json
         env:
           WRITEOFFS_LEDGER_READ_ONLY_DIAGNOSTICS: ${{ inputs.operation == 'diagnose-ledger' }}
+          WRITEOFFS_LEDGER_BOUNDARY_CERTIFICATION: ${{ inputs.operation == 'certify-ledger-boundaries' }}
           WRITEOFFS_DELETION_LEDGER_ACCESS_KEY_ID: ${{ secrets.WRITEOFFS_DELETION_LEDGER_ACCESS_KEY_ID }}
           WRITEOFFS_DELETION_LEDGER_SECRET_ACCESS_KEY: ${{ secrets.WRITEOFFS_DELETION_LEDGER_SECRET_ACCESS_KEY }}
           WRITEOFFS_DELETION_LEDGER_RECOVERY_ACCESS_KEY_ID: ${{ secrets.WRITEOFFS_DELETION_LEDGER_RECOVERY_ACCESS_KEY_ID }}

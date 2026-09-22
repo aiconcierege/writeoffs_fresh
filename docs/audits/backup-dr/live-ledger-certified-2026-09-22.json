@@ -1,0 +1,18 @@
+{
+  "result": "PASS",
+  "measuredAt": "2026-09-22T03:25:20.029Z",
+  "source": "staging",
+  "syntheticPublication": true,
+  "versionedReadback": true,
+  "idempotentRetry": true,
+  "conflictRejected": true,
+  "independentReaderVerified": true,
+  "wrongKeyRejected": true,
+  "objectsDeleted": 0,
+  "bucketConfigurationChanged": false,
+  "limitations": [
+    "No hosted restore or service activation certified.",
+    "IAM deny permissions not actively probed.",
+    "Synthetic tombstone intentionally retained outside backup expiration."
+  ]
+}

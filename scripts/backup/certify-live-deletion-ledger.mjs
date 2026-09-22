@@ -2,6 +2,7 @@ import {createHash, randomBytes, randomUUID} from 'node:crypto'
 import {pathToFileURL} from 'node:url'
 import {GetObjectCommand, ListObjectsV2Command, S3Client} from '@aws-sdk/client-s3'
 import {loadIndependentDeletions, persistIndependentDeletion} from './independent-deletion-ledger.mjs'
+import {certifyLedgerBoundaries} from './certify-ledger-boundaries.mjs'
 
 const bucket = 'writeoffs-backups-264524064115-us-east-2-an'
 const source = 'staging'
@@ -17,6 +18,7 @@ const safeCodes = new Set([
   'INDEPENDENT_DELETION_CONFLICT', 'INCOMPLETE_LEDGER_LIST', 'DUPLICATE_LEDGER_ENTRY',
   'UNEXPECTED_LEDGER_OBJECT', 'INVALID_DELETION_ENTRY', 'LEDGER_RETRY_CHANGED_VERSION',
   'LEDGER_CONFLICT_ACCEPTED', 'LEDGER_RECOVERY_MISMATCH', 'LEDGER_WRONG_KEY_ACCEPTED',
+  'BOUNDARY_EXISTING_ENTRY_REQUIRED', 'BOUNDARY_DENIAL_NOT_PROVEN', 'BOUNDARY_UNEXPECTED_PERMISSION', 'BOUNDARY_LEDGER_CHANGED',
 ])
 export function safeFailureCode(error) {
   return [error?.message, error?.name].find(value => safeCodes.has(value)) ?? 'UNCLASSIFIED_ERROR'
@@ -136,6 +138,12 @@ async function main() {
     writer = client('WRITEOFFS_DELETION_LEDGER')
     diagnostics.stage = 'reader-credential-validation'
     reader = client('WRITEOFFS_DELETION_LEDGER_RECOVERY')
+    if (env.WRITEOFFS_LEDGER_BOUNDARY_CERTIFICATION === 'true') {
+      diagnostics.stage = 'permission-boundaries'
+      const report = await certifyLedgerBoundaries({writer: diagnosticClient(writer, 'writer', diagnostics), reader: diagnosticClient(reader, 'recovery-reader', diagnostics), encryptionKey})
+      process.stdout.write(`${JSON.stringify(report, null, 2)}\n`)
+      return
+    }
     if (env.WRITEOFFS_LEDGER_READ_ONLY_DIAGNOSTICS === 'true') {
       const report = await diagnoseLedgerReadOnly({writer, reader})
       process.stdout.write(`${JSON.stringify({...report, configuredRegion: 'us-east-2',
