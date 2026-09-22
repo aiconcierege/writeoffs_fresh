@@ -1,0 +1,28 @@
+{
+  "keyboardFilters": true,
+  "bulkSelection": true,
+  "radioKeyboard": true,
+  "reducedMotion": true,
+  "textScaling": [
+    {
+      "route": "home",
+      "overflow": false
+    },
+    {
+      "route": "check-in",
+      "overflow": false
+    },
+    {
+      "route": "transactions",
+      "overflow": false
+    },
+    {
+      "route": "mileage",
+      "overflow": false
+    },
+    {
+      "route": "reports",
+      "overflow": false
+    }
+  ]
+}

@@ -27,3 +27,24 @@ Public staging verification uses real authenticated browser renders and an exist
 A 200% root-text stress test initially exposed clipping despite zero page overflow. Visual inspection led to container-based reflow for Home, Check-in and Transactions, and readable report-summary numbers. Normal desktop/mobile compositions are preserved. This is a targeted accessibility check, not a full screen-reader conformance certification.
 
 Public deployment and final screenshot evidence are listed below. Existing unrelated Plaid audit files and security migration are excluded from this visual change.
+
+## Public staging delivery
+
+- Application commit: `185b6ed` (preceded by `ac8670b` and `d6b925b`).
+- Dedicated project: `writeoffs-fresh-staging`, `prj_o56739F1pzd0TjFirEYoLMaa6oIJ`.
+- Deployment: `dpl_F2qjoXoExrUEFzDNYuvpj2vBJejv`.
+- Public alias: https://writeoffs-fresh-staging.vercel.app
+- Review routes: `/home`, `/check-in`, `/transactions`, `/mileage`, `/reports`.
+- [Screenshot gallery](gallery.md). Includes the initial vehicle setup and established-vehicle trip-entry states.
+
+Transactions and Mileage headings begin 16px below the 72px header on narrow mobile, and 24px below on desktop. Reports uses the same top spacing with its existing eyebrow above the title. Home and Check-in retain their accepted hero/conversation geometry.
+
+Shared text contrast spot checks: ink on pale green 10.95:1; muted text on warm white 5.96:1; indigo on selected pale blue 10.13:1.
+
+Preserved: canonical financial and mileage calculations; classification, question generation and receipt matching; Plaid; persistent question readiness; bulk actions; transaction detail/history; filters and period selection; exports; immutable logo and right-side Menu. No database migration, dependency, secret, or Production configuration change belongs to this pass.
+
+Normal screenshots were visually inspected, not certified solely from DOM overflow measurements. Extended-text screenshots were reviewed separately and used to fix actual overlap and clipping. No full screen-reader or every-business-state certification is claimed. Final product/design approval remains with Rick.
+
+Final public run: 20/20 route/width captures succeeded; zero page overflow, one main landmark per route, Menu on the right, and zero browser runtime errors. Keyboard date filters and bulk controls passed. First-use native radio keyboard behavior passed before vehicle creation (`accessibility-vehicle-setup.json`); it is not present in the subsequent trip-entry state, hence `radioKeyboard: false` in the final artifact means not exercised in that state.
+
+At 200% text, long content reflows vertically. Native date/select inputs retain browser-managed editing/selection within their available width; the stress test is not a claim that every long field value is simultaneously visible.
