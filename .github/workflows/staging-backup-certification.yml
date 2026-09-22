@@ -8,7 +8,7 @@ on:
         required: true
         default: backup
         type: choice
-        options: [backup, inspect-retention, certify-ledger, diagnose-ledger, certify-ledger-boundaries, copy-recovery, certify-hosted-dr, configure-staging-runtime]
+        options: [backup, inspect-retention, certify-ledger, diagnose-ledger, certify-ledger-boundaries, copy-recovery, certify-hosted-dr]
       backup_class:
         description: Backup retention class
         required: true
@@ -199,42 +199,5 @@ jobs:
         with:
           name: hosted-dr-certification
           path: hosted-dr-certification.json
-          retention-days: 30
-          if-no-files-found: error
-
-
-  configure-staging-runtime:
-    if: inputs.operation == 'configure-staging-runtime' && github.ref == 'refs/heads/v2-onboarding-staging'
-    environment: staging-backup
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci --ignore-scripts
-      - name: Reconcile authoritative completed staging tombstones
-        run: node scripts/backup/backfill-staging-deletion-ledger.mjs > staging-ledger-backfill.json
-        env:
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          WRITEOFFS_DELETION_LEDGER_ACCESS_KEY_ID: ${{ secrets.WRITEOFFS_DELETION_LEDGER_ACCESS_KEY_ID }}
-          WRITEOFFS_DELETION_LEDGER_SECRET_ACCESS_KEY: ${{ secrets.WRITEOFFS_DELETION_LEDGER_SECRET_ACCESS_KEY }}
-          WRITEOFFS_DELETION_LEDGER_KEY_BASE64: ${{ secrets.WRITEOFFS_DELETION_LEDGER_KEY_BASE64 }}
-      - name: Transfer existing writer secrets to dedicated staging runtime
-        run: node scripts/backup/configure-staging-ledger-runtime.mjs > staging-runtime-transfer.json
-        env:
-          WRITEOFFS_TEMP_VERCEL_TRANSFER_TOKEN: ${{ secrets.WRITEOFFS_TEMP_VERCEL_TRANSFER_TOKEN }}
-          WRITEOFFS_DELETION_LEDGER_ACCESS_KEY_ID: ${{ secrets.WRITEOFFS_DELETION_LEDGER_ACCESS_KEY_ID }}
-          WRITEOFFS_DELETION_LEDGER_SECRET_ACCESS_KEY: ${{ secrets.WRITEOFFS_DELETION_LEDGER_SECRET_ACCESS_KEY }}
-          WRITEOFFS_DELETION_LEDGER_KEY_BASE64: ${{ secrets.WRITEOFFS_DELETION_LEDGER_KEY_BASE64 }}
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: staging-runtime-ledger-configuration
-          path: |
-            staging-ledger-backfill.json
-            staging-runtime-transfer.json
           retention-days: 30
           if-no-files-found: error

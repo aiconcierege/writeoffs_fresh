@@ -1,5 +1,7 @@
 # Plaid user offboarding certification — September 21, 2026
 
+**Final September 22 result: YES — User offboarding may be marked complete.**
+
 Current September 22 Backup/DR update: [final assessment](../backup-dr/final-offboarding-2026-09-22.md).
 The following September 21 report is historical; its application-level evidence remains valid.
 

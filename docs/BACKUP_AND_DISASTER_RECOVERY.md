@@ -437,14 +437,28 @@ The hosted test proved resurrection, re-deletion, wrong-key rejection and B pres
 It used canonical SQL deletion and hosted Auth SQL, synthetic Plaid state, and real Storage
 API cleanup. It did not exercise a newly deployed application deletion worker.
 
-### Remaining application rollout prerequisite
+### Staging application rollout certified — September 22, 2026
 
-`app/lib/account-lifecycle/independent-ledger.ts` and its deletion-worker call are validated
-but not deployed. The protected runner secrets are not application runtime configuration.
-Authorize a protected transfer of the EXISTING writer credentials and ledger key to the
-server-only dedicated staging runtime, set SOURCE=staging, verify metadata, reconcile
-existing minimized tombstones, then deploy and certify a single isolated application-worker
-publication. No plaintext key may pass through chat/local output. On September 22 a read-only
-Vercel metadata request returned 403; configuration is unverified, not claimed absent.
-Do not deploy unconfigured fail-closed publication or mark User Offboarding complete yet.
-No Production rollout, permission broadening or key rotation is authorized by this runbook.
+The existing writer credentials and ledger key were transferred by protected run 35770340171
+to sensitive server-only variables on dedicated staging project `prj_o56739F1pzd0TjFirEYoLMaa6oIJ`.
+Recovery-reader credentials are absent from runtime. The temporary transfer secret was
+removed, and its workflow operation was retired. CLI OAuth refresh resolved the earlier
+403 without extra permissions. No ledger key was regenerated or retrieved locally.
+
+The deployed deletion worker now publishes/read-verifies the independent obligation before
+irreversible cleanup. Fifteen authoritative pre-existing completed tombstones were durably
+verified before deployment. New completed deletions publish through the worker. Publication
+failure is retryable without cleanup; exact retry is idempotent and conflict fails closed.
+Both synthetic customers were ultimately deleted through the actual scheduled application
+worker. Auth/MFA, private files, Plaid state and jobs were removed. The residual audit found
+zero deleted-tenant rows across 99 business-owned tables. See the final assessment above.
+
+Existing local tombstone effective_at can represent cleanup time whereas the external
+obligation uses stable started_at. When auditing future historical coverage, compare the
+authoritative identity/reason and the recorded publication obligation; do not overwrite an
+immutable S3 entry merely to make timestamps equal. The one-time historical backfill is
+retired; any future conflict must be investigated, never silently rewritten.
+
+Keep using the EXISTING protected key and least-privilege identities. Future Production
+configuration requires its own explicit authorization; the staging publisher is intentionally
+bound to staging. Do not treat successful staging certification as a Production deployment.

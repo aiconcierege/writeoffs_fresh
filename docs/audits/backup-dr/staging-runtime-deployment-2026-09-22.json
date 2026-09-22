@@ -1,0 +1,27 @@
+{
+  "kind": "DEDICATED_STAGING_DEPLOYMENT",
+  "deploymentId": "dpl_9s8CE5XZqU63v3Ji6VzXevik61an",
+  "projectId": "prj_o56739F1pzd0TjFirEYoLMaa6oIJ",
+  "state": "READY",
+  "url": "writeoffs-fresh-staging-d3lg3ajzc-ricks-projects-3ba59ab5.vercel.app",
+  "alias": [
+    "writeoffs-fresh-staging.vercel.app",
+    "writeoffs-fresh-staging-ricks-projects-3ba59ab5.vercel.app"
+  ],
+  "ledgerVariables": [
+    {
+      "name": "WRITEOFFS_DELETION_LEDGER_ACCESS_KEY_ID",
+      "present": true
+    },
+    {
+      "name": "WRITEOFFS_DELETION_LEDGER_SECRET_ACCESS_KEY",
+      "present": true
+    },
+    {
+      "name": "WRITEOFFS_DELETION_LEDGER_KEY_BASE64",
+      "present": true
+    }
+  ],
+  "recoveryReaderPresent": false,
+  "temporaryTransferSecretRemoved": true
+}

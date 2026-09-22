@@ -1,10 +1,11 @@
 # Backup / DR deletion safety
 
-Current status — September 22, 2026: **hosted restore drill PASS; application rollout pending**.
+Current status — September 22, 2026: **hosted restore drill PASS; real staging application-worker rollout PASS**.
 See [final assessment](audits/backup-dr/final-offboarding-2026-09-22.md) and the current
 [runbook](BACKUP_AND_DISASTER_RECOVERY.md). The sections below are a chronological
 engineering history; earlier pending/failed statements are superseded by later evidence.
-The successful hosted test is not a claim that the new runtime publisher is deployed.
+The latest application-worker evidence proves the publisher is deployed on dedicated staging.
+Real Production is unchanged.
 
 ## Required invariant
 
@@ -303,3 +304,16 @@ resurrected under isolation, automatically re-deleted using the live independent
 and B survived. Wrong-key authentication failed closed; no customer/worker activation
 or Production cutover occurred. Temporary target secret removed and project deletion
 verified. Evidence and remaining application rollout requirements are in the final assessment.
+
+
+## Final staging runtime certification — September 22, 2026
+
+Protected run 35770340171 verified 15 authoritative completed tombstones and transferred
+only approved existing writer secrets/key. Temporary transfer secret removed; one-time
+workflow retired. Deployment dpl_9s8CE5XZqU63v3Ji6VzXevik61an passed the REAL scheduled
+application-worker sequence: publication failure preserved data; valid publication preceded
+controlled downstream failure; identical retry succeeded; conflict failed closed; original
+facts completed deletion. Zero remaining rows across 99 business-owned tables, Auth/MFA and
+private storage. B survived, then was cleaned up through the same application worker.
+All earlier pending-runtime statements are historical. Final assessment: **YES**, at the
+explicit evidence levels in `audits/backup-dr/final-offboarding-2026-09-22.md`.

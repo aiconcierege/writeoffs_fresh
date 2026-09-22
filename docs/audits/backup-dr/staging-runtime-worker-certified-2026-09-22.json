@@ -1,0 +1,77 @@
+{
+  "kind": "REAL_STAGING_APPLICATION_WORKER",
+  "syntheticOnly": true,
+  "stages": {
+    "fixtures": true,
+    "verifiedRequest": true,
+    "invalid": {
+      "status": "retryable",
+      "attemptCount": 1,
+      "safeCode": "INVALID_DELETION_ENTRY",
+      "observedAt": "2026-09-22T19:17:59.041Z",
+      "worker": "Deployed scheduled application worker; no manual global drain"
+    },
+    "publish": {
+      "status": "retryable",
+      "attemptCount": 2,
+      "safeCode": "ACCOUNT_DELETION_FAILED",
+      "observedAt": "2026-09-22T19:18:55.509Z",
+      "worker": "Deployed scheduled application worker; no manual global drain"
+    },
+    "retry": {
+      "status": "retryable",
+      "attemptCount": 3,
+      "safeCode": "ACCOUNT_DELETION_FAILED",
+      "observedAt": "2026-09-22T19:20:00.845Z",
+      "worker": "Deployed scheduled application worker; no manual global drain"
+    },
+    "conflict": {
+      "status": "retryable",
+      "attemptCount": 4,
+      "safeCode": "INDEPENDENT_DELETION_CONFLICT",
+      "observedAt": "2026-09-22T19:20:56.004Z",
+      "worker": "Deployed scheduled application worker; no manual global drain"
+    },
+    "complete": {
+      "status": "completed",
+      "attemptCount": 5,
+      "safeCode": null,
+      "observedAt": "2026-09-22T19:21:59.813Z",
+      "worker": "Deployed scheduled application worker; no manual global drain"
+    }
+  },
+  "updatedAt": "2026-09-22T19:24:01.852Z",
+  "security": {
+    "aal1Denied": true,
+    "crossTenantCancelDenied": true,
+    "crossTenantScheduleDenied": true,
+    "unauthorizedWorkerDenied": true
+  },
+  "graceDays": 6.999991539351852,
+  "timeControl": "Only synthetic request dates advanced; no shared clock change",
+  "result": "PASS",
+  "remainingRows": {
+    "businesses": 0,
+    "financial_accounts": 0,
+    "financial_transactions": 0,
+    "bookkeeping_records": 0,
+    "bookkeeping_decisions": 0,
+    "bookkeeping_review_events": 0,
+    "bookkeeping_processing_jobs": 0,
+    "plaid_items": 0,
+    "receipts": 0
+  },
+  "deletedCustomerSyncDenied": true,
+  "authMfaRemoved": true,
+  "privateFilesRemoved": true,
+  "controlTenantPreserved": true,
+  "tombstoneRetained": true,
+  "actualProviderRemoval": "Prior REAL PLAID SANDBOX certification retained; this fixture has synthetic Plaid state",
+  "publicationFailure": "Synthetic invalid effective timestamp rejected by deployed publisher before cleanup",
+  "publicationProof": "Successful conditional publication/readback precedes deliberate invalid-Plaid-envelope failure; changed timestamp yields immutable-entry conflict; original timestamp retries safely and deletion completes.",
+  "syntheticControlCleanedThroughApplicationWorker": true,
+  "syntheticCredentialsRemovedLocally": true,
+  "temporaryTransferSecretAbsent": true,
+  "temporaryHostedTargetSecretAbsent": true,
+  "clientBundleLedgerReferences": 0
+}

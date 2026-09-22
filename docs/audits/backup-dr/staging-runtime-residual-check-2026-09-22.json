@@ -1,0 +1,9 @@
+{
+  "kind": "REAL_STAGING_SCOPED_RESIDUAL_CHECK",
+  "result": "PASS",
+  "mfaRows": 0,
+  "authRows": 0,
+  "privateObjects": 0,
+  "businessOwnedTablesChecked": 99,
+  "remainingBusinessOwnedRows": 0
+}

@@ -1,131 +1,119 @@
-# Plaid offboarding — hosted DR result and rollout assessment
+# Plaid User Offboarding — final staging certification
 
 ## Decision
 
-**Hosted DR certification: PASS. Plaid User Offboarding overall: NOT COMPLETE.**
+**YES. Rick may now click “Mark complete” for User offboarding in Plaid Launch Center.**
 
-The remaining limitation is application rollout, not another failed restore test. The new
-independent-ledger publication call is validated in repository code but not deployed to
-the normal application deletion worker. Its runtime configuration and reconciliation of
-older completed deletion tombstones are not certified. Do not click Mark complete yet.
+The application-level offboarding, live independent ledger, hosted restore gate, protected
+recovery copy, and real staging application-worker publication are certified at the levels
+shown below. Real Production was not changed or used. No actual customer cutover is claimed.
 
-## Actual hosted evidence inspected
+## Latest real application-worker evidence
+
+Dedicated staging deployment: `dpl_9s8CE5XZqU63v3Ji6VzXevik61an`, from `f8115f4`,
+https://writeoffs-fresh-staging.vercel.app . [Deployment metadata](staging-runtime-deployment-2026-09-22.json).
+
+[Protected run 35770340171](https://github.com/aiconcierege/writeoffs_fresh/actions/runs/35770340171)
+verified 15 authoritative completed staging tombstones through encrypted conditional S3
+publication and durable readback. No identities/timestamps were fabricated. Final coverage is 17 tombstones: those 15 plus
+the two new application-published synthetic deletions, with no unaccounted entries
+([coverage check](staging-tombstone-coverage-final-2026-09-22.json)). It transferred
+only the existing writer ID, writer secret and ledger key to sensitive server variables on
+the primary slot of the dedicated staging project. SOURCE=staging is nonsecret configuration.
+No recovery-reader credential exists in runtime. The expired CLI OAuth session was refreshed
+normally; no permission was broadened. The temporary transfer token secret was removed and
+its absence verified. The one-time workflow operation is retired in the final commit.
+The short-lived access token copy was removed; no refresh token or new long-lived credential
+was created. Existing ledger key and recovery copy were not rotated or regenerated.
+
+[Real worker result](staging-runtime-worker-certified-2026-09-22.json) and
+[all-table residual check](staging-runtime-residual-check-2026-09-22.json):
+
+| Step | Real staging observation |
+| --- | --- |
+| Verified request | Customer A used public deletion API with MFA; seven-day grace returned |
+| Authorization | AAL1 denied; B cannot cancel A; A cannot schedule B; unauthenticated worker denied |
+| Grace completion | Only A's synthetic dates advanced; normal scheduled worker claimed request |
+| Publication failure | Synthetic invalid effective timestamp caused INVALID_DELETION_ENTRY; all A data/files remained |
+| Durable publication then interrupted cleanup | Valid timestamp published; deliberately invalid synthetic Plaid envelope blocked downstream cleanup |
+| Idempotent retry | Identical facts passed publication again and reached the same controlled downstream failure |
+| Conflicting content | One-second synthetic timestamp change returned INDEPENDENT_DELETION_CONFLICT; A data/files remained |
+| Successful completion | Original timestamp restored, synthetic blocker released; scheduled application worker completed on attempt 5 |
+| Full cleanup | Zero A rows across 99 business-owned tables; Auth=0, MFA=0, private objects=0 |
+| Plaid/jobs | Item/token/cursor and processing jobs/leases absent; deleted-business sync guard false |
+| Retained evidence | Minimized tombstone and deletion attempt history remain |
+| Isolation | B's scoped counts and private files preserved before separate fixture cleanup |
+
+No manual global drain, new debug route, worker bypass or ledger-key retrieval was used.
+The test modifies only explicitly marked synthetic fixtures. Source records and decisions
+use existing canonical RPCs; a rejected direct fixture insert was corrected without
+bypassing integrity checks. The initial invalid timestamp tests publisher validation failure,
+not an induced live AWS outage. AWS failures and unavailable configuration also retain their
+existing deterministic fail-closed tests. The controlled downstream failure uses synthetic
+Plaid state, not a real provider Item. Prior real Sandbox /item/remove evidence is preserved.
+
+The deployed publisher requires an S3 version ID, authenticated decryption and matching
+content before returning. Observed downstream failure, identical retry, immutable conflict,
+and final completion establish that the application uses that path before irreversible
+cleanup. No raw ledger contents or version payloads are returned to customers or the artifact.
+
+## Existing hosted DR evidence retained
 
 [Run 35767459267](https://github.com/aiconcierege/writeoffs_fresh/actions/runs/35767459267),
-commit `839e1f291f8862ccc61d9ee7da171f997d66b60d`, completed September 22, 2026.
-The actual drill step ran 18:31:27–18:32:52 UTC.
-[Original sanitized artifact](hosted-dr-certified-2026-09-22.json) is preserved unchanged.
-The artifact fields were checked against the committed assertions in
-`scripts/backup/drill-hosted-fresh-restore.mjs`.
+commit `839e1f2`, [original artifact](hosted-dr-certified-2026-09-22.json): old backup restored
+both tenants and resurrected deleted A under isolation. Live independent-ledger reconciliation
+re-deleted A across application/bookkeeping, Auth/MFA, Plaid, objects and jobs. B survived.
+Wrong-key decryption failed closed; successful verification yielded eligible-not-activated.
+Customer access and normal workers were never enabled. No repeat hosted drill was needed.
 
-| Required hosted assertion | Actual result |
-| --- | --- |
-| Initial hosted isolation | true |
-| Independent S3 publication/version/readback before irreversible source deletion | true |
-| Canonical source permanent deletion | true |
-| Old backup restores both A and B | true; exact fixture snapshots compared |
-| Deleted A demonstrably resurrected | true |
-| Restored target blocked before reconciliation | true |
-| Wrong ledger key fails closed | true |
-| Application/bookkeeping/question-history removal | true |
-| Auth and MFA removal | true |
-| Plaid Item/token/cursor and connection state removal | true; synthetic Plaid state |
-| Private object removal | true; real hosted Storage API |
-| Job/lease removal | true |
-| B preserved | true; database snapshots and private-file contents compared |
-| Minimized tombstone retained | true |
-| Final eligibility | true, eligible-not-activated |
-| Customer access / normal workers / Production cutover | false / false / false |
-
-The source was an isolated synthetic PostgreSQL database using current staging schema.
-The destination was an isolated hosted Supabase project. Live AWS/S3 and existing ledger
-key were used by the protected runner. This is not a real Plaid API removal test; the prior
-Sandbox offboarding certification supplies that evidence. Source deletion used canonical
-verified-request/claim/delete/complete SQL with an explicit synthetic clock advance and
-Auth SQL deletion. It did not invoke a newly deployed TypeScript deletion worker.
-
-## Cleanup and cost
-
-[Cleanup evidence](hosted-dr-cleanup-2026-09-22.json):
-- `WRITEOFFS_TEMP_DR_TARGET_JSON` removed from `staging-backup`; fresh name-only listing verified absence.
-- `hkvmfbqshqthsfxmwlsq` / `writeoffs-dr-certification-20260922` deleted; a fresh provider listing verified absence and preservation of other projects.
-- Existing ledger, AWS policies, protected recovery copy and encryption key untouched.
-- 1.589 hours at verified Micro $0.01344/hour: conservative rounded-up compute estimate **$0.02688**.
-- Earlier short-lived disposable target estimate **$0.01344**; combined **$0.04032**.
-  This is not an invoice and does not claim measured incidental storage/network usage.
-- No actual cutover, real customer data, main change or real Production change.
+[Cleanup](hosted-dr-cleanup-2026-09-22.json): temporary hosted-target secret removed; disposable
+project deleted and absence verified, other projects preserved. Conservative combined compute
+estimate **$0.04032**, using verified Micro $0.01344/hour and rounded-up project lifetimes.
+Not an invoice or measured incidental storage/network usage. Valid S3 tombstones preserved.
 
 ## Final requirement matrix
 
-Prior application evidence is preserved in [the September 21 certification](../plaid-offboarding/README.md).
-No accepted test was repeated merely to obtain a newer timestamp.
-
-| Requirement | Result | Evidence level and reference |
+| Requirement | Result | Evidence level |
 | --- | --- | --- |
-| /item/remove | PASS | REAL PLAID SANDBOX; prior disconnect/replay and provider ITEM_NOT_FOUND |
-| Plaid credential/token removal | PASS | REAL PLAID SANDBOX + INTERNAL DETERMINISTIC state/race tests |
-| Sync shutdown | PASS | INTERNAL DETERMINISTIC; terminal Item, queued work and held lease rejected |
-| Historical books after ordinary disconnect | PASS | REAL PLAID SANDBOX; preserved source revisions after settled replay |
-| Membership cancellation / paid-through | PASS at accepted deterministic level | INTERNAL DETERMINISTIC + source review; no new live Stripe cancellation |
-| 12-month read-only retention | PASS at accepted deterministic level | INTERNAL DETERMINISTIC; no 12-month elapsed observation |
-| Seven-day deletion grace | PASS | REAL PUBLIC STAGING request + server-time tests |
-| Cancellation of deletion during grace | PASS | REAL PUBLIC STAGING synthetic request/cancel |
-| Permanent application deletion | PASS for certified fixtures | Prior application test + HOSTED DR TEST canonical SQL path; new publisher rollout separately pending |
-| Independent encrypted ledger | PASS in protected infrastructure | LIVE AWS/S3 runs 35683014590, 35683422210 and hosted run |
-| Automatic ledger publication by normal application worker | PARTIAL | INTERNAL DETERMINISTIC call ordering/retry/config tests; undeployed server hook |
-| Previously completed tombstones represented independently | UNVERIFIED | Requires scoped reconciliation/backfill before rollout; new synthetic writes do not prove old coverage |
-| Writer boundaries | PASS for tested boundaries | LIVE AWS/S3 conditional Put/Get/retry/conflict; safe deny probes; valid tombstone preserved |
-| Recovery-reader boundaries | PASS for tested boundaries | LIVE AWS/S3 list/read and safe write/delete-denial probes; not a claim of exhaustive IAM inventory |
-| Protected recovery key | PASS | LIVE AWS/S3 recovery authentication run 35757112853; GitHub branch/reviewer protections verified |
-| Current backup expiration | CONFIGURATION VERIFIED | LIVE AWS/S3 read-only run 35662828362; 35/84/90 days; no elapsed-expiration claim |
-| Noncurrent expiration / markers / multipart | CONFIGURATION VERIFIED | LIVE AWS/S3; 1 day subject to Object Lock, marker cleanup, abort7d |
-| Automatic restore reconciliation | PASS | HOSTED DR TEST; independent current ledger, re-deletion, second ledger read |
-| Private-object reconciliation | PASS | HOSTED DR TEST; A files deleted, B files intact |
-| Plaid-state reconciliation | PASS | HOSTED DR TEST; synthetic Item/token/cursor deleted |
-| Worker/job/lease safety | PASS for tested restored state | HOSTED DR TEST; A jobs absent and normal workers never enabled; prior race tests retained |
-| Fail-closed activation gate | PASS for verify-only recovery | HOSTED DR TEST; wrong key denied, checks before eligibility; actual cutover not performed |
-| Hosted resurrection drill | PASS | HOSTED DR TEST, original artifact above |
-| Tenant isolation | PASS | HOSTED DR TEST B preserved + prior cross-tenant API/SQL denial |
-| MFA/security | PASS at tested boundaries | Prior real AAL1/foreign request denial; hosted Auth/MFA cleanup; secret checks |
-| Runtime rollout / operational activation | NOT CERTIFIED | Protected runner is not application runtime; operational source fence/cutover adapter not exercised |
+| /item/remove | PASS | REAL PLAID SANDBOX; prior disconnect/replay and ITEM_NOT_FOUND |
+| Plaid token/credential erasure | PASS | REAL PLAID SANDBOX + real staging worker / hosted synthetic state |
+| Sync shutdown | PASS | Prior lease/webhook race tests + real deleted-business sync denial |
+| Historical books after disconnect | PASS | REAL PLAID SANDBOX; retained source revisions after replay |
+| Cancellation / paid-through service | PASS at accepted level | INTERNAL DETERMINISTIC and implementation review; no new Stripe cancellation |
+| Twelve-month read-only retention | PASS at accepted level | INTERNAL DETERMINISTIC; not twelve months elapsed |
+| Seven-day deletion grace | PASS | REAL PUBLIC STAGING; actual server deadline, synthetic time advancement for execution |
+| Cancel deletion during grace | PASS | Prior REAL PUBLIC STAGING request/cancel |
+| Permanent deletion | PASS | REAL STAGING APPLICATION WORKER + prior application/hosted certification |
+| Automatic independent publication before cleanup | PASS | REAL STAGING APPLICATION WORKER, live S3 |
+| Historical completed-tombstone coverage | PASS | LIVE AWS/S3; 15 authoritative existing entries verified, new deletions use deployed publisher |
+| Failure/retry/conflict | PASS | REAL STAGING APPLICATION WORKER + live S3 / deterministic failure tests |
+| Writer permission boundaries | PASS for tested boundaries | LIVE AWS/S3 conditional Put/Get and safe denied-operation probes |
+| Recovery-reader boundaries | PASS for tested boundaries | LIVE AWS/S3 list/read and safe denied write/delete probes; no exhaustive IAM inventory claim |
+| Protected recovery key | PASS | LIVE AWS/S3 recovery authentication run 35757112853; branch/reviewer restrictions verified |
+| Current backup expiration | CONFIGURATION VERIFIED | LIVE AWS/S3 read-only run 35662828362; daily35/weekly84/monthly90 |
+| Noncurrent versions / markers / multipart | CONFIGURATION VERIFIED | LIVE AWS/S3; one day subject to holds, marker cleanup, abort7d |
+| Restore reconciliation | PASS | HOSTED DR TEST; latest independent ledger and second read |
+| Private-object reconciliation | PASS | HOSTED DR TEST + REAL STAGING APPLICATION WORKER |
+| Plaid-state reconciliation | PASS | HOSTED DR TEST + REAL STAGING APPLICATION WORKER synthetic state |
+| Worker/job/lease safety | PASS | Hosted isolation, real worker cleanup and prior stale-lease rejection |
+| Fail-closed activation gate | PASS | HOSTED DR TEST; wrong key blocked, successful checks before eligibility |
+| Hosted resurrection drill | PASS | HOSTED DR TEST original artifact preserved |
+| Tenant isolation | PASS | Real public cross-tenant denial, hosted B preservation, real worker B preservation |
+| MFA / secret security | PASS | Real AAL1 denial/MFA cleanup, server-only sensitive configuration, scans |
+| Temporary infrastructure cleanup | PASS | Hosted project/temporary secrets removed; no extra permissions or keys created |
 
-No elapsed retention or actual Production restore is claimed. Manual-only backup cadence
-remains unchanged; nightly scheduling is a separate pre-launch operational requirement.
-The recovery copy is independent of the database/backups/runtime but shares the GitHub
-provider account; no offline escrow is claimed.
+Previous application evidence: [September 21 certification](../plaid-offboarding/README.md).
+No accepted tests were repeated merely to refresh timestamps. Configuration verification is
+not a claim of months of elapsed S3 expiration. No real Production rollout/cutover is claimed.
+The recovery copy shares GitHub as a provider but is independent of app/database/backups;
+no offline escrow is claimed. Manual backup scheduling remains a separate operational
+pre-launch matter, not reopened by this application-runtime certification.
 
-## Exact remaining authorization/configuration step
+## Validation
 
-A read-only Vercel environment-metadata request returned **403**; values were not decrypted
-or displayed. This does not prove variables absent. Evidence:
-[runtime inspection](runtime-configuration-2026-09-22.json).
-
-Before deploying the new hook, authorize a protected, server-only transfer/verification of:
-- the EXISTING writer Access Key ID and Secret Access Key;
-- the EXISTING `WRITEOFFS_DELETION_LEDGER_KEY_BASE64`;
-- `WRITEOFFS_DELETION_LEDGER_SOURCE=staging`.
-
-Destination must be ONLY the primary slot of dedicated project `writeoffs-fresh-staging`
-(`prj_o56739F1pzd0TjFirEYoLMaa6oIJ`). Do not transfer the recovery-reader into runtime,
-rotate the key, expose values locally, or broaden IAM. Current authorization keeps the
-key in its approved protected environments; a new destination requires Rick's approval.
-Use a protected transfer mechanism with destination-scoped access, not pasted secrets.
-Then verify/backfill minimized historical tombstones, deploy, and certify one isolated
-application-worker publication/retry. No new hosted restore run is necessary for this.
-
-The earlier gate/ledger requirements cannot be declared globally enforced until this
-rollout is complete. Keeping deployment blocked here avoids disrupting accepted deletion
-behavior with an unconfigured fail-closed publisher.
-
-## Final validation
-
-Final checks: 1,884 tests passed; 143 existing environment-dependent tests skipped.
-TypeScript and optimized webpack build passed. Lint has zero errors and 16 pre-existing
-warnings. Gitleaks scans of lifecycle code, backup scripts and audit files found no secrets;
-git diff --check passed. Dependency audit reports two existing moderate development-only
-findings (vitest and @vitest/mocker); zero high/critical findings. No packages changed.
-
-No dependency,
-Plaid architecture, financial calculation, permission, or secret-value changes are part of
-this finalization. Application hook code may be committed for review while deployment
-remains explicitly blocked on configuration.
+1,895 tests passed; 143 existing environment-dependent skips. TypeScript and optimized
+webpack build passed. Lint: zero errors, 16 existing warnings. Secret scans and diff checks
+passed. Browser static output contains zero ledger configuration references. Two existing
+moderate development-only dependency advisories (Vitest and @vitest/mocker), no high/critical
+findings; no dependencies changed. Main, real Production, Rick's data and AWS permissions
+were untouched. Unapproved Betti assets remain untracked and were excluded from deployment.

@@ -1,3 +1,6 @@
+Completed: run 35770340171, staging deployment and real scheduled-worker certification PASS.
+See [final assessment](final-offboarding-2026-09-22.md). The plan below is retained as history.
+
 # Approved staging runtime rollout — September 22, 2026
 
 Rick approved transfer of the EXISTING writer Access Key ID, writer Secret Access Key,
