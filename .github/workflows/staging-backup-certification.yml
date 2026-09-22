@@ -8,7 +8,7 @@ on:
         required: true
         default: backup
         type: choice
-        options: [backup, inspect-retention]
+        options: [backup, inspect-retention, certify-ledger]
       backup_class:
         description: Backup retention class
         required: true
@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   backup:
-    if: ${{ inputs.operation != 'inspect-retention' }}
+    if: ${{ inputs.operation == 'backup' }}
     environment: staging-backup
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -84,3 +84,31 @@ jobs:
           name: staging-backup-retention-inspection
           path: retention-inspection.json
           retention-days: 14
+
+  certify-ledger:
+    if: inputs.operation == 'certify-ledger' && github.ref == 'refs/heads/v2-onboarding-staging'
+    environment: staging-backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Verify independent ledger with synthetic data only
+        run: node scripts/backup/certify-live-deletion-ledger.mjs > ledger-certification.json
+        env:
+          WRITEOFFS_DELETION_LEDGER_ACCESS_KEY_ID: ${{ secrets.WRITEOFFS_DELETION_LEDGER_ACCESS_KEY_ID }}
+          WRITEOFFS_DELETION_LEDGER_SECRET_ACCESS_KEY: ${{ secrets.WRITEOFFS_DELETION_LEDGER_SECRET_ACCESS_KEY }}
+          WRITEOFFS_DELETION_LEDGER_RECOVERY_ACCESS_KEY_ID: ${{ secrets.WRITEOFFS_DELETION_LEDGER_RECOVERY_ACCESS_KEY_ID }}
+          WRITEOFFS_DELETION_LEDGER_RECOVERY_SECRET_ACCESS_KEY: ${{ secrets.WRITEOFFS_DELETION_LEDGER_RECOVERY_SECRET_ACCESS_KEY }}
+          WRITEOFFS_DELETION_LEDGER_KEY_BASE64: ${{ secrets.WRITEOFFS_DELETION_LEDGER_KEY_BASE64 }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: staging-ledger-certification
+          path: ledger-certification.json
+          retention-days: 14
+          if-no-files-found: error
