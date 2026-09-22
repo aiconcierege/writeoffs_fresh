@@ -3,6 +3,17 @@ import {writeFileSync} from 'node:fs'
 import {dirname} from 'node:path'
 import {fileURLToPath} from 'node:url'
 
+
+// Storage's provider-owned grants cannot be revoked by postgres. Its gate is
+// default-deny RLS, verified independently of the application-schema ACL gate.
+export const publicBarrierSql=`revoke all privileges on all tables in schema public from public,anon,authenticated; revoke all privileges on all sequences in schema public from public,anon,authenticated; revoke execute on all functions in schema public from public,anon,authenticated; alter default privileges in schema public revoke all on tables from public,anon,authenticated; alter default privileges in schema public revoke all on functions from public,anon,authenticated;`
+export const restoreIsolationSql=`select
+ (select count(*)=2 from pg_roles where rolname in ('anon','authenticated') and not rolsuper and not rolbypassrls)
+ and (select count(*)=2 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='storage' and c.relname in ('objects','buckets') and c.relrowsecurity and not exists(select 1 from pg_policy p where p.polrelid=c.oid) and not pg_has_role('anon',c.relowner,'USAGE') and not pg_has_role('authenticated',c.relowner,'USAGE'))
+ and not exists(select 1 from storage.buckets where public)
+ and not exists(select 1 from pg_tables t cross join (values ('anon'),('authenticated')) r(role) where t.schemaname='public' and (has_table_privilege(r.role,format('%I.%I',t.schemaname,t.tablename),'SELECT') or has_table_privilege(r.role,format('%I.%I',t.schemaname,t.tablename),'INSERT') or has_table_privilege(r.role,format('%I.%I',t.schemaname,t.tablename),'UPDATE') or has_table_privilege(r.role,format('%I.%I',t.schemaname,t.tablename),'DELETE')))
+ and not exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace cross join (values ('anon'),('authenticated')) r(role) where n.nspname='public' and has_function_privilege(r.role,p.oid,'EXECUTE'));`
+
 export const hostedDrRef = 'hkvmfbqshqthsfxmwlsq'
 const denied = status => [400,401,403,404].includes(status)
 export function validateHostedDrConfig(config) {
@@ -44,8 +55,8 @@ export function hostedDrTarget(config, caFile) {
       }
       return true
     },
-    applyBarrier(){sql(`revoke all privileges on all tables in schema public from public,anon,authenticated; revoke all privileges on all sequences in schema public from public,anon,authenticated; revoke execute on all functions in schema public from public,anon,authenticated; revoke all privileges on storage.objects,storage.buckets from public,anon,authenticated; alter default privileges in schema public revoke all on tables from public,anon,authenticated; alter default privileges in schema public revoke all on functions from public,anon,authenticated;`)},
-    verifyBarrier(){return sql(`select not exists(select 1 from pg_tables t cross join (values ('anon'),('authenticated')) r(role) where t.schemaname in ('public','storage') and (t.schemaname='public' or t.tablename in ('objects','buckets')) and (has_table_privilege(r.role,format('%I.%I',t.schemaname,t.tablename),'SELECT') or has_table_privilege(r.role,format('%I.%I',t.schemaname,t.tablename),'INSERT') or has_table_privilege(r.role,format('%I.%I',t.schemaname,t.tablename),'UPDATE') or has_table_privilege(r.role,format('%I.%I',t.schemaname,t.tablename),'DELETE')));`)==='t'},
+    applyBarrier(){sql(publicBarrierSql)},
+    verifyBarrier(){return sql(restoreIsolationSql)==='t'},
     writeCa(path,certificate){if(!certificate.startsWith('-----BEGIN CERTIFICATE-----'))throw new Error('DR_CA_INVALID');writeFileSync(path,certificate,{mode:0o600})},
   }
 }

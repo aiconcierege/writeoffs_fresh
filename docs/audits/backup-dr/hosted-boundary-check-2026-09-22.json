@@ -1,0 +1,17 @@
+{
+  "kind": "HOSTED_SYNTHETIC_BOUNDARY_CHECK",
+  "result": "PASS",
+  "stage": "complete",
+  "revisedGate": true,
+  "publicApisBlocked": true,
+  "privateCanaryBlocked": true,
+  "createSchemaPrivilege": true,
+  "authMfaRollbackPassed": true,
+  "storageReadback": true,
+  "probePrivate": true,
+  "probeDeleted": true,
+  "targetStillEmpty": true,
+  "checkedAt": "2026-09-22T18:12:44.643Z",
+  "publicSchemaOwner": "pg_database_owner",
+  "postgresCanReplacePublicSchema": true
+}

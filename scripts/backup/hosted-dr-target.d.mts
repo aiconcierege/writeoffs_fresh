@@ -1,3 +1,5 @@
+export const publicBarrierSql:string
+export const restoreIsolationSql:string
 export const hostedDrRef: string
 export interface HostedDrConfig {id:string;host:string;dbPassword:string;recoveryApiKey:string;storageControllerJwt:string;retiredPublicKeys:Array<string|{api_key:string}>}
 export function validateHostedDrConfig(config:HostedDrConfig):HostedDrConfig

@@ -174,6 +174,7 @@ jobs:
         run: |
           node scripts/backup/pg17-client.mjs psql --version
           node scripts/backup/pg17-client.mjs pg_restore --version
+          docker pull public.ecr.aws/supabase/postgres:17.6.1.147
       - name: Synthetic hosted resurrection and fail-closed restore certification
         run: node scripts/backup/drill-hosted-fresh-restore.mjs > hosted-dr-certification.json
         env:

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Explicitly reviewed synthetic certification. Never cut over a live application.
+import {pathToFileURL} from 'node:url'
 import {spawnSync} from 'node:child_process'
 import {mkdtempSync,readFileSync,writeFileSync,mkdirSync,rmSync,openSync,fsyncSync,closeSync} from 'node:fs'
 import {tmpdir} from 'node:os'
@@ -12,14 +13,17 @@ import {persistIndependentDeletion,loadIndependentDeletions,canonicalDeletionEnt
 import {reconcileHostedPrivateObjects} from './reconcile-hosted-private-objects.mjs'
 import {restoreFreshTarget} from './restore-controller.mjs'
 
-const report={kind:'HOSTED_DR_TEST',result:'FAIL',stage:'runner-validation',productionCutover:false,activationEligible:false}
+export function requireLedgerDecryptionFailure(error){if(error?.message!=='DELETION_LEDGER_INTEGRITY_FAILED')throw error}
+
+export async function runDrill(local){
+const report={kind:local?'INTERNAL_DETERMINISTIC_FULL_DR':'HOSTED_DR_TEST',result:'FAIL',stage:'runner-validation',productionCutover:false,activationEligible:false}
 let root,source,target
 const ensure=(value,code)=>{if(!value)throw new Error(code)}
 const literal=value=>"'"+String(value).replaceAll("'","''")+"'"
 const safeFailure=error=>/^(DR_|RESTORE_|DELETION_LEDGER_|INDEPENDENT_DELETION_|LEDGER_)[A-Z_]+$/.test(error?.message??'')?error.message:'DR_OPERATION_FAILED'
 const capture=(bin,args,{input,env=process.env,timeout=180000}={})=>{
  const r=spawnSync(bin,args,{input,env,timeout,maxBuffer:96*1024*1024,encoding:undefined,stdio:['pipe','pipe','pipe']})
- if(r.status!==0){const error=new Error('DR_PROCESS_FAILED');error.sqlState=String(r.stderr??'').match(/(?:ERROR|FATAL):\s+([0-9A-Z]{5})\b/)?.[1];throw error}
+ if(r.status!==0){if(local?.diagnosticDirectory){writeFileSync(join(local.diagnosticDirectory,'process-error.txt'),r.stderr??'');if(input)writeFileSync(join(local.diagnosticDirectory,'process-input.txt'),input)}const error=new Error('DR_PROCESS_FAILED');error.sqlState=String(r.stderr??'').match(/(?:ERROR|FATAL):\s+([0-9A-Z]{5})\b/)?.[1];throw error}
  return r.stdout
 }
 const docker=(args,options)=>capture('docker',args,options)
@@ -28,23 +32,28 @@ const inspectSource=()=>JSON.parse(docker(['inspect',source]).toString())[0]
 const audit=[]
 function durableAudit(event){audit.push(event);const fd=openSync(join(root,'controller-audit.json'),'w',0o600);try{writeFileSync(fd,JSON.stringify(audit));fsyncSync(fd)}finally{closeSync(fd)}}
 try{
- ensure(process.env.GITHUB_ACTIONS==='true'&&process.env.GITHUB_REPOSITORY==='aiconcierege/writeoffs_fresh'&&process.env.GITHUB_REF==='refs/heads/v2-onboarding-staging'&&process.env.WRITEOFFS_HOSTED_DR_CONFIRM==='synthetic-only','DR_RUNNER_REQUIRED')
+ if(!local)ensure(process.env.GITHUB_ACTIONS==='true'&&process.env.GITHUB_REPOSITORY==='aiconcierege/writeoffs_fresh'&&process.env.GITHUB_REF==='refs/heads/v2-onboarding-staging'&&process.env.WRITEOFFS_HOSTED_DR_CONFIRM==='synthetic-only','DR_RUNNER_REQUIRED')
  process.umask(0o077);root=mkdtempSync(join(tmpdir(),'writeoffs-hosted-dr-'))
- const config=validateHostedDrConfig(JSON.parse(process.env.WRITEOFFS_TEMP_DR_TARGET_JSON??'null'))
- ensure(config.caCertificate?.startsWith('-----BEGIN CERTIFICATE-----'),'DR_CA_REQUIRED')
- const caFile=join(root,'provider-ca.crt');writeFileSync(caFile,config.caCertificate)
- target=hostedDrTarget(config,caFile)
+ const config=local?.config??validateHostedDrConfig(JSON.parse(process.env.WRITEOFFS_TEMP_DR_TARGET_JSON??'null'))
+ if(local){target=local.target}else{
+  ensure(config.caCertificate?.startsWith('-----BEGIN CERTIFICATE-----'),'DR_CA_REQUIRED')
+  const caFile=join(root,'provider-ca.crt');writeFileSync(caFile,config.caCertificate)
+  target=hostedDrTarget(config,caFile)
+ }
  report.stage='target-preflight'
  ensure(target.sql("select count(*) from pg_tables where schemaname='public';")==='0'&&target.sql('select count(*) from auth.users;')==='0','DR_TARGET_NOT_EMPTY')
  ensure(await target.verifyPublicApis(),'DR_CUSTOMER_API_NOT_BLOCKED')
  ensure(await target.verifyPrivateObject('dr-isolation-canary','synthetic.txt'),'DR_PRIVATE_OBJECT_NOT_BLOCKED')
  target.applyBarrier();ensure(target.verifyBarrier(),'DR_PRIVILEGE_BARRIER_FAILED')
  report.initialIsolation=true
+ let schema=local?.schema
+ if(!local){
  const url=new URL(process.env.WRITEOFFS_BACKUP_DATABASE_URL??'')
  ensure(['postgres:','postgresql:'].includes(url.protocol)&&(url.hostname==='db.sgrqrrxrlglhjuetdtps.supabase.co'||(/^[a-z0-9-]+\.pooler\.supabase\.com$/.test(url.hostname)&&decodeURIComponent(url.username)==='postgres.sgrqrrxrlglhjuetdtps')),'DR_SCHEMA_SOURCE_NOT_STAGING')
  report.stage='read-only-schema-copy'
  // No data rows or protected source files are copied from the application project.
- const schema=docker(['run','--rm','--network','host','--env','WRITEOFFS_BACKUP_DATABASE_URL','--env','PGOPTIONS=-c default_transaction_read_only=on','postgres:17.6-bookworm','sh','-ceu','pg_dump --schema-only --no-owner --no-acl --schema=auth --schema=public --schema=storage --schema=extensions "$WRITEOFFS_BACKUP_DATABASE_URL"'])
+ schema=docker(['run','--rm','--network','host','--env','WRITEOFFS_BACKUP_DATABASE_URL','--env','PGOPTIONS=-c default_transaction_read_only=on','postgres:17.6-bookworm','sh','-ceu','pg_dump --schema-only --no-owner --no-acl --schema=auth --schema=public --schema=storage --schema=extensions "$WRITEOFFS_BACKUP_DATABASE_URL"'])
+ }
  report.schemaSha256=createHash('sha256').update(schema).digest('hex')
  source='writeoffs-dr-source-'+randomUUID().slice(0,8)
  report.stage='synthetic-source-creation'
@@ -71,9 +80,9 @@ try{
  const dump=join(root,'t1.dump');writeFileSync(dump,docker(['exec',source,'pg_dump','-U','supabase_admin','-d','dr_source','-Fc','--no-owner','--no-acl','--schema=public','--schema=auth']))
  const backup=join(root,'t1.wobak'),backupKey=randomBytes(32).toString('base64')
  capture(process.execPath,['scripts/backup/create-encrypted-backup.mjs'],{env:{...process.env,WRITEOFFS_BACKUP_OUTPUT:backup,WRITEOFFS_BACKUP_DATABASE_DUMP:dump,WRITEOFFS_BACKUP_STORAGE_ROOT:objectRoot,WRITEOFFS_BACKUP_KEY_BASE64:backupKey,WRITEOFFS_BACKUP_SOURCE_ENVIRONMENT:'staging',WRITEOFFS_BACKUP_EXPECTED_SUPABASE_PROJECT_REF:'isolated-synthetic-dr'}})
- const encryptionKey=Buffer.from(process.env.WRITEOFFS_DELETION_LEDGER_KEY_BASE64??'','base64');ensure(encryptionKey.length===32,'DR_LEDGER_KEY_INVALID')
+ const encryptionKey=local?.encryptionKey??Buffer.from(process.env.WRITEOFFS_DELETION_LEDGER_KEY_BASE64??'','base64');ensure(encryptionKey.length===32,'DR_LEDGER_KEY_INVALID')
  const client=prefix=>new S3Client({region:'us-east-2',credentials:{accessKeyId:process.env[prefix+'ACCESS_KEY_ID'],secretAccessKey:process.env[prefix+'SECRET_ACCESS_KEY']}})
- const writer=client('WRITEOFFS_DELETION_LEDGER_'),reader=client('WRITEOFFS_DELETION_LEDGER_RECOVERY_')
+ const writer=local?.writer??client('WRITEOFFS_DELETION_LEDGER_'),reader=local?.reader??client('WRITEOFFS_DELETION_LEDGER_RECOVERY_')
  const ledgerArgs={client:reader,bucket:'writeoffs-backups-264524064115-us-east-2-an',source:'staging',encryptionKey}
  report.stage='t2-verified-deletion-request'
  const claims=JSON.stringify({sub:A.user,role:'authenticated',aal:'aal2'})
@@ -172,7 +181,7 @@ try{
  const options={provider,backup,audit:{record:async event=>durableAudit(event)},activationMode:'verify-only'}
  // First run restores the old backup, then deliberately cannot authenticate the real ledger.
  try{await restoreFreshTarget({...options,ledger:{loadCurrent:()=>loadIndependentDeletions({...ledgerArgs,encryptionKey:randomBytes(32)})}});throw new Error('DR_FAILURE_GATE_ACCEPTED')}
- catch(error){ensure(error.message==='DELETION_LEDGER_INTEGRITY_FAILED','DR_FAILURE_TEST_UNEXPECTED');ensure(await isolation(),'DR_FAILURE_NOT_ISOLATED');ensure(!audit.some(e=>e.state==='eligible-not-activated'||e.state==='activated'),'DR_FAILURE_GATE_OPEN');failedClosed=true;report.ledgerDecryptionFailureStayedClosed=true}
+ catch(error){requireLedgerDecryptionFailure(error);ensure(await isolation(),'DR_FAILURE_NOT_ISOLATED');ensure(!audit.some(e=>e.state==='eligible-not-activated'||e.state==='activated'),'DR_FAILURE_GATE_OPEN');failedClosed=true;report.ledgerDecryptionFailureStayedClosed=true}
  const result=await restoreFreshTarget({...options,ledger:{loadCurrent:()=>loadIndependentDeletions(ledgerArgs)}})
  ensure(result.activated===false&&result.activationEligible===true,'DR_UNEXPECTED_ACTIVATION')
  report.activationEligible=true;report.customerAccessEnabled=false;report.normalWorkersEnabled=false;report.result='PASS';report.stage='complete'
@@ -180,10 +189,12 @@ try{
  encryptionKey.fill(0)
 }catch(error){report.failureCode=safeFailure(error);if(/^[0-9A-Z]{5}$/.test(error.sqlState??''))report.sqlState=error.sqlState}
 finally{
- if(source)try{docker(['rm','-f',source])}catch{report.localSourceCleanupFailed=true}
+ if(source)try{docker(['rm','-f',source])}catch{report.localSourceCleanupFailed=true;report.result='FAIL';report.failureCode='DR_SOURCE_CLEANUP_FAILED'}
  // Hosted target remains isolated for external verified cleanup; no management token is in this job.
- report.hostedTargetCleanupRequired=true;report.checkedAt=new Date().toISOString()
- console.log(JSON.stringify(report,null,2))
+ report.hostedTargetCleanupRequired=!local;report.checkedAt=new Date().toISOString()
+ local?.onReport?.(report)
  if(root)rmSync(root,{recursive:true,force:true})
- if(report.result!=='PASS')process.exitCode=1
 }
+return report
+}
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){const report=await runDrill();console.log(JSON.stringify(report,null,2));if(report.result!=='PASS')process.exitCode=1}

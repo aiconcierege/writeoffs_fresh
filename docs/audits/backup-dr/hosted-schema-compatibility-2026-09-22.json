@@ -1,0 +1,9 @@
+{
+  "kind": "READ_ONLY_SCHEMA_COMPATIBILITY",
+  "columnsMatch": true,
+  "deletionFunctionsMatch": true,
+  "mismatchedFunctions": [],
+  "columnsChecked": 256,
+  "functionsChecked": 5,
+  "realCustomerRowsRead": false
+}

@@ -1,0 +1,59 @@
+{
+  "kind": "INTERNAL_DETERMINISTIC_FULL_DR",
+  "result": "PASS",
+  "stage": "complete",
+  "productionCutover": false,
+  "activationEligible": true,
+  "initialIsolation": true,
+  "schemaSha256": "32fe2d0053248a1fce1e9f9949f87badd18cdf23646c6f423640d395e7251560",
+  "durableLedgerBeforeDeletion": true,
+  "sourcePermanentDeletion": true,
+  "oldBackupRestoredBothTenants": true,
+  "customerAResurrectedBeforeReconciliation": true,
+  "activationBlockedAfterRestore": true,
+  "ledgerDecryptionFailureStayedClosed": true,
+  "checks": {
+    "application": true,
+    "authMfa": true,
+    "plaid": true,
+    "privateObjects": true,
+    "jobsAndLeases": true,
+    "survivingTenant": true
+  },
+  "minimizedTombstoneRetained": true,
+  "customerAccessEnabled": false,
+  "normalWorkersEnabled": false,
+  "controllerAudit": [
+    {
+      "state": "isolated"
+    },
+    {
+      "state": "isolated"
+    },
+    {
+      "state": "verified"
+    },
+    {
+      "state": "eligible-not-activated"
+    }
+  ],
+  "deletionPath": "Canonical verified-request/claim/delete/complete SQL operations; synthetic clock advance; hosted Auth/MFA SQL deletion; no real Plaid Item or provider call.",
+  "hostedTargetCleanupRequired": false,
+  "checkedAt": "2026-09-22T18:18:18.517Z",
+  "originalRevokeFailureReproduced": true,
+  "gateNegativeChecks": {
+    "publicBucket": true,
+    "permissivePolicy": true,
+    "disabledRls": true,
+    "roleBypass": true,
+    "publicTableGrant": true,
+    "publicFunctionGrant": true
+  },
+  "boundarySubstitutions": [
+    "Local isolated PostgreSQL instead of hosted project",
+    "Storage HTTP replaced with local SQL metadata and synthetic bytes",
+    "S3 replaced with versioned local encrypted entries; real ledger key never accessed",
+    "No customer network exists; live Auth/REST/Storage probes certified separately"
+  ],
+  "localTargetRemoved": true
+}

@@ -1,0 +1,24 @@
+{
+  "kind": "HOSTED_DR_TEST",
+  "result": "FAIL",
+  "stage": "target-preflight",
+  "productionCutover": false,
+  "activationEligible": false,
+  "failureCode": "DR_PRIVILEGE_BARRIER_FAILED",
+  "hostedTargetCleanupRequired": true,
+  "checkedAt": "2026-09-22T17:58:04.157Z",
+  "runId": 35763762162,
+  "classification": "activation-gate implementation issue in certification adapter",
+  "rootCause": "postgres REVOKE cannot remove Storage grants issued by supabase_storage_admin; the grants remain and the privilege-only predicate returns false. Existing default-deny RLS was not represented by that predicate.",
+  "databaseException": "None in the run: the explicit application assertion raised DR_PRIVILEGE_BARRIER_FAILED after SQL succeeded.",
+  "fullLogLinesReviewed": 294,
+  "actualDrillProgress": "TLS and customer API/private canary checks passed; public ACL statements ran; barrier predicate failed. No source/schema copy, fixture, backup, restore, or independent-ledger operation ran.",
+  "providerFacts": {
+    "storageOwnerAndGrantor": "supabase_storage_admin",
+    "postgresCanSetStorageOwner": false,
+    "storageRlsEnabled": true,
+    "storagePolicyCount": 0,
+    "customerRolesSuperuserOrBypassRls": false,
+    "publicBucketCount": 0
+  }
+}
