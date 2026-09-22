@@ -1,0 +1,46 @@
+{
+  "run": "https://github.com/aiconcierege/writeoffs_fresh/actions/runs/35662828362",
+  "inspectedAt": "2026-09-21T22:28:45.839Z",
+  "lifecycleConfiguration": "PASS",
+  "rules": [
+    {
+      "rule": "writeoffs-staging-daily-expiration",
+      "actualId": "writeoffs-staging-daily-expiration",
+      "configuration": "PASS"
+    },
+    {
+      "rule": "writeoffs-staging-daily-expired-markers",
+      "actualId": "writeoffs-staging-daily-expired-markers",
+      "configuration": "PASS"
+    },
+    {
+      "rule": "writeoffs-staging-weekly-expiration",
+      "actualId": "writeoffs-staging-weekly-expiration",
+      "configuration": "PASS"
+    },
+    {
+      "rule": "writeoffs-staging-weekly-expired-markers",
+      "actualId": "writeoffs-staging-weekly-expired-markers",
+      "configuration": "PASS"
+    },
+    {
+      "rule": "writeoffs-staging-monthly-expiration",
+      "actualId": "Rule name: writeoffs-staging-monthly-expiration",
+      "configuration": "PASS"
+    },
+    {
+      "rule": "writeoffs-staging-monthly-expired-markers",
+      "actualId": "Rule name: writeoffs-staging-monthly-expired-markers",
+      "configuration": "PASS"
+    }
+  ],
+  "unchanged": [
+    "versioning",
+    "encryption",
+    "publicAccess",
+    "objectLock",
+    "sampledBackupProtection"
+  ],
+  "productionAndLedgerExcluded": true,
+  "timeElapsedExpirationObserved": false
+}

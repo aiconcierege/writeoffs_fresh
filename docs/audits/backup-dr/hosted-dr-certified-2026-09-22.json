@@ -1,0 +1,43 @@
+{
+  "kind": "HOSTED_DR_TEST",
+  "result": "PASS",
+  "stage": "complete",
+  "productionCutover": false,
+  "activationEligible": true,
+  "initialIsolation": true,
+  "schemaSha256": "30bdf877b889d2c7bb0c4006b1eff09ff48fe327fecf8026333d7d514182851c",
+  "durableLedgerBeforeDeletion": true,
+  "sourcePermanentDeletion": true,
+  "oldBackupRestoredBothTenants": true,
+  "customerAResurrectedBeforeReconciliation": true,
+  "activationBlockedAfterRestore": true,
+  "ledgerDecryptionFailureStayedClosed": true,
+  "checks": {
+    "application": true,
+    "authMfa": true,
+    "plaid": true,
+    "privateObjects": true,
+    "jobsAndLeases": true,
+    "survivingTenant": true
+  },
+  "minimizedTombstoneRetained": true,
+  "customerAccessEnabled": false,
+  "normalWorkersEnabled": false,
+  "controllerAudit": [
+    {
+      "state": "isolated"
+    },
+    {
+      "state": "isolated"
+    },
+    {
+      "state": "verified"
+    },
+    {
+      "state": "eligible-not-activated"
+    }
+  ],
+  "deletionPath": "Canonical verified-request/claim/delete/complete SQL operations; synthetic clock advance; hosted Auth/MFA SQL deletion; no real Plaid Item or provider call.",
+  "hostedTargetCleanupRequired": true,
+  "checkedAt": "2026-09-22T18:32:52.741Z"
+}

@@ -1,0 +1,55 @@
+{
+  "kind": "INTERNAL_DETERMINISTIC_POSTGRES_DRILL",
+  "hostedSupabaseCertified": false,
+  "liveS3LedgerCertified": false,
+  "customerNetworkingEnabled": false,
+  "oldCustomerObservedBeforeReconciliation": true,
+  "checks": {
+    "application": true,
+    "authMfa": true,
+    "plaid": true,
+    "privateObjects": true,
+    "jobsAndLeases": true,
+    "survivingTenant": true
+  },
+  "controller": {
+    "operationId": "238d778c-ac86-4c85-a086-bd3c88e94615",
+    "targetId": "writeoffs-dr-restore-76152cdb",
+    "ledgerDigest": "a24b17bc3e618f27dde5f52aa2f6aa04b132092060001346b1dab6b0d0e5359f",
+    "activated": true
+  },
+  "audit": [
+    {
+      "operationId": "238d778c-ac86-4c85-a086-bd3c88e94615",
+      "targetId": "writeoffs-dr-restore-76152cdb",
+      "state": "isolated"
+    },
+    {
+      "operationId": "238d778c-ac86-4c85-a086-bd3c88e94615",
+      "targetId": "writeoffs-dr-restore-76152cdb",
+      "state": "verified",
+      "ledgerDigest": "a24b17bc3e618f27dde5f52aa2f6aa04b132092060001346b1dab6b0d0e5359f",
+      "checks": {
+        "application": true,
+        "authMfa": true,
+        "plaid": true,
+        "privateObjects": true,
+        "jobsAndLeases": true,
+        "survivingTenant": true
+      }
+    },
+    {
+      "operationId": "238d778c-ac86-4c85-a086-bd3c88e94615",
+      "targetId": "writeoffs-dr-restore-76152cdb",
+      "state": "activated",
+      "ledgerDigest": "a24b17bc3e618f27dde5f52aa2f6aa04b132092060001346b1dab6b0d0e5359f"
+    }
+  ],
+  "limitations": [
+    "Local encrypted ledger file; live S3 not used",
+    "Local schema checkpoint with accepted offboarding corrections, not full current hosted staging schema",
+    "No hosted Auth/API/Storage gateway or customer cutover exercised",
+    "No question/answer fixture rows populated",
+    "Controller activation callback validated isolation but deliberately enabled no networking"
+  ]
+}

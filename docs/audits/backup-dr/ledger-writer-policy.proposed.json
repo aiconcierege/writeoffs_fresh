@@ -1,0 +1,35 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadAndAppendStagingDeletionEntries",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": "arn:aws:s3:::writeoffs-backups-264524064115-us-east-2-an/deletion-ledger/staging/entries/*"
+    },
+    {
+      "Sid": "RequireConditionalCreation",
+      "Effect": "Deny",
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::writeoffs-backups-264524064115-us-east-2-an/deletion-ledger/staging/entries/*",
+      "Condition": {
+        "Null": {
+          "s3:if-none-match": "true"
+        }
+      }
+    },
+    {
+      "Sid": "DenyDeletingOrBypassingLedgerProtection",
+      "Effect": "Deny",
+      "Action": [
+        "s3:DeleteObject",
+        "s3:DeleteObjectVersion",
+        "s3:BypassGovernanceRetention"
+      ],
+      "Resource": "arn:aws:s3:::writeoffs-backups-264524064115-us-east-2-an/deletion-ledger/staging/entries/*"
+    }
+  ]
+}

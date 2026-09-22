@@ -1,0 +1,23 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "InspectBackupBucketControls",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetLifecycleConfiguration",
+        "s3:GetEncryptionConfiguration",
+        "s3:GetBucketObjectLockConfiguration",
+        "s3:GetBucketPublicAccessBlock",
+        "s3:GetBucketPolicyStatus"
+      ],
+      "Resource": "arn:aws:s3:::writeoffs-backups-264524064115-us-east-2-an"
+    },
+    {
+      "Sid": "InspectStagingBackupProtection",
+      "Effect": "Allow",
+      "Action": ["s3:GetObjectLegalHold", "s3:GetObjectRetention"],
+      "Resource": "arn:aws:s3:::writeoffs-backups-264524064115-us-east-2-an/staging/*"
+    }
+  ]
+}

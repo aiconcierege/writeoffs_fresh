@@ -1,0 +1,82 @@
+{
+  "Rules": [
+    {
+      "ID": "writeoffs-staging-daily-expiration",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "staging/daily/"
+      },
+      "Expiration": {
+        "Days": 35
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 1
+      },
+      "AbortIncompleteMultipartUpload": {
+        "DaysAfterInitiation": 7
+      }
+    },
+    {
+      "ID": "writeoffs-staging-daily-expired-markers",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "staging/daily/"
+      },
+      "Expiration": {
+        "ExpiredObjectDeleteMarker": true
+      }
+    },
+    {
+      "ID": "writeoffs-staging-weekly-expiration",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "staging/weekly/"
+      },
+      "Expiration": {
+        "Days": 84
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 1
+      },
+      "AbortIncompleteMultipartUpload": {
+        "DaysAfterInitiation": 7
+      }
+    },
+    {
+      "ID": "writeoffs-staging-weekly-expired-markers",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "staging/weekly/"
+      },
+      "Expiration": {
+        "ExpiredObjectDeleteMarker": true
+      }
+    },
+    {
+      "ID": "writeoffs-staging-monthly-expiration",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "staging/monthly/"
+      },
+      "Expiration": {
+        "Days": 90
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 1
+      },
+      "AbortIncompleteMultipartUpload": {
+        "DaysAfterInitiation": 7
+      }
+    },
+    {
+      "ID": "writeoffs-staging-monthly-expired-markers",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "staging/monthly/"
+      },
+      "Expiration": {
+        "ExpiredObjectDeleteMarker": true
+      }
+    }
+  ]
+}

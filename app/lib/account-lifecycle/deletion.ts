@@ -1,5 +1,6 @@
 import 'server-only'
 
+import {publishPermanentDeletion} from './independent-ledger'
 import {createHmac,randomUUID} from 'node:crypto'
 import type {SupabaseClient} from '@supabase/supabase-js'
 import {createServerAdminSupabase} from '../../../utils/supabase/admin'
@@ -88,9 +89,14 @@ export async function drainAccountDeletionQueue(limit=5){
   for(const request of(claimed.data??[])as Row[]){const id=String(request.id),businessId=request.business_id?String(request.business_id):null,userId=request.owner_user_id?String(request.owner_user_id):null
     try{
       const semanticKey=`deletion-completed:${id}`;if(businessId&&userId)try{const recipient=await notificationIdentity(admin,userId,businessId);await enqueueLifecycleNotice(admin,{semanticKey,type:'deletion_completed',email:recipient.email,timeZone:recipient.timeZone,scheduledFor:'2099-01-01T00:00:00.000Z'})}catch{await recordLifecycleNotificationPreparationFailure(String(request.user_identity_hash),semanticKey).catch(()=>undefined)}
+      // The independent obligation must survive before any irreversible cleanup.
+      // started_at is stable across retries; unlike scheduled_for, restore scheduling can change.
+      const businessHash=businessId?identityHash('business',businessId):String(request.business_identity_hash)
+      const userHash=userId?identityHash('user',userId):String(request.user_identity_hash)
+      if(businessId&&userId&&request.reason==='retention_expired'){const keyed=await admin.from('account_deletion_requests').update({business_identity_hash:businessHash,user_identity_hash:userHash}).eq('id',id).eq('lease_token',leaseToken);if(keyed.error)throw new Error('DELETION_IDENTITY_FAILED')}
+      await publishPermanentDeletion({deletion_request_id:id,business_identity_hash:businessHash,user_identity_hash:userHash,reason:String(request.reason),effective_at:String(request.started_at)})
       if(businessId)await revokePlaidItems(admin,businessId)
       if(userId)await deletePrivateObjects(admin,userId)
-      if(businessId&&userId&&request.reason==='retention_expired'){const keyed=await admin.from('account_deletion_requests').update({business_identity_hash:identityHash('business',businessId),user_identity_hash:identityHash('user',userId)}).eq('id',id).eq('lease_token',leaseToken);if(keyed.error)throw new Error('DELETION_IDENTITY_FAILED')}
       if(businessId){const deleted=await admin.rpc('delete_customer_application_data',{p_request_id:id,p_lease_token:leaseToken,p_now:new Date().toISOString()});if(deleted.error)throw new Error('APPLICATION_DATA_DELETE_FAILED')}
       if(userId){const auth=await admin.auth.admin.deleteUser(userId);if(auth.error)throw new Error('AUTH_DELETE_FAILED')}
       const completed=await admin.rpc('complete_account_deletion',{p_request_id:id,p_lease_token:leaseToken,p_now:new Date().toISOString()})

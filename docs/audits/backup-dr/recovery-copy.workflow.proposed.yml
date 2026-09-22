@@ -1,0 +1,51 @@
+# HISTORICAL PROPOSAL ONLY. Superseded by the certified staging-backup-certification workflow.
+# Do not re-create the revoked bootstrap token or repeat the completed secret transfer.
+name: Protected staging deletion-ledger recovery copy
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: writeoffs-recovery-key-copy
+  cancel-in-progress: false
+jobs:
+  copy:
+    if: github.ref == 'refs/heads/v2-onboarding-staging'
+    environment: staging-backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/backup/copy-protected-recovery-secrets.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          WRITEOFFS_RECOVERY_BOOTSTRAP_TOKEN: ${{ secrets.WRITEOFFS_RECOVERY_BOOTSTRAP_TOKEN }}
+          WRITEOFFS_DELETION_LEDGER_KEY_BASE64: ${{ secrets.WRITEOFFS_DELETION_LEDGER_KEY_BASE64 }}
+          WRITEOFFS_DELETION_LEDGER_RECOVERY_ACCESS_KEY_ID: ${{ secrets.WRITEOFFS_DELETION_LEDGER_RECOVERY_ACCESS_KEY_ID }}
+          WRITEOFFS_DELETION_LEDGER_RECOVERY_SECRET_ACCESS_KEY: ${{ secrets.WRITEOFFS_DELETION_LEDGER_RECOVERY_SECRET_ACCESS_KEY }}
+  verify:
+    needs: copy
+    environment: staging-dr-recovery
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node scripts/backup/verify-protected-recovery-copy.mjs > recovery-copy-verification.json
+        env:
+          WRITEOFFS_DELETION_LEDGER_KEY_BASE64: ${{ secrets.WRITEOFFS_DELETION_LEDGER_KEY_BASE64 }}
+          WRITEOFFS_DELETION_LEDGER_RECOVERY_ACCESS_KEY_ID: ${{ secrets.WRITEOFFS_DELETION_LEDGER_RECOVERY_ACCESS_KEY_ID }}
+          WRITEOFFS_DELETION_LEDGER_RECOVERY_SECRET_ACCESS_KEY: ${{ secrets.WRITEOFFS_DELETION_LEDGER_RECOVERY_SECRET_ACCESS_KEY }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: protected-recovery-copy-verification
+          path: recovery-copy-verification.json
+          retention-days: 14

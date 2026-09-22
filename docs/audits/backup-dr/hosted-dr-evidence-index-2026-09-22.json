@@ -1,0 +1,11 @@
+{
+  "runId": 35767459267,
+  "jobId": 106880504314,
+  "commit": "839e1f291f8862ccc61d9ee7da171f997d66b60d",
+  "url": "https://github.com/aiconcierege/writeoffs_fresh/actions/runs/35767459267",
+  "artifactSha256": "696e49bb091273bff5d9a347065c9f8c5505bb4658a72d830dc4f7603b1ed6c7",
+  "artifactCopiedWithoutModification": true,
+  "assertionsReviewedAgainstExecutedSource": true,
+  "hostedCertification": "PASS",
+  "applicationRollout": "PENDING_CONFIGURATION_AND_CERTIFICATION"
+}

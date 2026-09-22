@@ -120,18 +120,38 @@ and concurrency one; never place the key or cloud credentials in repository vari
 logs. After external certification, a later explicitly approved change can add the nightly
 schedule. A dedicated AWS runner is not required at initial scale.
 
-Restore only into a newly created, isolated target:
+### Approved restore path — September 21, 2026
+
+Rick approved **fresh isolated targets with controller-owned cutover**. In-place restores
+of a live Supabase project are not a supported activation path. The hosted verify-only adapter passed run 35767459267 on September 22, 2026.
+This certifies reconciliation and eligibility, not an actual customer cutover. Do not
+activate a restored target manually outside the controller.
+
+`scripts/backup/restore-controller.mjs` enforces the orchestration contract: source
+publisher fence, fresh target, externally verified isolation, artifact recovery, latest
+independent ledger, deletion/object/Auth/Plaid/job verification, second ledger read,
+required restore checks, durable audit and controlled activation. Failures leave or put
+the target back behind the isolation gate. The provider adapter must enforce isolation
+outside the database being restored, including direct Auth/REST/Storage and worker access.
+It must hold the source fence through cutover and clean up a partially created target if
+provisioning fails. Customer-visible API keys/routes and workers must not be released
+before successful reconciliation. A restored ready flag is not sufficient.
+
+The following command recovers **artifacts only**, not a live database or ready service.
+Direct `WRITEOFFS_RESTORE_DATABASE_URL` use is rejected by the helper. The controller's
+provider adapter owns actual database import into its verified fresh target:
+
 
 ```sh
 WRITEOFFS_RESTORE_INPUT=... \
-WRITEOFFS_RESTORE_DATABASE_URL=... \
+WRITEOFFS_RESTORE_DATABASE_DUMP_OUTPUT=/protected/restored-database.dump \
 WRITEOFFS_RESTORE_STORAGE_ROOT=/protected/restored-objects \
 WRITEOFFS_RESTORE_CONFIRM_ISOLATED=yes \
 WRITEOFFS_BACKUP_KEY_BASE64=... \
 node scripts/backup/restore-encrypted-backup.mjs
 ```
 
-After database restore, upload objects to a **private** target bucket at their original
+Within the gated controller, restore objects to a **private** target bucket at their original
 paths. Reconfigure Auth URLs, SMTP, API keys, Storage settings, webhooks, extensions,
 cron, and environment secrets; these provider settings are not all restored by a
 database clone. Keep autonomous workers and external webhooks disabled until verification.
@@ -146,9 +166,12 @@ database clone. Keep autonomous workers and external webhooks disabled until ver
    mileage, invoice/manual-money records, reports, and no duplicate current projection.
 6. Recreate secrets/provider settings from the controlled configuration inventory.
 7. Run queue health checks before enabling workers; then process one synthetic job.
-8. Import the separately encrypted deletion ledger, run `npm run deletion-ledger:reconcile`,
-   drain every scheduled reconciliation deletion, and verify restored private objects for
-   those identities are absent. This also applies if PITR is enabled later.
+8. The controller must read the latest independent deletion ledger, not only the ledger
+   bundled with the backup. `npm run deletion-ledger:reconcile` is a legacy scheduling
+   primitive, not a completed restore or service gate. Complete every required deletion,
+   including private objects whose owner row is absent. Re-read the external ledger under
+   the held source fence and fail closed if it changed. PITR requires the same fresh-target
+   isolation and reconciliation; it does not exempt this step.
 9. Record recovery point, database/object restore time, deletion reconciliation result,
    validation time, gaps, and approver.
 
@@ -240,11 +263,19 @@ key ID, record the applicable key version in the secrets inventory without putti
 the archive.
 
 Recommended launch cadence is one coherent nightly database, Storage, ledger, encryption,
-upload and verification job. Retain daily points for 35 days, weekly points for 8–12 weeks,
-and monthly points for three months initially. Unique keys and the 35-day Object Lock
-prevent cleanup from altering protected versions; lifecycle expiration for longer classes
-is a later AWS dashboard configuration. Export the deletion ledger after every completed
-deletion where practical and always in the nightly bundle.
+upload and verification job. Rick approved the following exact expiration policy on
+September 21, 2026: daily backups 35 days, weekly backups 84 days, monthly backups 90 days.
+Obsolete noncurrent versions expire after one day once Object Lock/legal holds permit;
+remove expired delete markers and abort incomplete multipart uploads after seven days.
+The independent minimized deletion ledger must remain outside backup expiration rules.
+
+Live AWS configuration passed read-only run 35662828362; see
+`docs/audits/backup-dr/lifecycle-certified-2026-09-21.json`. Actual elapsed expiration
+has not been observed. S3 lifecycle
+processing is asynchronous, and holds can postpone deletion. Expiring a current version
+alone does not remove its noncurrent versions. The current workflow is manual-only;
+nightly cadence is not yet certified. A ledger captured only in a backup is insufficient
+for post-restore deletion enforcement.
 
 Backup failure reporting should create a minimized WriteOffs operational alert when the
 database is reachable and send through the existing Resend operations channel. The runner
@@ -323,3 +354,97 @@ Lifecycle delivery state is part of the database backup. After a restore, operat
 reconcile deletion tombstones before delivery workers resume so restored obsolete customer
 warnings cannot be sent. A reconciliation failure must create a minimized
 `tombstone_reconciliation_failed` operational alert before recovery activation.
+
+## Independent ledger deployment prerequisites
+
+- Separate restricted runtime writer credentials and recovery-reader credentials. Proposed
+  policies live under `docs/audits/backup-dr/ledger-*-policy.proposed.json`; Rick applied
+  them and protected-runner live permission probes passed. The filenames preserve provenance.
+- The EXISTING AES-256 ledger key is protected in `staging-backup` and its independent
+  `staging-dr-recovery` recovery copy. Do not regenerate it. Recovery-copy authentication
+  passed run 35757112853. Never use the backup encryption key as the ledger key.
+- Server-only staging configuration: `WRITEOFFS_DELETION_LEDGER_SOURCE=staging`,
+  `WRITEOFFS_DELETION_LEDGER_KEY_BASE64`, `WRITEOFFS_DELETION_LEDGER_ACCESS_KEY_ID`,
+  `WRITEOFFS_DELETION_LEDGER_SECRET_ACCESS_KEY`. Never use NEXT_PUBLIC variables for these.
+- Backfill and verify all existing minimized permanent-deletion tombstones before relying
+  on the independent ledger. New writes alone do not protect earlier deletions.
+- Certify conditional write/readback, denied overwrite/delete, uncertain-success retry,
+  key availability in the recovery environment and the full live paginated reader.
+- Publish at the irreversible deletion boundary, before private-object/application/Auth
+  cleanup. Keep failed publication retryable. Do not deploy unconfigured fail-closed code
+  into a working deletion worker and call the rollout complete.
+
+## Local drill evidence and limits — September 21, 2026
+
+`docs/audits/backup-dr/local-postgres-drill-2026-09-21.json` records an actual encrypted
+PostgreSQL T1 backup restored after T2 synthetic deletion, into a fresh network-disabled
+Docker database. The customer was present before reconciliation and absent afterward;
+Auth/MFA, Plaid state, financial/bookkeeping records, receipt/statement files and jobs were
+removed while another synthetic tenant survived. The controller's 13 deterministic tests
+also reject failed verification, unavailable/changing ledger and missing source fences.
+
+This is **internal deterministic certification**, not live S3 or hosted Supabase certification.
+The source schema came from local development plus accepted offboarding corrections, not
+a fresh full hosted staging export. No question/answer fixture rows were populated. Auth
+and objects were checked at the database/filesystem layer, not through hosted API gateways.
+The drill activation callback validated isolation but deliberately opened no networking.
+Remaining hosted-adapter work must enforce actual access/worker release and rollback.
+
+Reproduction currently needs an isolated schema-only fixture prepared as described in
+`docs/DR_DELETION_SAFETY.md`, then
+`node scripts/backup/drill-local-fresh-restore.mjs --synthetic-only /private/tmp/writeoffs-dr-schema-...`.
+Never point this script at an existing customer database. It verifies a synthetic Docker
+label and disabled networking before mutations. Retain audit evidence; stop synthetic
+containers after the run. Do not delete real backup infrastructure.
+
+
+## Certified hosted recovery sequence — September 22, 2026
+
+Evidence: [hosted result](audits/backup-dr/hosted-dr-certified-2026-09-22.json),
+[cleanup](audits/backup-dr/hosted-dr-cleanup-2026-09-22.json), and
+[final assessment](audits/backup-dr/final-offboarding-2026-09-22.md).
+
+1. Select the encrypted database/private-object backup and preserve its manifest. The drill
+   used a synthetic T1 archive, not a Production backup or a full live customer dataset.
+2. Provision a fresh isolated target through the controlled provider path. Keep customer
+   API access, Auth signup, application bindings, webhooks and normal workers disabled.
+   Existing/live project replacement is unsupported. Verify public APIs and private-file denial.
+3. Fence source deletion publishers through verification/cutover. In the synthetic drill,
+   the source database container is paused and checked; real deployment fencing must be
+   implemented by the operational adapter, not inferred from a database ready flag.
+4. Restore database and private objects under isolation. Preserve managed Auth schema;
+   restore only supported Auth data. Apply/recheck public privileges and Storage RLS.
+   Storage owner grants cannot be removed by ordinary postgres REVOKE: verify RLS enabled,
+   no permissive policies, no public buckets, and no customer bypass/owner inheritance.
+5. Load the latest independent ledger using the recovery-reader identity and EXISTING key.
+   Missing/incomplete listing, authentication failure or changed ledger fails closed.
+   Never substitute the older ledger contained inside a backup.
+6. Reconcile minimized identities; delete restored owner-prefixed private files, apply
+   canonical deletion, remove Auth/MFA, Plaid tokens/Items/cursors, and jobs/leases.
+   Do not run normal workers as a shortcut to reconciliation.
+7. Verify all six data classes plus the surviving tenant and retained minimized tombstone.
+   Re-read the independent ledger under the source fence. Record the verified audit before
+   eligibility. The hosted drill used protected runner evidence for this audit.
+8. The certified adapter returns **eligible-not-activated**. It deliberately cannot perform
+   real customer cutover. Any future operational cutover adapter must atomically revalidate
+   the fence/isolation and control access release; that is not certified by this drill.
+9. On any failure keep the target blocked and source fence held. Preserve sanitized error
+   evidence, repair/retry through the controller, or discard the disposable target. Never
+   override the gate to recover availability. On success remove temporary credentials and
+   disposable fixtures when no longer needed; retain nonsecret audit evidence.
+
+The hosted test proved resurrection, re-deletion, wrong-key rejection and B preservation.
+It used canonical SQL deletion and hosted Auth SQL, synthetic Plaid state, and real Storage
+API cleanup. It did not exercise a newly deployed application deletion worker.
+
+### Remaining application rollout prerequisite
+
+`app/lib/account-lifecycle/independent-ledger.ts` and its deletion-worker call are validated
+but not deployed. The protected runner secrets are not application runtime configuration.
+Authorize a protected transfer of the EXISTING writer credentials and ledger key to the
+server-only dedicated staging runtime, set SOURCE=staging, verify metadata, reconcile
+existing minimized tombstones, then deploy and certify a single isolated application-worker
+publication. No plaintext key may pass through chat/local output. On September 22 a read-only
+Vercel metadata request returned 403; configuration is unverified, not claimed absent.
+Do not deploy unconfigured fail-closed publication or mark User Offboarding complete yet.
+No Production rollout, permission broadening or key rotation is authorized by this runbook.

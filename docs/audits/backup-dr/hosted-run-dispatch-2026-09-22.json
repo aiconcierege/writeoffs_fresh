@@ -1,0 +1,22 @@
+{
+  "result": "WAITING_FOR_PROTECTED_ENVIRONMENT_APPROVAL",
+  "runId": 35762653467,
+  "url": "https://github.com/aiconcierege/writeoffs_fresh/actions/runs/35762653467",
+  "commit": "5e29d33dce639cc0935a4528c40f31676712127a",
+  "branch": "v2-onboarding-staging",
+  "environment": "staging-backup",
+  "temporaryTargetSecretPresenceVerified": true,
+  "hostedDrillPassed": false,
+  "targetProject": "hkvmfbqshqthsfxmwlsq",
+  "cleanupPending": ["WRITEOFFS_TEMP_DR_TARGET_JSON", "disposable hosted project"],
+  "validation": {
+    "testsPassed": 1868,
+    "testsSkipped": 143,
+    "typescript": "PASS",
+    "optimizedWebpackBuild": "PASS",
+    "lint": "PASS: 16 existing warnings",
+    "productionDependencyAuditVulnerabilities": 0,
+    "backupScriptsSecretScan": "PASS",
+    "gitDiffCheck": "PASS"
+  }
+}

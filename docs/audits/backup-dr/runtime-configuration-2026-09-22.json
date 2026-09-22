@@ -1,0 +1,10 @@
+{
+  "kind": "READ_ONLY_RUNTIME_CONFIGURATION",
+  "project": "prj_o56739F1pzd0TjFirEYoLMaa6oIJ",
+  "result": "UNVERIFIED",
+  "httpStatus": 403,
+  "operation": "GET environment metadata; no decrypt request",
+  "configurationChanged": false,
+  "secretValuesExposed": false,
+  "applicationPublisherDeployed": false
+}

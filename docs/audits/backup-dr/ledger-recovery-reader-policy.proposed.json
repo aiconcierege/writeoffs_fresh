@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ListStagingDeletionEntries",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::writeoffs-backups-264524064115-us-east-2-an",
+      "Condition": {
+        "StringEquals": {
+          "s3:prefix": "deletion-ledger/staging/entries/"
+        }
+      }
+    },
+    {
+      "Sid": "ReadStagingDeletionEntries",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::writeoffs-backups-264524064115-us-east-2-an/deletion-ledger/staging/entries/*"
+    }
+  ]
+}

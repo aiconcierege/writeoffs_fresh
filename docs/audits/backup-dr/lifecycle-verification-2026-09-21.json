@@ -1,0 +1,149 @@
+{
+  "run": "https://github.com/aiconcierege/writeoffs_fresh/actions/runs/35662091088",
+  "inspectedAt": "2026-09-21T22:20:14.133Z",
+  "mode": "READ_ONLY",
+  "expirationObserved": false,
+  "ruleCount": 6,
+  "allEnabled": true,
+  "rules": [
+    {
+      "expectedRule": "writeoffs-staging-daily-expiration",
+      "result": "PASS",
+      "differences": {}
+    },
+    {
+      "expectedRule": "writeoffs-staging-daily-expired-markers",
+      "result": "PASS",
+      "differences": {}
+    },
+    {
+      "expectedRule": "writeoffs-staging-weekly-expiration",
+      "result": "PASS",
+      "differences": {}
+    },
+    {
+      "expectedRule": "writeoffs-staging-weekly-expired-markers",
+      "result": "PASS",
+      "differences": {}
+    },
+    {
+      "expectedRule": "writeoffs-staging-monthly-expiration",
+      "result": "FAIL",
+      "differences": {
+        "ID": {
+          "expected": "writeoffs-staging-monthly-expiration",
+          "actual": "Rule name: writeoffs-staging-monthly-expiration"
+        }
+      }
+    },
+    {
+      "expectedRule": "writeoffs-staging-monthly-expired-markers",
+      "result": "FAIL",
+      "differences": {
+        "ID": {
+          "expected": "writeoffs-staging-monthly-expired-markers",
+          "actual": "Rule name: writeoffs-staging-monthly-expired-markers"
+        },
+        "Filter": {
+          "expected": {
+            "Prefix": "staging/monthly/"
+          },
+          "actual": {
+            "Prefix": "Prefix: staging/monthly/"
+          }
+        }
+      }
+    }
+  ],
+  "actualLifecycle": {
+    "TransitionDefaultMinimumObjectSize": "all_storage_classes_128K",
+    "Rules": [
+      {
+        "Status": "Enabled",
+        "Expiration": {
+          "Days": 35
+        },
+        "ID": "writeoffs-staging-daily-expiration",
+        "Filter": {
+          "Prefix": "staging/daily/"
+        },
+        "NoncurrentVersionExpiration": {
+          "NoncurrentDays": 1
+        },
+        "AbortIncompleteMultipartUpload": {
+          "DaysAfterInitiation": 7
+        }
+      },
+      {
+        "Status": "Enabled",
+        "Expiration": {
+          "ExpiredObjectDeleteMarker": true
+        },
+        "ID": "writeoffs-staging-daily-expired-markers",
+        "Filter": {
+          "Prefix": "staging/daily/"
+        }
+      },
+      {
+        "Status": "Enabled",
+        "Expiration": {
+          "Days": 84
+        },
+        "ID": "writeoffs-staging-weekly-expiration",
+        "Filter": {
+          "Prefix": "staging/weekly/"
+        },
+        "NoncurrentVersionExpiration": {
+          "NoncurrentDays": 1
+        },
+        "AbortIncompleteMultipartUpload": {
+          "DaysAfterInitiation": 7
+        }
+      },
+      {
+        "Status": "Enabled",
+        "Expiration": {
+          "ExpiredObjectDeleteMarker": true
+        },
+        "ID": "writeoffs-staging-weekly-expired-markers",
+        "Filter": {
+          "Prefix": "staging/weekly/"
+        }
+      },
+      {
+        "Status": "Enabled",
+        "Expiration": {
+          "Days": 90
+        },
+        "ID": "Rule name: writeoffs-staging-monthly-expiration",
+        "Filter": {
+          "Prefix": "staging/monthly/"
+        },
+        "NoncurrentVersionExpiration": {
+          "NoncurrentDays": 1
+        },
+        "AbortIncompleteMultipartUpload": {
+          "DaysAfterInitiation": 7
+        }
+      },
+      {
+        "Status": "Enabled",
+        "Expiration": {
+          "ExpiredObjectDeleteMarker": true
+        },
+        "ID": "Rule name: writeoffs-staging-monthly-expired-markers",
+        "Filter": {
+          "Prefix": "Prefix: staging/monthly/"
+        }
+      }
+    ]
+  },
+  "unchangedControls": [
+    "versioning",
+    "encryption",
+    "publicAccess",
+    "objectLock"
+  ],
+  "sampledBackupProtectionUnchanged": true,
+  "productionAndLedgerExcluded": true
+}

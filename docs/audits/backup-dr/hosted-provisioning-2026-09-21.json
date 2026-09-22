@@ -1,0 +1,53 @@
+{
+  "name": "writeoffs-dr-certification-20260921",
+  "id": "xlqgnokbsymiciygpqda",
+  "region": "us-east-2",
+  "budgetUsd": 25,
+  "createdAt": "2026-09-21T22:55:35.536984Z",
+  "deletedAt": "2026-09-21T23:03:39.000Z",
+  "compute": "micro",
+  "verifiedHourlyUsd": 0.01344,
+  "selectedAddons": [
+    {
+      "type": "compute_instance",
+      "variant": {
+        "id": "ci_micro",
+        "name": "Micro",
+        "price": {
+          "description": "$0.01344/hour (~$10/month)",
+          "type": "usage",
+          "interval": "hourly",
+          "amount": 0.01344
+        },
+        "meta": {
+          "cpu_cores": 2,
+          "cpu_dedicated": false,
+          "memory_gb": 1,
+          "baseline_disk_io_mbs": 87,
+          "max_disk_io_mbs": 2085,
+          "connections_direct": 60,
+          "connections_pooler": 200,
+          "supported_cloud_providers": [
+            "AWS",
+            "AWS_K8S",
+            "AWS_NIMBUS"
+          ]
+        }
+      }
+    }
+  ],
+  "pauseRejected": {
+    "httpStatus": 400,
+    "message": "Project is not free-tier. Please downgrade it to free-tier first and try again."
+  },
+  "emptyBeforeDeletion": {
+    "authUsers": 0,
+    "storageObjects": 0,
+    "publicApplicationTables": 0
+  },
+  "deletionVerified": true,
+  "conservativeComputeEstimateUsd": 0.02688,
+  "invoiceVerified": false,
+  "reasonRemoved": "No live ledger credentials; paid-tier pause unavailable; stop idle cost",
+  "existingProjectsChanged": false
+}

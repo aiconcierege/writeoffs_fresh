@@ -1,0 +1,88 @@
+{
+  "bucket": "writeoffs-backups-264524064115-us-east-2-an",
+  "region": "us-east-2",
+  "inspectedAt": "2026-09-21T21:46:35.865Z",
+  "mode": "READ_ONLY",
+  "expirationObserved": false,
+  "run": "https://github.com/aiconcierege/writeoffs_fresh/actions/runs/35659077353",
+  "checks": {
+    "location": {
+      "verified": true,
+      "value": {
+        "LocationConstraint": "us-east-2"
+      }
+    },
+    "publicAccess": {
+      "verified": true,
+      "value": {
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "IgnorePublicAcls": true,
+          "BlockPublicPolicy": true,
+          "RestrictPublicBuckets": true
+        }
+      }
+    },
+    "lifecycle": {
+      "verified": false,
+      "errorCode": "NoSuchLifecycleConfiguration"
+    },
+    "versioning": {
+      "verified": true,
+      "value": {
+        "Status": "Enabled",
+        "MFADelete": "Disabled"
+      }
+    },
+    "objectLock": {
+      "verified": true,
+      "value": {
+        "ObjectLockConfiguration": {
+          "ObjectLockEnabled": "Enabled",
+          "Rule": {
+            "DefaultRetention": {
+              "Mode": "GOVERNANCE",
+              "Days": 35
+            }
+          }
+        }
+      }
+    },
+    "encryption": {
+      "verified": true,
+      "value": {
+        "ServerSideEncryptionConfiguration": {
+          "Rules": [
+            {
+              "ApplyServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              },
+              "BucketKeyEnabled": true,
+              "BlockedEncryptionTypes": {
+                "EncryptionType": [
+                  "SSE-C"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "policyStatus": {
+      "verified": false,
+      "errorCode": "NoSuchBucketPolicy"
+    },
+    "representativeLegalHold": {
+      "verified": false,
+      "errorCode": "NoSuchObjectLockConfiguration"
+    }
+  },
+  "sample": {
+    "stagingVersionCount": 1,
+    "listingTruncated": false,
+    "incompleteUploadCount": 0,
+    "encryption": "AES256",
+    "lockMode": "GOVERNANCE",
+    "retainUntil": "2026-10-19T20:59:13.078Z"
+  }
+}

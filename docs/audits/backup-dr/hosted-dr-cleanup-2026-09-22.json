@@ -1,0 +1,17 @@
+{
+  "kind": "LIVE_HOSTED_CLEANUP",
+  "result": "PASS",
+  "projectId": "hkvmfbqshqthsfxmwlsq",
+  "projectName": "writeoffs-dr-certification-20260922",
+  "createdAt": "2026-09-22T17:03:34.7712Z",
+  "deletedAt": "2026-09-22T18:38:55.161Z",
+  "projectAbsent": true,
+  "otherProjectsPreserved": true,
+  "temporaryGithubSecretAbsent": true,
+  "computeRateUsdPerHour": 0.01344,
+  "elapsedHours": 1.5889969444444445,
+  "estimatedComputeUsd": 0.02688,
+  "estimateBasis": "Previously verified Micro rate; elapsed hours rounded upward. Not provider invoice; excludes unbilled incidental usage.",
+  "priorDisposableProjectEstimatedUsd": 0.01344,
+  "noProductionCutover": true
+}
