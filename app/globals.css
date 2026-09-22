@@ -787,3 +787,4 @@ body { background: var(--canvas); color: var(--ink); }
  .authenticated-ledger .review-select-heading { flex-wrap:wrap; }
  .authenticated-page .btn { white-space:normal; }
 }
+.authenticated-form-surface label { min-width:0; }

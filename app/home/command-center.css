@@ -97,5 +97,7 @@
  .home-command-center .home-add-action strong { white-space:normal; }
  .home-command-center .home-recent-transactions li a { grid-template-columns:minmax(0,1fr); }
  .home-command-center .home-merchant-fallback { display:none; }
+ .home-command-center .home-recent-main { grid-column:1; grid-row:1; }
+ .home-command-center .home-recent-transactions b { grid-column:1; grid-row:2; }
  .home-command-center .home-recent-main strong { white-space:normal; overflow-wrap:anywhere; }
 }
