@@ -1,5 +1,7 @@
 import {spawnSync} from 'node:child_process'
 import {writeFileSync} from 'node:fs'
+import {dirname} from 'node:path'
+import {fileURLToPath} from 'node:url'
 
 export const hostedDrRef = 'hkvmfbqshqthsfxmwlsq'
 const denied = status => [400,401,403,404].includes(status)
@@ -10,9 +12,9 @@ export function validateHostedDrConfig(config) {
 /** No database URL/password or provider error is ever put in a command argument/log. */
 export function hostedDrTarget(config, caFile) {
   validateHostedDrConfig(config)
-  const env={PATH:process.env.PATH,HOME:process.env.HOME,PGHOST:config.host,PGPORT:'5432',PGUSER:`postgres.${config.id}`,PGDATABASE:'postgres',PGPASSWORD:config.dbPassword,PGSSLMODE:'verify-full',PGSSLROOTCERT:caFile,PGCONNECT_TIMEOUT:'15'}
+  const env={WRITEOFFS_DR_WORK_DIRECTORY:dirname(caFile),PATH:process.env.PATH,HOME:process.env.HOME,PGHOST:config.host,PGPORT:'5432',PGUSER:`postgres.${config.id}`,PGDATABASE:'postgres',PGPASSWORD:config.dbPassword,PGSSLMODE:'verify-full',PGSSLROOTCERT:caFile,PGCONNECT_TIMEOUT:'15'}
   const run=(command,args,input)=>{
-    const result=spawnSync(command,args,{env,input,encoding:Buffer.isBuffer(input)?undefined:'utf8',timeout:180000,maxBuffer:64*1024*1024})
+    const result=spawnSync(process.execPath,[fileURLToPath(new URL('./pg17-client.mjs',import.meta.url)),command,...args],{env,input,encoding:Buffer.isBuffer(input)?undefined:'utf8',timeout:180000,maxBuffer:64*1024*1024})
     if(result.status!==0){const error=new Error('DR_DATABASE_OPERATION_FAILED');error.sqlState=String(result.stderr??'').match(/(?:ERROR|FATAL):\s+([0-9A-Z]{5})\b/)?.[1];throw error}
     return result.stdout
   }

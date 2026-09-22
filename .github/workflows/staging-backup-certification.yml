@@ -170,11 +170,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - name: Use PostgreSQL 17 clients
+      - name: Verify portable PostgreSQL 17 clients
         run: |
-          test -x /usr/lib/postgresql/17/bin/psql
-          test -x /usr/lib/postgresql/17/bin/pg_restore
-          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+          node scripts/backup/pg17-client.mjs psql --version
+          node scripts/backup/pg17-client.mjs pg_restore --version
       - name: Synthetic hosted resurrection and fail-closed restore certification
         run: node scripts/backup/drill-hosted-fresh-restore.mjs > hosted-dr-certification.json
         env:
@@ -186,6 +185,14 @@ jobs:
           WRITEOFFS_DELETION_LEDGER_RECOVERY_ACCESS_KEY_ID: ${{ secrets.WRITEOFFS_DELETION_LEDGER_RECOVERY_ACCESS_KEY_ID }}
           WRITEOFFS_DELETION_LEDGER_RECOVERY_SECRET_ACCESS_KEY: ${{ secrets.WRITEOFFS_DELETION_LEDGER_RECOVERY_SECRET_ACCESS_KEY }}
           WRITEOFFS_DELETION_LEDGER_KEY_BASE64: ${{ secrets.WRITEOFFS_DELETION_LEDGER_KEY_BASE64 }}
+      - name: Preserve preparation failure evidence
+        if: always()
+        env:
+          DR_JOB_STATUS: ${{ job.status }}
+        run: |
+          if [ ! -s hosted-dr-certification.json ]; then
+            node -e 'const fs=require("fs");fs.writeFileSync("hosted-dr-certification.json",JSON.stringify({kind:"HOSTED_DR_TEST",result:"FAIL",stage:"workflow-preparation",drillStarted:false,jobStatus:process.env.DR_JOB_STATUS,runId:process.env.GITHUB_RUN_ID,activationEligible:false,productionCutover:false},null,2))'
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:

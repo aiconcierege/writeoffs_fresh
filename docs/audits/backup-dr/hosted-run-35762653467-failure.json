@@ -1,0 +1,19 @@
+{
+  "runId": 35762653467,
+  "commit": "5e29d33dce639cc0935a4528c40f31676712127a",
+  "jobId": 106864285628,
+  "classification": "certification harness/workflow defect",
+  "failedStep": "Use PostgreSQL 17 clients",
+  "failedAt": "2026-09-22T17:47:14Z",
+  "exitCode": 1,
+  "rootCause": "Workflow assumed executable PostgreSQL 17 clients existed at /usr/lib/postgresql/17/bin on ubuntu-latest. Its executable checks failed. Logs do not distinguish which of the two checks failed; neither the PATH update nor the actual drill is proven executed.",
+  "drillStepConclusion": "skipped",
+  "artifactFailure": "No files were found with the provided path: hosted-dr-certification.json. No artifacts will be uploaded.",
+  "artifactRootCause": "The skipped drill creates that file, so workflow preparation failure left no artifact to upload.",
+  "restoreOrLedgerOperationsExecuted": false,
+  "otherDrControlsExercised": false,
+  "correction": "Use PostgreSQL 17 clients from the existing postgres:17.6-bookworm container image and always create sanitized preparation-failure evidence when the drill did not produce a report.",
+  "externalConfigurationChangesRequired": false,
+  "temporarySecretPreserved": true,
+  "hostedTargetPreserved": true
+}

@@ -113,11 +113,12 @@ try{
    report.stage='t3-hosted-restore'
    const recoveredDump=join(root,'recovered.dump'),recoveredObjects=join(root,'recovered-objects')
    capture(process.execPath,['scripts/backup/restore-encrypted-backup.mjs'],{env:{...process.env,WRITEOFFS_RESTORE_INPUT:backup,WRITEOFFS_RESTORE_DATABASE_DUMP_OUTPUT:recoveredDump,WRITEOFFS_RESTORE_STORAGE_ROOT:recoveredObjects,WRITEOFFS_RESTORE_CONFIRM_ISOLATED:'yes',WRITEOFFS_BACKUP_KEY_BASE64:backupKey}})
-   const toc=capture('pg_restore',['--list',recoveredDump]).toString()
+   const pgRestore=args=>capture(process.execPath,['scripts/backup/pg17-client.mjs','pg_restore',...args],{env:{...process.env,WRITEOFFS_DR_WORK_DIRECTORY:root}})
+   const toc=pgRestore(['--list',recoveredDump]).toString()
    // Managed hosted Auth schema remains provider-owned; restore users/MFA data, not Auth DDL.
    const chosen=toc.split('\n').filter(line=>line.startsWith(';')||(/ public /.test(line)&&!/(ACL|DEFAULT ACL)/.test(line))||/ TABLE DATA auth (users|mfa_factors) /.test(line)).join('\n')
    const list=join(root,'restore.list');writeFileSync(list,chosen)
-   const restoreSql=capture('pg_restore',['--no-owner','--no-acl','--use-list',list,'--file','-',recoveredDump]).toString()
+   const restoreSql=pgRestore(['--no-owner','--no-acl','--use-list',list,'--file','-',recoveredDump]).toString()
    ensure(restoreSql.includes('CREATE SCHEMA public;'),'DR_PUBLIC_SCHEMA_NOT_IN_BACKUP')
    // API isolation remains outside the backup; no grants are restored. Revoke defaults in-transaction.
    target.sql(`begin;set local session_replication_role=replica;drop schema public;\n${restoreSql}\nrevoke all on all tables in schema public from public,anon,authenticated;revoke all on all sequences in schema public from public,anon,authenticated;revoke execute on all functions in schema public from public,anon,authenticated;commit;`)
