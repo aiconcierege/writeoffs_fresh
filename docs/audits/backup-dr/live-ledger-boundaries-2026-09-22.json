@@ -1,0 +1,77 @@
+{
+  "result": "PASS",
+  "checks": [
+    {
+      "identity": "writer",
+      "check": "delete-nonexistent-key",
+      "result": "PASS"
+    },
+    {
+      "identity": "writer",
+      "check": "delete-nonexistent-null-version",
+      "result": "PASS"
+    },
+    {
+      "identity": "writer",
+      "check": "delete-with-governance-bypass-request",
+      "result": "PASS"
+    },
+    {
+      "identity": "writer",
+      "check": "list-ledger-denied",
+      "result": "PASS"
+    },
+    {
+      "identity": "writer",
+      "check": "list-outside-exact-prefix:bucket-root",
+      "result": "PASS"
+    },
+    {
+      "identity": "writer",
+      "check": "list-outside-exact-prefix:staging/daily/",
+      "result": "PASS"
+    },
+    {
+      "identity": "writer",
+      "check": "list-outside-exact-prefix:deletion-ledger/",
+      "result": "PASS"
+    },
+    {
+      "identity": "recovery-reader",
+      "check": "delete-nonexistent-key",
+      "result": "PASS"
+    },
+    {
+      "identity": "recovery-reader",
+      "check": "delete-nonexistent-null-version",
+      "result": "PASS"
+    },
+    {
+      "identity": "recovery-reader",
+      "check": "list-outside-exact-prefix:bucket-root",
+      "result": "PASS"
+    },
+    {
+      "identity": "recovery-reader",
+      "check": "list-outside-exact-prefix:staging/daily/",
+      "result": "PASS"
+    },
+    {
+      "identity": "recovery-reader",
+      "check": "list-outside-exact-prefix:deletion-ledger/",
+      "result": "PASS"
+    },
+    {
+      "identity": "recovery-reader",
+      "check": "conditional-put-existing-key-denied",
+      "result": "PASS"
+    }
+  ],
+  "existingLedgerPreserved": true,
+  "bucketConfigurationMutationsAttempted": 0,
+  "limitations": [
+    "Runtime probes establish only the listed operations, not an exhaustive IAM policy proof.",
+    "A denied delete with bypass requested does not separately prove the BypassGovernanceRetention IAM action.",
+    "No lifecycle, Object Lock or bucket configuration mutation was attempted. Effective-policy inspection is still required."
+  ]
+}

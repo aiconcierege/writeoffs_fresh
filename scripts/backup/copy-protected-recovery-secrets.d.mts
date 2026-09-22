@@ -1,0 +1,1 @@
+export function copyProtectedRecoverySecrets(options: {env: Record<string, string | undefined>; run?: (...args: unknown[]) => {status: number; stdout: string; error?: unknown}}): {copied: number; destination: string; keyRegenerated: boolean; verifiedByRecoveryRead: boolean}
