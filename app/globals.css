@@ -838,3 +838,99 @@ body { background: var(--canvas); color: var(--ink); }
 @container authenticated-content (max-width:18rem) { .trip-primary-fields { grid-template-columns:minmax(0,1fr); } }
 
 .invoice-composer-returning:not([open])>.invoice-create-toggle { color:#243186; background:transparent; border:1px solid #b6c5b7; font-size:.95rem; }
+
+/* Premium utility surfaces. The approved flagship compositions are not restyled. */
+.premium-utility { --page-border:#d9e2e8; --utility-blue:#243186; --utility-green:#14795d; }
+.premium-utility>header { padding:1rem 0 1.5rem; border-bottom:1px solid #dde4e4; margin-bottom:1.5rem; }
+.premium-utility>header .eyebrow { color:#14795d; font-size:.73rem; letter-spacing:.14em; margin:0 0 .6rem; }
+.premium-utility .page-title { color:#123748; font-size:clamp(2.1rem,3.4vw,2.85rem); }
+.premium-utility .page-description { color:#475e66; }
+.premium-utility :is(.authenticated-ledger,.authenticated-form-surface) { background:#fff; border:1px solid #dbe3e7; box-shadow:0 3px 6px #16384a04,0 16px 40px -24px #16384a35; }
+.premium-utility .field { background:#fff; border-color:#bccbd5; box-shadow:0 1px 2px #16384a04; }
+.premium-utility .field:hover { border-color:#849aaa; }
+.premium-utility .field:focus { border-color:#243186; box-shadow:0 0 0 3px #24318612; }
+.premium-utility .btn-primary { box-shadow:0 4px 8px #24318614,0 8px 18px -12px #24318670; }
+.premium-utility .btn-primary:hover { background:#192568; }
+.premium-utility .btn-secondary { background:#fff; border-color:#c1cfda; color:#243186; }
+.premium-utility .authenticated-toolbar { display:flex; flex-direction:column; gap:1rem; padding:.25rem 0; margin-bottom:1.4rem; }
+.premium-utility .transaction-work-views { background:transparent; padding:0; gap:.4rem; margin:0; border-radius:0; }
+.premium-utility .transaction-work-views a { color:#435961; background:#fff; border:1px solid #d7e2e4; border-radius:999px; padding:.65rem 1.15rem; }
+.premium-utility .transaction-work-views a[aria-current] { background:#243186; color:#fff; border-color:#243186; box-shadow:0 3px 8px #24318620; }
+.premium-utility .transaction-work-views a:not([aria-current]):hover { border-color:#243186; color:#243186; background:#f4f6ff; }
+.premium-utility .transaction-filters { grid-template-columns:minmax(0,1fr) auto; }
+.transaction-search-box { display:flex; align-items:center; background:#fff; border:1px solid #bdcdd6; border-radius:1rem; box-shadow:0 2px 4px #16384a04; overflow:hidden; }
+.transaction-search-box:focus-within { border-color:#243186; outline:3px solid #24318618; }
+.transaction-search-box input.field { border:0; box-shadow:none; background:transparent; margin:0; flex:1; width:100%; padding-inline:1rem; outline:none; }
+.transaction-search-submit { display:grid; place-items:center; flex-shrink:0; width:48px; height:48px; color:#243186; background:transparent; border:0; border-left:1px solid #e3e8ef; }
+.transaction-search-submit:hover { background:#edf2ff; }
+.premium-utility .transaction-filters>details>summary { background:#fff; border-color:#bdcdd6; border-radius:1rem; padding-inline:1.2rem; }
+.premium-utility .transaction-filters>details>div { background:#f1f5f8; margin-top:.5rem; border:1px solid #dde5eb; }
+.review-selection-bar { display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1.1rem .5rem; border-bottom:1px solid #e2e8ec; }
+.review-selection-bar h2 { font-size:1.05rem; font-weight:650; color:#123748; }
+.review-selection-bar .btn { min-height:40px; font-size:.875rem; padding:.45rem 1rem; }
+.premium-utility .review-select-heading { background:#eef2ff; padding:.35rem .75rem; border-radius:.7rem; margin-block:.65rem; color:#243186; }
+.premium-utility .review-row-open { padding:1.2rem .65rem; min-height:98px; border-radius:.65rem; }
+.premium-utility .review-row-open:hover { background:#f1f6fa; }
+.premium-utility .review-row-open:active { background:#e7edf8; }
+.premium-utility .transaction-merchant { font-size:1.06rem; font-weight:650; color:#16384a; }
+.premium-utility .transaction-amount { font-size:1.18rem; color:#172b60; font-weight:700; }
+.transaction-row-meta { display:flex; align-items:baseline; flex-wrap:wrap; gap:.35rem .65rem; margin-top:.4rem; font-size:.86rem; line-height:1.5; color:#58707a; }
+.transaction-status { color:#526772; }
+.transaction-business-status { color:#147054; font-weight:550; }
+.premium-utility .review-transaction-row.is-selected { background:#eff2ff; box-shadow:inset 3px 0 #243186; }
+.premium-utility .review-row-select { opacity:1; }
+.premium-utility .review-checkbox-label { color:#243186; }
+.mileage-first-use>header { background:#eef8f1; border:1px solid #d6e8de; border-radius:1.5rem; padding:2rem 2.5rem; align-items:center; min-height:250px; overflow:hidden; }
+.mileage-first-use>header .page-description { max-width:36ch; }
+.vehicle-setup-betti { width:230px; height:220px; display:grid; place-items:center; }
+.vehicle-setup-betti img { width:100%; height:100%; object-fit:contain; }
+.mileage-first-use .mileage-workspace { max-width:100%; margin-top:1.5rem; }
+.mileage-first-use .authenticated-form-surface { max-width:52rem; border-top:3px solid #243186; }
+.mileage-first-use .authenticated-form-surface h2 { font-size:1.7rem; }
+.premium-utility .vehicle-use-choice label { background:#fff; border-color:#bccbd5; }
+.premium-utility .vehicle-use-choice label:has(input:checked) { background:#edf2ff; border-color:#243186; }
+.premium-utility .mileage-vehicle-context>details { border-color:#d9e2e8; }
+.vehicle-year-note { color:#21614d; background:#edf8f1; padding:1rem; border-radius:.8rem; line-height:1.6; font-size:.9rem; }
+.annual-vehicle-use { margin-top:1rem; padding:1.25rem; background:#fff; border:1px solid #d9e2e8; border-radius:1rem; }
+.annual-vehicle-use h3 { font-weight:650; margin-bottom:1rem; }
+.annual-vehicle-use label { display:block; font-weight:550; }
+.annual-vehicle-use p { color:#526772; font-size:.9rem; margin:.75rem 0; }
+.premium-utility .invoice-composer { max-width:56rem; }
+.premium-utility .invoice-composer .authenticated-form-surface { border-top:4px solid #243186; padding:2rem 2.5rem; }
+.premium-utility .invoice-composer .form-group { margin-top:1.6rem; }
+.premium-utility .invoice-composer .form-group:first-child { margin-top:0; }
+.premium-utility .invoice-composer legend { font-size:.75rem; letter-spacing:.14em; text-transform:uppercase; color:#14795d; font-weight:700; }
+.premium-utility .invoice-introduction { margin:.1rem 0 0; font-size:inherit; }
+.invoice-amount { margin-top:1.75rem; padding:1.4rem 0; border-block:1px solid #dee5e9; display:grid; grid-template-columns:1fr auto; align-items:center; }
+.invoice-amount>label { grid-column:1/-1; text-transform:uppercase; letter-spacing:.14em; font-size:.75rem; font-weight:700; color:#14795d; }
+.invoice-amount>div { display:flex; align-items:center; min-width:0; margin-top:.5rem; color:#243186; font-size:2.6rem; font-weight:650; }
+.invoice-amount input { width:100%; min-width:0; padding:.25rem .5rem; font-size:inherit; font-weight:inherit; color:#243186; background:#fff; border:0; border-bottom:1px solid #afbdce; border-radius:0; font-variant-numeric:tabular-nums; }
+.invoice-amount input::placeholder { color:#71849c; }
+.invoice-amount>span { color:#526772; margin-left:1rem; font-size:.85rem; }
+.premium-utility .invoice-row { padding-block:1.5rem; }
+.premium-utility .invoice-value strong { color:#243186; font-size:1.3rem; }
+@media(max-width:639px) {
+ .premium-utility>header { padding:.5rem 0 1.15rem; }
+ .premium-utility .transaction-work-views { grid-template-columns:1fr 1fr; gap:.5rem; }
+ .premium-utility .transaction-work-views a { padding:.65rem .4rem; }
+ .premium-utility .transaction-filters>details:not([open]) { grid-column:auto; }
+ .premium-utility .transaction-filters>details>summary { padding-inline:.9rem; }
+ .premium-utility .review-row-open { padding:1rem .35rem; gap:.65rem; }
+ .premium-utility .transaction-merchant { font-size:1rem; }
+ .premium-utility .transaction-amount { font-size:1.08rem; }
+ .mileage-first-use>header { display:grid; grid-template-columns:minmax(0,1fr) 105px; gap:.5rem; padding:1.2rem; min-height:0; }
+ .mileage-first-use>header .page-title { font-size:1.8rem; }
+ .mileage-first-use>header .page-description { font-size:.95rem; }
+ .vehicle-setup-betti { width:105px; height:175px; }
+ .mileage-first-use .authenticated-form-surface h2 { font-size:1.45rem; }
+ .premium-utility .invoice-composer .authenticated-form-surface { padding:1.4rem 1.1rem; }
+ .invoice-amount>div { font-size:2.3rem; }
+}
+@container authenticated-content (max-width:18rem) {
+ .premium-utility>header { display:flex; }
+ .vehicle-setup-betti { width:5rem; height:5rem; }
+ .premium-utility .transaction-filters { grid-template-columns:minmax(0,1fr); }
+ .invoice-amount>div { font-size:1.7rem; }
+}
+.annual-vehicle-use>summary { cursor:pointer; min-height:44px; align-content:center; font-weight:650; color:#16384a; }
+.annual-vehicle-use>form { padding-top:.75rem; }

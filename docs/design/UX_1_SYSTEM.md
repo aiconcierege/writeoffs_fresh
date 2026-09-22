@@ -109,3 +109,7 @@ inputs from form submission. Invoice history leads for returning customers;
 creation remains directly accessible. Creating an invoice still does not record
 income. Shared missing-records disclosures retain their account-specific dates
 and existing coverage semantics.
+
+### Premium utility surfaces
+
+Transactions, Mileage and Invoices use the scoped `premium-utility` presentation: bright-white primary work surfaces against the warm canvas, modest shadows, deliberate blue primary/active controls and green supporting accents. Pale green is selective, not a default for every form. Transactions uses explicit selection mode. Mileage uses Betti for first vehicle setup and steps aside for routine entry. Invoices leads with existing activity and opens a document-like composer. These refinements do not change Home, Check-in or Reports composition.

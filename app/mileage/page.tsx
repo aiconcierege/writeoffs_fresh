@@ -20,7 +20,7 @@ export default async function MileagePage() {
     <MileageClient initialVehicles={context.vehicles} initialEntries={context.entries}
     initialVehicleIdentities={context.vehicleIdentities} initialVehicleMethods={context.vehicleMethods}
     initialVehicleUseFacts={context.vehicleUseFacts} />
-    {canAddHistory&&membership.capabilities.has('track_mileage')&&<details className="mx-auto my-8 max-w-2xl rounded-xl border border-slate-200 p-5">
+    {canAddHistory&&context.vehicles.length>0&&membership.capabilities.has('track_mileage')&&<details className="mx-auto my-8 max-w-2xl rounded-xl border border-slate-200 p-5">
       <summary className="cursor-pointer font-semibold text-[#243186]">Add earlier business mileage</summary>
       <HistoricalMileageFollowUp joinedMonth={setup.data!.joined_month.slice(0,7)} vehicles={context.vehicles} coverageStart={business.data!.catch_up_start_date}/>
     </details>}

@@ -1,3 +1,4 @@
+import {completedVehicleTaxYear} from '../../../../lib/mileage/annual-use-question'
 import {requestUser} from '../../../../lib/performance/request-identity'
 import {guidedCommand} from '../../../../lib/bookkeeping/guided-command-response'
 import type {WorkInputSnapshot} from '../../../../lib/bookkeeping/work-input-snapshot'
@@ -219,6 +220,7 @@ async function handlePOST(
       } else if (command.action === 'deduction_fact') {
         if(deduction.fact_type==='vehicle_total_miles'){
           const [vehicleId,yearText]=String(deduction.scope_key??'').split(':');const taxYear=Number(yearText)
+          if(!completedVehicleTaxYear(taxYear))throw new Error('Yearly mileage can be finalized after the year ends.')
           if(!UUID.test(vehicleId)||!Number.isInteger(taxYear)||typeof command.value!=='number'||!Number.isInteger(command.value)||command.value<=0)
             throw new Error('Enter total miles as a whole number.')
           const {data:currentUse}=await supabase.from('current_vehicle_tax_year_use').select('id').eq('business_id',deduction.business_id)

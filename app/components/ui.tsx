@@ -46,6 +46,6 @@ export function MoneyDisplay({ cents, positive, className = '' }: { cents: numbe
 }
 
 /** Shared presentation frame; data and workflow authority stay with each page. */
-export function AuthenticatedPage({ title, description, actions, children, className = '' }: { title: ReactNode; description?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {
-  return <div className={classes('authenticated-page', className)}><PageHeader title={title} description={description} actions={actions} />{children}</div>
+export function AuthenticatedPage({ eyebrow, title, description, actions, children, className = '' }: { eyebrow?: string; title: ReactNode; description?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {
+  return <div className={classes('authenticated-page', className)}><PageHeader eyebrow={eyebrow} title={title} description={description} actions={actions} />{children}</div>
 }

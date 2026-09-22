@@ -8,7 +8,7 @@ describe('customer Transactions experience', () => {
     const page = source('app/transactions/page.tsx')
     expect(page).toContain('loadTransactionWork')
     expect(source('app/lib/bookkeeping/guided-review.ts')).toContain('listTransactionReadModel')
-    expect(page).toContain('Search merchant or description')
+    expect(page).toContain('Search transactions')
     expect(page).not.toMatch(/allocation|provenance|canonical|reconciliation/i)
     expect(source('app/review/page.tsx')).toContain("redirect('/transactions')")
   })

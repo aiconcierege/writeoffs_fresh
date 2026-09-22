@@ -1,3 +1,4 @@
+import {completedVehicleTaxYear} from '../../../../../lib/mileage/annual-use-question'
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '../../../../../../utils/supabase/server'
 import { requireMileageBusiness } from '../../../../../lib/mileage/repository'
@@ -24,6 +25,7 @@ export async function PATCH(request:Request,context:{params:Promise<{id:string}>
     result=await supabase.rpc('record_vehicle_tax_year_method',{p_vehicle_id:id,p_tax_year:body.taxYear,
       p_expected_event_id:body.expectedEventId||null,p_method:body.method,p_request_key:`vehicle-method:${requestKey}`})
   }else if(body.kind==='total_miles'&&Number.isInteger(body.taxYear)&&typeof body.totalMiles==='string'&&/^\d+(?:\.\d{1,3})?$/.test(body.totalMiles)){
+    if(!completedVehicleTaxYear(Number(body.taxYear)))return NextResponse.json({error:'Yearly mileage can be finalized after the year ends.'},{status:400})
     const totalMilesMilli=Math.round(Number(body.totalMiles)*1000)
     result=await supabase.rpc('record_vehicle_tax_year_total_miles',{p_vehicle_id:id,p_tax_year:body.taxYear,
       p_expected_event_id:body.expectedEventId||null,p_total_miles_milli:totalMilesMilli,p_request_key:`vehicle-use:${requestKey}`})

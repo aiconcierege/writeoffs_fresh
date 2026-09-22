@@ -1,3 +1,4 @@
+import {vehicleAnnualQuestionAvailable} from '../mileage/annual-use-question'
 import {requestUser} from '../performance/request-identity'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CanonicalWeeklyReviewItem } from './model'
@@ -440,7 +441,7 @@ async function listDeductionQuestions(supabase: SupabaseClient,businessId?:strin
   const supersededDecisions=new Set((decisionResult.data??[]).map(row=>row.supersedes_decision_id).filter(Boolean))
   const nonbusinessRecords=new Set((decisionResult.data??[]).filter(row=>!supersededDecisions.has(row.id)&&['personal','excluded'].includes(row.treatment)).map(row=>row.bookkeeping_record_id))
 
-  return (attentions ?? []).filter(attention=>!attention.bookkeeping_record_id||!nonbusinessRecords.has(attention.bookkeeping_record_id)).map((attention) => {
+  return (attentions ?? []).filter(attention=>vehicleAnnualQuestionAvailable(attention.fact_type,attention.scope_key)).filter(attention=>!attention.bookkeeping_record_id||!nonbusinessRecords.has(attention.bookkeeping_record_id)).map((attention) => {
     const record = attention.bookkeeping_record_id ? recordById.get(attention.bookkeeping_record_id) : null
     return {
       id: attention.attention_id, version: attention.id, source: 'deduction' as const,

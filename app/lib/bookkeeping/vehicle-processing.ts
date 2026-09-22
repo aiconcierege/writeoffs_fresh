@@ -1,3 +1,4 @@
+import {completedVehicleTaxYear} from '../mileage/annual-use-question'
 import { createHash } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { BookkeepingEvaluationSnapshot } from './deterministic-evaluator'
@@ -83,10 +84,10 @@ export async function processVehicleExpense(input:{admin:SupabaseClient;snapshot
       status,cpa_review_reasons:report.cpaReviewReasons,evidence_fingerprint:evidenceFingerprint})
     if(error)throw new Error('VEHICLE_ASSESSMENT_WRITE_FAILED')
   }
-  if(report.allocationBasisPoints==null){
+  if(report.allocationBasisPoints==null&&completedVehicleTaxYear(year)){
     await admin.rpc('open_deduction_attention',{p_business_id:snapshot.businessId,p_bookkeeping_record_id:snapshot.recordId,
       p_fact_type:'vehicle_total_miles',p_scope_kind:'vehicle_year',p_scope_key:`${report.vehicleId}:${year}`,
-      p_question_type:'integer',p_prompt:`About how many total miles did you drive ${report.displayName} in ${year}?`,
+      p_question_type:'integer',p_prompt:`How many total miles did you drive ${report.displayName} in ${year}?`,
       p_guidance:'Include business and personal driving. I’ll calculate the business share.',
       p_signal_key:`vehicle-tax:v1:total-miles:${report.vehicleId}:${year}`,p_signal_version:'vehicle-tax:v1'})
   }

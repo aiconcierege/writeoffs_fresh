@@ -14,7 +14,7 @@ export function InvoicesClient({ initialInvoices }: { initialInvoices: Record<st
   const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null)
   const composer = useRef<HTMLDetailsElement>(null)
   const hasInvoices = initialInvoices.length > 0
-  return <AuthenticatedPage className="invoices-page" title="Invoices" description={<>Who owes you, and what was the work?<span className="invoice-introduction">Create an invoice here. I’ll add the income to your books when you get paid.</span></>} actions={hasInvoices ? <button className="btn btn-primary" onClick={() => { if (composer.current) { composer.current.open = true; composer.current.querySelector<HTMLInputElement>('[name="customerName"]')?.focus() } }}>Create invoice</button> : undefined}>
+  return <AuthenticatedPage className="invoices-page premium-utility" eyebrow="Invoices" title="Get paid for your work." description={<>Create an invoice for your customer.<span className="invoice-introduction"> I’ll add the income to your books when you get paid.</span></>} actions={hasInvoices ? <button className="btn btn-primary" onClick={() => { if (composer.current) { composer.current.open = true; composer.current.querySelector<HTMLInputElement>('[name="customerName"]')?.focus() } }}>+ Create invoice</button> : undefined}>
     {hasInvoices && <section aria-labelledby="invoice-history-heading" className="invoice-history">
       <h2 id="invoice-history-heading" className="section-heading">Your invoices</h2>
       <div className="authenticated-ledger invoice-list">{initialInvoices.map(invoice => <Link key={String(invoice.id)} href={`/invoices/${invoice.id}`} className="invoice-row">
@@ -32,15 +32,15 @@ export function InvoicesClient({ initialInvoices }: { initialInvoices: Record<st
         if (!response.ok) { setError(data.error ?? 'Invoice could not be created.'); return }
         router.push(`/invoices/${data.id}`)
       }}>
-        <fieldset className="form-group"><legend>Who is this for?</legend><div className="form-group-fields">
+        <fieldset className="form-group"><legend>Bill to</legend><div className="form-group-fields">
           <Field label="Customer"><input required name="customerName" className="field" autoComplete="organization" /></Field>
           <Field label="Customer email (optional)"><input name="customerEmail" type="email" className="field" autoComplete="email" /></Field>
         </div></fieldset>
-        <fieldset className="form-group"><legend>What is the invoice for?</legend><div className="form-group-fields">
-          <Field label="Amount"><input required name="amount" inputMode="decimal" placeholder="0.00" className="field" /></Field>
-          <Field label="What was this for?"><input required name="description" className="field" /></Field>
+        <fieldset className="form-group"><legend>For</legend><div className="form-group-fields">
+          <Field label="What was the work?" wide><input required name="description" className="field" /></Field>
         </div></fieldset>
-        <fieldset className="form-group"><legend>When?</legend><div className="form-group-fields">
+        <div className="invoice-amount"><label htmlFor="invoice-amount">Amount</label><div><span aria-hidden="true">$</span><input id="invoice-amount" aria-label="Amount in US dollars" required name="amount" inputMode="decimal" placeholder="0.00"/></div><span>USD</span></div>
+        <fieldset className="form-group"><legend>When</legend><div className="form-group-fields">
           <Field label="Issue date"><input required name="issueDate" type="date" max={today()} defaultValue={today()} className="field" /></Field>
           <Field label="Due date (optional)"><input name="dueDate" type="date" className="field" /></Field>
         </div></fieldset>
@@ -50,7 +50,7 @@ export function InvoicesClient({ initialInvoices }: { initialInvoices: Record<st
           <Field label="Note (optional)" wide><textarea name="note" rows={3} className="field py-3" /></Field>
         </div></details>
         {error && <p role="alert" className="notice notice-error mt-4">{error}</p>}
-        <button disabled={busy} className="btn btn-primary mt-6 w-full sm:w-auto">{busy ? 'Creating…' : 'Create invoice'}</button>
+        <button disabled={busy} className="btn btn-primary mt-6 w-full sm:w-auto">{busy ? 'Creating…' : <>Create invoice <span aria-hidden="true">→</span></>}</button>
       </form>
     </details>
   </AuthenticatedPage>
