@@ -1,0 +1,78 @@
+{
+  "origin": "https://writeoffs-fresh-staging.vercel.app",
+  "results": [
+    {
+      "route": "home",
+      "width": 390,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "You’re all set for now.",
+      "contentTop": 196.984375,
+      "menuRight": 370
+    },
+    {
+      "route": "home",
+      "width": 430,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "You’re all set for now.",
+      "contentTop": 196.984375,
+      "menuRight": 410
+    },
+    {
+      "route": "home",
+      "width": 1280,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "You’re all set for now.",
+      "contentTop": 237.5,
+      "menuRight": 1244
+    },
+    {
+      "route": "home",
+      "width": 1440,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "You’re all set for now.",
+      "contentTop": 235.5,
+      "menuRight": 1324
+    },
+    {
+      "route": "mileage",
+      "width": 390,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Mileage",
+      "contentTop": 114.15625,
+      "menuRight": 370
+    },
+    {
+      "route": "mileage",
+      "width": 430,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Mileage",
+      "contentTop": 114.15625,
+      "menuRight": 410
+    },
+    {
+      "route": "mileage",
+      "width": 1280,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Mileage",
+      "contentTop": 121.34375,
+      "menuRight": 1244
+    },
+    {
+      "route": "mileage",
+      "width": 1440,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Mileage",
+      "contentTop": 121.34375,
+      "menuRight": 1324
+    }
+  ],
+  "browserErrors": 0
+}

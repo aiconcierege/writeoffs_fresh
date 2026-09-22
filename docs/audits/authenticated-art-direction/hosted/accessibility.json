@@ -1,0 +1,18 @@
+{
+  "keyboardFilters": true,
+  "bulkSelection": true,
+  "radioKeyboard": false,
+  "reducedMotion": true,
+  "textScaling": [
+    {
+      "route": "home",
+      "overflow": false,
+      "documentHeight": 5007
+    },
+    {
+      "route": "mileage",
+      "overflow": false,
+      "documentHeight": 4479
+    }
+  ]
+}

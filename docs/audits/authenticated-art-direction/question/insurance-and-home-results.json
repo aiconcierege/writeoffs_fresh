@@ -1,0 +1,78 @@
+{
+  "origin": "https://writeoffs-fresh-staging.vercel.app",
+  "results": [
+    {
+      "route": "home",
+      "width": 390,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "I’ve worked on your books. I have a few questions for you.",
+      "contentTop": 140.390625,
+      "menuRight": 370
+    },
+    {
+      "route": "home",
+      "width": 430,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "I’ve worked on your books. I have a few questions for you.",
+      "contentTop": 140.390625,
+      "menuRight": 410
+    },
+    {
+      "route": "home",
+      "width": 1280,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "I’ve worked on your books. I have a few questions for you.",
+      "contentTop": 174.875,
+      "menuRight": 1244
+    },
+    {
+      "route": "home",
+      "width": 1440,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "I’ve worked on your books. I have a few questions for you.",
+      "contentTop": 170.84375,
+      "menuRight": 1324
+    },
+    {
+      "route": "check-in",
+      "width": 390,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "What did this insurance cover?",
+      "contentTop": 471.078125,
+      "menuRight": 370
+    },
+    {
+      "route": "check-in",
+      "width": 430,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "What did this insurance cover?",
+      "contentTop": 471.078125,
+      "menuRight": 410
+    },
+    {
+      "route": "check-in",
+      "width": 1280,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "What did this insurance cover?",
+      "contentTop": 400.71875,
+      "menuRight": 1244
+    },
+    {
+      "route": "check-in",
+      "width": 1440,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "What did this insurance cover?",
+      "contentTop": 400.71875,
+      "menuRight": 1324
+    }
+  ],
+  "browserErrors": 0
+}

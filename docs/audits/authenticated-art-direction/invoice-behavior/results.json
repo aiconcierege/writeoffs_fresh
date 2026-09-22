@@ -1,0 +1,42 @@
+{
+  "origin": "https://writeoffs-fresh-staging.vercel.app",
+  "results": [
+    {
+      "route": "invoices",
+      "width": 390,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Get paid for your work.",
+      "contentTop": 114.15625,
+      "menuRight": 370
+    },
+    {
+      "route": "invoices",
+      "width": 430,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Get paid for your work.",
+      "contentTop": 114.15625,
+      "menuRight": 410
+    },
+    {
+      "route": "invoices",
+      "width": 1280,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Get paid for your work.",
+      "contentTop": 121.34375,
+      "menuRight": 1244
+    },
+    {
+      "route": "invoices",
+      "width": 1440,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Get paid for your work.",
+      "contentTop": 121.34375,
+      "menuRight": 1324
+    }
+  ],
+  "browserErrors": 0
+}

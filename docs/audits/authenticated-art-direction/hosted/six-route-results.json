@@ -1,0 +1,222 @@
+{
+  "origin": "https://writeoffs-fresh-staging.vercel.app",
+  "results": [
+    {
+      "route": "home",
+      "width": 390,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "You’re all set for now.",
+      "contentTop": 178.078125,
+      "menuRight": 370
+    },
+    {
+      "route": "home",
+      "width": 430,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "You’re all set for now.",
+      "contentTop": 178.078125,
+      "menuRight": 410
+    },
+    {
+      "route": "home",
+      "width": 1280,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "You’re all set for now.",
+      "contentTop": 237.5,
+      "menuRight": 1244
+    },
+    {
+      "route": "home",
+      "width": 1440,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "You’re all set for now.",
+      "contentTop": 235.5,
+      "menuRight": 1324
+    },
+    {
+      "route": "check-in",
+      "width": 390,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "You’re all set for now.",
+      "contentTop": 269.171875,
+      "menuRight": 370
+    },
+    {
+      "route": "check-in",
+      "width": 430,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "You’re all set for now.",
+      "contentTop": 269.171875,
+      "menuRight": 410
+    },
+    {
+      "route": "check-in",
+      "width": 1280,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "You’re all set for now.",
+      "contentTop": 251.03125,
+      "menuRight": 1244
+    },
+    {
+      "route": "check-in",
+      "width": 1440,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "You’re all set for now.",
+      "contentTop": 251.03125,
+      "menuRight": 1324
+    },
+    {
+      "route": "transactions",
+      "width": 390,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Transactions",
+      "contentTop": 115.125,
+      "menuRight": 370
+    },
+    {
+      "route": "transactions",
+      "width": 430,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Transactions",
+      "contentTop": 115.125,
+      "menuRight": 410
+    },
+    {
+      "route": "transactions",
+      "width": 1280,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Transactions",
+      "contentTop": 122.3125,
+      "menuRight": 1244
+    },
+    {
+      "route": "transactions",
+      "width": 1440,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Transactions",
+      "contentTop": 122.3125,
+      "menuRight": 1324
+    },
+    {
+      "route": "mileage",
+      "width": 390,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Mileage",
+      "contentTop": 114.15625,
+      "menuRight": 370
+    },
+    {
+      "route": "mileage",
+      "width": 430,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Mileage",
+      "contentTop": 114.15625,
+      "menuRight": 410
+    },
+    {
+      "route": "mileage",
+      "width": 1280,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Mileage",
+      "contentTop": 121.34375,
+      "menuRight": 1244
+    },
+    {
+      "route": "mileage",
+      "width": 1440,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Mileage",
+      "contentTop": 121.34375,
+      "menuRight": 1324
+    },
+    {
+      "route": "invoices",
+      "width": 390,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Get paid for your work.",
+      "contentTop": 114.15625,
+      "menuRight": 370
+    },
+    {
+      "route": "invoices",
+      "width": 430,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Get paid for your work.",
+      "contentTop": 114.15625,
+      "menuRight": 410
+    },
+    {
+      "route": "invoices",
+      "width": 1280,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Get paid for your work.",
+      "contentTop": 121.34375,
+      "menuRight": 1244
+    },
+    {
+      "route": "invoices",
+      "width": 1440,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Get paid for your work.",
+      "contentTop": 121.34375,
+      "menuRight": 1324
+    },
+    {
+      "route": "reports",
+      "width": 390,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Reports",
+      "contentTop": 113.421875,
+      "menuRight": 370
+    },
+    {
+      "route": "reports",
+      "width": 430,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Reports",
+      "contentTop": 113.421875,
+      "menuRight": 410
+    },
+    {
+      "route": "reports",
+      "width": 1280,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Reports",
+      "contentTop": 121.421875,
+      "menuRight": 1244
+    },
+    {
+      "route": "reports",
+      "width": 1440,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Reports",
+      "contentTop": 121.421875,
+      "menuRight": 1324
+    }
+  ],
+  "browserErrors": 0
+}

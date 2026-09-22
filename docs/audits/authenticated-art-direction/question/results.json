@@ -1,0 +1,42 @@
+{
+  "origin": "https://writeoffs-fresh-staging.vercel.app",
+  "results": [
+    {
+      "route": "home",
+      "width": 390,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "I’ve worked on your books. I have a few questions for you.",
+      "contentTop": 196.984375,
+      "menuRight": 370
+    },
+    {
+      "route": "home",
+      "width": 430,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "I’ve worked on your books. I have a few questions for you.",
+      "contentTop": 196.984375,
+      "menuRight": 410
+    },
+    {
+      "route": "home",
+      "width": 1280,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "I’ve worked on your books. I have a few questions for you.",
+      "contentTop": 174.875,
+      "menuRight": 1244
+    },
+    {
+      "route": "home",
+      "width": 1440,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "I’ve worked on your books. I have a few questions for you.",
+      "contentTop": 170.84375,
+      "menuRight": 1324
+    }
+  ],
+  "browserErrors": 0
+}

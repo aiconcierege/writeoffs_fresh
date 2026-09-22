@@ -1,0 +1,38 @@
+{
+  "keyboardFilters": true,
+  "bulkSelection": true,
+  "radioKeyboard": false,
+  "reducedMotion": true,
+  "textScaling": [
+    {
+      "route": "home",
+      "overflow": false,
+      "documentHeight": 4790
+    },
+    {
+      "route": "check-in",
+      "overflow": false,
+      "documentHeight": 2948
+    },
+    {
+      "route": "transactions",
+      "overflow": false,
+      "documentHeight": 10549
+    },
+    {
+      "route": "mileage",
+      "overflow": false,
+      "documentHeight": 3799
+    },
+    {
+      "route": "invoices",
+      "overflow": false,
+      "documentHeight": 2599
+    },
+    {
+      "route": "reports",
+      "overflow": false,
+      "documentHeight": 5784
+    }
+  ]
+}

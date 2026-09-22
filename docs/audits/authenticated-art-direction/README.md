@@ -42,3 +42,39 @@ No Plaid, receipt-matching, invoice recognition, Reports arithmetic, transaction
 ## Validation and hosted evidence
 
 Final validation, public staging deployment identity and screenshot gallery are recorded alongside this document after deployment. Screenshots use explicitly synthetic staging customers and real MFA. No fake question/completion state is introduced for screenshots.
+
+### Final application and public deployment
+
+Application commits: `ae214f9ec6e5c8728533429340e64a135d50de5e` and `28f275ffc0e382e5cec30bd0392b30ce19145275`.
+
+The second commit addresses issues found in the actual hosted review: full-width mobile Home thought, compact Mileage totals in the intro, full-height vehicle rail, and visible existing ownership/tracking facts. Vercel deployment `dpl_HgJuynwvdZDDuvGg3WGZBWzdpkbB` was READY and bound to `writeoffs-fresh-staging.vercel.app`; see `deployment.json`. The Git integration deployed only the dedicated staging project. An evidence-only commit may subsequently become the alias's SHA without changing application code.
+
+### Results
+
+| Check | Result / evidence |
+|---|---|
+| Full Vitest suite | 1,912 passed; 143 environment-dependent tests skipped; 274 files passed, 42 skipped. Includes mileage, invoices, canonical work, receipt, Plaid and isolation regressions. Skipped database/provider cases are not claimed as freshly rerun. |
+| TypeScript | PASS (`next typegen` + `tsc --noEmit`), also passed during optimized build. |
+| Optimized build | PASS (`next build --webpack`). One local attempt hit duplicate generated `.next/dev/types/* 2.ts` files; only generated duplicates were removed and the build rerun successfully. |
+| Lint | PASS, zero errors; 16 existing warnings. |
+| Secrets | Gitleaks tracked-workspace scan and both application commits: no leaks. Unapproved assets and unrelated untracked security work excluded. |
+| Diff | `git diff --check` PASS. |
+| Six hosted routes | 390, 430, 1280, 1440; one main landmark, right-side Menu, no horizontal overflow or browser errors. `hosted/six-route-results.json`. |
+| Final Home/Mileage follow-up | Same four widths after second application deployment; `hosted/results.json`, `question/results.json`. |
+| Automated accessibility | No axe WCAG A/AA violations in the six tested route states at 390; plus first-use Mileage/invoices and real insurance-question state. Individual `*-accessibility.json` files. |
+| Keyboard / zoom | Search, date filters, explicit selection and bulk controls; 200% text/reduced motion across six routes, with final Home/Mileage recheck. `hosted/six-route-accessibility.json` and `hosted/accessibility.json`. First-use native radios and enlarged forms also checked locally (`first-use/local-text-scaling.json`). |
+| Invoice behavior | Creation through the application against synthetic staging data did not change Reports totals (`invoice-behavior/application-creation.json`; local app origin). Public staging confirmed activity-first, keyboard composer/optional fields, focus return and unsaved draft preservation (`invoice-behavior/invoice-behavior.json`). |
+| Mileage states | Genuine no-vehicle, vehicle/no-trips and populated states. No fabricated mileage or deduction metric. |
+| Exact reported vehicle configuration | Public staging: synthetic “My car,” leased, actual costs, current year 2026; annual input absent and trip entry available. Rechecked after final application deployment. `leased-actual/mileage-behavior.json`. |
+| Prior-year and timing regressions | Completed 2025 actual-cost denominator remains available; current/future years suppressed; mileage method, business-only vehicle, supplied totals, leased form and US year boundary covered. |
+| Cached question regressions | Legacy metadata fallback, current-year rejection across projection slots, ordinary question fast path, tenant rejection, committed-answer safety and continuation failure covered. |
+
+No new performance benchmark is claimed. No merchant lookup or animation runtime was added to the answer path. Only the explicit annual-mileage defect changes question availability.
+
+### Visual review
+
+[Gallery](gallery.md) includes actual hosted state variants and a [side-by-side reference comparison](reference-comparison.png). Reviewed hierarchy, page-top position, surface contrast, amount emphasis, character scale, whitespace and mobile reading order—not only DOM overflow.
+
+Intentional differences from the mockup remain: approved static Betti poses rather than its invented seated artwork; no office scenery, sidebar, slogans or speech bubble; no speculative merchant logo; actual canonical insurance options rather than the mockup's invented choices. The reusable Betti boundary remains ready for approved animation later.
+
+Rick's manual review determines acceptance. This does not start clean-room customer certification.

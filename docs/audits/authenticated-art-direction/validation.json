@@ -1,0 +1,25 @@
+{
+  "applicationSha": "28f275ffc0e382e5cec30bd0392b30ce19145275",
+  "tests": {
+    "passed": 1912,
+    "skipped": 143
+  },
+  "typecheck": "pass",
+  "optimizedWebpackBuild": "pass",
+  "lint": {
+    "errors": 0,
+    "existingWarnings": 16
+  },
+  "secretScan": "pass",
+  "diffCheck": "pass",
+  "hostedWidths": [
+    390,
+    430,
+    1280,
+    1440
+  ],
+  "axeStatesWithoutViolations": 10,
+  "syntheticOnly": true,
+  "productOwnerAcceptance": "pending",
+  "earlierRickSessionRootCause": "not reproduced; cached projection bypass independently fixed"
+}

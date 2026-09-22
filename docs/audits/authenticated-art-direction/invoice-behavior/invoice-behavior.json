@@ -1,0 +1,11 @@
+{
+  "syntheticOnly": true,
+  "createdThroughUI": false,
+  "reusedExistingInvoice": true,
+  "canonicalReportsUnchanged": true,
+  "returningActivityFirst": true,
+  "keyboardCreation": true,
+  "keyboardOptionalFields": true,
+  "closeRestoresFocus": true,
+  "closePreservesDraft": true
+}

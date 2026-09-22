@@ -1,0 +1,9 @@
+{
+  "verifiedAt": "2026-09-22T23:51:53.195Z",
+  "projectId": "prj_o56739F1pzd0TjFirEYoLMaa6oIJ",
+  "deploymentId": "dpl_HgJuynwvdZDDuvGg3WGZBWzdpkbB",
+  "readyState": "READY",
+  "applicationSha": "28f275ffc0e382e5cec30bd0392b30ce19145275",
+  "branch": "v2-onboarding-staging",
+  "publicAlias": "writeoffs-fresh-staging.vercel.app"
+}
