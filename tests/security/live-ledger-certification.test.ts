@@ -1,8 +1,19 @@
 import {describe, expect, it} from 'vitest'
 import {randomBytes} from 'node:crypto'
-import {certifyLiveDeletionLedger} from '../../scripts/backup/certify-live-deletion-ledger.mjs'
+import {certifyLiveDeletionLedger, diagnosticClient, safeFailureCode} from '../../scripts/backup/certify-live-deletion-ledger.mjs'
 
 describe('protected live ledger certification harness', () => {
+  it('preserves allowlisted provider diagnostics without copying raw errors or request data', async () => {
+    const state: Record<string, unknown> = {}
+    const failure = {name: 'AccessDenied', message: 'sensitive-provider-context', $metadata: {httpStatusCode: 403, requestId: 'private-request'}, secretAccessKey: 'private-value'}
+    const client = diagnosticClient({send: async () => {throw failure}}, 'writer', state)
+    await expect(client.send({constructor: {name: 'PutObjectCommand'}, input: {Body: 'private-payload'}})).rejects.toBe(failure)
+    expect(state).toEqual({identity: 'writer', operation: 'PutObjectCommand', providerCode: 'AccessDenied', httpStatus: 403})
+    expect(safeFailureCode({name: 'private-value', message: 'private-message'})).toBe('UNCLASSIFIED_ERROR')
+    expect(safeFailureCode(new Error('LEDGER_CERTIFICATION_KEY_INVALID'))).toBe('LEDGER_CERTIFICATION_KEY_INVALID')
+    await diagnosticClient({send: async () => ({})}, 'recovery-reader', state).send({constructor: {name: 'GetObjectCommand'}})
+    expect(state).toEqual({identity: 'recovery-reader', operation: 'GetObjectCommand'})
+  })
   it('uses separate identities, preserves the first version, and reports no payload or credentials', async () => {
     const objects = new Map<string, Buffer>()
     const operations: string[] = []
