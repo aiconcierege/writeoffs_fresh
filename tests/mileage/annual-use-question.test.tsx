@@ -1,7 +1,7 @@
 import React from 'react'
 import {createRequire} from 'node:module'
 import {afterEach,describe,expect,it,vi} from 'vitest'
-import {completedVehicleTaxYear,needsAnnualVehicleUse,vehicleAnnualQuestionAvailable} from '../../app/lib/mileage/annual-use-question'
+import {completedVehicleTaxYear,needsAnnualVehicleUse,vehicleAnnualQuestionAvailable,vehicleQuestionProjectionCurrent} from '../../app/lib/mileage/annual-use-question'
 import {MileageClient} from '../../app/mileage/MileageClient'
 const {renderToStaticMarkup}=createRequire(import.meta.url)('react-dom/server') as {renderToStaticMarkup:(node:React.ReactNode)=>string}
 const now=new Date('2026-09-22T18:00:00Z')
@@ -36,5 +36,19 @@ describe('annual vehicle use is a completed-year fact',()=>{
   const html=renderToStaticMarkup(<MileageClient initialVehicles={[]} initialEntries={[]}/>);
   expect(html).toContain('Let’s set up your vehicle.');expect(html).toContain('What do you call this vehicle?')
   expect(html).not.toContain('Recorded trips');expect(html).not.toContain('Download mileage');expect(html).not.toContain('Cancel')
+ })
+})
+
+// Persisted projections can survive an application deployment; they must obey
+// the same timing policy as newly generated canonical questions.
+describe('persisted annual-mileage question readiness',()=>{
+ const action=(year:number)=>({question:{source:'deduction',deductionFact:{type:'vehicle_total_miles',scopeKey:`vehicle:${year}`}}})
+ it('rejects a current-year question in every projection slot',()=>{
+  for(const projection of [{nextAction:action(2026)},{customer:{actionable:[action(2026)]}},{customer:{deferred:[action(2026)]}}])expect(vehicleQuestionProjectionCurrent(projection,now)).toBe(false)
+ })
+ it('requires canonical timing metadata on legacy deduction projections',()=>{
+  expect(vehicleQuestionProjectionCurrent({nextAction:{question:{source:'deduction'}}},now)).toBe(false)
+  expect(vehicleQuestionProjectionCurrent({nextAction:action(2025)},now)).toBe(true)
+  expect(vehicleQuestionProjectionCurrent({nextAction:{question:{source:'review'}}},now)).toBe(true)
  })
 })

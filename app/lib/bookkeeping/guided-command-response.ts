@@ -1,3 +1,4 @@
+import {vehicleQuestionProjectionCurrent} from '../mileage/annual-use-question'
 import {guidedWorkProjection} from './guided-work-projection'
 import {requestUser} from '../performance/request-identity'
 import 'server-only'
@@ -23,9 +24,17 @@ export function guidedContinuityRecord(request:Request){
 export function guidedCommand<Rest extends unknown[]>(handler:(request:Request,...rest:Rest)=>Promise<Response>,options:{deferralField?:'action'|'disposition'}={}){
  return async(request:Request,...rest:Rest):Promise<Response>=>{
   const requestBody=request.headers.get('x-betti-guided')==='1'?request.clone():null
-  const response=await timed('canonical_command',()=>handler(request,...rest))
+  let response=await timed('canonical_command',()=>handler(request,...rest))
   if(!response.ok||request.headers.get('x-betti-guided')!=='1')return response
   try{
+   const committed=await response.clone().json()
+   if(committed.work&&!vehicleQuestionProjectionCurrent(committed.work)){
+    // Preserve the committed answer, but never return a stale continuation if
+    // canonical fallback fails. The existing client refresh path remains safe.
+    const {work:_staleWork,...saved}=committed
+    void _staleWork
+    response=Response.json(saved,{status:response.status,headers:{'Cache-Control':'private, no-store'}})
+   }
    const body=await requestBody?.json().catch(()=>null)
    const deferred=options.deferralField==='action'?body?.action==='defer':options.deferralField==='disposition'?body?.disposition==='deferred':false
    const db=await createServerSupabase()
@@ -42,7 +51,7 @@ export function guidedCommand<Rest extends unknown[]>(handler:(request:Request,.
      }catch{console.error('BETTI_ACTION_INDEX_REFRESH_PENDING')}
     })
     const saved=await response.clone().json()
-    if(saved.work?.index?.version===1)return response
+    if(saved.work?.index?.version===1&&vehicleQuestionProjectionCurrent(saved.work))return response
     const indexed=await readBettiActionIndex({db,businessId:membership.businessId,view:'guided',
      continuityRecordId:guidedContinuityRecord(request),processingEnabled:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'})
     if(indexed)return Response.json({...saved,work:indexed},{status:response.status,headers:{'Cache-Control':'private, no-store'}})

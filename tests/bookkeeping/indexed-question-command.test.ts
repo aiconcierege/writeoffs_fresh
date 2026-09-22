@@ -16,3 +16,10 @@ it('keeps the original persisted deferral deadline on an identical retry',async(
  await t.client.rpc('skip_bookkeeping_review_issue',{p_deferred_until:'later'})
  expect(rpc.mock.calls[0][1].p_arguments.p_deferred_until).toBe('original')
 })
+
+it('preserves the committed command but rejects legacy deduction continuation',async()=>{
+ const rpc=vi.fn().mockResolvedValue({error:null,data:{_guidedIndex:{businessId:'b',nextAction:{question:{source:'deduction'}}}}})
+ const transport=indexedQuestionClient({db:{rpc} as unknown as SupabaseClient,businessId:'b',id:'q',version:'v'})
+ const result=await transport.client.rpc('answer_bookkeeping_transaction_type_review_issue',{})
+ expect(result.error).toBeNull();expect(transport.next()).toBeNull();expect(rpc).toHaveBeenCalledOnce()
+})

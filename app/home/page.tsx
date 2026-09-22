@@ -43,14 +43,14 @@ async function HomePage(){
  if(coverage?.needsRecords&&betti.state==='caught-up')betti={...betti,state:'waiting',heading:'Your available records are organized.',supporting:'Send me statements for the missing months and I’ll work on those too.'}
  const dateLabel=(day:string)=>new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}).format(new Date(`${day}T00:00:00Z`))
  return <div className="home-page home-command-center wo-experience" data-customer-action-count={work?.customer.actionableCount}><WorkRefresh active={!work||Boolean(work.betti.jobs.length)||Boolean(connections.data?.some(bankConnectionAttention))}/><div className="home-shell">
-  <HomeBettiHero projection={betti}/>
+  <HomeBettiHero projection={betti}/><div className="home-status-strip">
   <BankConnectionNotice connections={connections.data}/>
   <SourceCoverageNotice coverage={coverage}/>
-  {betti.education&&<p className="home-first-use">{betti.education}</p>}
+  {betti.education&&<p className="home-first-use">{betti.education}</p>}</div><div className="home-overview-layout">
 
   <section className="home-financial home-business-snapshot" aria-labelledby="financial-heading"><div className="home-section-heading"><div><p className="home-kicker">Your business</p><h2 id="financial-heading">Your working books</h2><p>{dateLabel(coveredStart)} – {dateLabel(today)}</p></div><Link href="/reports">See reports <span aria-hidden="true">→</span></Link></div>{summary?<FinancialRelationship business={isBusiness} income={summary.businessIncomeCents} expenses={summary.businessExpensesCents} profit={summary.businessProfitCents}/>:<p role="status">Your totals aren’t available right now. Please try again in a moment.</p>}<p className="home-working-note">Based on the records available so far. Tax-time deductions are tracked separately.</p>{!isBusiness&&<p className="home-help-copy">Your Expenses membership organizes business spending. Income and profit are outside its reporting scope.</p>}</section>
 
-  <HomeQuickActions business={isBusiness}/>
+  <HomeQuickActions business={isBusiness}/></div>
   {summary&&summary.businessMilesMilli>0&&<p className="home-mileage-summary"><Link href="/mileage">{new Intl.NumberFormat('en-US',{maximumFractionDigits:3}).format(summary.businessMilesMilli/1000)} business miles recorded →</Link></p>}
   {recentActivity?<HomeRecentActivity activity={recentActivity}/>:<p role="status">Recent activity couldn’t load. <Link href="/transactions">View transactions</Link></p>}
  </div></div>

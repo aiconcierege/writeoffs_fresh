@@ -1,3 +1,4 @@
+import {vehicleQuestionProjectionCurrent} from '../mileage/annual-use-question'
 import 'server-only'
 import type {SupabaseClient} from '@supabase/supabase-js'
 import type {CanonicalWeeklyReviewItem} from './model'
@@ -36,7 +37,7 @@ export function indexedQuestionClient(input:{db:SupabaseClient;businessId:string
     })
     if(!result.error&&result.data?._guidedIndex){
      if(result.data._guidedIndex.businessId!==input.businessId)throw new Error('Unowned indexed next action')
-     next=result.data._guidedIndex
+     next=vehicleQuestionProjectionCurrent(result.data._guidedIndex)?result.data._guidedIndex:null
     }
     if(!result.error)backgroundSafe=result.data?._indexBackgroundSafe===true
     return result

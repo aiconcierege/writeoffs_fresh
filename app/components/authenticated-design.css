@@ -1,0 +1,221 @@
+/* Authenticated art direction: shared work surfaces, compact introductions and
+   useful contrast. Domain components own all facts and actions. */
+.signature-page,.home-command-center,.betti-work {
+ --workspace-ink:#123747; --workspace-muted:#536872; --workspace-blue:#243186;
+ --workspace-green:#087c60; --workspace-line:#dce5e8; --workspace-paper:#fff;
+ --workspace-shadow:0 2px 4px #16384904,0 20px 48px -30px #16384940;
+}
+.signature-page.authenticated-page { max-width:72rem; margin-inline:auto; padding-top:1.45rem; }
+.signature-page>header { padding:0 0 1.65rem; margin:0; border:0; align-items:center; }
+.signature-page .page-title { color:var(--workspace-ink); font-size:clamp(2rem,3.2vw,2.75rem); line-height:1.1; letter-spacing:-.055em; }
+.signature-page .eyebrow,.workspace-kicker { color:var(--workspace-green); font-size:.69rem; letter-spacing:.15em; font-weight:750; text-transform:uppercase; line-height:1.5; }
+.signature-page .eyebrow { margin:0 0 .6rem; }
+.signature-page .page-description { color:var(--workspace-muted); font-size:1rem; line-height:1.55; margin-top:.65rem; max-width:52ch; }
+.signature-page :is(input,select,textarea,button,summary,a):focus-visible { outline:3px solid #243186; outline-offset:4px; }
+.signature-page .btn { min-height:48px; border-radius:.85rem; padding:.8rem 1.25rem; gap:1.25rem; font-size:.95rem; font-weight:650; }
+.signature-page .btn-primary { background:#243186; border-color:#243186; color:#fff; box-shadow:0 4px 7px #24318614,0 12px 22px -14px #24318680; }
+.signature-page .btn-primary:hover { background:#19256d; }
+.signature-page .btn-secondary { background:white; color:#243186; border:1px solid #c8d4df; }
+.signature-page .field { min-height:48px; border:1px solid #bdcbd4; border-radius:.65rem; background:#fff; color:#123747; padding:.75rem .85rem; width:100%; min-width:0; font-size:1rem; line-height:1.4; box-shadow:0 1px 2px #12374703; }
+.signature-page .field:hover { border-color:#7d99aa; }
+.signature-page .field::placeholder { color:#5c707c; opacity:1; }
+.workspace-surface { background:#fff; border:1px solid var(--workspace-line); border-radius:1.4rem; box-shadow:var(--workspace-shadow); }
+.workspace-title { font-size:1.6rem; font-weight:650; letter-spacing:-.04em; line-height:1.25; color:#123747; }
+.workspace-field { display:grid; align-content:start; gap:.5rem; font-size:.9rem; font-weight:550; color:#254651; min-width:0; }
+.workspace-field>span { display:flex; flex-wrap:wrap; gap:.35rem; }
+.workspace-field small { font-size:.8rem; color:#536872; font-weight:400; }
+.workspace-field-pair { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+.workspace-group { min-width:0; }
+.workspace-group>legend { width:100%; color:#08765b; font-size:.7rem; font-weight:750; text-transform:uppercase; letter-spacing:.14em; margin-bottom:1rem; }
+.workspace-group>div { min-width:0; }
+.workspace-disclosure { min-width:0; }
+.workspace-disclosure>summary { display:flex; justify-content:space-between; align-items:center; gap:1rem; min-height:44px; list-style:none; color:#243186; font-size:.85rem; font-weight:550; cursor:pointer; }
+.workspace-disclosure>summary::-webkit-details-marker { display:none; }
+.workspace-disclosure>summary>span { font-size:1.2rem; font-weight:400; }
+.workspace-disclosure[open]>summary>span { transform:rotate(45deg); }
+.workspace-disclosure>div { padding:.6rem 0; }
+.workspace-text-action { display:inline-flex; align-items:center; justify-content:center; gap:.75rem; min-height:44px; padding:.25rem .1rem; color:#243186; font-size:.85rem; font-weight:600; }
+.workspace-text-action:hover { text-decoration:underline; text-underline-offset:4px; }
+.workspace-section-heading { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:1rem; padding:1.35rem 1.75rem; border-bottom:1px solid #e1e8eb; }
+.workspace-section-heading h2 { color:#123747; font-size:1.2rem; font-weight:650; letter-spacing:-.025em; }
+.workspace-section-heading>span { color:#60747d; font-size:.8rem; }
+.workspace-empty { display:flex; align-items:center; gap:1.5rem; padding:2rem; }
+.workspace-empty-mark { display:grid; place-items:center; width:3.75rem; height:3.75rem; flex:none; background:#f0f4f8; color:#243186; font-size:1.8rem; border-radius:50%; }
+.workspace-empty h3 { font-size:1.15rem; font-weight:600; letter-spacing:-.02em; color:#123747; }
+.workspace-empty p { color:#60747d; line-height:1.6; font-size:.9rem; margin-top:.35rem; }
+.workspace-success { color:#08765b; font-size:.9rem; margin-top:.75rem; }
+/* Invoice creation is one composed document, not a stack of equal fields. */
+.signature-page .invoice-introduction { display:block; margin:0; font-size:inherit; }
+.signature-page .invoice-composer { max-width:none; margin:0; overflow:hidden; }
+.invoice-composer[hidden],.invoice-history[hidden] { display:none; }
+.composer-heading { display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1.4rem 2rem; border-bottom:1px solid #e1e8eb; background:#fff; }
+.composer-heading h2 { font-size:1.4rem; font-weight:650; color:#123747; letter-spacing:-.035em; margin-top:.2rem; }
+.invoice-document-grid { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); grid-template-areas:'bill amount' 'work dates'; gap:2rem 3rem; padding:2rem; }
+.invoice-bill-to { grid-area:bill; }
+.invoice-work { grid-area:work; }
+.invoice-dates { grid-area:dates; }
+.invoice-document-grid .workspace-disclosure { margin-top:.3rem; }
+.document-amount { grid-area:amount; display:grid; grid-template-columns:minmax(0,1fr) auto; align-content:center; align-self:stretch; border-radius:1rem; background:#f0f3fc; border:1px solid #e3e7f6; padding:1.2rem 1.5rem; }
+.document-amount>label { grid-column:1/-1; color:#344a91; font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; font-weight:750; }
+.document-amount>div { display:flex; align-items:baseline; min-width:0; color:#243186; font-size:clamp(2.5rem,4.5vw,3.6rem); line-height:1.2; font-weight:650; letter-spacing:-.06em; margin-top:.5rem; }
+.document-amount input { min-width:0; width:100%; background:transparent; border:0; padding:.25rem; color:#243186; font:inherit; font-variant-numeric:tabular-nums; border-radius:.35rem; }
+.document-amount input::placeholder { color:#7280ae; opacity:1; }
+.document-currency { align-self:end; padding-bottom:.6rem; font-size:.75rem; color:#566797; margin-left:.25rem; }
+.composer-footer { padding:0 2rem 1.5rem; }
+.composer-footer>.workspace-disclosure { border-top:1px solid #e1e8eb; border-bottom:1px solid #e1e8eb; padding:.35rem 0; }
+.composer-submit { display:flex; justify-content:space-between; align-items:center; gap:1.5rem; margin-top:1.5rem; }
+.composer-submit>p { color:#637680; font-size:.8rem; }
+.composer-submit .btn { min-width:12rem; }
+.signature-page .invoice-history { margin:0; overflow:hidden; }
+.signature-page .invoice-row { display:flex; justify-content:space-between; gap:2rem; padding:1.4rem 1.75rem; border-bottom:1px solid #e1e8eb; }
+.signature-page .invoice-row:last-child { border-bottom:0; }
+.signature-page .invoice-row:hover { background:#f6f8fc; }
+.signature-page .invoice-customer { display:grid; gap:.3rem; min-width:0; }
+.signature-page .invoice-reference { color:#08765b; font-size:.7rem; letter-spacing:.08em; }
+.signature-page .invoice-customer strong { font-size:1.1rem; color:#123747; }
+.signature-page .invoice-customer p { color:#536872; font-size:.9rem; }
+.signature-page .invoice-customer>span:last-child { color:#536872; font-size:.8rem; }
+.signature-page .invoice-value { display:grid; align-content:start; gap:.35rem; text-align:right; flex:none; }
+.signature-page .invoice-value strong { color:#243186; font-size:1.4rem; }
+.signature-page .invoice-value>span { color:#60747d; font-size:.8rem; }
+.signature-page .invoice-value .invoice-row-arrow { color:#243186; font-size:1.15rem; }
+/* Vehicle setup pairs Betti with the factual setup on one surface. */
+.signature-page.mileage-first-use { display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); gap:0; background:#fff; padding:0; border:1px solid #dce5e8; border-radius:1.5rem; margin-top:1.5rem; overflow:hidden; box-shadow:var(--workspace-shadow); }
+.signature-page.mileage-first-use>header { display:flex; flex-direction:column; align-items:flex-start; justify-content:space-between; padding:2.4rem; margin:0; border:0; border-radius:0; background:#ecf5ed; min-height:0; gap:1.5rem; }
+.signature-page.mileage-first-use .page-title { font-size:clamp(2rem,3.2vw,3rem); max-width:12ch; }
+.signature-page.mileage-first-use .page-description { max-width:30ch; }
+.signature-page.mileage-first-use>header>div:last-child { align-self:center; width:100%; }
+.signature-page .vehicle-setup-betti { width:100%; height:17rem; }
+.signature-page.mileage-first-use .mileage-workspace { display:block; margin:0; padding:0; max-width:none; }
+.signature-page.mileage-first-use .mileage-entry { padding:2.4rem; }
+.vehicle-composer>.workspace-title { font-size:1.8rem; margin:.4rem 0 1.5rem; }
+.vehicle-name-field>span { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+.signature-page .vehicle-name-field .field { font-size:1.35rem; min-height:58px; }
+.vehicle-optional-group { margin:1.8rem 0; }
+.signature-page .vehicle-optional-fields { display:grid; grid-template-columns:.7fr 1fr 1fr; gap:.75rem; }
+.signature-page .vehicle-use-choice { margin-top:1.75rem; }
+.signature-page .vehicle-use-choice legend { font-size:1rem; font-weight:600; color:#123747; }
+.signature-page .vehicle-use-choice>div { display:grid; grid-template-columns:.7fr 1fr; gap:.75rem; margin-top:.75rem; }
+.signature-page .vehicle-use-choice label { display:flex; align-items:center; justify-content:flex-start; gap:.6rem; min-height:54px; background:#fff; border:1px solid #beced7; padding:.75rem; border-radius:.8rem; }
+.signature-page .vehicle-use-choice label:has(input:checked) { background:#eef2fc; border-color:#243186; box-shadow:inset 0 0 0 1px #243186; color:#243186; }
+.vehicle-save { width:100%; margin-top:2rem; justify-content:space-between; }
+/* A single mileage workbench: fast entry + a subordinate vehicle rail. */
+.signature-page .mileage-workspace { display:grid; grid-template-columns:minmax(0,1.65fr) minmax(0,1fr); gap:0; overflow:hidden; margin-top:0; align-items:stretch; }
+.signature-page .mileage-entry { padding:1.75rem 2rem; scroll-margin-top:6rem; }
+.signature-page .mileage-vehicle-context { border:0; padding:1.75rem; background:#f6f8fa; border-left:1px solid #e0e7eb; }
+.mileage-vehicle-context>h2 { font-size:1.35rem; letter-spacing:-.03em; font-weight:650; color:#123747; margin:.4rem 0; }
+.vehicle-description { color:#60747d; font-size:.82rem; line-height:1.5; }
+.vehicle-settings { border:0; margin-top:1.5rem; }
+.signature-page .vehicle-settings>summary { display:flex; justify-content:space-between; gap:1rem; min-height:44px; list-style:none; align-items:center; cursor:pointer; color:#243186; font-weight:600; font-size:.9rem; }
+.vehicle-settings>summary::-webkit-details-marker { display:none; }
+.vehicle-settings[open]>summary>span { transform:rotate(45deg); }
+.vehicle-settings>p { font-size:.8rem; color:#647982; line-height:1.5; margin:.4rem 0 1rem; }
+.signature-page .vehicle-details-form>h3 { display:none; }
+.signature-page .vehicle-details-form>div { gap:1rem; margin-top:.75rem; }
+.signature-page .vehicle-details-form fieldset>div { grid-template-columns:minmax(0,1fr); }
+.signature-page .vehicle-details-form fieldset>legend { font-size:.9rem; }
+.signature-page .vehicle-details-form fieldset>p { display:none; }
+.signature-page .vehicle-details-form fieldset button { min-height:0; padding:.85rem; font-size:.85rem; }
+.signature-page .vehicle-details-form fieldset button strong { font-size:.9rem; }
+.signature-page .vehicle-details-form fieldset button span { font-size:.8rem; }
+.vehicle-management { margin-top:1rem; border-top:1px solid #dce5e8; padding-top:.35rem; }
+.vehicle-management-row { display:flex; justify-content:space-between; gap:.75rem; font-size:.85rem; }
+.vehicle-management-row small { display:block; color:#60747d; font-size:.75rem; }
+.signature-page .trip-composer>.workspace-title { margin-top:.25rem; font-size:1.65rem; }
+.signature-page .trip-primary-fields { margin-top:1.5rem; gap:1rem; }
+.signature-page .trip-distance { color:#243186; font-size:.75rem; text-transform:uppercase; letter-spacing:.08em; }
+.signature-page .trip-distance input { color:#243186; font-size:2.1rem; line-height:1; font-weight:600; letter-spacing:-.045em; padding:.5rem .75rem; height:64px; background:#f3f5fc; border-color:#dae0f3; }
+.signature-page .trip-primary-fields>label:nth-child(2) { align-self:end; }
+.signature-page .trip-primary-fields>label:nth-child(2) input { height:64px; }
+.signature-page .trip-composer>.btn { width:100%; justify-content:space-between; margin-top:1.25rem; }
+.signature-page .trip-composer .form-secondary-details { padding-top:.5rem; margin-top:.15rem; }
+.signature-page .mileage-add-vehicle { margin-top:.5rem; }
+.mileage-log-overview { display:flex; justify-content:space-between; align-items:end; gap:1rem; margin-bottom:1.25rem; padding:0 .2rem; }
+.mileage-log-overview strong { display:block; color:#243186; font-size:2.15rem; font-weight:650; letter-spacing:-.05em; }
+.mileage-log-overview strong small { font-size:.85rem; font-weight:450; color:#60747d; letter-spacing:0; }
+.mileage-log-overview>p { font-size:.85rem; color:#60747d; padding-bottom:.35rem; }
+.mileage-history { margin-top:1.5rem; overflow:hidden; }
+.mileage-log-row { display:grid; grid-template-columns:5rem minmax(0,1fr) auto; align-items:center; gap:1.25rem; padding:1.25rem 1.75rem; }
+.trip-log-distance { color:#243186; }
+.trip-log-distance strong { display:block; font-size:1.6rem; line-height:1.15; letter-spacing:-.035em; font-weight:650; }
+.trip-log-distance>span { font-size:.75rem; color:#60747d; }
+.trip-log-description p { font-size:1rem; font-weight:550; color:#123747; }
+.trip-log-description>span,.trip-log-description>small { display:block; color:#60747d; font-size:.8rem; margin-top:.3rem; }
+.trip-log-actions { display:flex; gap:.75rem; }
+.trip-remove { color:#647982; font-weight:450; }
+/* Transactions retain their useful ledger structure. */
+.signature-page.transactions-page .authenticated-toolbar { margin-top:0; }
+.signature-page.transactions-page .review-row-open { min-height:88px; }
+@media(max-width:899px) {
+ .signature-page .mileage-workspace { grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); }
+ .signature-page .mileage-entry,.signature-page .mileage-vehicle-context { padding:1.5rem; }
+ .signature-page.mileage-first-use>header,.signature-page.mileage-first-use .mileage-entry { padding:1.7rem; }
+ .invoice-document-grid { column-gap:1.5rem; padding:1.5rem; }
+ .invoice-dates .workspace-field-pair { grid-template-columns:minmax(0,1fr); }
+ .composer-heading { padding:1.25rem 1.5rem; }
+ .composer-footer { padding-inline:1.5rem; }
+}
+@media(max-width:639px) {
+ .signature-page.authenticated-page { padding-top:1rem; }
+ .signature-page>header { padding-bottom:1.25rem; align-items:flex-start; gap:.85rem; }
+ .signature-page .page-title { font-size:2.05rem; }
+ .signature-page .page-description { font-size:.95rem; }
+ .signature-page .btn { min-height:48px; }
+ .invoice-document-grid { grid-template-columns:minmax(0,1fr); grid-template-areas:'bill' 'amount' 'work' 'dates'; gap:1.4rem; padding:1.25rem; }
+ .document-amount { padding:1rem 1.2rem; }
+ .document-amount>div { font-size:2.8rem; }
+ .invoice-dates .workspace-field-pair { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; }
+ .invoice-dates .field { padding:.6rem .45rem; font-size:.85rem; }
+ .composer-heading { padding:1.2rem 1.25rem; }
+ .composer-heading h2 { font-size:1.25rem; }
+ .composer-heading .workspace-kicker { display:none; }
+ .composer-footer { padding:0 1.25rem 1.25rem; }
+ .composer-submit { flex-direction:column-reverse; align-items:stretch; gap:.6rem; margin-top:1rem; }
+ .composer-submit .btn { width:100%; justify-content:space-between; }
+ .composer-submit>p { text-align:center; font-size:.75rem; }
+ .signature-page .invoice-row { padding:1.25rem; gap:1rem; }
+ .signature-page .invoice-value strong { font-size:1.2rem; }
+ .signature-page .invoice-customer p { font-size:.85rem; }
+ .signature-page .invoice-customer strong { font-size:1rem; }
+ .signature-page.mileage-first-use { display:block; margin-top:1rem; padding:0; }
+ .signature-page.mileage-first-use>header { display:grid; grid-template-columns:minmax(0,1fr) 96px; padding:1.4rem 1.25rem; gap:.75rem; }
+ .signature-page.mileage-first-use .page-title { font-size:1.95rem; }
+ .signature-page.mileage-first-use .page-description { font-size:.85rem; line-height:1.55; }
+ .signature-page .vehicle-setup-betti { width:100%; height:175px; }
+ .signature-page.mileage-first-use .mileage-entry { padding:1.5rem 1.25rem; }
+ .vehicle-composer>.workspace-title { font-size:1.4rem; margin-bottom:1rem; }
+ .vehicle-composer>.workspace-kicker { display:none; }
+ .vehicle-optional-group { margin:1.4rem 0; }
+ .signature-page .vehicle-optional-fields { gap:.5rem; }
+ .signature-page .vehicle-use-choice>div { gap:.5rem; }
+ .signature-page .vehicle-use-choice label { font-size:.9rem; padding:.7rem; }
+ .vehicle-save { margin-top:1.5rem; }
+ .signature-page .mileage-workspace { display:block; }
+ .signature-page .mileage-entry { padding:1.4rem 1.25rem; }
+ .signature-page .mileage-vehicle-context { border-left:0; border-top:1px solid #dce5e8; padding:1.25rem; }
+ .signature-page .trip-composer>.workspace-title { font-size:1.45rem; }
+ .signature-page .trip-primary-fields { margin-top:1.15rem; }
+ .signature-page .trip-distance input { font-size:1.9rem; }
+ .mileage-log-overview strong { font-size:1.8rem; }
+ .mileage-log-overview strong small { display:inline; margin-top:0; }
+ .mileage-log-row { grid-template-columns:3.5rem minmax(0,1fr); gap:.8rem; padding:1.15rem 1.25rem; }
+ .trip-log-actions { grid-column:2; margin-top:-.25rem; }
+ .trip-log-distance strong { font-size:1.35rem; }
+ .workspace-section-heading { padding:1.1rem 1.25rem; }
+ .workspace-empty { padding:1.4rem 1.25rem; gap:1rem; }
+ .workspace-empty-mark { width:2.5rem; height:2.5rem; }
+ .workspace-empty h3 { font-size:1rem; }
+ .workspace-empty p { font-size:.85rem; }
+}
+@container authenticated-content (max-width:18rem) {
+ .invoice-dates .workspace-field-pair,.workspace-field-pair,.signature-page .vehicle-optional-fields,.signature-page .vehicle-use-choice>div { grid-template-columns:minmax(0,1fr); }
+ .signature-page.mileage-first-use>header { grid-template-columns:minmax(0,1fr); }
+ .signature-page .vehicle-setup-betti { height:5rem; }
+ .mileage-log-row { grid-template-columns:minmax(0,1fr); }
+ .trip-log-actions { grid-column:1; }
+ .signature-page .invoice-row,.composer-heading,.mileage-log-overview { flex-wrap:wrap; }
+}
+@media(prefers-reduced-motion:reduce) { .signature-page * { scroll-behavior:auto!important; transition:none!important; } }
+
+.mileage-history-entry { max-width:72rem; margin:1.25rem auto 2rem; padding:.5rem 0; border-top:1px solid #dce5e8; }
+.mileage-history-entry>summary { display:flex; min-height:44px; align-items:center; color:#243186; font-weight:600; cursor:pointer; font-size:.9rem; }

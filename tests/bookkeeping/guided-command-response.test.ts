@@ -61,3 +61,9 @@ it.each([undefined,'action'] as const)('an unrelated request field cannot skip r
  await guidedCommand(async()=>Response.json({ok:true}),{deferralField})(request)
  expect(state.rpc).toHaveBeenCalledWith('reconcile_current_betti_questions')
 })
+
+it('does not leak a legacy annual question when continuation fails after a committed answer',async()=>{
+ state.projection.mockRejectedValue(new Error('unavailable'))
+ const response=await guidedCommand(async()=>Response.json({ok:true,eventId:'saved',work:{index:{version:1},nextAction:{question:{source:'deduction'}}}}))(request())
+ expect(response.status).toBe(200);expect(await response.json()).toEqual({ok:true,eventId:'saved'})
+})

@@ -19,6 +19,7 @@ export type CustomerQuestion = {
   materiality?:'totals'|'disclosable'
   recordId?:string
   prompt: string
+  deductionFact?: {type:string;scopeKey:string|null}
   understanding?: string
   confirmation?: { optionId: string; label: string }
   guidance?: string
@@ -445,6 +446,7 @@ async function listDeductionQuestions(supabase: SupabaseClient,businessId?:strin
     const record = attention.bookkeeping_record_id ? recordById.get(attention.bookkeeping_record_id) : null
     return {
       id: attention.attention_id, version: attention.id, source: 'deduction' as const,
+      deductionFact:{type:attention.fact_type,scopeKey:attention.scope_key},
       recordId: attention.bookkeeping_record_id ?? undefined,
       kind: attention.question_type as CustomerQuestion['kind'], prompt: attention.prompt,
       ...(attention.fact_type==='phone_business_use_percentage'?{understanding:'I know this is your phone bill.'}:{}),

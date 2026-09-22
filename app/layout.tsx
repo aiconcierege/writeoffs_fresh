@@ -1,6 +1,7 @@
 // app/layout.tsx
 import "./globals.css"
 import "./components/experience/experience.css"
+import "./components/authenticated-design.css"
 import { Suspense } from "react"
 import { Inter } from "next/font/google"
 import { Header } from "./components/Header"

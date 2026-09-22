@@ -7,11 +7,12 @@ import {createServerClient} from '@supabase/ssr'
 import {chromium} from '@playwright/test'
 process.loadEnvFile('.env.staging.local')
 const origin=process.env.POLISH_ORIGIN??'https://writeoffs-fresh-staging.vercel.app'
-assert(['http://localhost:3110','https://writeoffs-fresh-staging.vercel.app'].includes(origin))
+assert(['http://localhost:3110','http://localhost:3112','https://writeoffs-fresh-staging.vercel.app'].includes(origin))
 assert.equal(new URL(process.env.SUPABASE_URL).hostname,'sgrqrrxrlglhjuetdtps.supabase.co')
 const fixture=JSON.parse(await readFile(process.env.POLISH_FIXTURE??'/private/tmp/writeoffs-polish-fixture.json','utf8'))
 const admin=createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false}})
-assert.equal((await admin.auth.admin.getUserById(fixture.userId)).data.user?.user_metadata.synthetic_ux1,true)
+const metadata=(await admin.auth.admin.getUserById(fixture.userId)).data.user?.user_metadata
+assert(metadata?.synthetic_ux1===true||metadata?.synthetic_guided_contract===true,'Explicit synthetic customer required')
 const cookies=new Map(),client=createServerClient(process.env.SUPABASE_URL,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,{cookies:{getAll:()=>[...cookies].map(([name,value])=>({name,value})),setAll:values=>values.forEach(({name,value})=>cookies.set(name,value))}})
 assert(!(await client.auth.signInWithPassword({email:fixture.email,password:fixture.password})).error,'Synthetic login failed')
 const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',bits=[...fixture.totpSecret.replace(/=+$/,'').toUpperCase()].map(c=>alphabet.indexOf(c).toString(2).padStart(5,'0')).join(''),key=Buffer.from(Array.from({length:Math.floor(bits.length/8)},(_,i)=>parseInt(bits.slice(i*8,i*8+8),2))),counter=Buffer.alloc(8)
@@ -24,6 +25,19 @@ try{
  const context=await browser.newContext({timezoneId:'America/Phoenix'})
  await context.addCookies([...cookies].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:origin.startsWith('https:'),sameSite:'Lax'})))
  const page=await context.newPage();const errors=[];page.on('pageerror',()=>errors.push('browser runtime error'))
+ if(process.env.POLISH_INSPECT==='1'){const r=await context.request.get(origin+'/api/bookkeeping/work');assert(r.ok());const w=await r.json();console.log(JSON.stringify({next:w.nextAction?.type,prompt:w.nextAction?.question?.prompt,actions:w.customer?.actionable?.map(a=>({type:a.type,prompt:a.question?.prompt})),deferred:w.customer?.deferredCount}));await browser.close();process.exit()}
+ if(process.env.POLISH_VEHICLE_ONLY==='1'){
+  await page.goto(origin+'/mileage',{waitUntil:'networkidle'})
+  if(await page.getByLabel('Vehicle name',{exact:true}).count()){
+   await page.getByLabel('Vehicle name',{exact:true}).fill('My car')
+   const response=page.waitForResponse(r=>r.url().endsWith('/api/mileage/vehicles')&&r.request().method()==='POST')
+   await page.getByRole('button',{name:'Save vehicle',exact:true}).click();assert((await response).ok())
+  }
+  await page.getByRole('heading',{name:'Add a business trip',exact:true}).waitFor()
+  assert.equal(await page.locator('.mileage-log-row').count(),0)
+  for(const width of [390,430,1280,1440]){await page.setViewportSize({width,height:900});assert(!await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth));await page.screenshot({path:`${dir}/mileage-no-trips-${width}.png`,fullPage:true})}
+  await writeFile(`${dir}/vehicle-setup.json`,JSON.stringify({syntheticOnly:true,vehicleSetupThroughUI:true,tripEntryAvailable:true,emptyHistory:true,overflow:false},null,2)+'\n');await browser.close();process.exit()
+ }
  if(process.env.POLISH_TRIP_ONLY==='1'){
   await page.goto(origin+'/mileage',{waitUntil:'networkidle'})
   const purpose='Synthetic premium utility review',trip=page.locator('article.record-row').filter({hasText:purpose})
@@ -33,7 +47,7 @@ try{
    const response=page.waitForResponse(r=>r.url().endsWith('/api/mileage/create')&&r.request().method()==='POST')
    await page.getByRole('button',{name:'Save mileage',exact:true}).click();assert((await response).ok());created=true
   }
-  await trip.waitFor();assert((await trip.innerText()).includes('12.5 miles'))
+  await trip.waitFor();assert(/12\.5\s+miles/.test(await trip.innerText()))
   const csv=await context.request.get(origin+'/api/mileage/export?year='+new Date().getFullYear());assert(csv.ok());assert((await csv.text()).includes(purpose))
   for(const width of [390,430,1280,1440]){await page.setViewportSize({width,height:900});await page.evaluate(()=>{document.activeElement?.blur();window.scrollTo({top:0,behavior:'instant'})});assert(!await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth));await page.screenshot({path:`${dir}/mileage-populated-${width}.png`,fullPage:true})}
   await writeFile(`${dir}/trip-behavior.json`,JSON.stringify({syntheticOnly:true,createdThroughUI:created,recordedMiles:12.5,historyVisible:true,csvContainsTrip:true,overflow:false},null,2)+'\n')
@@ -58,7 +72,7 @@ try{
  if(process.env.POLISH_LEASED_ACTUAL==='1'||process.env.POLISH_LEASED_ONLY==='1'){
   await page.goto(origin+'/mileage',{waitUntil:'networkidle'})
   const ownership=page.getByRole('combobox',{name:/Do you own or lease it/})
-  if(!await ownership.isVisible())await page.getByText('Finish setting up your vehicle',{exact:true}).click()
+  if(!await ownership.isVisible())await page.locator('.vehicle-settings>summary').click()
   if(await ownership.inputValue()!=='leased'){
    const response=page.waitForResponse(r=>r.url().includes('/tax')&&r.request().method()==='PATCH')
    await ownership.selectOption('leased');assert((await response).ok(),'Synthetic lease choice');await page.waitForLoadState('networkidle')
@@ -70,7 +84,7 @@ try{
    await actual.click();assert((await response).ok(),'Synthetic actual-cost choice');await page.waitForLoadState('networkidle')
   }
   await page.waitForFunction(()=>{const button=[...document.querySelectorAll('button')].find(x=>x.textContent.startsWith('Track my vehicle costs'));return button?.getAttribute('aria-pressed')==='true'&&!button.disabled})
-  if(!await ownership.isVisible())await page.getByText('Finish setting up your vehicle',{exact:true}).click()
+  if(!await ownership.isVisible())await page.locator('.vehicle-settings>summary').click()
   await page.getByText(/We’ll finish the yearly mileage total after/).waitFor()
   assert.equal(await page.getByLabel(new RegExp('total miles.*'+new Date().getFullYear(),'i')).count(),0,'No premature annual denominator')
   assert(await page.getByRole('heading',{name:'Add a business trip',exact:true}).isVisible())
@@ -87,6 +101,12 @@ try{
    await page.evaluate(()=>document.fonts.ready)
    if(route==='reports')await page.locator('.reports-summary').waitFor()
    await page.screenshot({path:`${dir}/${route}-${width}.png`,fullPage:true})
+   if(width===390&&process.env.POLISH_AXE==='1'){
+    await page.addScriptTag({path:'node_modules/axe-core/axe.min.js'})
+    const violations=await page.evaluate(async()=>{const r=await window.axe.run(document.querySelector('main'),{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']}});return r.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))}))})
+    await writeFile(`${dir}/${route}-accessibility.json`,JSON.stringify(violations,null,2)+'\n')
+    assert.equal(violations.length,0,`${route}: accessibility violations`)
+   }
    const metrics=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,mainCount:document.querySelectorAll('main').length,title:document.querySelector('h1')?.textContent,contentTop:document.querySelector('h1')?.getBoundingClientRect().top,menuRight:[...document.querySelectorAll('header summary')].find(x=>x.textContent.includes('Menu'))?.getBoundingClientRect().right}))
    assert(!metrics.overflow,`${route} ${width}: overflow`);assert.equal(metrics.mainCount,1)
    assert(metrics.menuRight>width/2,'Menu must remain on the right')
@@ -99,10 +119,10 @@ try{
   const before=await page.locator('.reports-summary').innerText()
   await page.goto(origin+'/invoices',{waitUntil:'networkidle'})
   let createdThisRun=false
-  const existing=page.locator('.invoice-row').filter({hasText:'Synthetic utility review'})
+  const existing=page.locator('.invoice-row').filter({hasText:process.env.POLISH_INVOICE_CUSTOMER??'Synthetic utility review'})
   if(!await existing.count()){
    if(!await page.getByLabel('Customer',{exact:true}).isVisible())await page.locator('.invoice-create-toggle').click()
-   await page.getByLabel('Customer',{exact:true}).fill('Synthetic utility review')
+   await page.getByLabel('Customer',{exact:true}).fill(process.env.POLISH_INVOICE_CUSTOMER??'Synthetic utility review')
    await page.getByLabel('Amount in US dollars',{exact:true}).fill('175.25')
    await page.getByLabel('What was the work?',{exact:true}).fill('Synthetic design review')
    const response=page.waitForResponse(r=>r.url().endsWith('/api/invoices')&&r.request().method()==='POST')
@@ -115,7 +135,7 @@ try{
   for(const width of [390,430,1280,1440]){
    await page.setViewportSize({width,height:900});await page.goto(origin+'/invoices',{waitUntil:'networkidle'})
    assert(!await page.getByLabel('Customer',{exact:true}).isVisible(),'Returning invoices start with activity')
-   assert(await page.locator('.invoice-row').filter({hasText:'Synthetic utility review'}).count())
+   assert(await page.locator('.invoice-row').filter({hasText:process.env.POLISH_INVOICE_CUSTOMER??'Synthetic utility review'}).count())
    await page.screenshot({path:`${dir}/invoices-populated-${width}.png`,fullPage:true})
    await page.locator('.invoice-create-toggle').focus();await page.keyboard.press('Enter')
    assert(await page.getByLabel('Customer',{exact:true}).isVisible(),'Keyboard opens invoice creation')
@@ -159,7 +179,7 @@ try{
   await page.goto(origin+'/'+route,{waitUntil:'networkidle'})
   await page.emulateMedia({reducedMotion:'reduce'})
   await page.evaluate(async()=>{document.documentElement.style.fontSize='200%';await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))})
-  if(route==='invoices'){await page.locator('.invoice-create-toggle').scrollIntoViewIfNeeded();await page.evaluate(()=>window.scrollTo(0,0))}
+  if(route==='invoices'&&await page.locator('.invoice-create-toggle').count()){await page.locator('.invoice-create-toggle').scrollIntoViewIfNeeded();await page.evaluate(()=>window.scrollTo(0,0))}
   zoom.push({route,overflow:await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),documentHeight:await page.evaluate(()=>document.documentElement.scrollHeight)})
   await page.screenshot({path:`${dir}/${route}-text200.png`,fullPage:true})
  }

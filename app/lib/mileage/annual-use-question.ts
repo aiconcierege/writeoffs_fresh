@@ -13,3 +13,19 @@ export function needsAnnualVehicleUse(input: { taxYear:number; method:VehicleMet
 export function vehicleAnnualQuestionAvailable(factType:string, scopeKey:string|null, now=new Date()) {
   return factType !== 'vehicle_total_miles' || completedVehicleTaxYear(Number(scopeKey?.split(':').at(-1)),now)
 }
+
+/** A previously published projection may predate the annual-use policy. Do not
+ * render it until the canonical selector has supplied factual timing metadata.
+ * Returning false selects the existing canonical fallback; it never hides an
+ * action client-side or edits question history. */
+export function vehicleQuestionProjectionCurrent(projection: {
+ nextAction?: {question?: {source?:string;deductionFact?:{type:string;scopeKey:string|null}}}|null
+ customer?: {actionable?: Array<{question?: {source?:string;deductionFact?:{type:string;scopeKey:string|null}}}>;deferred?: Array<{question?: {source?:string;deductionFact?:{type:string;scopeKey:string|null}}}>}
+}, now=new Date()) {
+ const actions=[projection.nextAction,...(projection.customer?.actionable??[]),...(projection.customer?.deferred??[])]
+ return actions.every(action=>{
+  const question=action?.question
+  if(question?.source!=='deduction')return true
+  return !!question.deductionFact&&vehicleAnnualQuestionAvailable(question.deductionFact.type,question.deductionFact.scopeKey,now)
+ })
+}

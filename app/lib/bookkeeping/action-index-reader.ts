@@ -1,3 +1,4 @@
+import {vehicleQuestionProjectionCurrent} from '../mileage/annual-use-question'
 import 'server-only'
 import type {SupabaseClient} from '@supabase/supabase-js'
 import {timed} from '../performance/request-timing'
@@ -12,5 +13,6 @@ export async function readBettiActionIndex<V extends 'full'|'guided'>(input:{db:
  if(result.error)throw new Error('ACTION_INDEX_UNAVAILABLE')
  if(!result.data)return null // Bootstrap fallback reads canonical facts; it does not populate the index.
  if(result.data.businessId!==input.businessId||result.data.index?.version!==1)throw new Error('ACTION_INDEX_INVALID')
+ if(!vehicleQuestionProjectionCurrent(result.data))return null
  return result.data
 }
