@@ -1,0 +1,44 @@
+{
+  "date": "2026-09-22",
+  "branch": "v2-onboarding-staging",
+  "applicationCommit": "731a83fc0ee7bcea548c4febbe837647da37ef95",
+  "initialVisualCommit": "c83559c",
+  "dedicatedStagingProjectId": "prj_o56739F1pzd0TjFirEYoLMaa6oIJ",
+  "deploymentId": "dpl_6Nzwod3FNKp3S3nCcCHLeTUCRfqE",
+  "publicOrigin": "https://writeoffs-fresh-staging.vercel.app",
+  "state": "ready-for-product-owner-visual-review",
+  "mainAndRealProductionUntouched": true,
+  "bookkeepingTaxPlaidSemanticsChanged": false,
+  "checks": {
+    "testsPassed": 1896,
+    "testsSkipped": 143,
+    "typecheck": "pass",
+    "optimizedWebpackBuild": "pass-local-and-vercel",
+    "lintErrors": 0,
+    "preExistingLintWarnings": 16,
+    "secretScan": "pass",
+    "diffCheck": "pass"
+  },
+  "browserEvidence": {
+    "sixRoutes": "screenshots/results.json",
+    "allRoutesTextScaling": "screenshots/accessibility.json",
+    "invoiceCreationWithoutIncome": "screenshots/invoice-behavior.json",
+    "finalInvoiceLayout": "final-invoices/results.json",
+    "finalInvoiceTextScaling": "final-invoices/accessibility.json",
+    "genuineInvoiceFirstUse": "first-use/results.json",
+    "receiptAttention": "receipt-attention/transactions-receipts-390.png"
+  },
+  "limitations": [
+    "No ordinary transaction-question fixture available; actual Check-in records request and completion captured.",
+    "Needs review is genuinely empty; Needs a receipt is separately captured.",
+    "Returning Mileage fixture has a vehicle but no saved trips and unresolved method setup.",
+    "Full screen-reader conformance and clean-room end-to-end product certification are not claimed."
+  ],
+  "temporaryEmptyProjectCleanup": {
+    "projectId": "prj_KdP3ag4ZPH77gJyYqkAbvLxHgQxe",
+    "providerFileList": [],
+    "removed": true,
+    "readOnlyVerification": "404 Project not found"
+  },
+  "screenshotCount": 82
+}

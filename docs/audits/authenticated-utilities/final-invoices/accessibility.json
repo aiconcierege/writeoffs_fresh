@@ -1,0 +1,13 @@
+{
+  "keyboardFilters": true,
+  "bulkSelection": true,
+  "radioKeyboard": false,
+  "reducedMotion": true,
+  "textScaling": [
+    {
+      "route": "invoices",
+      "overflow": false,
+      "documentHeight": 1757
+    }
+  ]
+}

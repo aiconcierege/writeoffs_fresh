@@ -44,6 +44,7 @@ try{
   await page.goto(origin+'/reports',{waitUntil:'networkidle'})
   const before=await page.locator('.reports-summary').innerText()
   await page.goto(origin+'/invoices',{waitUntil:'networkidle'})
+  let createdThisRun=false
   const existing=page.locator('.invoice-row').filter({hasText:'Synthetic utility review'})
   if(!await existing.count()){
    if(!await page.getByLabel('Customer',{exact:true}).isVisible())await page.locator('.invoice-create-toggle').click()
@@ -52,7 +53,7 @@ try{
    await page.getByLabel('What was this for?',{exact:true}).fill('Synthetic design review')
    const response=page.waitForResponse(r=>r.url().endsWith('/api/invoices')&&r.request().method()==='POST')
    await page.locator('.invoice-composer form').getByRole('button',{name:'Create invoice',exact:true}).click()
-   assert((await response).ok(),'Synthetic invoice creation')
+   assert((await response).ok(),'Synthetic invoice creation');createdThisRun=true
    await page.waitForURL(/\/invoices\/[^/]+$/)
   }
   await page.goto(origin+'/reports',{waitUntil:'networkidle'})
@@ -66,13 +67,14 @@ try{
    assert(await page.getByLabel('Customer',{exact:true}).isVisible(),'Keyboard opens invoice creation')
    await page.screenshot({path:`${dir}/invoices-create-${width}.png`,fullPage:true})
   }
-  await writeFile(`${dir}/invoice-behavior.json`,JSON.stringify({syntheticOnly:true,createdThroughUI:true,canonicalReportsUnchanged:true,returningActivityFirst:true,keyboardCreation:true},null,2)+'\n')
+  await writeFile(`${dir}/invoice-behavior.json`,JSON.stringify({syntheticOnly:true,createdThroughUI:createdThisRun,reusedExistingInvoice:!createdThisRun,canonicalReportsUnchanged:true,returningActivityFirst:true,keyboardCreation:true},null,2)+'\n')
  }
  for(const width of [390,430,1280,1440]){
   await page.setViewportSize({width,height:900})
-  await page.goto(origin+'/transactions?view=review',{waitUntil:'networkidle'})
+  const view=process.env.POLISH_CAPTURE_VIEWS==='receipts'?'receipts':'review'
+  await page.goto(origin+'/transactions?view='+view,{waitUntil:'networkidle'})
   assert(!await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth))
-  await page.screenshot({path:`${dir}/transactions-attention-${width}.png`,fullPage:true})
+  await page.screenshot({path:`${dir}/transactions-${process.env.POLISH_CAPTURE_VIEWS==='receipts'?'receipts':'attention'}-${width}.png`,fullPage:true})
  }
  await page.goto(origin+'/home',{waitUntil:'networkidle'})
  const coverage=page.locator('.source-coverage summary')
@@ -95,7 +97,7 @@ try{
   assert(await page.getByRole('radio',{name:'No, business only',exact:true}).isChecked(),'Native radio keyboard behavior');radioKeyboard=true
  }
  const zoom=[]
- for(const route of ['home','check-in','transactions','mileage','invoices','reports']){
+ for(const route of routes){
   await page.goto(origin+'/'+route,{waitUntil:'networkidle'})
   await page.emulateMedia({reducedMotion:'reduce'})
   await page.evaluate(async()=>{document.documentElement.style.fontSize='200%';await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))})

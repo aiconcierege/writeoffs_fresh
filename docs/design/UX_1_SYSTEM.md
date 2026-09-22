@@ -98,7 +98,7 @@ when the customer already knows what they came to do.
 
 Home and Check-in remain Betti-led. Transactions, routine Mileage, Invoices and
 Reports use typography, spacing and restrained surfaces for brand continuity;
- they do not require character artwork. Preserve the right-side Menu and the
+they do not require character artwork. Preserve the right-side Menu and the
 unaltered WriteOffs logo.
 
 Utility pages share `AuthenticatedPage`, 48px fields, visible indigo focus, pale
