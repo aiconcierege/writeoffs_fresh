@@ -9,7 +9,7 @@ process.loadEnvFile('.env.staging.local')
 const origin=process.env.POLISH_ORIGIN??'https://writeoffs-fresh-staging.vercel.app'
 assert(['http://localhost:3110','https://writeoffs-fresh-staging.vercel.app'].includes(origin))
 assert.equal(new URL(process.env.SUPABASE_URL).hostname,'sgrqrrxrlglhjuetdtps.supabase.co')
-const fixture=JSON.parse(await readFile('/private/tmp/writeoffs-polish-fixture.json','utf8'))
+const fixture=JSON.parse(await readFile(process.env.POLISH_FIXTURE??'/private/tmp/writeoffs-polish-fixture.json','utf8'))
 const admin=createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false}})
 assert.equal((await admin.auth.admin.getUserById(fixture.userId)).data.user?.user_metadata.synthetic_ux1,true)
 const cookies=new Map(),client=createServerClient(process.env.SUPABASE_URL,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,{cookies:{getAll:()=>[...cookies].map(([name,value])=>({name,value})),setAll:values=>values.forEach(({name,value})=>cookies.set(name,value))}})
@@ -17,14 +17,14 @@ assert(!(await client.auth.signInWithPassword({email:fixture.email,password:fixt
 const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',bits=[...fixture.totpSecret.replace(/=+$/,'').toUpperCase()].map(c=>alphabet.indexOf(c).toString(2).padStart(5,'0')).join(''),key=Buffer.from(Array.from({length:Math.floor(bits.length/8)},(_,i)=>parseInt(bits.slice(i*8,i*8+8),2))),counter=Buffer.alloc(8)
 counter.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const hash=createHmac('sha1',key).update(counter).digest(),offset=hash.at(-1)&15,code=String((hash.readUInt32BE(offset)&0x7fffffff)%1000000).padStart(6,'0')
 assert(!(await client.auth.mfa.challengeAndVerify({factorId:fixture.factorId,code})).error,'Synthetic MFA failed')
-const dir=origin.includes('localhost')?'/private/tmp/writeoffs-polish-local':'docs/audits/authenticated-polish/screenshots'
+const dir=process.env.POLISH_OUTPUT??(origin.includes('localhost')?'/private/tmp/writeoffs-utility-local':'docs/audits/authenticated-utilities/screenshots')
 await mkdir(dir,{recursive:true})
 const browser=await chromium.launch({headless:true}),results=[]
 try{
  const context=await browser.newContext({timezoneId:'America/Phoenix'})
  await context.addCookies([...cookies].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:origin.startsWith('https:'),sameSite:'Lax'})))
  const page=await context.newPage();const errors=[];page.on('pageerror',()=>errors.push('browser runtime error'))
- const routes=(process.env.POLISH_ROUTES??'home,check-in,transactions,mileage,reports').split(',');assert(routes.every(x=>['home','check-in','transactions','mileage','reports'].includes(x)))
+ const routes=(process.env.POLISH_ROUTES??'home,check-in,transactions,mileage,invoices,reports').split(',');assert(routes.every(x=>['home','check-in','transactions','mileage','invoices','reports'].includes(x)))
  for(const route of process.env.POLISH_ZOOM_ONLY==='1'?[]:routes){
   for(const width of [390,430,1280,1440]){
    await page.setViewportSize({width,height:900})
@@ -40,6 +40,46 @@ try{
   }
  }
  if(process.env.POLISH_SKIP_EXTRA==='1'){console.log('Selected presentation screenshots captured.');process.exitCode=0;await browser.close();process.exit()}
+ if(process.env.POLISH_INVOICE_CREATE==='1'){
+  await page.goto(origin+'/reports',{waitUntil:'networkidle'})
+  const before=await page.locator('.reports-summary').innerText()
+  await page.goto(origin+'/invoices',{waitUntil:'networkidle'})
+  const existing=page.locator('.invoice-row').filter({hasText:'Synthetic utility review'})
+  if(!await existing.count()){
+   if(!await page.getByLabel('Customer',{exact:true}).isVisible())await page.locator('.invoice-create-toggle').click()
+   await page.getByLabel('Customer',{exact:true}).fill('Synthetic utility review')
+   await page.getByLabel('Amount',{exact:true}).fill('175.25')
+   await page.getByLabel('What was this for?',{exact:true}).fill('Synthetic design review')
+   const response=page.waitForResponse(r=>r.url().endsWith('/api/invoices')&&r.request().method()==='POST')
+   await page.locator('.invoice-composer form').getByRole('button',{name:'Create invoice',exact:true}).click()
+   assert((await response).ok(),'Synthetic invoice creation')
+   await page.waitForURL(/\/invoices\/[^/]+$/)
+  }
+  await page.goto(origin+'/reports',{waitUntil:'networkidle'})
+  assert.equal(await page.locator('.reports-summary').innerText(),before,'Creating an invoice must not record income')
+  for(const width of [390,430,1280,1440]){
+   await page.setViewportSize({width,height:900});await page.goto(origin+'/invoices',{waitUntil:'networkidle'})
+   assert(!await page.getByLabel('Customer',{exact:true}).isVisible(),'Returning invoices start with activity')
+   assert(await page.locator('.invoice-row').filter({hasText:'Synthetic utility review'}).count())
+   await page.screenshot({path:`${dir}/invoices-populated-${width}.png`,fullPage:true})
+   await page.locator('.invoice-create-toggle').focus();await page.keyboard.press('Enter')
+   assert(await page.getByLabel('Customer',{exact:true}).isVisible(),'Keyboard opens invoice creation')
+   await page.screenshot({path:`${dir}/invoices-create-${width}.png`,fullPage:true})
+  }
+  await writeFile(`${dir}/invoice-behavior.json`,JSON.stringify({syntheticOnly:true,createdThroughUI:true,canonicalReportsUnchanged:true,returningActivityFirst:true,keyboardCreation:true},null,2)+'\n')
+ }
+ for(const width of [390,430,1280,1440]){
+  await page.setViewportSize({width,height:900})
+  await page.goto(origin+'/transactions?view=review',{waitUntil:'networkidle'})
+  assert(!await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth))
+  await page.screenshot({path:`${dir}/transactions-attention-${width}.png`,fullPage:true})
+ }
+ await page.goto(origin+'/home',{waitUntil:'networkidle'})
+ const coverage=page.locator('.source-coverage summary')
+ if(await coverage.count()){
+  await coverage.click();await page.setViewportSize({width:390,height:900})
+  await page.screenshot({path:`${dir}/home-missing-records-390.png`,fullPage:true})
+ }
  // Read-only keyboard, filtering and zoom checks; no financial facts changed.
  await page.setViewportSize({width:390,height:900})
  await page.goto(origin+'/transactions',{waitUntil:'networkidle'})
@@ -55,7 +95,7 @@ try{
   assert(await page.getByRole('radio',{name:'No, business only',exact:true}).isChecked(),'Native radio keyboard behavior');radioKeyboard=true
  }
  const zoom=[]
- for(const route of ['home','check-in','transactions','mileage','reports']){
+ for(const route of ['home','check-in','transactions','mileage','invoices','reports']){
   await page.goto(origin+'/'+route,{waitUntil:'networkidle'})
   await page.emulateMedia({reducedMotion:'reduce'})
   await page.evaluate(async()=>{document.documentElement.style.fontSize='200%';await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))})

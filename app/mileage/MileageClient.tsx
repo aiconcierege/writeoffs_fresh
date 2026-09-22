@@ -57,13 +57,13 @@ function MileageForm({vehicles,entry,onDone}:{vehicles:Vehicle[];entry:Entry|nul
       saved=true;key.current=crypto.randomUUID();form.reset();await onDone()
     } catch(cause) {setError(saved?'Mileage was saved, but the list could not be refreshed. Reload to see it.':cause instanceof Error&&cause.name!=='TimeoutError'?cause.message:'Mileage could not be saved. Please try again.')
     } finally {setBusy(false)}}}>
-    <h2 className="text-lg font-semibold">{entry?'Correct trip':'Add a business trip'}</h2><div className="mt-4 grid gap-4 sm:grid-cols-2">
-      <p className="text-sm text-slate-600 sm:col-span-2">The date, miles, and reason for your trip—all in one place.</p><label className="text-sm font-medium">Business miles<input name="miles" inputMode="decimal" required placeholder="12.5" defaultValue={entry?formatMiles(Number(entry.miles_milli)):''} className="field mt-2"/></label>
+    <h2 className="text-lg font-semibold">{entry?'Correct trip':'Add a business trip'}</h2><div className="trip-primary-fields mt-5 grid gap-4 sm:grid-cols-2">
+      <label className="text-sm font-medium">Business miles<input name="miles" inputMode="decimal" required placeholder="12.5" defaultValue={entry?formatMiles(Number(entry.miles_milli)):''} className="field mt-2"/></label>
       <label className="text-sm font-medium">Date<input name="date" type="date" required max={new Date().toISOString().slice(0,10)} defaultValue={entry?.occurred_on??new Date().toISOString().slice(0,10)} className="field mt-2"/></label>
       <label className="text-sm font-medium sm:col-span-2">Vehicle<select name="vehicleId" required defaultValue={entry?.vehicle_id??vehicles[0]?.id} className="field mt-2">{vehicles.map((v)=><option key={v.id} value={v.id}>{v.display_name}</option>)}</select></label>
       <label className="text-sm font-medium sm:col-span-2">Business purpose <span className="font-normal text-slate-500">(optional)</span><input name="businessPurpose" maxLength={1000} defaultValue={entry?.business_purpose??''} placeholder="Meeting with a customer" className="field mt-2"/></label>
-      <label className="text-sm font-medium">Job or project <span className="font-normal text-slate-500">(optional)</span><input name="jobLabel" maxLength={200} defaultValue={entry?.job_label??''} className="field mt-2"/></label>
-      <label className="text-sm font-medium">Destination <span className="font-normal text-slate-500">(optional)</span><input name="destination" maxLength={500} defaultValue={entry?.destination??''} className="field mt-2"/></label>
+      <details className="form-secondary-details sm:col-span-2" open={Boolean(entry?.job_label||entry?.destination)||undefined}><summary>Trip details <span>(optional)</span></summary><div className="form-group-fields"><label className="text-sm font-medium">Job or project <span className="font-normal text-slate-500">(optional)</span><input name="jobLabel" maxLength={200} defaultValue={entry?.job_label??''} className="field mt-2"/></label>
+      <label className="text-sm font-medium">Destination <span className="font-normal text-slate-500">(optional)</span><input name="destination" maxLength={500} defaultValue={entry?.destination??''} className="field mt-2"/></label></div></details>
     </div>{error&&<p role="alert" className="notice notice-error mt-4">{error}</p>}<button disabled={busy} className="btn btn-primary mt-6 w-full sm:w-auto">{busy?'Saving…':entry?'Save correction':'Save mileage'}</button>
   </form>}
 

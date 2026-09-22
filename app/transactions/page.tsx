@@ -19,7 +19,7 @@ export default async function TransactionsPage({searchParams}:{searchParams:Prom
   const {data:accounts}=await supabase.from('financial_accounts').select('id,display_name').order('display_name')
   const {rows,hasMore}=await loadTransactionWork({supabase,userId:user.id,view,historical,offset,query,start:date('start'),end:date('end'),category,account})
   const href=(changes:Record<string,string>)=>{const next=new URLSearchParams();for(const key of ['view','scope','q','start','end','category','account'])if(value(key))next.set(key,value(key));for(const [key,val]of Object.entries(changes)){if(val)next.set(key,val);else next.delete(key)}return `/transactions?${next}`}
-  return <AuthenticatedPage className="transactions-page" title={historical?'Review older purchases':'Transactions'} description="Your activity, with room to make it right." actions={<Link href="/home" className="quiet-page-link">← Home</Link>}>
+  return <AuthenticatedPage className="transactions-page" title={historical?'Review older purchases':'Transactions'} description="Your money in and out, organized in one place.">
     <div className="authenticated-toolbar">
     <nav aria-label="Transaction work views" className="transaction-work-views">{WORK_VIEWS.map(item=><Link key={item} href={href({view:item,scope:'',offset:''})} aria-current={view===item&&!historical?'page':undefined}>{labels[item]}</Link>)}</nav>
     <form className="transaction-filters"><input type="hidden" name="view" value={view}/>{historical&&<input type="hidden" name="scope" value="historical"/>}

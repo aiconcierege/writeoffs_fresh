@@ -1,5 +1,62 @@
 'use client'
-import Link from'next/link';import{useRouter}from'next/navigation';import{useRef,useState}from'react'
-const money=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}),today=()=>new Date().toISOString().slice(0,10)
-export function InvoicesClient({initialInvoices}:{initialInvoices:Record<string,unknown>[]}){const router=useRouter(),key=useRef(crypto.randomUUID());const[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);return <main className="app-page"><div className="page-container max-w-4xl"><header><p className="eyebrow">Invoices</p><h1 className="page-title">Who owes you, and what was the work?</h1><p className="page-description">Invoices are optional. Income is recorded only when you actually receive payment.</p></header><form className="surface mt-8 p-5 sm:p-7" onSubmit={async e=>{e.preventDefault();setBusy(true);setError(null);const f=new FormData(e.currentTarget),body=Object.fromEntries(f);const response=await fetch('/api/invoices',{method:'POST',headers:{'content-type':'application/json','idempotency-key':`invoice-${key.current}`},body:JSON.stringify(body)}),data=await response.json().catch(()=>({}));setBusy(false);if(!response.ok){setError(data.error??'Invoice could not be created.');return}router.push(`/invoices/${data.id}`)}}><h2 className="section-heading">Create invoice</h2><div className="mt-5 grid gap-4 sm:grid-cols-2"><Field label="Customer"><input required name="customerName" className="field" autoComplete="organization"/></Field><Field label="Customer email (optional)"><input name="customerEmail" type="email" className="field" autoComplete="email"/></Field><Field label="Amount"><input required name="amount" inputMode="decimal" placeholder="0.00" className="field"/></Field><Field label="Issue date"><input required name="issueDate" type="date" max={today()} defaultValue={today()} className="field"/></Field><Field label="What was this for?" wide><input required name="description" className="field"/></Field><Field label="Due date (optional)"><input name="dueDate" type="date" className="field"/></Field><Field label="Job or project (optional)"><input name="jobLabel" className="field"/></Field><Field label="Address or location (optional)" wide><input name="location" className="field"/></Field><Field label="Note (optional)" wide><textarea name="note" rows={3} className="field py-3"/></Field></div>{error&&<p role="alert" className="notice notice-error mt-4">{error}</p>}<button disabled={busy} className="btn btn-primary mt-6 w-full sm:w-auto">{busy?'Creating…':'Create invoice'}</button></form><section className="section-rule mt-12"><h2 className="section-heading">Your invoices</h2>{initialInvoices.length===0?<div className="empty-state"><h3>No invoices yet</h3><p>Create one when you need to bill a customer.</p></div>:<div className="record-list mt-4">{initialInvoices.map(i=><Link key={String(i.id)} href={`/invoices/${i.id}`} className="record-row grid grid-cols-[1fr_auto] gap-4 py-5 sm:grid-cols-[7rem_1fr_10rem_8rem]"><span className="hidden text-sm text-slate-500 sm:block">{String(i.invoice_number)}</span><div><p className="font-medium text-slate-950">{String(i.customer_name)}</p><p className="mt-1 text-sm text-slate-600">{String(i.description)}</p><p className="mt-1 text-xs text-slate-500 sm:hidden">{String(i.invoice_number)}</p></div><span className="status-badge">{status(String(i.status))}</span><span className="money-display text-right font-semibold">{money.format(Number(i.amount_cents)/100)}</span></Link>)}</div>}</section></div></main>}
-function Field({label,wide,children}:{label:string;wide?:boolean;children:React.ReactNode}){return <label className={`grid gap-2 text-sm font-medium text-slate-800 ${wide?'sm:col-span-2':''}`}>{label}{children}</label>};function status(v:string){return v==='paid'?'Paid':v==='canceled'?'Canceled':'Awaiting payment'}
+
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useRef, useState, type ReactNode } from 'react'
+import { AuthenticatedPage } from '../components/ui'
+
+const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+const today = () => new Date().toISOString().slice(0, 10)
+const date = (value: unknown) => value ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${String(value)}T00:00:00Z`)) : null
+
+export function InvoicesClient({ initialInvoices }: { initialInvoices: Record<string, unknown>[] }) {
+  const router = useRouter(), key = useRef(crypto.randomUUID())
+  const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null)
+  const composer = useRef<HTMLDetailsElement>(null)
+  const hasInvoices = initialInvoices.length > 0
+  return <AuthenticatedPage className="invoices-page" title="Invoices" description="Who owes you, and what was the work?" actions={hasInvoices ? <button className="btn btn-primary" onClick={() => { if (composer.current) { composer.current.open = true; composer.current.querySelector<HTMLInputElement>('[name="customerName"]')?.focus() } }}>Create invoice</button> : undefined}>
+    <p className="invoice-introduction">Create an invoice here. I’ll add the income to your books when you get paid.</p>
+    {hasInvoices && <section aria-labelledby="invoice-history-heading" className="invoice-history">
+      <h2 id="invoice-history-heading" className="section-heading">Your invoices</h2>
+      <div className="authenticated-ledger invoice-list">{initialInvoices.map(invoice => <Link key={String(invoice.id)} href={`/invoices/${invoice.id}`} className="invoice-row">
+        <div className="invoice-customer"><strong>{String(invoice.customer_name)}</strong><p>{String(invoice.description)}</p><span>{String(invoice.invoice_number)}{invoice.issue_date ? ` · Issued ${date(invoice.issue_date)}` : ''}{invoice.due_date ? ` · Due ${date(invoice.due_date)}` : ''}</span></div>
+        <div className="invoice-value"><strong>{money.format(Number(invoice.amount_cents) / 100)}</strong><span>{status(String(invoice.status))}</span></div>
+      </Link>)}</div>
+    </section>}
+    <details ref={composer} className="invoice-composer" open={!hasInvoices || undefined}>
+      <summary className="invoice-create-toggle">Create invoice <span aria-hidden="true">＋</span></summary>
+      <form className="authenticated-form-surface" onSubmit={async event => {
+        event.preventDefault(); setBusy(true); setError(null)
+        const form = new FormData(event.currentTarget), body = Object.fromEntries(form)
+        const response = await fetch('/api/invoices', { method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': `invoice-${key.current}` }, body: JSON.stringify(body) }), data = await response.json().catch(() => ({}))
+        setBusy(false)
+        if (!response.ok) { setError(data.error ?? 'Invoice could not be created.'); return }
+        router.push(`/invoices/${data.id}`)
+      }}>
+        <fieldset className="form-group"><legend>Who is this for?</legend><div className="form-group-fields">
+          <Field label="Customer"><input required name="customerName" className="field" autoComplete="organization" /></Field>
+          <Field label="Customer email (optional)"><input name="customerEmail" type="email" className="field" autoComplete="email" /></Field>
+        </div></fieldset>
+        <fieldset className="form-group"><legend>What is the invoice for?</legend><div className="form-group-fields">
+          <Field label="Amount"><input required name="amount" inputMode="decimal" placeholder="0.00" className="field" /></Field>
+          <Field label="What was this for?"><input required name="description" className="field" /></Field>
+        </div></fieldset>
+        <fieldset className="form-group"><legend>When?</legend><div className="form-group-fields">
+          <Field label="Issue date"><input required name="issueDate" type="date" max={today()} defaultValue={today()} className="field" /></Field>
+          <Field label="Due date (optional)"><input name="dueDate" type="date" className="field" /></Field>
+        </div></fieldset>
+        <details className="form-secondary-details"><summary>Additional details <span>(optional)</span></summary><div className="form-group-fields">
+          <Field label="Job or project (optional)" wide><input name="jobLabel" className="field" /></Field>
+          <Field label="Address or location (optional)" wide><input name="location" className="field" /></Field>
+          <Field label="Note (optional)" wide><textarea name="note" rows={3} className="field py-3" /></Field>
+        </div></details>
+        {error && <p role="alert" className="notice notice-error mt-4">{error}</p>}
+        <button disabled={busy} className="btn btn-primary mt-6 w-full sm:w-auto">{busy ? 'Creating…' : 'Create invoice'}</button>
+      </form>
+    </details>
+  </AuthenticatedPage>
+}
+function Field({ label, wide, children }: { label: string; wide?: boolean; children: ReactNode }) {
+  return <label className={`grid gap-2 text-sm font-medium text-slate-800 ${wide ? 'sm:col-span-2' : ''}`}>{label}{children}</label>
+}
+function status(value: string) { return value === 'paid' ? 'Paid' : value === 'canceled' ? 'Canceled' : 'Awaiting payment' }

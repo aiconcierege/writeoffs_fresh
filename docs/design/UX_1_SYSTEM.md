@@ -90,3 +90,22 @@ Farm, infer deductibility, suppress legitimate questions, or alter insurance pol
 Review screenshots at 390/430/768/1280. Automated functionality is necessary but does
 not constitute Rick's approval of final visual direction. Detailed certification
 results and any unexercised states must be disclosed separately.
+
+## Authenticated utility pages — September 2026 refinement
+
+Betti leads when WriteOffs needs something from the customer. Betti steps aside
+when the customer already knows what they came to do.
+
+Home and Check-in remain Betti-led. Transactions, routine Mileage, Invoices and
+Reports use typography, spacing and restrained surfaces for brand continuity;
+ they do not require character artwork. Preserve the right-side Menu and the
+unaltered WriteOffs logo.
+
+Utility pages share `AuthenticatedPage`, 48px fields, visible indigo focus, pale
+green work surfaces and quiet dividers. `form-group` provides light semantic
+fieldset grouping. `form-secondary-details` keeps optional information available
+without giving it the weight of required input. Collapsing details never removes
+inputs from form submission. Invoice history leads for returning customers;
+creation remains directly accessible. Creating an invoice still does not record
+income. Shared missing-records disclosures retain their account-specific dates
+and existing coverage semantics.
