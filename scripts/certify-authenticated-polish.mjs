@@ -24,6 +24,60 @@ try{
  const context=await browser.newContext({timezoneId:'America/Phoenix'})
  await context.addCookies([...cookies].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:origin.startsWith('https:'),sameSite:'Lax'})))
  const page=await context.newPage();const errors=[];page.on('pageerror',()=>errors.push('browser runtime error'))
+ if(process.env.POLISH_TRIP_ONLY==='1'){
+  await page.goto(origin+'/mileage',{waitUntil:'networkidle'})
+  const purpose='Synthetic premium utility review',trip=page.locator('article.record-row').filter({hasText:purpose})
+  let created=false
+  if(!await trip.count()){
+   await page.getByLabel('Business miles',{exact:true}).fill('12.5');await page.getByLabel(/Business purpose/).fill(purpose)
+   const response=page.waitForResponse(r=>r.url().endsWith('/api/mileage/create')&&r.request().method()==='POST')
+   await page.getByRole('button',{name:'Save mileage',exact:true}).click();assert((await response).ok());created=true
+  }
+  await trip.waitFor();assert((await trip.innerText()).includes('12.5 miles'))
+  const csv=await context.request.get(origin+'/api/mileage/export?year='+new Date().getFullYear());assert(csv.ok());assert((await csv.text()).includes(purpose))
+  for(const width of [390,430,1280,1440]){await page.setViewportSize({width,height:900});await page.evaluate(()=>{document.activeElement?.blur();window.scrollTo({top:0,behavior:'instant'})});assert(!await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth));await page.screenshot({path:`${dir}/mileage-populated-${width}.png`,fullPage:true})}
+  await writeFile(`${dir}/trip-behavior.json`,JSON.stringify({syntheticOnly:true,createdThroughUI:created,recordedMiles:12.5,historyVisible:true,csvContainsTrip:true,overflow:false},null,2)+'\n')
+  console.log('Synthetic trip entry, history and export passed.');await browser.close();process.exit()
+ }
+ if(process.env.POLISH_SELECTION_ONLY==='1'){
+  for(const width of [390,430,1280,1440]){
+   await page.setViewportSize({width,height:900});await page.goto(origin+'/transactions',{waitUntil:'networkidle'})
+   assert.equal(await page.getByRole('checkbox').count(),0)
+   await page.getByRole('button',{name:'Select',exact:true}).focus();await page.keyboard.press('Enter')
+   await page.getByRole('checkbox').nth(1).check()
+   assert(await page.locator('.review-bulk-actions').isVisible())
+   await page.evaluate(()=>{document.activeElement?.blur();window.scrollTo({top:0,behavior:'instant'})})
+   assert.equal(await page.evaluate(()=>scrollY),0)
+   assert(!await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth))
+   await page.screenshot({path:`${dir}/transactions-selection-${width}.png`,fullPage:true})
+   await page.getByRole('button',{name:'Done selecting',exact:true}).click();assert.equal(await page.getByRole('checkbox').count(),0)
+  }
+  await writeFile(`${dir}/selection-behavior.json`,JSON.stringify({normalModeNoCheckboxes:true,keyboardEntry:true,selectedActionsVisible:true,exitClearsSelection:true,widths:[390,430,1280,1440],overflow:false},null,2)+'\n')
+  console.log('Selection mode passed at all four widths.');await browser.close();process.exit()
+ }
+ if(process.env.POLISH_LEASED_ACTUAL==='1'||process.env.POLISH_LEASED_ONLY==='1'){
+  await page.goto(origin+'/mileage',{waitUntil:'networkidle'})
+  const ownership=page.getByRole('combobox',{name:/Do you own or lease it/})
+  if(!await ownership.isVisible())await page.getByText('Finish setting up your vehicle',{exact:true}).click()
+  if(await ownership.inputValue()!=='leased'){
+   const response=page.waitForResponse(r=>r.url().includes('/tax')&&r.request().method()==='PATCH')
+   await ownership.selectOption('leased');assert((await response).ok(),'Synthetic lease choice');await page.waitForLoadState('networkidle')
+  }
+  const actual=page.getByRole('button',{name:/^Track my vehicle costs/})
+  if(await actual.getAttribute('aria-pressed')!=='true'){
+   await actual.waitFor({state:'visible'});await page.waitForFunction(()=>![...document.querySelectorAll('button')].find(x=>x.textContent.startsWith('Track my vehicle costs'))?.disabled)
+   const response=page.waitForResponse(r=>r.url().includes('/tax')&&r.request().method()==='PATCH')
+   await actual.click();assert((await response).ok(),'Synthetic actual-cost choice');await page.waitForLoadState('networkidle')
+  }
+  await page.waitForFunction(()=>{const button=[...document.querySelectorAll('button')].find(x=>x.textContent.startsWith('Track my vehicle costs'));return button?.getAttribute('aria-pressed')==='true'&&!button.disabled})
+  if(!await ownership.isVisible())await page.getByText('Finish setting up your vehicle',{exact:true}).click()
+  await page.getByText(/We’ll finish the yearly mileage total after/).waitFor()
+  assert.equal(await page.getByLabel(new RegExp('total miles.*'+new Date().getFullYear(),'i')).count(),0,'No premature annual denominator')
+  assert(await page.getByRole('heading',{name:'Add a business trip',exact:true}).isVisible())
+  for(const width of [390,430,1280,1440]){await page.setViewportSize({width,height:900});await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:`${dir}/mileage-leased-actual-${width}.png`,fullPage:true})}
+  await writeFile(`${dir}/mileage-behavior.json`,JSON.stringify({syntheticOnly:true,leased:true,actualCosts:true,currentYearAnnualQuestionAbsent:true,tripEntryAvailable:true},null,2)+'\n')
+  if(process.env.POLISH_LEASED_ONLY==='1'){console.log('Leased actual-cost timing passed through staging UI.');await browser.close();process.exit()}
+ }
  const routes=(process.env.POLISH_ROUTES??'home,check-in,transactions,mileage,invoices,reports').split(',');assert(routes.every(x=>['home','check-in','transactions','mileage','invoices','reports'].includes(x)))
  for(const route of process.env.POLISH_ZOOM_ONLY==='1'?[]:routes){
   for(const width of [390,430,1280,1440]){
@@ -82,6 +136,9 @@ try{
   await coverage.click();await page.setViewportSize({width:390,height:900})
   await page.screenshot({path:`${dir}/home-missing-records-390.png`,fullPage:true})
  }
+ await page.goto(origin+'/transactions',{waitUntil:'networkidle'})
+ const firstMerchant=await page.locator('.transaction-merchant').first().textContent().catch(()=>null)
+ if(firstMerchant){await page.getByRole('searchbox',{name:'Search transactions'}).fill(firstMerchant);await page.getByRole('searchbox',{name:'Search transactions'}).press('Enter');await page.waitForURL(url=>url.searchParams.get('q')===firstMerchant);assert(await page.locator('.transaction-merchant').filter({hasText:firstMerchant}).count(),'Search preserves matching activity')}
  // Read-only keyboard, filtering and zoom checks; no financial facts changed.
  await page.setViewportSize({width:390,height:900})
  await page.goto(origin+'/transactions',{waitUntil:'networkidle'})
@@ -90,7 +147,7 @@ try{
  await page.screenshot({path:`${dir}/transactions-filters-390.png`,fullPage:true})
  await page.keyboard.press('Tab');assert(await page.getByLabel('From',{exact:true}).evaluate(el=>el===document.activeElement),'Date filter focus order')
  const mode=page.getByRole('button',{name:'Select',exact:true});if(await mode.count()){assert.equal(await page.getByRole('checkbox').count(),0,'Normal activity has no checkbox column');await mode.focus();await page.keyboard.press('Enter')}
- const selectAll=page.getByLabel('Select all on this page',{exact:true});if(await selectAll.count()){await selectAll.check();assert(await page.locator('.review-bulk-actions').isVisible(),'Bulk controls remain available');await selectAll.uncheck();await page.evaluate(()=>{document.activeElement?.blur();window.scrollTo(0,0)});await page.screenshot({path:`${dir}/transactions-selection-390.png`,fullPage:true});await page.getByRole('button',{name:'Done selecting',exact:true}).click();assert.equal(await page.getByRole('checkbox').count(),0,'Exit clears selection mode')}
+ const selectAll=page.getByLabel('Select all on this page',{exact:true});if(await selectAll.count()){await selectAll.check();assert(await page.locator('.review-bulk-actions').isVisible(),'Bulk controls remain available');await selectAll.uncheck();await page.evaluate(()=>{document.activeElement?.blur();window.scrollTo({top:0,behavior:'instant'})});await page.screenshot({path:`${dir}/transactions-selection-390.png`,fullPage:true});await page.getByRole('button',{name:'Done selecting',exact:true}).click();assert.equal(await page.getByRole('checkbox').count(),0,'Exit clears selection mode')}
  await page.goto(origin+'/mileage',{waitUntil:'networkidle'})
  let radioKeyboard=false
  if(await page.getByRole('radio',{name:'Yes',exact:true}).count()){
@@ -122,27 +179,6 @@ try{
    await page.setViewportSize({width,height:900})
    await page.screenshot({path:`${dir}/mileage-trip-${width}.png`,fullPage:true})
   }
- }
- if(process.env.POLISH_LEASED_ACTUAL==='1'){
-  await page.goto(origin+'/mileage',{waitUntil:'networkidle'})
-  const ownership=page.getByLabel('Do you own or lease it?',{exact:true})
-  if(!await ownership.isVisible())await page.getByText('Finish setting up your vehicle',{exact:true}).click()
-  if(await ownership.inputValue()!=='leased'){
-   const response=page.waitForResponse(r=>r.url().includes('/tax')&&r.request().method()==='PATCH')
-   await ownership.selectOption('leased');assert((await response).ok(),'Synthetic lease choice');await page.waitForLoadState('networkidle')
-  }
-  const actual=page.getByRole('button',{name:/^Track my vehicle costs/})
-  if(await actual.getAttribute('aria-pressed')!=='true'){
-   await actual.waitFor({state:'visible'});await page.waitForFunction(()=>![...document.querySelectorAll('button')].find(x=>x.textContent.startsWith('Track my vehicle costs'))?.disabled)
-   const response=page.waitForResponse(r=>r.url().includes('/tax')&&r.request().method()==='PATCH')
-   await actual.click();assert((await response).ok(),'Synthetic actual-cost choice');await page.waitForLoadState('networkidle')
-  }
-  if(!await ownership.isVisible())await page.getByText('Finish setting up your vehicle',{exact:true}).click()
-  await page.getByText(/We’ll finish the yearly mileage total after/).waitFor()
-  assert.equal(await page.getByLabel(new RegExp('total miles.*'+new Date().getFullYear(),'i')).count(),0,'No premature annual denominator')
-  assert(await page.getByRole('heading',{name:'Add a business trip',exact:true}).isVisible())
-  for(const width of [390,430,1280,1440]){await page.setViewportSize({width,height:900});await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:`${dir}/mileage-leased-actual-${width}.png`,fullPage:true})}
-  await writeFile(`${dir}/mileage-behavior.json`,JSON.stringify({syntheticOnly:true,leased:true,actualCosts:true,currentYearAnnualQuestionAbsent:true,tripEntryAvailable:true},null,2)+'\n')
  }
  assert.equal(errors.length,0,'Browser runtime error')
  if(results.length)await writeFile(`${dir}/results.json`,JSON.stringify({origin,results,browserErrors:errors.length},null,2)+'\n')

@@ -1,0 +1,78 @@
+{
+  "origin": "https://writeoffs-fresh-staging.vercel.app",
+  "results": [
+    {
+      "route": "mileage",
+      "width": 390,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Let’s set up your vehicle.",
+      "contentTop": 133.78125,
+      "menuRight": 370
+    },
+    {
+      "route": "mileage",
+      "width": 430,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Let’s set up your vehicle.",
+      "contentTop": 133.78125,
+      "menuRight": 410
+    },
+    {
+      "route": "mileage",
+      "width": 1280,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Let’s set up your vehicle.",
+      "contentTop": 194.390625,
+      "menuRight": 1244
+    },
+    {
+      "route": "mileage",
+      "width": 1440,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Let’s set up your vehicle.",
+      "contentTop": 193.203125,
+      "menuRight": 1324
+    },
+    {
+      "route": "invoices",
+      "width": 390,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Get paid for your work.",
+      "contentTop": 121.59375,
+      "menuRight": 370
+    },
+    {
+      "route": "invoices",
+      "width": 430,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Get paid for your work.",
+      "contentTop": 121.59375,
+      "menuRight": 410
+    },
+    {
+      "route": "invoices",
+      "width": 1280,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Get paid for your work.",
+      "contentTop": 137.59375,
+      "menuRight": 1244
+    },
+    {
+      "route": "invoices",
+      "width": 1440,
+      "overflow": false,
+      "mainCount": 1,
+      "title": "Get paid for your work.",
+      "contentTop": 137.59375,
+      "menuRight": 1324
+    }
+  ],
+  "browserErrors": 0
+}

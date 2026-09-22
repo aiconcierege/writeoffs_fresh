@@ -30,3 +30,33 @@ Focused coverage includes current/future years, year boundary, completed prior y
 ## Validation
 
 Final staging evidence and checks are recorded below after deployment. Browser certification uses existing explicitly synthetic staging customers, real authentication/MFA, and live application routes. It does not use Rick's customer or Production.
+
+### Release and checks
+
+- Application commits: `9874a8b`, `b39088f` (the latter renews the request key after a successful completed-year save so a later correction can be submitted).
+- Dedicated staging deployment: `dpl_A7PsnXeEABT7pdPHkUtVEUTb7oLJ`, project `prj_o56739F1pzd0TjFirEYoLMaa6oIJ`. Public alias verified Ready: https://writeoffs-fresh-staging.vercel.app. Vercel's `production` target here is only this dedicated staging project's approved primary slot.
+- Full Vitest suite: **1,905 passed, 143 skipped**, 273 passing files. Skips are existing environment-dependent suites, not claimed as executed live database tests.
+- Focused mileage/vehicle suite: **32 passed, 4 environment-dependent skipped**.
+- TypeScript: pass. Optimized webpack builds: local pass; final Vercel build pass.
+- Lint: no errors, 16 existing warnings. Gitleaks tracked-source scan: no leaks. `git diff --check`: pass.
+- Existing unrelated Plaid audit/security files and unapproved Betti review assets were excluded. No migrations or provider configuration changes.
+
+### Public browser verification
+
+[Gallery](GALLERY.md) contains real dedicated staging screenshots at **390, 430, 1280 and 1440** pixels.
+
+- All six authenticated pages were reviewed for coherence; the three locked compositions retain their existing structure.
+- First-use Mileage and Invoices: no clipping or horizontal overflow. Vehicle radio controls work with the keyboard. Invoice optional details remain accessible.
+- Transactions: normal mode has no checkboxes; keyboard Select reveals them; selected actions appear; Done selecting clears them. Dedicated checks at all four widths are in `screenshots/selection-behavior.json`. Search and date/filter controls retain existing GET behavior.
+- Returning invoices: activity first, keyboard composer opening, existing unpaid invoice remains outside income. This run reused the previously created synthetic invoice; it does not claim another invoice was created. See `screenshots/invoice-behavior.json`.
+- Real staging mileage: the synthetic vehicle was set to leased / actual costs through the existing UI. No current-year annual-total input appears; trip entry stays available. `screenshots/mileage-behavior.json` records the result, with separate captures of the opened vehicle decisions.
+- Keyboard filters, native radio behavior, visible focus, reduced motion and 200% text scaling checked. No horizontal overflow at enlarged text. See both `accessibility.json` files. This is a focused browser/accessibility review, not an independent assistive-technology certification.
+- Harness-only corrections: replaced an overly exact select locator, waited for the post-save refresh before opening the vehicle disclosure, and used instant scroll-to-top for full-page selection screenshots. No product delay or animation was added.
+
+Preserved: transaction bookkeeping and history, invoice cash-receipt recognition, receipt matching, Plaid, tenant/MFA boundaries, mileage precision/rates/lease safeguards, Reports arithmetic and the persistent Check-in model. The only decision timing change is the expressly authorized final-annual-mileage deferral.
+
+Rick's visual acceptance and the subsequent new-customer clean-room certification remain separate next steps.
+
+### Populated trip verification
+
+A 12.5-mile synthetic trip was saved through the real staging UI. The recorded trip and its purpose appeared in history and CSV export. All four populated-state captures passed overflow checks; see `screenshots/trip-behavior.json`. Final six-route capture: 24 renders, zero browser errors/overflow; separate first-use capture: 8 renders, zero browser errors/overflow.

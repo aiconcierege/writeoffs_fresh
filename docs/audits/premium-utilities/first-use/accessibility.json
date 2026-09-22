@@ -1,0 +1,18 @@
+{
+  "keyboardFilters": true,
+  "bulkSelection": true,
+  "radioKeyboard": true,
+  "reducedMotion": true,
+  "textScaling": [
+    {
+      "route": "mileage",
+      "overflow": false,
+      "documentHeight": 1422
+    },
+    {
+      "route": "invoices",
+      "overflow": false,
+      "documentHeight": 3157
+    }
+  ]
+}

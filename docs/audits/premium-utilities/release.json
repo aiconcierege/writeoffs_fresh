@@ -1,0 +1,25 @@
+{
+  "branch": "v2-onboarding-staging",
+  "applicationCommits": [
+    "9874a8b",
+    "b39088f"
+  ],
+  "projectId": "prj_o56739F1pzd0TjFirEYoLMaa6oIJ",
+  "deploymentId": "dpl_A7PsnXeEABT7pdPHkUtVEUTb7oLJ",
+  "publicUrl": "https://writeoffs-fresh-staging.vercel.app",
+  "providerStatus": "Ready",
+  "tests": {
+    "passed": 1905,
+    "skipped": 143
+  },
+  "typecheck": "pass",
+  "optimizedBuild": "pass",
+  "lint": {
+    "errors": 0,
+    "existingWarnings": 16
+  },
+  "secretScan": "no leaks",
+  "diffCheck": "pass",
+  "syntheticOnly": true,
+  "productionTouched": false
+}

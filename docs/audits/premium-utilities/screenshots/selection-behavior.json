@@ -1,0 +1,13 @@
+{
+  "normalModeNoCheckboxes": true,
+  "keyboardEntry": true,
+  "selectedActionsVisible": true,
+  "exitClearsSelection": true,
+  "widths": [
+    390,
+    430,
+    1280,
+    1440
+  ],
+  "overflow": false
+}
