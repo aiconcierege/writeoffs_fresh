@@ -1,0 +1,1 @@
+export function reconcileHostedPrivateObjects(input:{sql(query:string):string;privateRequest(path:string,options:RequestInit):Promise<unknown>;entries:Array<{user_identity_hash:string;reason:string}>;hmacKey:string}):Promise<{removed:number}>

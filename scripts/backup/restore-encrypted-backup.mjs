@@ -15,6 +15,9 @@ const run = (command, args) => new Promise((resolveRun, reject) => {
 
 const input = resolve(need('WRITEOFFS_RESTORE_INPUT'))
 const databaseUrl = process.env.WRITEOFFS_RESTORE_DATABASE_URL
+// Artifact recovery is not an activation gate. Database import belongs exclusively
+// to the fresh-target controller/provider adapter, which verifies external isolation.
+if (databaseUrl) throw new Error('DIRECT_DATABASE_RESTORE_DISABLED_USE_FRESH_TARGET_CONTROLLER')
 const dumpTarget = process.env.WRITEOFFS_RESTORE_DATABASE_DUMP_OUTPUT
 const storageTarget = process.env.WRITEOFFS_RESTORE_STORAGE_ROOT
 const ledgerTarget = process.env.WRITEOFFS_RESTORE_DELETION_LEDGER_OUTPUT
@@ -40,7 +43,6 @@ try {
     if ((await stat(ledger)).size !== manifest.deletionLedger.bytes || await sha256File(ledger) !== manifest.deletionLedger.sha256) throw new Error('Deletion ledger integrity check failed.')
     if (ledgerTarget) await cp(ledger, resolve(ledgerTarget), { errorOnExist: true })
   } else if (ledgerTarget) throw new Error('Backup does not contain a deletion ledger.')
-  if (databaseUrl) await run(process.env.PG_RESTORE_BIN || 'pg_restore', ['--no-owner', '--exit-on-error', '--dbname', databaseUrl, dump])
   if (dumpTarget) await cp(dump, resolve(dumpTarget), { errorOnExist: true })
   if (storageTarget) {
     await mkdir(resolve(storageTarget), { recursive: true })

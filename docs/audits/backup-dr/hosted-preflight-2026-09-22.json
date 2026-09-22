@@ -1,0 +1,67 @@
+{
+  "result": "PARTIAL_NOT_HOSTED_RESTORE_CERTIFIED",
+  "checkedAt": "2026-09-22T17:27:55.626Z",
+  "projectRef": "hkvmfbqshqthsfxmwlsq",
+  "projectName": "writeoffs-dr-certification-20260922",
+  "region": "us-east-2",
+  "syntheticOnly": true,
+  "pricingVerifiedViaProviderBillingApi": {
+    "compute": "Micro",
+    "hourlyUsd": 0.01344,
+    "paidAddons": []
+  },
+  "computeEstimateUsdToInspection": 0.01344,
+  "invoiceVerified": false,
+  "targetStillProvisioned": true,
+  "apiIsolation": {
+    "projectId": "hkvmfbqshqthsfxmwlsq",
+    "legacyEnabled": false,
+    "publishableKeys": 0,
+    "controllerKeyPresent": true,
+    "checkedAt": "2026-09-22T17:08:06.778Z"
+  },
+  "privateObjectIsolation": {
+    "projectId": "hkvmfbqshqthsfxmwlsq",
+    "privateStorageProbes": [
+      {
+        "kind": "no-key",
+        "status": 400,
+        "canaryReturned": false
+      },
+      {
+        "kind": "retired-public-key",
+        "status": 400,
+        "canaryReturned": false
+      },
+      {
+        "kind": "retired-public-key",
+        "status": 400,
+        "canaryReturned": false
+      },
+      {
+        "kind": "controller",
+        "status": 200,
+        "canaryReturned": true
+      }
+    ],
+    "customerPrivateObjectsBlocked": true,
+    "controllerReadVerified": true
+  },
+  "tlsVerifyFullConnectionPassed": true,
+  "replicaModePermissionPassed": true,
+  "preRestoreCounts": {
+    "authUsers": 0,
+    "publicTables": 0,
+    "privateSyntheticCanaryObjects": 1
+  },
+  "finding": "Disabling legacy API keys does not alone block Storage bearer-JWT requests. A customer-role table privilege barrier was added on this isolated target, and private-object access was then tested. Full restore gate remains uncertified.",
+  "remaining": [
+    "Protected runner target credential transfer approval",
+    "Full synthetic A/B resurrection/restore",
+    "Independent ledger reconciliation on restored hosted data",
+    "Read/decrypt failure gate tests",
+    "Control tenant preservation",
+    "Disposable target cleanup",
+    "Final offboarding certification"
+  ]
+}

@@ -11,6 +11,13 @@ const ledgerExport=join(process.cwd(),'scripts/backup/export-deletion-ledger.mjs
 const sourceEnv={WRITEOFFS_BACKUP_SOURCE_ENVIRONMENT:'staging',WRITEOFFS_BACKUP_EXPECTED_SUPABASE_PROJECT_REF:'synthetic-project'}
 
 describe('independent encrypted backup tooling', () => {
+  it('rejects direct database import outside the fresh-target controller', () => {
+    expect(() => execFileSync(process.execPath, [restoreScript], {stdio:'pipe',env:{...process.env,
+      WRITEOFFS_RESTORE_INPUT:'/private/tmp/unused-synthetic-backup',
+      WRITEOFFS_RESTORE_DATABASE_URL:'postgres://synthetic.invalid/dr',
+      WRITEOFFS_RESTORE_CONFIRM_ISOLATED:'yes',
+    }})).toThrow(/DIRECT_DATABASE_RESTORE_DISABLED_USE_FRESH_TARGET_CONTROLLER/)
+  })
   it('preserves grants required for RLS access in database dump and restore commands', () => {
     const create = readFileSync(createScript, 'utf8'); const restore = readFileSync(restoreScript, 'utf8')
     expect(create).not.toContain("'--no-privileges'")

@@ -1,0 +1,19 @@
+{
+  "result": "PASS",
+  "verifiedAt": "2026-09-22T16:59:02.983Z",
+  "recoveryStore": "GitHub environment staging-dr-recovery",
+  "existingLedgerDecrypted": true,
+  "keyRegenerated": false,
+  "writesAttempted": 0,
+  "runId": 35757112853,
+  "commit": "944e1d2ff86b181a5f26bd0663483b34dbabf76f",
+  "secretNamesVerified": [
+    "WRITEOFFS_DELETION_LEDGER_KEY_BASE64",
+    "WRITEOFFS_DELETION_LEDGER_RECOVERY_ACCESS_KEY_ID",
+    "WRITEOFFS_DELETION_LEDGER_RECOVERY_SECRET_ACCESS_KEY"
+  ],
+  "onlyPermittedBranch": "v2-onboarding-staging",
+  "requiredReviewer": "aiconcierege",
+  "bootstrapSecretRemovedAndAbsenceVerified": true,
+  "personalTokenRevocation": "Rick confirmed manual deletion/revocation on 2026-09-22; not independently verified through token API"
+}
