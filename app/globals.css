@@ -796,7 +796,7 @@ body { background: var(--canvas); color: var(--ink); }
 .form-secondary-details { margin-top:1.25rem; border-top:1px solid #d7e1d7; padding-top:.5rem; }
 .form-secondary-details summary { min-height:44px; align-content:center; cursor:pointer; color:#243186; font-size:.9rem; font-weight:600; }
 .form-secondary-details summary span { font-weight:400; color:#59665f; }
-.invoice-introduction { max-width:55ch; margin:-.75rem 0 1.75rem; color:#59665f; font-size:.95rem; line-height:1.6; }
+.invoice-introduction { display:block; max-width:55ch; margin:.75rem 0 0; color:#59665f; font-size:.95rem; line-height:1.6; }
 .invoice-history { margin-bottom:1.5rem; }
 .invoice-list { margin-top:1rem; }
 .invoice-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:1.5rem; padding:1.35rem .3rem; border-bottom:1px solid #d7e1d7; }
@@ -836,3 +836,5 @@ body { background: var(--canvas); color: var(--ink); }
  .trip-primary-fields>label:nth-of-type(n+3),.trip-primary-fields>details { grid-column:1/-1; }
 }
 @container authenticated-content (max-width:18rem) { .trip-primary-fields { grid-template-columns:minmax(0,1fr); } }
+
+.invoice-composer-returning:not([open])>.invoice-create-toggle { color:#243186; background:transparent; border:1px solid #b6c5b7; font-size:.95rem; }

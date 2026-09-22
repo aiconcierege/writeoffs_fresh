@@ -14,8 +14,7 @@ export function InvoicesClient({ initialInvoices }: { initialInvoices: Record<st
   const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null)
   const composer = useRef<HTMLDetailsElement>(null)
   const hasInvoices = initialInvoices.length > 0
-  return <AuthenticatedPage className="invoices-page" title="Invoices" description="Who owes you, and what was the work?" actions={hasInvoices ? <button className="btn btn-primary" onClick={() => { if (composer.current) { composer.current.open = true; composer.current.querySelector<HTMLInputElement>('[name="customerName"]')?.focus() } }}>Create invoice</button> : undefined}>
-    <p className="invoice-introduction">Create an invoice here. I’ll add the income to your books when you get paid.</p>
+  return <AuthenticatedPage className="invoices-page" title="Invoices" description={<>Who owes you, and what was the work?<span className="invoice-introduction">Create an invoice here. I’ll add the income to your books when you get paid.</span></>} actions={hasInvoices ? <button className="btn btn-primary" onClick={() => { if (composer.current) { composer.current.open = true; composer.current.querySelector<HTMLInputElement>('[name="customerName"]')?.focus() } }}>Create invoice</button> : undefined}>
     {hasInvoices && <section aria-labelledby="invoice-history-heading" className="invoice-history">
       <h2 id="invoice-history-heading" className="section-heading">Your invoices</h2>
       <div className="authenticated-ledger invoice-list">{initialInvoices.map(invoice => <Link key={String(invoice.id)} href={`/invoices/${invoice.id}`} className="invoice-row">
@@ -23,7 +22,7 @@ export function InvoicesClient({ initialInvoices }: { initialInvoices: Record<st
         <div className="invoice-value"><strong>{money.format(Number(invoice.amount_cents) / 100)}</strong><span>{status(String(invoice.status))}</span></div>
       </Link>)}</div>
     </section>}
-    <details ref={composer} className="invoice-composer" open={!hasInvoices || undefined}>
+    <details ref={composer} className={`invoice-composer ${hasInvoices ? 'invoice-composer-returning' : ''}`} open={!hasInvoices || undefined}>
       <summary className="invoice-create-toggle">Create invoice <span aria-hidden="true">＋</span></summary>
       <form className="authenticated-form-surface" onSubmit={async event => {
         event.preventDefault(); setBusy(true); setError(null)

@@ -39,7 +39,7 @@ try{
    results.push({route,width,...metrics})
   }
  }
- if(process.env.POLISH_SKIP_EXTRA==='1'){console.log('Selected presentation screenshots captured.');process.exitCode=0;await browser.close();process.exit()}
+ if(process.env.POLISH_SKIP_EXTRA==='1'){assert.equal(errors.length,0);await writeFile(`${dir}/results.json`,JSON.stringify({origin,results,browserErrors:errors.length},null,2)+'\n');console.log('Selected presentation screenshots captured.');process.exitCode=0;await browser.close();process.exit()}
  if(process.env.POLISH_INVOICE_CREATE==='1'){
   await page.goto(origin+'/reports',{waitUntil:'networkidle'})
   const before=await page.locator('.reports-summary').innerText()
@@ -99,7 +99,8 @@ try{
   await page.goto(origin+'/'+route,{waitUntil:'networkidle'})
   await page.emulateMedia({reducedMotion:'reduce'})
   await page.evaluate(async()=>{document.documentElement.style.fontSize='200%';await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))})
-  zoom.push({route,overflow:await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)})
+  if(route==='invoices'){await page.locator('.invoice-create-toggle').scrollIntoViewIfNeeded();await page.evaluate(()=>window.scrollTo(0,0))}
+  zoom.push({route,overflow:await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),documentHeight:await page.evaluate(()=>document.documentElement.scrollHeight)})
   await page.screenshot({path:`${dir}/${route}-text200.png`,fullPage:true})
  }
  assert(zoom.every(x=>!x.overflow),'200% text must not overflow')
