@@ -25,7 +25,7 @@ try{
  await context.addCookies([...cookies].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:origin.startsWith('https:'),sameSite:'Lax'})))
  const page=await context.newPage();const errors=[];page.on('pageerror',()=>errors.push('browser runtime error'))
  const routes=(process.env.POLISH_ROUTES??'home,check-in,transactions,mileage,reports').split(',');assert(routes.every(x=>['home','check-in','transactions','mileage','reports'].includes(x)))
- for(const route of routes){
+ for(const route of process.env.POLISH_ZOOM_ONLY==='1'?[]:routes){
   for(const width of [390,430,1280,1440]){
    await page.setViewportSize({width,height:900})
    await page.goto(origin+'/'+route,{waitUntil:'networkidle'})
@@ -49,9 +49,10 @@ try{
  await page.keyboard.press('Tab');assert(await page.getByLabel('From',{exact:true}).evaluate(el=>el===document.activeElement),'Date filter focus order')
  const selectAll=page.getByLabel('Select all on this page',{exact:true});if(await selectAll.count()){await selectAll.check();assert(await page.locator('.review-bulk-actions').isVisible(),'Bulk controls remain available');await selectAll.uncheck()}
  await page.goto(origin+'/mileage',{waitUntil:'networkidle'})
+ let radioKeyboard=false
  if(await page.getByRole('radio',{name:'Yes',exact:true}).count()){
   await page.getByRole('radio',{name:'Yes',exact:true}).focus();await page.keyboard.press('ArrowRight')
-  assert(await page.getByRole('radio',{name:'No, business only',exact:true}).isChecked(),'Native radio keyboard behavior')
+  assert(await page.getByRole('radio',{name:'No, business only',exact:true}).isChecked(),'Native radio keyboard behavior');radioKeyboard=true
  }
  const zoom=[]
  for(const route of ['home','check-in','transactions','mileage','reports']){
@@ -62,8 +63,23 @@ try{
   await page.screenshot({path:`${dir}/${route}-text200.png`,fullPage:true})
  }
  assert(zoom.every(x=>!x.overflow),'200% text must not overflow')
- await writeFile(`${dir}/accessibility.json`,JSON.stringify({keyboardFilters:true,bulkSelection:true,radioKeyboard:true,reducedMotion:true,textScaling:zoom},null,2)+'\n')
+ await writeFile(`${dir}/accessibility.json`,JSON.stringify({keyboardFilters:true,bulkSelection:true,radioKeyboard,reducedMotion:true,textScaling:zoom},null,2)+'\n')
+ if(process.env.POLISH_VEHICLE_SETUP==='1'){
+  await page.goto(origin+'/mileage',{waitUntil:'networkidle'})
+  if(await page.getByLabel('Vehicle name',{exact:true}).count()){
+   await page.getByLabel('Vehicle name',{exact:true}).fill('Synthetic review vehicle')
+   await page.getByRole('radio',{name:'Yes',exact:true}).check()
+   const saved=page.waitForResponse(r=>r.url().endsWith('/api/mileage/vehicles')&&r.request().method()==='POST')
+   await page.getByRole('button',{name:'Save vehicle',exact:true}).click()
+   assert((await saved).ok(),'Synthetic vehicle setup')
+  }
+  await page.getByRole('heading',{name:'Add a business trip',exact:true}).waitFor()
+  for(const width of [390,430,1280,1440]){
+   await page.setViewportSize({width,height:900})
+   await page.screenshot({path:`${dir}/mileage-trip-${width}.png`,fullPage:true})
+  }
+ }
  assert.equal(errors.length,0,'Browser runtime error')
- await writeFile(`${dir}/results.json`,JSON.stringify({origin,results,browserErrors:errors.length},null,2)+'\n')
+ if(results.length)await writeFile(`${dir}/results.json`,JSON.stringify({origin,results,browserErrors:errors.length},null,2)+'\n')
  console.log(`Captured ${results.length} real authenticated renders; no overflow or browser errors.`)
 }finally{await browser.close()}

@@ -108,3 +108,5 @@
 @media(max-width:639px) { .reports-page .reports-heading { flex-wrap:wrap; gap:.5rem; } .reports-page .reports-heading .btn { font-size:.85rem; padding:.6rem .7rem; gap:.4rem; } }
 
 @media(max-width:639px) { .reports-summary dl { grid-template-columns:repeat(auto-fit,minmax(min(100%,8rem),1fr)); } }
+.reports-summary { container-type:inline-size; }
+@container (max-width:14rem) { .reports-summary dd,.reports-summary .reports-profit dd { font-size:1.3rem; } }

@@ -173,3 +173,13 @@
 .betti-batch-row:has(input:checked) { background:#e8eff9; }
 .betti-conversation-body input[type=checkbox],.betti-conversation-body input[type=radio] { accent-color:var(--wo-blue); width:1.2rem; height:1.2rem; flex-shrink:0; }
 @media(prefers-reduced-motion:reduce) { .betti-question-controls [data-answer-layout=choices]>.btn-secondary { transition:none; } }
+
+/* Enlarged text keeps the same conversation, with room for identity and actions. */
+.betti-work { container-name:betti-work; container-type:inline-size; }
+@container betti-work (max-width:18rem) {
+ .betti-guide { position:relative; top:auto; left:auto; width:100%; height:auto; min-height:0; padding:1rem; flex-direction:column; }
+ .betti-guide-identity { position:static; width:auto; order:1; text-align:center; }
+ .betti-guide-art { height:6rem; }
+ .betti-conversation-body { padding-top:.5rem; }
+ .betti-conversation .btn { min-width:0; max-width:100%; white-space:normal; }
+}

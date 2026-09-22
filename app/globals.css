@@ -778,3 +778,12 @@ body { background: var(--canvas); color: var(--ink); }
 
 .vehicle-optional-fields { grid-template-columns:repeat(auto-fit,minmax(min(100%,5.5rem),1fr)); }
 .wo-header-inner>a img { object-fit:contain; object-position:left center; }
+.authenticated-page { container-name:authenticated-content; container-type:inline-size; }
+@container authenticated-content (max-width:18rem) {
+ .authenticated-page>header { display:flex; flex-direction:column; align-items:flex-start; }
+ .authenticated-page .page-title { font-size:1.7rem; overflow-wrap:anywhere; }
+ .authenticated-toolbar .transaction-filters { grid-template-columns:minmax(0,1fr); }
+ .authenticated-ledger .review-row-open { grid-template-columns:minmax(0,1fr); }
+ .authenticated-ledger .review-select-heading { flex-wrap:wrap; }
+ .authenticated-page .btn { white-space:normal; }
+}

@@ -77,3 +77,25 @@
  .home-command-center .home-add-action .home-shortcut-icon { width:1.65rem; height:1.65rem; }
  .home-command-center .home-recent { margin-top:1.8rem; }
 }
+
+/* Preserve the normal hero; reflow when enlarged text leaves little usable room. */
+.home-command-center .home-shell { container-name:home-content; container-type:inline-size; }
+@container home-content (max-width:18rem) {
+ .home-command-center .home-betti-hero { grid-template-columns:minmax(0,1fr); }
+ .home-command-center .home-betti-message h1 { grid-column:1/-1; }
+ .home-command-center .home-betti-portrait { grid-column:1/-1; grid-row:3; height:6rem; }
+ .home-command-center .home-betti-portrait img { max-height:6rem; }
+ .home-command-center .home-betti-thought { grid-row:4; }
+ .home-command-center .home-betti-action { grid-row:5; }
+ .home-command-center .home-betti-alternative { grid-row:6; }
+ .home-command-center .home-work-context { grid-row:7; }
+ .home-command-center .home-section-heading { flex-wrap:wrap; }
+ .home-command-center .home-financial-flow,.home-command-center .home-add-list { grid-template-columns:minmax(0,1fr); }
+ .home-command-center .home-financial-node { border-right:0; border-bottom:1px solid var(--wo-line); }
+ .home-command-center .home-financial-profit { display:block; }
+ .home-command-center .home-financial-profit dd { margin-top:.65rem; }
+ .home-command-center .home-add-action strong { white-space:normal; }
+ .home-command-center .home-recent-transactions li a { grid-template-columns:minmax(0,1fr); }
+ .home-command-center .home-merchant-fallback { display:none; }
+ .home-command-center .home-recent-main strong { white-space:normal; overflow-wrap:anywhere; }
+}
