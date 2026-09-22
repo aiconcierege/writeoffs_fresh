@@ -1,10 +1,25 @@
 {
   "kind": "READ_ONLY_RUNTIME_CONFIGURATION",
+  "checkedAt": "2026-09-22T18:47:44.846Z",
   "project": "prj_o56739F1pzd0TjFirEYoLMaa6oIJ",
-  "result": "UNVERIFIED",
-  "httpStatus": 403,
-  "operation": "GET environment metadata; no decrypt request",
-  "configurationChanged": false,
-  "secretValuesExposed": false,
-  "applicationPublisherDeployed": false
+  "primarySlot": "production target of dedicated staging project only",
+  "fields": [
+    {
+      "name": "WRITEOFFS_DELETION_LEDGER_SOURCE",
+      "configuredForPrimarySlot": false
+    },
+    {
+      "name": "WRITEOFFS_DELETION_LEDGER_KEY_BASE64",
+      "configuredForPrimarySlot": false
+    },
+    {
+      "name": "WRITEOFFS_DELETION_LEDGER_ACCESS_KEY_ID",
+      "configuredForPrimarySlot": false
+    },
+    {
+      "name": "WRITEOFFS_DELETION_LEDGER_SECRET_ACCESS_KEY",
+      "configuredForPrimarySlot": false
+    }
+  ],
+  "valuesReadOrPrinted": false
 }
