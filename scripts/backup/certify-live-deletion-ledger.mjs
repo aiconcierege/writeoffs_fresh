@@ -1,6 +1,6 @@
 import {createHash, randomBytes, randomUUID} from 'node:crypto'
 import {pathToFileURL} from 'node:url'
-import {S3Client} from '@aws-sdk/client-s3'
+import {GetObjectCommand, ListObjectsV2Command, S3Client} from '@aws-sdk/client-s3'
 import {loadIndependentDeletions, persistIndependentDeletion} from './independent-deletion-ledger.mjs'
 
 const bucket = 'writeoffs-backups-264524064115-us-east-2-an'
@@ -21,6 +21,23 @@ const safeCodes = new Set([
 export function safeFailureCode(error) {
   return [error?.message, error?.name].find(value => safeCodes.has(value)) ?? 'UNCLASSIFIED_ERROR'
 }
+export function credentialShape(value) {
+  return {
+    present: typeof value === 'string' && value.length > 0,
+    expectedIamAccessKeyShape: typeof value === 'string' && /^AKIA[A-Z0-9]{16}$/.test(value),
+    leadingOrTrailingWhitespace: typeof value === 'string' && value.trim() !== value,
+    embeddedWhitespace: typeof value === 'string' && /\s/.test(value.trim()),
+  }
+}
+export function signingDiagnostic(error) {
+  const message = typeof error?.message === 'string' ? error.message : ''
+  // Return fixed labels only. Never emit the provider's message, credential scope, or headers.
+  if (/credential.*(mal.?formed|five slash|5 slash|expecting)/i.test(message)) return 'MALFORMED_CREDENTIAL_SCOPE'
+  if (/region.*(wrong|expect|invalid)/i.test(message)) return 'SIGNING_REGION_MISMATCH'
+  if (/date.*(wrong|expect|invalid|format)/i.test(message)) return 'SIGNING_DATE_INVALID'
+  if (/authorization.*(mal.?formed|invalid)/i.test(message)) return 'MALFORMED_AUTHORIZATION_HEADER'
+  return 'UNCLASSIFIED_SIGNING_DETAIL'
+}
 export function diagnosticClient(client, identity, state) {
   return {send: async command => {
     const name = command.constructor.name
@@ -28,14 +45,33 @@ export function diagnosticClient(client, identity, state) {
     state.identity = identity
     delete state.providerCode
     delete state.httpStatus
+    delete state.signingDetail
     try { return await client.send(command) }
     catch (error) {
       state.providerCode = safeFailureCode(error)
+      if (state.providerCode === 'AuthorizationHeaderMalformed') state.signingDetail = signingDiagnostic(error)
       const status = error?.$metadata?.httpStatusCode
       if (Number.isInteger(status) && status >= 100 && status <= 599) state.httpStatus = status
       throw error
     }
   }}
+}
+
+export async function diagnoseLedgerReadOnly({writer, reader}) {
+  const checks = []
+  for (const [identity, client, command] of [
+    ['writer', writer, new GetObjectCommand({Bucket: bucket, Key: `deletion-ledger/staging/entries/${randomUUID()}.wodel`})],
+    ['recovery-reader', reader, new ListObjectsV2Command({Bucket: bucket, Prefix: 'deletion-ledger/staging/entries/', MaxKeys: 1})],
+  ]) {
+    const state = {}
+    try {
+      const result = await diagnosticClient(client, identity, state).send(command)
+      result.Body?.destroy?.()
+      checks.push({...state, requestSucceeded: true})
+    } catch { checks.push({...state, requestSucceeded: false}) }
+  }
+  return {result: 'DIAGNOSTIC_ONLY', writesAttempted: 0, checks,
+    note: 'Writer probe uses a nonexistent synthetic key. AccessDenied or NoSuchKey does not certify writer permissions. Reader listing returns no object names or content in this report.'}
 }
 const required = (env, name) => {
   if (!env[name]) throw new Error('LEDGER_CERTIFICATION_CONFIGURATION_REQUIRED')
@@ -100,6 +136,13 @@ async function main() {
     writer = client('WRITEOFFS_DELETION_LEDGER')
     diagnostics.stage = 'reader-credential-validation'
     reader = client('WRITEOFFS_DELETION_LEDGER_RECOVERY')
+    if (env.WRITEOFFS_LEDGER_READ_ONLY_DIAGNOSTICS === 'true') {
+      const report = await diagnoseLedgerReadOnly({writer, reader})
+      process.stdout.write(`${JSON.stringify({...report, configuredRegion: 'us-east-2',
+        writerAccessKey: credentialShape(env.WRITEOFFS_DELETION_LEDGER_ACCESS_KEY_ID),
+        readerAccessKey: credentialShape(env.WRITEOFFS_DELETION_LEDGER_RECOVERY_ACCESS_KEY_ID)}, null, 2)}\n`)
+      return
+    }
     process.stdout.write(`${JSON.stringify(await certifyLiveDeletionLedger({writer: diagnosticClient(writer, 'writer', diagnostics), reader: diagnosticClient(reader, 'recovery-reader', diagnostics), encryptionKey, onStage: stage => {diagnostics.stage = stage}}), null, 2)}\n`)
   } finally { writer?.destroy(); reader?.destroy(); encryptionKey.fill(0) }
 }

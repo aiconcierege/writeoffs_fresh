@@ -1,8 +1,23 @@
 import {describe, expect, it} from 'vitest'
 import {randomBytes} from 'node:crypto'
-import {certifyLiveDeletionLedger, diagnosticClient, safeFailureCode} from '../../scripts/backup/certify-live-deletion-ledger.mjs'
+import {certifyLiveDeletionLedger, credentialShape, diagnoseLedgerReadOnly, diagnosticClient, safeFailureCode, signingDiagnostic} from '../../scripts/backup/certify-live-deletion-ledger.mjs'
 
 describe('protected live ledger certification harness', () => {
+  it('diagnoses malformed signing safely using only reads', async () => {
+    const commands: string[] = []
+    const client = {send: async (raw: unknown) => {
+      const command = raw as {constructor: {name: string}}
+      commands.push(command.constructor.name)
+      throw {name: 'AuthorizationHeaderMalformed', message: 'Credential is mal-formed; expecting private-credential-value', $metadata: {httpStatusCode: 400}}
+    }}
+    const result = await diagnoseLedgerReadOnly({writer: client, reader: client})
+    expect(commands).toEqual(['GetObjectCommand', 'ListObjectsV2Command'])
+    expect(result.writesAttempted).toBe(0)
+    expect(result.checks[0].signingDetail).toBe('MALFORMED_CREDENTIAL_SCOPE')
+    expect(JSON.stringify(result)).not.toContain('private-credential-value')
+    expect(signingDiagnostic({message: "the region 'private-value' is wrong; expecting another"})).toBe('SIGNING_REGION_MISMATCH')
+    expect(credentialShape(' value\n')).toEqual({present: true, expectedIamAccessKeyShape: false, leadingOrTrailingWhitespace: true, embeddedWhitespace: false})
+  })
   it('preserves allowlisted provider diagnostics without copying raw errors or request data', async () => {
     const state: Record<string, unknown> = {}
     const failure = {name: 'AccessDenied', message: 'sensitive-provider-context', $metadata: {httpStatusCode: 403, requestId: 'private-request'}, secretAccessKey: 'private-value'}
