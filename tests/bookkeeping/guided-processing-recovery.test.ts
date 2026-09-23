@@ -86,3 +86,35 @@ it('discards an in-flight focus read when an ordinary answer starts',async()=>{
  finish({ok:true,json:async()=>homeWorkFixture('organized')});await reading
  expect(hooks.setters[0]).not.toHaveBeenCalled()
 })
+
+function callback(node:unknown,name:string):((...args:unknown[])=>Promise<void>)|undefined{
+ if(!node||typeof node!=='object')return
+ if(Array.isArray(node)){for(const child of node){const found=callback(child,name);if(found)return found}return}
+ const props=(node as {props?:Record<string,unknown>}).props
+ if(typeof props?.[name]==='function')return props[name] as (...args:unknown[])=>Promise<void>
+ return callback(props?.children,name)
+}
+it.each([false,true])('never renders a dirty command continuation during advance (deferred=%s)',async deferred=>{
+ const {view,fetcher}=start(homeWorkFixture('concurrent'))
+ const confirmed=homeWorkFixture('current')
+ const dirty={...homeWorkFixture('catch-up'),index:{version:1,summaryCurrent:false}}
+ fetcher.mockResolvedValue({ok:true,json:async()=>confirmed})
+ const advance=callback(view,'onGuidedAnswer');expect(advance).toBeTypeOf('function')
+ await advance!(deferred,undefined,dirty)
+ expect(hooks.setters[0]).toHaveBeenCalledTimes(1)
+ expect(hooks.setters[0]).toHaveBeenCalledWith(confirmed)
+ expect(hooks.setters[0]).not.toHaveBeenCalledWith(dirty)
+ expect(fetcher.mock.calls[0][0]).not.toContain('presented=')
+ const focus=vi.mocked(window.addEventListener).mock.calls.find(([e])=>e==='focus')?.[1] as ()=>Promise<void>
+ await focus()
+ expect(new URL(fetcher.mock.calls[1][0],'https://local').searchParams.get('presented')).toBe(confirmed.nextAction?.id)
+})
+it('commits a current continuation once and latches it before a focus event',async()=>{
+ const {view,fetcher}=start(homeWorkFixture('concurrent')),confirmed=homeWorkFixture('current')
+ await callback(view,'onGuidedAnswer')!(false,undefined,confirmed)
+ expect(hooks.setters[0]).toHaveBeenCalledExactlyOnceWith(confirmed)
+ expect(fetcher).not.toHaveBeenCalled()
+ const focus=vi.mocked(window.addEventListener).mock.calls.find(([e])=>e==='focus')?.[1] as ()=>Promise<void>
+ await focus()
+ expect(new URL(fetcher.mock.calls[0][0],'https://local').searchParams.get('presented')).toBe(confirmed.nextAction?.id)
+})

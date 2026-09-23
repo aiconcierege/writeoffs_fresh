@@ -24,3 +24,9 @@ export function guidedWorkProjection(work:BettiWorkProjection&{index?:ActionInde
    failures:work.betti.failures,missingJobs:work.betti.missingJobs,systemHeld:work.betti.systemHeld},
  }
 }
+
+/** Dirty indexes can retain valid rows while omitting newly ready or held work.
+ * They are not authoritative for choosing a new conversational turn. */
+export function authoritativeContinuation(work:GuidedWorkProjection){
+ return !work.index||work.index.summaryCurrent===true
+}

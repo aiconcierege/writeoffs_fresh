@@ -1,6 +1,6 @@
 import {it,expect,vi,beforeEach} from 'vitest'
 import {guidedCommand} from '../../app/lib/bookkeeping/guided-command-response'
-vi.mock('../../app/lib/bookkeeping/guided-work-projection',()=>({guidedWorkProjection:(work:unknown)=>work}))
+vi.mock('../../app/lib/bookkeeping/guided-work-projection',async original=>({...await original<typeof import('../../app/lib/bookkeeping/guided-work-projection')>(),guidedWorkProjection:(work:unknown)=>work}))
 const state=vi.hoisted(()=>({rpc:vi.fn(),projection:vi.fn(),membership:vi.fn()}))
 vi.mock('../../utils/supabase/server',()=>({createServerSupabase:async()=>({auth:{getUser:async()=>({data:{user:{id:'owner'}}}),mfa:{getAuthenticatorAssuranceLevel:async()=>({data:{currentLevel:'aal2'}})}},rpc:state.rpc})}))
 vi.mock('../../app/lib/membership/entitlements',()=>({loadCustomerEntitlements:state.membership}))

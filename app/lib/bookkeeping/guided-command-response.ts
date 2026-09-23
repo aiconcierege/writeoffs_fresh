@@ -1,5 +1,5 @@
 import {vehicleQuestionProjectionCurrent} from '../mileage/annual-use-question'
-import {guidedWorkProjection} from './guided-work-projection'
+import {guidedWorkProjection,authoritativeContinuation} from './guided-work-projection'
 import {requestUser} from '../performance/request-identity'
 import 'server-only'
 import {createServerSupabase} from '../../../utils/supabase/server'
@@ -28,7 +28,7 @@ export function guidedCommand<Rest extends unknown[]>(handler:(request:Request,.
   if(!response.ok||request.headers.get('x-betti-guided')!=='1')return response
   try{
    const committed=await response.clone().json()
-   if(committed.work&&!vehicleQuestionProjectionCurrent(committed.work)){
+   if(committed.work&&(!vehicleQuestionProjectionCurrent(committed.work)||!authoritativeContinuation(committed.work))){
     // Preserve the committed answer, but never return a stale continuation if
     // canonical fallback fails. The existing client refresh path remains safe.
     const {work:_staleWork,...saved}=committed
@@ -51,10 +51,15 @@ export function guidedCommand<Rest extends unknown[]>(handler:(request:Request,.
      }catch{console.error('BETTI_ACTION_INDEX_REFRESH_PENDING')}
     })
     const saved=await response.clone().json()
-    if(saved.work?.index?.version===1&&vehicleQuestionProjectionCurrent(saved.work))return response
+    if(saved.work?.index?.version===1&&vehicleQuestionProjectionCurrent(saved.work)&&authoritativeContinuation(saved.work))return response
     const indexed=await readBettiActionIndex({db,businessId:membership.businessId,view:'guided',
      continuityRecordId:guidedContinuityRecord(request),processingEnabled:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'})
-    if(indexed)return Response.json({...saved,work:indexed},{status:response.status,headers:{'Cache-Control':'private, no-store'}})
+    if(indexed&&authoritativeContinuation(indexed))return Response.json({...saved,work:indexed},{status:response.status,headers:{'Cache-Control':'private, no-store'}})
+    // A dirty continuation must use the same read-only authority as page entry.
+    // The answer has already committed; do not reconcile again just to pick next.
+    const current=await loadBettiWork({db,businessId:membership.businessId,scope:membership.plan??'expenses',
+     continuityRecordId:guidedContinuityRecord(request),processingEnabled:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'})
+    return Response.json({...saved,work:guidedWorkProjection(current)},{status:response.status,headers:{'Cache-Control':'private, no-store'}})
    }
    // Deferral supplies no new bookkeeping fact; its canonical event is enough.
    if(!deferred)await timed('question_reconciliation',async()=>{

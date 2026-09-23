@@ -2,7 +2,7 @@
 import {LiveSourceCoverageNotice} from '../SourceCoverageNotice'
 import Link from 'next/link'
 import {useCallback,useEffect,useRef,useState} from 'react'
-import type {GuidedWorkProjection} from '../../lib/bookkeeping/guided-work-projection'
+import {authoritativeContinuation,type GuidedWorkProjection} from '../../lib/bookkeeping/guided-work-projection'
 import type {WorkAction} from '../../lib/bookkeeping/betti-work'
 import {conversationStatus,savedAcknowledgment,type ConversationOutcome} from './conversation-status'
 import {persistAccountUse,type AccountUseRequest} from '../../lib/bookkeeping/account-use-request'
@@ -16,9 +16,16 @@ import {MerchantIdentity} from './MerchantIdentity'
 
 export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false}:{initialWork:GuidedWorkProjection;returnTo?:string;recordId?:string;ordinary?:boolean}){
  const[work,setWork]=useState(initialWork),[handled,setHandled]=useState(0),[deferred,setDeferred]=useState(0)
- const action=work.presentation?.status==='settling'?null:work.presentation?.action??work.nextAction
+ const[transitioning,setTransitioning]=useState(false)
+ const action=transitioning?null:work.presentation?.status==='settling'?null:work.presentation?.action??work.nextAction
  const presented=useRef<{id:string;version:string}|null>(null),readSequence=useRef(0),evidenceReceived=useRef(false)
  const checkingPresented=useRef(false)
+ const commitWork=useCallback((next:GuidedWorkProjection)=>{
+  const shown=next.presentation?.status==='settling'?null:next.presentation?.action??next.nextAction
+  // Record the presented identity before React commits/focus can trigger a read.
+  presented.current=shown?{id:shown.id,version:shown.version}:null
+  setWork(next);setTransitioning(false)
+ },[])
  useEffect(()=>{if(action)presented.current={id:action.id,version:action.version}},[action])
  const[sessionReady,setSessionReady]=useState(false)
  useEffect(()=>{try{const saved=JSON.parse(sessionStorage.getItem(`betti-visit:${initialWork.businessId}`)??'null');if(saved&&Date.now()-saved.at<7200000){setHandled(saved.handled??0);setDeferred(saved.deferred??0)}}catch{/* Session progress is optional; canonical facts remain durable. */}setSessionReady(true)},[initialWork.businessId])
@@ -47,8 +54,9 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
    setNotice(state==='rechecking'?'I’m still checking that item. We can work on this one meanwhile.':state==='deferred'?'This is saved for later.':state==='updated'?'I’ve checked the latest information. Here’s what I still need.':evidenceReceived.current?'Got it — that answered this for me.':'My latest review took care of that question.')
    presented.current=null;evidenceReceived.current=false;checkingPresented.current=false
   }
-  setWork(updated);return updated
- },[recordId])
+  if(!authoritativeContinuation(updated))throw new Error('The next question is still being checked.')
+  commitWork(updated);return updated
+ },[recordId,commitWork])
  const needsProcessingRead=!action&&(work.betti.genuinelyProcessing+work.betti.queued+work.betti.retryScheduled>0||error==='I couldn’t check for updates. Refresh before answering.')
  const onPending=useCallback((pending:boolean)=>{lock.current=pending;if(pending){readSequence.current++;backgroundRead.current?.abort()}},[])
  useEffect(()=>{
@@ -90,12 +98,13 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
   try{await refresh();setError('')}catch{setError('I couldn’t check for updates. Refresh before answering.')}finally{reconciling.current=alreadyReconciling}
  }
  async function resolved(isDeferred:boolean,message?:string,nextWork?:GuidedWorkProjection){
-  backgroundRead.current?.abort();reconciling.current=true;automaticReads.current=0;setWaitingPaused(false)
+  backgroundRead.current?.abort();readSequence.current++;reconciling.current=true;automaticReads.current=0;setWaitingPaused(false);setTransitioning(true)
   try{
   if(isDeferred)setDeferred(n=>n+1);else setHandled(n=>n+1)
   const result:ConversationOutcome=isDeferred?(action?.type==='receipt_upload_sweep'||action?.type==='receipt_availability'?'receipts-deferred':'deferred'):'answered'
   setOutcome(result);setNotice(isDeferred?savedAcknowledgment(result):message??savedAcknowledgment(result))
-  if(nextWork){readSequence.current++;presented.current=null;evidenceReceived.current=false;checkingPresented.current=false;setWork(nextWork);setError('');return}
+  if(nextWork&&authoritativeContinuation(nextWork)){evidenceReceived.current=false;checkingPresented.current=false;commitWork(nextWork);setError('');return}
+  if(nextWork){await refresh(undefined,'advance');setError('');return}
   // Explicit answer reconciliation, never a GET/render side effect.
   const reconciliation=isDeferred?{ok:true}:await fetch('/api/bookkeeping/questions/reconcile',{method:'POST',signal:AbortSignal.timeout(15000)})
   if(!reconciliation.ok){await recover();return}
@@ -113,7 +122,7 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
  return <div ref={root} data-customer-action-count={work.customer.actionableCount} data-guided-action={action?.type??work.readiness.phase} data-guided-version={action?.version} data-guided-id={action?.id} data-guided-presentation={work.presentation?.status??'ready'}>
  <ConversationShell contentIdentity={action?.id+':'+action?.version} returnTo={returnTo} context={context} progress={progress} notice={notice} state={!action?waiting?'working':'caught-up':'question'}>
   {error&&<div className="betti-error" role="alert">{error}<button className="betti-defer" onClick={()=>void recover()}>Refresh current work</button></div>}
-  {!action?<><span className={waiting?'betti-working':'betti-complete'} hidden/><h1 ref={heading} tabIndex={-1}>{status.heading}</h1><p className="betti-explanation">{status.supporting}</p>{status.operationalNote&&<p className="betti-operational-note">{status.operationalNote}</p>}{waiting&&<p className="betti-processing" role="status"><span className="betti-processing-dot"/> {work.betti.genuinelyProcessing?'Organizing your records':'I’ll keep working from here'}</p>}{waiting&&waitingPaused&&<button className="betti-defer" onClick={()=>void recover()}>Check for the next step</button>}{status.alternative&&<Link className="btn btn-secondary" href={status.alternative.href}>{status.alternative.label}</Link>}<LiveSourceCoverageNotice/><div className="betti-continue"><Link className="btn btn-primary" href={returnTo}>Back to your books</Link></div></>
+  {transitioning?<p role="status">Got it. I’m checking the next question.</p>:!action?<><span className={waiting?'betti-working':'betti-complete'} hidden/><h1 ref={heading} tabIndex={-1}>{status.heading}</h1><p className="betti-explanation">{status.supporting}</p>{status.operationalNote&&<p className="betti-operational-note">{status.operationalNote}</p>}{waiting&&<p className="betti-processing" role="status"><span className="betti-processing-dot"/> {work.betti.genuinelyProcessing?'Organizing your records':'I’ll keep working from here'}</p>}{waiting&&waitingPaused&&<button className="betti-defer" onClick={()=>void recover()}>Check for the next step</button>}{status.alternative&&<Link className="btn btn-secondary" href={status.alternative.href}>{status.alternative.label}</Link>}<LiveSourceCoverageNotice/><div className="betti-continue"><Link className="btn btn-primary" href={returnTo}>Back to your books</Link></div></>
   :action.type==='account_use'?<AccountStep key={action.id+action.version} action={action} busy={saving} perform={perform}/>
   :action.items?<SweepStep key={action.id+action.version} action={action} busy={saving} perform={perform} refresh={()=>refresh(undefined,'evidence')} onPending={onPending}/>
   :action.type==='special_transaction'&&(!ordinary||!action.recordIds.includes(recordId??'')||!action.question)?<SpecialStep key={action.id+action.version} action={action} returnTo={returnTo} resolved={resolved} recover={recover} onPending={onPending} onEvidenceReceived={async()=>{await refresh(undefined,'evidence')}}/>
