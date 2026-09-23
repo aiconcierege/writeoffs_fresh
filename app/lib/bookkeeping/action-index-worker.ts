@@ -1,3 +1,4 @@
+import {frozenStagingBusinesses} from './action-index-freeze'
 import 'server-only'
 import {randomUUID} from 'node:crypto'
 import type {SupabaseClient} from '@supabase/supabase-js'
@@ -13,12 +14,14 @@ export function actionIndexEnabled(){return process.env.WRITEOFFS_ENVIRONMENT===
 /** Explicit mutation/worker path only. The durable state survives a lost after()
  * callback. One lease per business coalesces retries and concurrent notifications. */
 export async function refreshBettiActionIndex(input:{admin?:SupabaseClient;businessId?:string;limit?:number}={}){
+ const excluded=frozenStagingBusinesses()
+ if(input.businessId&&excluded.includes(input.businessId))return {published:0,conflicted:0,failed:0}
  const admin=input.admin??createServerAdminSupabase(),processingEnabled=process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'
  let published=0,conflicted=0,failed=0
  for(let i=0;i<Math.min(12,Math.max(1,input.limit??1));i++){
   const leaseId=randomUUID()
-  const claim=await admin.rpc('claim_betti_action_index_refresh',{p_lease_id:leaseId,p_business_id:input.businessId??null,
-   p_engine_version:ACTION_INDEX_VERSION,p_processing_enabled:processingEnabled})
+  const claim=await admin.rpc('claim_betti_action_index_refresh_excluding',{p_lease_id:leaseId,p_business_id:input.businessId??null,
+   p_engine_version:ACTION_INDEX_VERSION,p_processing_enabled:processingEnabled,p_excluded_business_ids:excluded})
   if(claim.error)throw new Error('ACTION_INDEX_CLAIM_FAILED')
   const state=claim.data?.[0];if(!state)break
   const businessId=String(state.business_id)

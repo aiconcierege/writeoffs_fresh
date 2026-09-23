@@ -2,9 +2,9 @@ import { createHash } from 'node:crypto'
 import type { AuthorizedBookkeepingScope } from './authorized-scope'
 import type { CustomerQuestion } from './customer-questions'
 import { purchaseReceiptEligible } from './receipt-eligibility'
-import {guidedStage,guidedItem,guidedDeferral,GUIDED_BATCH_LIMIT,type GuidedItem,type GuidedReview,type SweepType} from './guided-work'
+import {guidedStage,guidedItem,guidedDeferral,GUIDED_BATCH_LIMIT,PERSONAL_SWEEP_LIMIT,statementEstablishesBankFee,type GuidedItem,type GuidedReview,type SweepType} from './guided-work'
 
-export const BETTI_WORK_VERSION = 'betti-work:v4-render-ready'
+export const BETTI_WORK_VERSION = 'betti-work:v5-specific-facts'
 export type Workstream = 'catch_up' | 'current' | 'shared' | 'outside_scope' | 'unscoped'
 export type ActionType = 'provide_records' | 'account_use' | 'personal_exception_sweep' | 'mixed_use_sweep'
   | 'receipt_upload_sweep' | 'receipt_availability' | 'special_transaction' | 'material_question'
@@ -42,7 +42,7 @@ export type WorkAction = {
   transaction?:{merchant:string;date:string;amountCents:number}
   decisionVersion?:string
   items?:GuidedItem[];account?:{id:string;name:string;mask:string|null;designation:string|null}
-  priority: { score: number; reasons: string[]; unlocks: number; ageDays: number; continuity: boolean
+  priority: { score: number; routingTier?:number; reasons: string[]; unlocks: number; ageDays: number; continuity: boolean
     materiality: 'totals' | 'disclosable' | null; deadline: string | null }
   dependencies: string[]
 }
@@ -162,7 +162,8 @@ export function projectBettiWork(input: {
       jobs.filter(j => dependencies.includes(j.id)).map(j => [j.id, j.version, j.status]).sort()]),
       type, target, workstream: contextOf(rs), affects, recordIds: rs.map(r => r.record_id).sort(),
       status: dependencies.length ? 'waiting' : 'actionable', availableAt: null, href,
-      priority: { score, reasons, unlocks, ageDays, continuity, materiality: null, deadline: null }, dependencies, ...extra })
+      priority: { score, routingTier:type==='account_use'?2:type==='material_question'||type==='special_transaction'?1:0,
+        reasons, unlocks, ageDays, continuity, materiality: null, deadline: null }, dependencies, ...extra })
   }
   for (const account of c.accounts.filter(a => !a.designation)) {
     const rs = scoped.filter(r => r.account_id === account.id)
@@ -171,16 +172,19 @@ export function projectBettiWork(input: {
       account.use_version, '/check-in', c.business.activationEvidence ?? asOf,
       {account:{id:account.id,name:account.display_name??'Your account',mask:account.mask??null,designation:null}})
   }
-  const stages=new Map(scoped.flatMap(r=>{const stage=guidedStage(r,c);return stage?[[r.record_id,stage] as const]:[]}))
+  const specificFacts=new Set([...input.questions.flatMap(q=>q.recordId?[q.recordId]:[]),
+    ...c.deferred.filter(d=>!d.deferred_until||d.deferred_until>asOf).flatMap(d=>d.record_id?[d.record_id]:[])])
+  const stages=new Map(scoped.flatMap(r=>{const stage=guidedStage(r,c,specificFacts.has(r.record_id));return stage?[[r.record_id,stage] as const]:[]}))
   const groups=new Map<string,{stage:SweepType;records:WorkRecord[];deferred:string|null}>()
   for(const r of scoped){const stage=stages.get(r.record_id);if(!stage)continue
-    const deferred=guidedDeferral(r,stage,c,asOf),key=[r.account_id,stage,stream(r),deferred??'active',activeJobIds(r.record_id).length?'waiting':'ready'].join(':')
+    const deferred=guidedDeferral(r,stage,c,asOf),key=[r.account_id,stage,stage==='personal_exception_sweep'?'account':stream(r),deferred??'active',activeJobIds(r.record_id).length?'waiting':'ready'].join(':')
     const group=groups.get(key)??{stage,records:[],deferred};group.records.push(r);groups.set(key,group)
   }
   for(const[key,group]of groups){
     const ordered=group.records.sort((a,b)=>a.activity_date.localeCompare(b.activity_date)||a.record_id.localeCompare(b.record_id))
-    for(let offset=0;offset<ordered.length;offset+=GUIDED_BATCH_LIMIT){
-      const rs=ordered.slice(offset,offset+GUIDED_BATCH_LIMIT),account=c.accounts.find(a=>a.id===rs[0].account_id)!
+    const limit=group.stage==='personal_exception_sweep'?PERSONAL_SWEEP_LIMIT:GUIDED_BATCH_LIMIT
+    for(let offset=0;offset<ordered.length;offset+=limit){
+      const rs=ordered.slice(offset,offset+limit),account=c.accounts.find(a=>a.id===rs[0].account_id)!
       const items=rs.map(r=>guidedItem(r,c)),id=`guided:${group.stage}:${fingerprint(items.map(i=>i.recordId)).slice(0,24)}`
       add(group.stage,id,{kind:'account',id:account.id},rs,[key,items,c.guidedReviews],'/check-in',rs[0].activity_date,
         {items,account:{id:account.id,name:account.display_name??'Your account',mask:account.mask??null,designation:account.designation}})
@@ -193,7 +197,7 @@ export function projectBettiWork(input: {
       }
       if(group.deferred){action.status='deferred';action.availableAt=group.deferred}
       action.priority.score+=group.stage==='personal_exception_sweep'||group.stage==='mixed_use_sweep'?100:40
-      action.priority.reasons.push('visible_scoped_batch','evidence_before_individual_questions')
+      action.priority.reasons.push('visible_scoped_batch',group.stage==='personal_exception_sweep'?'optional_business_exception_review':'supporting_documentation_or_use_fact')
     }
   }
   const unknownAccounts = new Set(c.accounts.filter(a => !a.designation).map(a => a.id))
@@ -210,7 +214,7 @@ export function projectBettiWork(input: {
       [r.decision_id,r.review_version,deferred?.id],`/check-in?record=${encodeURIComponent(r.record_id)}`,r.activity_date,
       {decisionVersion:r.decision_id!,transaction:{merchant:r.merchant??'Financial activity',date:r.activity_date,amountCents:r.amount_cents},
        ...(until&&until>asOf?{status:'deferred' as const,availableAt:until}:{})})
-    actions.at(-1)!.priority.reasons.push('existing_supporting_evidence_workflow')
+    actions.at(-1)!.priority.reasons.push('existing_supporting_evidence_workflow','specific_fact_before_optional_review')
   }
   const deferredSpecialRecords=new Set<string>()
   for(const d of c.specialDeferrals??[]){
@@ -240,6 +244,7 @@ export function projectBettiWork(input: {
         ...(q.availableAt && q.availableAt > asOf ? { status: 'deferred' as const, availableAt: q.availableAt } : {}) })
     const action = actions[actions.length - 1]
     action.priority.materiality = q.materiality ?? null
+    action.priority.reasons.push('specific_fact_before_optional_review')
     if (q.materiality === 'totals') {
       action.priority.score += 20
       action.priority.reasons.push('affects_working_totals')
@@ -262,11 +267,14 @@ export function projectBettiWork(input: {
     add('provide_records', `records:${input.businessId}`, { kind: 'business', id: input.businessId }, [], scopeVersion,
       '/import', asOf)
   }
+  // Readiness/dependencies still decide eligibility. Within ready work, a useful
+  // specific fact must not lose to an older/larger optional review batch.
   const deduplicated = [...new Map(actions.map(a => [a.id, a])).values()]
-    .sort((a, b) => b.priority.score - a.priority.score || a.id.localeCompare(b.id))
+    .sort((a, b) => (b.priority.routingTier??0)-(a.priority.routingTier??0)||b.priority.score - a.priority.score || a.id.localeCompare(b.id))
   const actionable = deduplicated.filter(a => a.status === 'actionable')
   const deferred = deduplicated.filter(a => a.status === 'deferred')
   const waiting = deduplicated.filter(a => a.status === 'waiting')
+  const bookkeepingActions=deduplicated.filter(a=>!['personal_exception_sweep','receipt_upload_sweep','receipt_availability'].includes(a.type))
   const systemHeld = scoped.filter(r => !workingOrganized(r) && !activeJobIds(r.record_id).length
     && !deduplicated.some(a => a.recordIds.includes(r.record_id)))
     .map(r => ({ recordId: r.record_id, workstream: stream(r), reason: 'no_current_customer_action' as const,
@@ -279,7 +287,7 @@ export function projectBettiWork(input: {
       blocked: rs.filter(r => jobs.some(j => j.recordIds.includes(r.record_id)
         && ['failed_recoverable', 'stale_lease', 'paused', 'held'].includes(j.status))).length,
       customerActions: actionable.filter(a => a.affects.includes(s)).length,
-      documentationLimitations: rs.filter(r => !r.has_receipt && purchaseReceiptEligible({ amountCents: r.amount_cents,
+      documentationLimitations: rs.filter(r => !r.has_receipt && !statementEstablishesBankFee(r,c) && purchaseReceiptEligible({ amountCents: r.amount_cents,
         bookkeepingNature: r.bookkeeping_nature, treatment: r.treatment })).length }
   }
   const catchUp = progress('catch_up'), current = progress('current')
@@ -296,7 +304,7 @@ export function projectBettiWork(input: {
   }).sort()[0] : null
   const organizedThrough = knownAccountsThrough && c.business.authorizedScope.authorizedStart && knownAccountsThrough >= c.business.authorizedScope.authorizedStart
     && scoped.every(r => r.activity_date > knownAccountsThrough || workingOrganized(r))
-    && !jobs.length && !deduplicated.length && !c.documents.some(d => d.has_job === false)
+    && !jobs.length && !bookkeepingActions.length && !c.documents.some(d => d.has_job === false)
     ? knownAccountsThrough : null
   return { version: BETTI_WORK_VERSION, businessId: input.businessId, asOf, scopeVersion,
     scope: { bookkeepingStart: c.business.authorizedScope.authorizedStart, liveActivation: c.business.activation,
@@ -325,7 +333,7 @@ export function projectBettiWork(input: {
         : jobs.length || systemHeld.length ? 'blocked' : records.length && !scoped.length ? 'outside_scope'
         : deferred.length ? 'deferred' : scoped.length ? 'settled' : 'no_records',
       catchUp: !c.business.authorizedScope.historicalAuthorized ? 'not_requested' : !c.business.authorizedScope.authorizedStart || !c.business.activation ? 'scope_unknown' : catchUp.activity === 0 ? 'coverage_unconfirmed'
-        : catchUp.organized < catchUp.activity || deduplicated.some(a => a.affects.includes('catch_up'))
+        : catchUp.organized < catchUp.activity || bookkeepingActions.some(a => a.affects.includes('catch_up'))
           || jobs.some(j => ['catch_up', 'shared', 'unscoped'].includes(j.workstream))
           || c.documents.some(d => d.has_job === false) ? 'work_remaining' : 'available_activity_organized',
       catchUpReviewedThrough: null, booksCurrentThrough: null, knownAccountsOrganizedThrough: organizedThrough,

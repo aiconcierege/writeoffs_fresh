@@ -1,0 +1,22 @@
+{
+  "at": "2026-09-23T17:19:41.441Z",
+  "unchanged": {
+    "business_documents": true,
+    "statement_periods": true,
+    "statement_transaction_observations": true,
+    "bookkeeping_records": true,
+    "bookkeeping_financial_sources": true,
+    "financial_accounts": true,
+    "financial_transactions": true,
+    "financial_account_use_events": true,
+    "bookkeeping_decisions": true,
+    "bookkeeping_allocations": true,
+    "bookkeeping_review_events": true,
+    "bookkeeping_documentation_events": true,
+    "bookkeeping_tax_treatments": true,
+    "bookkeeping_document_links": true,
+    "betti_action_index_state": true,
+    "betti_action_index_entries": true
+  },
+  "guidedAssertions": 0
+}

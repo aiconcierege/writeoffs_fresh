@@ -23,5 +23,7 @@ describe('guided answer API boundary',()=>{
  it.each([{...item,amountCents:-10001},{...item,reviewVersion:'changed'},{...item,extra:'unseen'}])('still rejects changed fields or added content',async changed=>{
   expect((await send({...body,items:[changed]})).status).toBe(409);expect(m.rpc).not.toHaveBeenCalled()
  })
- it('rejects oversized groups',async()=>{expect((await send({...body,items:Array(9).fill(item)})).status).toBe(400);expect(m.rpc).not.toHaveBeenCalled()})
+ it('keeps receipt groups bounded at eight',async()=>{m.work.mockResolvedValue({actions:[{id:body.actionId,version:body.version,type:'receipt_availability',items:Array(9).fill(item)}]});expect((await send({...body,items:Array(9).fill(item)})).status).toBe(400);expect(m.rpc).not.toHaveBeenCalled()})
+ it('accepts a coherent 20-purchase personal review using the exact projected snapshot',async()=>{const items=Array.from({length:20},(_,i)=>({...item,recordId:`record-${i}`}));m.work.mockResolvedValue({actions:[{id:body.actionId,version:body.version,type:'personal_exception_sweep',items}]});expect((await send({...body,items})).status).toBe(200);expect(m.rpc).toHaveBeenCalledWith('answer_betti_guided_work',expect.objectContaining({p_items:items,p_action:'personal_exception_sweep'}))})
+ it('rejects oversized groups',async()=>{expect((await send({...body,items:Array(101).fill(item)})).status).toBe(400);expect(m.rpc).not.toHaveBeenCalled()})
 })

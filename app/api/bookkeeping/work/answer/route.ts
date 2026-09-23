@@ -1,3 +1,4 @@
+import {GUIDED_BATCH_LIMIT,PERSONAL_SWEEP_LIMIT} from '../../../../lib/bookkeeping/guided-work'
 import {isDeepStrictEqual} from 'node:util'
 import {requestUser} from '../../../../lib/performance/request-identity'
 import {guidedCommand} from '../../../../lib/bookkeeping/guided-command-response'
@@ -13,7 +14,7 @@ async function handlePOST(request:Request){
  try{await requireCapability(db,'autonomous_processing')}catch(e){const r=membershipErrorResponse(e);return NextResponse.json({error:r.error},{status:r.status})}
  let body;try{body=await request.json()}catch{return NextResponse.json({error:'Check your answer.'},{status:400})}
  if(!uuid.test(body.requestId??'')||typeof body.actionId!=='string'||typeof body.version!=='string'
- ||!['completed','deferred'].includes(body.disposition)||!Array.isArray(body.items)||body.items.length<1||body.items.length>8
+ ||!['completed','deferred'].includes(body.disposition)||!Array.isArray(body.items)||body.items.length<1||body.items.length>PERSONAL_SWEEP_LIMIT
  ||!body.answers||typeof body.answers!=='object'||Array.isArray(body.answers))return NextResponse.json({error:'Check the displayed purchases.'},{status:400})
  try{
   const prior=await db.from('betti_guided_assertions').select('action,items,answers,disposition').eq('id',body.requestId).maybeSingle()
@@ -25,6 +26,7 @@ async function handlePOST(request:Request){
    if(!action?.items||!isDeepStrictEqual(action.items,body.items))return NextResponse.json({error:'These purchases changed. I’ll refresh the group before you continue.'},{status:409})
    type=action.type
   }
+  if(type!=='personal_exception_sweep'&&body.items.length>GUIDED_BATCH_LIMIT)return NextResponse.json({error:'Check the displayed purchases.'},{status:400})
   const result=await db.rpc('answer_betti_guided_work',{p_request:body.requestId,p_action:type,p_disposition:body.disposition,p_items:body.items,p_answers:body.answers})
   if(result.error)return NextResponse.json({error:'The group changed or is still being assessed. Refresh before continuing.'},{status:409})
   return NextResponse.json({ok:true,result:result.data},{headers:{'Cache-Control':'private, no-store'}})

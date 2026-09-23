@@ -1,0 +1,18 @@
+{
+  "tests": {
+    "passed": 1927,
+    "skipped": 143,
+    "note": "Environment-dependent suites skipped; explicit local PostgreSQL checks additionally passed."
+  },
+  "typescript": "PASS",
+  "lint": {
+    "errors": 0,
+    "existingWarnings": 16
+  },
+  "optimizedBuild": "PASS (next build --webpack); default Turbopack hit local OS port-binding restriction",
+  "secretScan": "PASS; task files scanned with redaction",
+  "diffCheck": "PASS",
+  "database": "PASS; data-free local staging-schema clone, synthetic rollback-only checks",
+  "hostedUi": "NOT RUN; deployment held for staging-only freeze approval",
+  "liveStagingSha": "b6a5001bceb434d378b6f8707826043e166d6f65"
+}

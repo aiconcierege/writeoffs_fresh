@@ -109,7 +109,7 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
   finally{lock.current=false;setSaving(false)}
  }
  const status=conversationStatus(work,outcome,waitingPaused),waiting=status.waiting
- const progress=handled||deferred?`${handled} handled this visit${deferred?` · ${deferred} saved for later`:''}`:work.customer.actionableCount?`${work.customer.actionableCount} ${work.customer.actionableCount===1?'thing needs':'things need'} you`:''
+ const progress=handled||deferred?`${handled} handled this visit${deferred?` · ${deferred} saved for later`:''}`:work.customer.actionableCount?'A few things to review':''
  return <div ref={root} data-customer-action-count={work.customer.actionableCount} data-guided-action={action?.type??work.readiness.phase} data-guided-version={action?.version} data-guided-id={action?.id} data-guided-presentation={work.presentation?.status??'ready'}>
  <ConversationShell contentIdentity={action?.id+':'+action?.version} returnTo={returnTo} context={context} progress={progress} notice={notice} state={!action?waiting?'working':'caught-up':'question'}>
   {error&&<div className="betti-error" role="alert">{error}<button className="betti-defer" onClick={()=>void recover()}>Refresh current work</button></div>}
@@ -132,7 +132,7 @@ function SweepStep({action,busy,perform,refresh,onPending}:{onPending:(pending:b
  const personal=action.type==='personal_exception_sweep',mixed=action.type==='mixed_use_sweep',mixedAccount=action.account?.designation==='business_and_personal'
  const receipt=action.type==='receipt_upload_sweep',availability=action.type==='receipt_availability',items=action.items!
  const title=personal?'Anything here personal?':mixed?mixedAccount?'Which of these were for business?':'Anything partly personal?':receipt?'Do you have receipts for these?':'Any more receipts for these?'
- const explanation=personal?'I’m treating these as business because this is your business-only account.':mixed?mixedAccount?'This account has business and personal activity. For anything partly personal, tell me how much was for business.':'Select anything partly personal and tell me how much was for business.':receipt?'Send me what you have and I’ll match them.':'If not, that’s okay. I’ll keep working with what I have.'
+ const explanation=personal?'I’ve treated these as business. Just tell me if any were personal.':mixed?mixedAccount?'This account has business and personal activity. For anything partly personal, tell me how much was for business.':'Select anything partly personal and tell me how much was for business.':receipt?'Send me what you have and I’ll match them.':'If not, that’s okay. I’ll keep working with what I have.'
  const valid=!mixed||items.every(i=>{const a=answers[i.recordId];if(mixedAccount&&!a)return false;if(a?.use!=='mixed')return true;const n=parsePositiveDollarCents(a.businessDollars??'');return n!==null&&n>0&&n<Math.abs(i.amountCents)})
  function save(disposition:'completed'|'deferred'){
   return perform(async()=>{

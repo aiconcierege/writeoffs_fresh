@@ -263,15 +263,14 @@ describe('guided work from the same canonical projection',()=>{
  function reviewed(c:WorkContext,action:'personal_exception_sweep'|'mixed_use_sweep'|'receipt_upload_sweep'){
   c.guidedReviews!.push({business_id:'a',id:action,action,disposition:'completed',created_at:now,deferred_until:null,items:c.records.map(r=>({recordId:r.record_id,accountUseVersion:'use1'}))})
  }
- it('replaces repeated questions with one visible business-only exception group',()=>{
-  const c=guided();const p=project(c,[question(c.records[0])])
+ it('offers one non-blocking business-only exception group when no specific fact is missing',()=>{
+  const c=guided();const p=project(c)
   expect(p.customer.actionableCount).toBe(1);expect(p.nextAction?.type).toBe('personal_exception_sweep')
   expect(p.nextAction?.items?.[0].merchant).toBe('Software service');expect(p.nextAction?.question).toBeUndefined()
  })
- it('advances personal then mixed exceptions then receipts without inventing decisions',()=>{
+ it('moves from optional personal exceptions directly to receipts without a universal mixed-use stage',()=>{
   const c=guided(),original=JSON.stringify(c.records)
-  reviewed(c,'personal_exception_sweep');expect(project(c).nextAction?.type).toBe('mixed_use_sweep')
-  reviewed(c,'mixed_use_sweep');expect(project(c).nextAction?.type).toBe('receipt_upload_sweep')
+  reviewed(c,'personal_exception_sweep');expect(project(c).nextAction?.type).toBe('receipt_upload_sweep')
   reviewed(c,'receipt_upload_sweep');expect(project(c).nextAction?.type).toBe('receipt_availability')
   expect(JSON.stringify(c.records)).toBe(original)
  })
@@ -281,7 +280,7 @@ describe('guided work from the same canonical projection',()=>{
  })
  it('groups unresolved mixed-account purchases without establishing business use',()=>{
   const c=guided('business_and_personal');c.records[0].treatment='unresolved';c.records[0].allocations=[]
-  const p=project(c,[question(c.records[0])]);expect(p.nextAction?.type).toBe('mixed_use_sweep')
+  const p=project(c);expect(p.nextAction?.type).toBe('mixed_use_sweep')
   expect(p.progress.catchUp.organized).toBe(0);expect(c.records[0].treatment).toBe('unresolved')
  })
  it('never puts transfers, loans, incoming funds or personal records in purchase sweeps',()=>{
@@ -297,7 +296,7 @@ describe('guided work from the same canonical projection',()=>{
  })
  it('bounds each visible group and does not include future/unseen purchases in its snapshot',()=>{
   const c=guided();c.records=Array.from({length:10},(_,i)=>({...c.records[0],record_id:`r${i}`,decision_id:`d${i}`}))
-  const p=project(c);expect(p.customer.actionableCount).toBe(2);expect(p.customer.actionable.map(a=>a.items!.length).sort()).toEqual([2,8])
+  const p=project(c);expect(p.customer.actionableCount).toBe(1);expect(p.nextAction?.items).toHaveLength(10)
   const first=p.nextAction!;c.records.push({...c.records[0],record_id:'later'})
   expect(first.items).toHaveLength(first.recordIds.length);expect(first.recordIds).not.toContain('later')
  })

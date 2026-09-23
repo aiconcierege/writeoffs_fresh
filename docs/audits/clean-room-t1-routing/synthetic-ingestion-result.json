@@ -1,0 +1,89 @@
+{
+  "synthetic": true,
+  "at": "2026-09-23T17:20:13.789Z",
+  "income": 210052,
+  "expenses": 142573,
+  "profit": 67479,
+  "flow": [
+    {
+      "type": "special_transaction",
+      "prompt": null,
+      "merchant": "LOAN PAYMENT - EQUIPMENT FINANCE CO"
+    },
+    {
+      "type": "special_transaction",
+      "prompt": null,
+      "merchant": "REFUND - OFFICE DEPOT"
+    },
+    {
+      "type": "material_question",
+      "prompt": "What was this money for?",
+      "merchant": "ZELLE FROM ROBERT HALL"
+    },
+    {
+      "type": "material_question",
+      "prompt": "What kind of activity was this?",
+      "merchant": "ZELLE TO MARK REYNOLDS"
+    },
+    {
+      "type": "material_question",
+      "prompt": "Is that right?",
+      "merchant": "STRIPE PAYOUT"
+    },
+    {
+      "type": "material_question",
+      "prompt": "What kind of activity was this?",
+      "merchant": "ATM WITHDRAWAL"
+    },
+    {
+      "type": "material_question",
+      "prompt": "What was this money for?",
+      "merchant": "ZELLE FROM EMILY CARTER"
+    },
+    {
+      "type": "material_question",
+      "prompt": "What was this money for?",
+      "merchant": "ACH DEPOSIT - BLUE MESA CONSULTING"
+    },
+    {
+      "type": "material_question",
+      "prompt": "What was this money for?",
+      "merchant": "CASH DEPOSIT"
+    },
+    {
+      "type": "material_question",
+      "prompt": "Is that right?",
+      "merchant": "ZELLE FROM JANE MORRIS - INV 1041"
+    },
+    {
+      "type": "material_question",
+      "prompt": "What did this insurance cover?",
+      "merchant": "STATE FARM INSURANCE"
+    },
+    {
+      "type": "material_question",
+      "prompt": "What was this purchase for?",
+      "merchant": "CHECK #104 - DESERT PRINT SHOP"
+    },
+    {
+      "type": "material_question",
+      "prompt": "About how much do you use this phone service for your business?",
+      "merchant": "verizon"
+    },
+    {
+      "type": "personal_exception_sweep",
+      "prompt": null,
+      "merchant": null,
+      "items": [
+        "ADOBE *CREATIVE CLOUD",
+        "CITY OF GOODYEAR BUSINESS LICENSE",
+        "OFFICE DEPOT #1142",
+        "GOOGLE *WORKSPACE",
+        "CHECK #105 - VALLEY OFFICE RENT"
+      ]
+    }
+  ],
+  "hosted": false,
+  "evidenceLevel": "REAL STAGING INGESTION; corrected local read-only projector; not deployed UI",
+  "source": "Original controlled WriteOffs_Test_Business_Checking_May_2026.pdf, normal upload on a separate synthetic customer"
+}
