@@ -41,3 +41,24 @@ simulated; hosted persistence evidence is recorded separately after deployment.
 Full suite: 1,947 passed, 143 environment-dependent skipped. TypeScript and optimized
 build passed. Lint has zero errors and 16 existing warnings. Secret/diff checks passed.
 No changes to Rick's answers, records, projection or exclusion are authorized here.
+
+## Hosted result and preservation
+
+Application commit `feafaf0a6f44d67ee161125e8a27934bf15b74e6`, dedicated staging
+project `writeoffs-fresh-staging`, deployment `dpl_27smTrjLRATwCzSNPenBMLCDL8W3`.
+Three real synthetic incoming uncertainty submissions passed; the first two advanced
+Emily → Robert → Blue Mesa using identical question templates. Normal deferral
+commands postponed unrelated questions only for the tagged synthetic fixture; this
+is a transition test, not a new certification of eligibility after all those deferrals.
+
+Each answer persisted once with unresolved economic nature and zero allocations.
+Server durations were 766.5, 806.1 and 840.7 ms; browser-observed response durations
+were 989, 1017 and 989 ms. Saving feedback appeared within 11–38 ms. The harness held
+responses for at least 800 ms to verify visible feedback. Desktop/mobile merchant
+context was visible after advancement and reload; keyboard/reduced motion passed.
+No intermediate action appeared. Screenshots were visually inspected.
+
+The final read-only comparison matched all 102 captured clean-room tables exactly
+against the post-Emily baseline. No customer answer, event, decision, source evidence,
+projection or exclusion changed during this correction. Rick's authoritative next
+question remains Robert Hall, May 7, +$425, “What was this money for?”

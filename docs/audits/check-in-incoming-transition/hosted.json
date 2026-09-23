@@ -1,0 +1,51 @@
+{
+  "synthetic": true,
+  "mode": "incoming-transition-certification",
+  "outcomes": [
+    {
+      "width": 1280,
+      "reducedMotion": false,
+      "keyboard": false,
+      "from": "ZELLE FROM EMILY CARTER",
+      "to": "ZELLE FROM ROBERT HALL\n\nMay 7, 2026 · $425.00",
+      "incomingToIncoming": true,
+      "answerCount": 1,
+      "feedbackMs": 38,
+      "serverMs": 989,
+      "serverTiming": "total;dur=766.5, db_auth;dur=44.7, db_current_customer_membership;dur=47.4, db_rpc_read_betti_indexed_question;dur=47.2, indexed_action_lookup;dur=48.6, db_rpc_execute_betti_indexed_question;dur=111.2, indexed_canonical_commit;dur=112.4, canonical_command;dur=262.3, db_rpc_read_betti_action_index;dur=114.5, canonical_action_index;dur=117.2, db_rpc_read_betti_work_inputs;dur=381.3, canonical_input_snapshot;dur=383.3, question_selection;dur=0.9, projection_construction;dur=0.8",
+      "merchantVisible": true,
+      "refreshStable": true,
+      "unresolvedWithoutAllocation": true
+    },
+    {
+      "width": 390,
+      "reducedMotion": true,
+      "keyboard": true,
+      "from": "ZELLE FROM ROBERT HALL",
+      "to": "ACH DEPOSIT - BLUE MESA CONSULTING\n\nMay 4, 2026 · $1,250.00",
+      "incomingToIncoming": true,
+      "answerCount": 1,
+      "feedbackMs": 11,
+      "serverMs": 1017,
+      "serverTiming": "total;dur=806.1, db_auth;dur=42.2, db_current_customer_membership;dur=55.0, db_rpc_read_betti_indexed_question;dur=32.7, indexed_action_lookup;dur=33.8, db_rpc_execute_betti_indexed_question;dur=224.6, indexed_canonical_commit;dur=225.9, canonical_command;dur=363.2, db_rpc_read_betti_action_index;dur=103.8, canonical_action_index;dur=106.8, db_rpc_read_betti_work_inputs;dur=331.8, canonical_input_snapshot;dur=333.3, question_selection;dur=0.5, projection_construction;dur=0.6",
+      "merchantVisible": true,
+      "refreshStable": true,
+      "unresolvedWithoutAllocation": true
+    },
+    {
+      "width": 1280,
+      "reducedMotion": false,
+      "keyboard": false,
+      "from": "ACH DEPOSIT - BLUE MESA CONSULTING",
+      "to": "VERIZON WIRELESS\n\nMay 8, 2026 · $146.28",
+      "incomingToIncoming": false,
+      "answerCount": 1,
+      "feedbackMs": 28,
+      "serverMs": 989,
+      "serverTiming": "total;dur=840.7, db_auth;dur=55.3, db_current_customer_membership;dur=45.2, db_rpc_read_betti_indexed_question;dur=41.7, indexed_action_lookup;dur=42.9, db_rpc_execute_betti_indexed_question;dur=227.0, indexed_canonical_commit;dur=228.3, canonical_command;dur=376.6, db_rpc_read_betti_action_index;dur=125.9, canonical_action_index;dur=128.3, db_rpc_read_betti_work_inputs;dur=329.0, canonical_input_snapshot;dur=332.4, question_selection;dur=1.0, projection_construction;dur=0.6",
+      "merchantVisible": true,
+      "refreshStable": true,
+      "unresolvedWithoutAllocation": true
+    }
+  ]
+}

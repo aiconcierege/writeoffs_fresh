@@ -25,6 +25,16 @@ async function main(){
  const context=await browser.newContext(),origin='https://writeoffs-fresh-staging.vercel.app'
  await context.addCookies([...jar].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:true,sameSite:'Lax' as const})))
 
+ // Prepare only this tagged synthetic session: postpone unrelated factual turns
+ // through their normal command endpoint so ambiguous incoming turns are adjacent.
+ const initial=await (await context.request.get(origin+'/api/bookkeeping/work')).json()
+ for(const a of initial.customer.actionable){
+  const q=a.question
+  if(q&&(q.confirmation||q.transaction.amountCents<=0)){
+   const deferred=await context.request.post(origin+'/api/bookkeeping/questions/'+q.id,{headers:{'if-match':q.version,'x-betti-guided':'1'},data:{action:'defer'}})
+   assert.equal(deferred.status(),200,'Synthetic preparation deferral failed')
+  }
+ }
  const page=await context.newPage();const outcomes:Array<Record<string,unknown>>=[]
  for(let turn=0;turn<18&&outcomes.length<3;turn++){
   const width=outcomes.length%2?390:1280,reduced=width===390
@@ -61,7 +71,7 @@ async function main(){
   const next=await page.locator('[data-guided-id]').getAttribute('data-guided-id')
   const visible=await page.evaluate(()=>(window as unknown as {seen:string[]}).seen)
   assert.deepEqual([...new Set(visible.filter(x=>x!==id))],[next])
-  await page.waitForFunction(()=>{const b=document.querySelector('#guided-transaction')?.getBoundingClientRect();return b&&b.top>=0&&b.bottom<=innerHeight})
+  await page.waitForFunction(()=>{const b=document.querySelector('#guided-transaction')?.getBoundingClientRect();return b&&b.top>=90&&b.bottom<=innerHeight})
   assert(await page.locator('.betti-active-conversation h1').evaluate(el=>el===document.activeElement))
   const nextMerchant=await page.locator('#guided-transaction').innerText()
   const after=await (await context.request.get(origin+'/api/bookkeeping/work?view=guided')).json()
@@ -73,9 +83,9 @@ async function main(){
   const allocations=await admin.from('bookkeeping_allocations').select('id').eq('bookkeeping_decision_id',events.data![0].resulting_decision_id)
   assert(!allocations.error);assert.equal(allocations.data?.length,0)
   await page.reload();await page.locator('[data-guided-id]').waitFor();assert.equal(await page.locator('[data-guided-id]').getAttribute('data-guided-id'),next)
-  await page.waitForFunction(()=>{const b=document.querySelector('#guided-transaction')?.getBoundingClientRect();return b&&b.top>=0&&b.bottom<=innerHeight})
+  await page.waitForFunction(()=>{const b=document.querySelector('#guided-transaction')?.getBoundingClientRect();return b&&b.top>=90&&b.bottom<=innerHeight})
   await page.screenshot({path:'/private/tmp/emily-hosted-'+width+'.png'})
-  outcomes.push({width,reducedMotion:reduced,keyboard:reduced,from:action.question.transaction.merchant,to:nextMerchant,incomingToIncoming:after.nextAction.question?.transaction.amountCents>0,answerCount:1,feedbackMs,serverMs,serverTiming:timing,merchantVisible:true,refreshStable:true,unresolvedWithoutAllocation:true})
+  outcomes.push({width,reducedMotion:reduced,keyboard:reduced,from:action.question.transaction.merchant,to:nextMerchant,incomingToIncoming:after.nextAction.question?.transaction.amountCents>0&&!after.nextAction.question?.confirmation,answerCount:1,feedbackMs,serverMs,serverTiming:timing,merchantVisible:true,refreshStable:true,unresolvedWithoutAllocation:true})
   await writeFile('/private/tmp/emily-hosted-progress.json',JSON.stringify(outcomes,null,2));await page.unroute(endpoint)
  }
  assert(outcomes.length>=2);assert(outcomes.filter(o=>o.incomingToIncoming).length>=2)

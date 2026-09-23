@@ -44,11 +44,11 @@ try{
   // Hold a slow response until feedback and unchanged active identity are proven.
   await page.waitForTimeout(800);assert.equal(await page.evaluate(()=>window.commands),1)
   await page.evaluate(()=>window.releaseAnswer());await page.waitForFunction(()=>document.querySelector('[data-guided-id]')?.getAttribute('data-guided-id')==='SYNTHETIC INCOMING B')
-  await page.waitForFunction(()=>{const el=document.querySelector('#guided-transaction'),b=el.getBoundingClientRect();return b.top>=0&&b.bottom<innerHeight})
+  await page.waitForFunction(()=>{const el=document.querySelector('#guided-transaction'),b=el.getBoundingClientRect();return b.top>=90&&b.bottom<innerHeight})
   assert.equal(await page.locator('h1').evaluate(el=>el===document.activeElement),true)
   assert.deepEqual(await page.evaluate(()=>[...new Set(window.seen)]),['SYNTHETIC INCOMING A','SYNTHETIC INCOMING B'])
   await page.reload();await page.locator('[data-guided-id="SYNTHETIC INCOMING B"]').waitFor()
-  assert((await page.locator('#guided-transaction').boundingBox()).y>=0)
+  await page.waitForFunction(()=>document.querySelector('#guided-transaction').getBoundingClientRect().top>=90)
   await page.screenshot({path:'/private/tmp/emily-presentation-'+width+'-'+reduced+'.png'})
   outcomes.push({width,reducedMotion:reduced,keyboard:reduced,feedbackMs,slowResponse:true,commands:1,merchantVisible:true,refreshStable:true})
   await context.close()
