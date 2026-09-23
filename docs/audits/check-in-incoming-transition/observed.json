@@ -1,0 +1,240 @@
+{
+  "answerCount": 1,
+  "answerTimestamp": "2026-09-23T20:00:32.974333+00:00",
+  "answerSequence": 3,
+  "answerPayload": {
+    "response": "not_sure",
+    "schemaVersion": 1
+  },
+  "currentTransaction": {
+    "merchant": "ZELLE FROM ROBERT HALL",
+    "amountCents": 42500,
+    "currency": "USD",
+    "date": "2026-05-07"
+  },
+  "currentPrompt": "What was this money for?",
+  "sameTransactionRepeated": false,
+  "index": {
+    "revision": 727,
+    "published_revision": 712,
+    "built_at": "2026-09-23T18:50:22.428601+00:00"
+  },
+  "requestStatus": 200,
+  "timing": {
+    "event": "guided_request_timing",
+    "totalMs": 10417,
+    "queryCount": 33,
+    "spans": [
+      {
+        "name": "db_auth",
+        "start": 5.714045000000624,
+        "duration": 82.04993399999876
+      },
+      {
+        "name": "db_current_customer_membership",
+        "start": 94.50553900000159,
+        "duration": 148.89158999999927
+      },
+      {
+        "name": "db_rpc_read_betti_indexed_question",
+        "start": 245.73838900000192,
+        "duration": 101.70559299999877
+      },
+      {
+        "name": "indexed_action_lookup",
+        "start": 245.1004209999992,
+        "duration": 103.72891300000265
+      },
+      {
+        "name": "db_rpc_execute_betti_indexed_question",
+        "start": 351.25486400000227,
+        "duration": 106.43766499999765
+      },
+      {
+        "name": "indexed_canonical_commit",
+        "start": 350.1276790000011,
+        "duration": 109.69350399999894
+      },
+      {
+        "name": "db_bookkeeping_records",
+        "start": 461.15290599999935,
+        "duration": 90.501908000002
+      },
+      {
+        "name": "db_bookkeeping_financial_sources",
+        "start": 554.6318219999994,
+        "duration": 85.53805700000157
+      },
+      {
+        "name": "db_financial_transactions",
+        "start": 642.6561500000025,
+        "duration": 56.88276799999949
+      },
+      {
+        "name": "db_plaid_transaction_versions",
+        "start": 701.7846830000017,
+        "duration": 50.258434999999736
+      },
+      {
+        "name": "db_current_bookkeeping_source_convergences",
+        "start": 763.5453740000012,
+        "duration": 98.02492100000018
+      },
+      {
+        "name": "db_current_bookkeeping_compound_components",
+        "start": 760.3686990000024,
+        "duration": 132.86673099999825
+      },
+      {
+        "name": "db_current_bookkeeping_record_convergences",
+        "start": 756.0403929999993,
+        "duration": 836.3410280000026
+      },
+      {
+        "name": "db_manual_financial_source_events",
+        "start": 762.0703549999998,
+        "duration": 1843.097614000002
+      },
+      {
+        "name": "db_bookkeeping_receipt_events",
+        "start": 758.8030400000025,
+        "duration": 2422.119154
+      },
+      {
+        "name": "db_bookkeeping_decisions",
+        "start": 3181.8761470000027,
+        "duration": 95.83822099999816
+      },
+      {
+        "name": "db_bookkeeping_allocations",
+        "start": 3279.2065900000016,
+        "duration": 103.09034899999824
+      },
+      {
+        "name": "db_bookkeeping_records",
+        "start": 3382.875962000002,
+        "duration": 3268.424923999999
+      },
+      {
+        "name": "db_bookkeeping_financial_sources",
+        "start": 6652.980503999999,
+        "duration": 90.34785400000328
+      },
+      {
+        "name": "db_bookkeeping_decisions",
+        "start": 6653.730638000001,
+        "duration": 133.29831800000102
+      },
+      {
+        "name": "db_bookkeeping_receipt_meal_candidates",
+        "start": 6655.730948,
+        "duration": 259.68105099999957
+      },
+      {
+        "name": "db_bookkeeping_review_events",
+        "start": 6654.1520359999995,
+        "duration": 1072.3322020000014
+      },
+      {
+        "name": "db_businesses",
+        "start": 6657.179921999999,
+        "duration": 2211.209566999998
+      },
+      {
+        "name": "db_bookkeeping_document_links",
+        "start": 6654.505680000002,
+        "duration": 2526.8270299999967
+      },
+      {
+        "name": "db_financial_transactions",
+        "start": 9182.192879999999,
+        "duration": 88.05302099999972
+      },
+      {
+        "name": "db_financial_transactions",
+        "start": 9274.831845000004,
+        "duration": 93.49195599999803
+      },
+      {
+        "name": "db_financial_accounts",
+        "start": 9370.246410000003,
+        "duration": 109.52812999999878
+      },
+      {
+        "name": "db_current_financial_account_use",
+        "start": 9480.840673000002,
+        "duration": 77.67412499999773
+      },
+      {
+        "name": "db_plaid_transaction_versions",
+        "start": 9559.583005000004,
+        "duration": 111.52752799999871
+      },
+      {
+        "name": "db_bookkeeping_financial_sources",
+        "start": 9671.756081000003,
+        "duration": 79.77326699999685
+      },
+      {
+        "name": "db_bookkeeping_decisions",
+        "start": 9752.662635000004,
+        "duration": 86.25494499999331
+      },
+      {
+        "name": "db_rpc_read_betti_action_index",
+        "start": 9844.781178000001,
+        "duration": 64.47708799999964
+      },
+      {
+        "name": "canonical_action_index",
+        "start": 9842.657936,
+        "duration": 67.57351000000199
+      },
+      {
+        "name": "canonical_command",
+        "start": 0.8879630000010366,
+        "duration": 9909.690342999998
+      },
+      {
+        "name": "db_rpc_read_betti_action_index",
+        "start": 9914.838047000001,
+        "duration": 63.27079000000231
+      },
+      {
+        "name": "canonical_action_index",
+        "start": 9913.485088999998,
+        "duration": 65.39226300000155
+      },
+      {
+        "name": "db_rpc_read_betti_action_index",
+        "start": 9979.554088,
+        "duration": 95.21587500000169
+      },
+      {
+        "name": "canonical_action_index",
+        "start": 9979.151224999998,
+        "duration": 98.25582700000086
+      },
+      {
+        "name": "db_rpc_read_betti_work_inputs",
+        "start": 10077.951158,
+        "duration": 333.5031190000009
+      },
+      {
+        "name": "canonical_input_snapshot",
+        "start": 10077.478376000003,
+        "duration": 335.8209949999946
+      },
+      {
+        "name": "question_selection",
+        "start": 10413.462294,
+        "duration": 1.4296309999990626
+      },
+      {
+        "name": "projection_construction",
+        "start": 10414.898459,
+        "duration": 1.806164000001445
+      }
+    ]
+  }
+}

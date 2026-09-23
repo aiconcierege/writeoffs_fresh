@@ -46,3 +46,16 @@ it.each(['personal','excluded','positive'])('does not load expense evidence for 
  await finishAnsweredExpense({supabase:{auth:{getUser}} as never,result:{decision}})
  expect(getUser).not.toHaveBeenCalled()
 })
+
+it('does not load expense evidence or invent facts for explicit unknown-activity uncertainty',async()=>{
+ const source=snapshot(),decision={...source.currentDecision,treatment:'unresolved',bookkeepingNature:null,allocations:[]},getUser=vi.fn(()=>{throw new Error('Unnecessary uncertainty evidence lookup')})
+ const result={decision,answeredEvent:{answerPayload:{schemaVersion:1,response:'not_sure'}}},before=structuredClone(result)
+ await finishAnsweredExpense({supabase:{auth:{getUser}} as never,result})
+ expect(getUser).not.toHaveBeenCalled();expect(result).toEqual(before)
+})
+it.each(['factual-answer','supported-expense'])('preserves the evidence enrichment path for %s',async kind=>{
+ const decision=kind==='supported-expense'?snapshot().currentDecision:{...snapshot().currentDecision,treatment:'unresolved',bookkeepingNature:null,allocations:[]}
+ const getUser=vi.fn(()=>{throw new Error('Evidence path reached')})
+ await expect(finishAnsweredExpense({supabase:{auth:{getUser}} as never,result:{decision,answeredEvent:{answerPayload:kind==='supported-expense'?{schemaVersion:1,response:'not_sure'}:{schemaVersion:1,businessPurpose:'client work'}}}})).rejects.toThrow('Evidence path reached')
+ expect(getUser).toHaveBeenCalledOnce()
+})

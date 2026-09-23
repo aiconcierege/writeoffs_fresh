@@ -130,3 +130,14 @@ it('document evidence refresh commits only the returned presentation while retai
  expect(hooks.setters[0]).toHaveBeenCalledTimes(1)
  expect(hooks.setters[0].mock.calls[0][0].nextAction.id).toBe(next.nextAction?.id)
 })
+
+it('acknowledges pending submission immediately without unmounting the submitting question',async()=>{
+ const {view}=start(homeWorkFixture('concurrent'))
+ const pending=callback(view,'onGuidedPending');expect(pending).toBeTypeOf('function')
+ await pending!(true)
+ // Work stays mounted so its fetch/finally completes; pending feedback has its own state.
+ expect(hooks.setters[4]).toHaveBeenCalledWith(true)
+ expect(hooks.setters[0]).not.toHaveBeenCalled()
+ expect(hooks.setters[3]).not.toHaveBeenCalled()
+ await pending!(false);expect(hooks.setters[4]).toHaveBeenLastCalledWith(false)
+})

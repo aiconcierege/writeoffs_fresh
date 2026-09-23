@@ -28,6 +28,21 @@ export async function finishAnsweredExpense(input: { supabase: SupabaseClient; a
   const decision = input.result.decision
   if (!decision || typeof decision !== 'object' || !('id' in decision) || !('businessId' in decision)
     || !('bookkeepingRecordId' in decision)) return
+  // Uncertainty about an economically unresolved movement adds no expense fact.
+  // Its canonical transaction has already saved the answer without allocations.
+  // Keep established-expense enrichment unchanged; avoid its evidence waterfall
+  // only for this explicit unknown-activity result.
+  if ('bookkeepingNature' in decision && decision.bookkeepingNature === null
+    && 'treatment' in decision && decision.treatment === 'unresolved'
+    && 'allocations' in decision && Array.isArray(decision.allocations) && decision.allocations.length === 0
+    && 'answeredEvent' in input.result) {
+    const event = input.result.answeredEvent
+    if (event && typeof event === 'object' && 'answerPayload' in event) {
+      const answer = event.answerPayload
+      if (answer && typeof answer === 'object' && 'schemaVersion' in answer && answer.schemaVersion === 1
+        && 'response' in answer && answer.response === 'not_sure') return
+    }
+  }
   // These are the same no-op cases as processOperatingExpenseTreatment. The
   // canonical committed decision already reconciles allocations to the immutable
   // amount, so loading its entire evidence graph cannot enrich an expense here.

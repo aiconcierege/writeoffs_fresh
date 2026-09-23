@@ -97,6 +97,7 @@
 .betti-active-conversation { min-height:27rem; }
 .betti-understanding { font-size:1rem; line-height:1.5; color:var(--wo-green); margin:0 0 1.25rem; max-width:56ch; padding:.85rem 1rem; border-left:3px solid #76a38a; background:#eaf2e9; border-radius:0 .6rem .6rem 0; }
 .betti-answer-status { min-height:1.4rem; margin:.5rem 0; color:var(--wo-green); font-size:.85rem; }
+.betti-transition-feedback { position:fixed; z-index:50; bottom:max(1rem,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); width:max-content; max-width:calc(100vw - 2rem); padding:.8rem 1.1rem; border:1px solid #dce5df; border-radius:1rem; background:#fff; color:#243186; box-shadow:0 4px 20px #17211d18; font-size:.95rem; font-weight:600; pointer-events:none; }
 .betti-question-controls .question-answer-options { margin-top:.4rem; }
 .betti-batch { max-height:25rem; overflow:auto; scrollbar-gutter:stable; }
 [data-guided-action=receipt_upload_sweep] .betti-batch,[data-guided-action=receipt_availability] .betti-batch { max-height:13rem; }

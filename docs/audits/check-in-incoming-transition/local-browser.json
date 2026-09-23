@@ -1,0 +1,42 @@
+[
+  {
+    "width": 1280,
+    "reducedMotion": false,
+    "keyboard": false,
+    "feedbackMs": 42,
+    "slowResponse": true,
+    "commands": 1,
+    "merchantVisible": true,
+    "refreshStable": true
+  },
+  {
+    "width": 1280,
+    "reducedMotion": true,
+    "keyboard": true,
+    "feedbackMs": 8,
+    "slowResponse": true,
+    "commands": 1,
+    "merchantVisible": true,
+    "refreshStable": true
+  },
+  {
+    "width": 390,
+    "reducedMotion": false,
+    "keyboard": false,
+    "feedbackMs": 36,
+    "slowResponse": true,
+    "commands": 1,
+    "merchantVisible": true,
+    "refreshStable": true
+  },
+  {
+    "width": 390,
+    "reducedMotion": true,
+    "keyboard": true,
+    "feedbackMs": 6,
+    "slowResponse": true,
+    "commands": 1,
+    "merchantVisible": true,
+    "refreshStable": true
+  }
+]

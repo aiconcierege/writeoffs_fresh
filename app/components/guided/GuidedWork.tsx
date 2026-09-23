@@ -13,10 +13,12 @@ import {DocumentIntake} from '../../documents/DocumentIntake'
 import {SpecialTransactionFlow} from '../SpecialTransactionFlow'
 import {ConversationShell,SelectionCard} from './ConversationShell'
 import {MerchantIdentity} from './MerchantIdentity'
+import {presentConversationTurn} from './present-conversation-turn'
 
 export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false}:{initialWork:GuidedWorkProjection;returnTo?:string;recordId?:string;ordinary?:boolean}){
  const[work,setWork]=useState(initialWork),[handled,setHandled]=useState(0),[deferred,setDeferred]=useState(0)
  const[transitioning,setTransitioning]=useState(false)
+ const[commandPending,setCommandPending]=useState(false)
  const action=transitioning?null:work.presentation?.status==='settling'?null:work.presentation?.action??work.nextAction
  const presented=useRef<{id:string;version:string}|null>(null),readSequence=useRef(0),evidenceReceived=useRef(false)
  const checkingPresented=useRef(false)
@@ -58,7 +60,7 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
   commitWork(updated);return updated
  },[recordId,commitWork])
  const needsProcessingRead=!action&&(work.betti.genuinelyProcessing+work.betti.queued+work.betti.retryScheduled>0||error==='I couldn’t check for updates. Refresh before answering.')
- const onPending=useCallback((pending:boolean)=>{lock.current=pending;if(pending){readSequence.current++;backgroundRead.current?.abort()}},[])
+ const onPending=useCallback((pending:boolean)=>{lock.current=pending;setCommandPending(pending);if(pending){readSequence.current++;backgroundRead.current?.abort()}},[])
  useEffect(()=>{
   let alive=true
   const updateError='I couldn’t check for updates. Refresh before answering.'
@@ -89,7 +91,8 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
   return()=>{alive=false;backgroundRead.current?.abort();clearTimeout(timer);window.removeEventListener('focus',read)}
  },[refresh,needsProcessingRead,waitingPaused])
  // The entry record is a server-side priority hint, never a session boundary.
- useEffect(()=>{const title=root.current?.querySelector('h1');if(title){title.tabIndex=-1;title.focus({preventScroll:true})}},[action?.id])
+ const displayedActionId=action?.id
+ useEffect(()=>{if(!transitioning&&root.current)presentConversationTurn(root.current)},[displayedActionId,transitioning])
  const context=action?.workstream==='catch_up'?'Getting your books caught up':action?.workstream==='shared'?'Getting caught up and keeping up':action?.workstream==='current'?'Keeping your books up to date':'Work with Betti'
  async function recover(){
   backgroundRead.current?.abort();automaticReads.current=0;setWaitingPaused(false)
@@ -115,11 +118,12 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
  async function perform(command:()=>Promise<GuidedWorkProjection|void>,isDeferred=false){
   if(lock.current)return;onPending(true);setSaving(true);setError('')
   try{const next=await command();await resolved(isDeferred,undefined,next??undefined)}catch(e){setError(e instanceof Error?e.message:'Your answer could not be confirmed.');try{await refresh()}catch{/* Explicit reload remains available. */}}
-  finally{lock.current=false;setSaving(false)}
+  finally{onPending(false);setSaving(false)}
  }
  const status=conversationStatus(work,outcome,waitingPaused),waiting=status.waiting
  const progress=handled||deferred?`${handled} handled this visit${deferred?` · ${deferred} saved for later`:''}`:work.customer.actionableCount?'A few things to review':''
  return <div ref={root} data-customer-action-count={work.customer.actionableCount} data-guided-action={action?.type??work.readiness.phase} data-guided-version={action?.version} data-guided-id={action?.id} data-guided-presentation={work.presentation?.status??'ready'}>
+ {(commandPending||transitioning)&&<div className="betti-transition-feedback" role="status" aria-live="polite" aria-atomic="true">{transitioning?'Got it. I’m checking the next question.':'Saving your answer…'}</div>}
  <ConversationShell contentIdentity={action?.id+':'+action?.version} returnTo={returnTo} context={context} progress={progress} notice={notice} state={!action?waiting?'working':'caught-up':'question'}>
   {error&&<div className="betti-error" role="alert">{error}<button className="betti-defer" onClick={()=>void recover()}>Refresh current work</button></div>}
   {transitioning?<p role="status">Got it. I’m checking the next question.</p>:!action?<><span className={waiting?'betti-working':'betti-complete'} hidden/><h1 ref={heading} tabIndex={-1}>{status.heading}</h1><p className="betti-explanation">{status.supporting}</p>{status.operationalNote&&<p className="betti-operational-note">{status.operationalNote}</p>}{waiting&&<p className="betti-processing" role="status"><span className="betti-processing-dot"/> {work.betti.genuinelyProcessing?'Organizing your records':'I’ll keep working from here'}</p>}{waiting&&waitingPaused&&<button className="betti-defer" onClick={()=>void recover()}>Check for the next step</button>}{status.alternative&&<Link className="btn btn-secondary" href={status.alternative.href}>{status.alternative.label}</Link>}<LiveSourceCoverageNotice/><div className="betti-continue"><Link className="btn btn-primary" href={returnTo}>Back to your books</Link></div></>

@@ -11,7 +11,8 @@ import {loadCanonicalBettiWork} from '../app/lib/bookkeeping/betti-work-loader'
 import {getAuthenticatedCanonicalReport} from '../app/lib/bookkeeping/reporting-service'
 import {refreshBettiActionIndex} from '../app/lib/bookkeeping/action-index-worker'
 
-const origin='https://writeoffs-fresh-staging.vercel.app',dir='/private/tmp/writeoffs-routing-certification'
+const origin='https://writeoffs-fresh-staging.vercel.app',dir=process.env.ROUTING_FIXTURE_DIR??'/private/tmp/writeoffs-routing-certification'
+assert(/^\/private\/tmp\/writeoffs-routing-[a-z0-9-]+$/.test(dir))
 const url=process.env.NEXT_PUBLIC_SUPABASE_URL!,anon=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 assert(process.env.WRITEOFFS_ENVIRONMENT==='staging'&&new URL(url).hostname==='sgrqrrxrlglhjuetdtps.supabase.co')
 const mode=process.argv[2];assert(['--prepare','--inspect','--hosted','--refresh-synthetic'].includes(mode))
