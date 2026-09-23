@@ -4,11 +4,18 @@ Date: 2026-09-23. Branch: `v2-onboarding-staging`.
 
 ## Certification status
 
-**Local implementation and validation; hosted deployment not yet certified.**
-The original clean-room customer remains frozen. Deployment must wait for approval
-of the staging-only worker exclusion, followed by migration/deployment and a
-public-staging check using the separate synthetic fixture. Do not rebuild the
-original customer's projection as part of this task.
+**Application deployed; public canonical routing verified; indexed-refresh follow-up pending.**
+Rick approved the staging-only worker exclusion. It is configured on the dedicated
+staging primary slot. Migration 20261005000800 applied and application commit
+149dcf2383823ad62ace4a99d4b084d1029ad9de deployed successfully. No customer
+reassessment was requested. All original baseline comparisons remain unchanged.
+
+Public API action IDs/order match the corrected 14-action projection. Desktop and
+mobile screenshots show the fully loaded loan-statement request and truthful
+progress text. The index is still on its prior version because its normal next
+refresh time is midnight. Tested follow-up migration 20261005000900 lets a routing
+version change refresh sooner while retaining retry backoff and the freeze.
+Its staging application is pending the local Supabase Keychain approval.
 
 ## Root cause
 
@@ -124,11 +131,11 @@ is not sufficient to promise a frozen baseline across deployment.
 Prepared control: `WRITEOFFS_STAGING_FROZEN_BUSINESS_IDS`, server-side and staging
 only. The claim function excludes configured businesses **before leasing**; an
 explicit refresh also returns without accessing them. No customer IDs are baked
-into source. External runtime configuration remains subject to Rick's approval.
+into source. Rick approved and this runtime exclusion is now configured. It must not be removed without his approval.
 
-After approval: configure the exclusion, apply only this task's staging migration,
-deploy the application, verify the synthetic hosted flow, and compare original
-baseline hashes again. Do not apply unrelated pending migrations.
+The exclusion, first migration, deployment, hosted canonical flow and post-deploy
+baseline comparison are complete. The indexed-refresh follow-up remains to be
+verified. No unrelated pending migrations were applied.
 
 The frozen customer's existing evidence is sufficient to compute the corrected
 projection; re-importing or rewriting bookkeeping facts is not required. Any
@@ -170,6 +177,27 @@ original audit snapshot. All 16 checked record/history/projection classes were
 unchanged, and guided assertion count remained zero. No original-customer worker
 or reconciliation command was invoked.
 
-Final checks are recorded in `validation.json`. This is a local implementation
-handoff pending freeze approval, staging migration/deployment and hosted UI
-verification, **not permission for Rick to resume answering questions yet**.
+Final checks are recorded in `validation.json`. Hosted canonical verification now passes. The indexed-refresh follow-up remains
+pending; **this is not permission to unfreeze Rick's customer or answer questions**.
+
+## Deployment verification
+
+- Approved environment key: `WRITEOFFS_STAGING_FROZEN_BUSINESS_IDS`.
+- Project: `writeoffs-fresh-staging` / `prj_o56739F1pzd0TjFirEYoLMaa6oIJ`.
+- Vercel deployment: `dpl_E9FW2wjS1ktotNML8n21PpdYvFGD`, READY.
+- Non-forced staging push succeeded. Main and real Production were not targets.
+- The local pre-push Turbopack build reproduced the OS port-binding restriction.
+  All equivalent checks and optimized webpack build passed. The repeated local
+  hook was skipped for push; Vercel independently built the application successfully.
+- Post-deploy read-only comparison: all 16 baseline classes unchanged; zero
+  guided assertions. No frozen-customer reconciliation command ran.
+- Screenshots: `screenshots/check-in-1280.png`, `screenshots/check-in-390.png`.
+
+### Narrow indexed-refresh rollout correction
+
+The existing claim's `available_at` check also blocked a new engine version until
+midnight. The public route correctly falls back to the canonical read, but the
+indexed path should recover promptly. Migration 20261005000900 permits immediate
+claim only when the engine version differs and no retry error is outstanding.
+Lease fencing and the staging exclusion remain unchanged. Actual local PostgreSQL
+tests prove future-deadline refresh, failure backoff and frozen-state preservation.

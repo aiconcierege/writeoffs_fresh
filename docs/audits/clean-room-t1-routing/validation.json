@@ -13,6 +13,8 @@
   "secretScan": "PASS; task files scanned with redaction",
   "diffCheck": "PASS",
   "database": "PASS; data-free local staging-schema clone, synthetic rollback-only checks",
-  "hostedUi": "NOT RUN; deployment held for staging-only freeze approval",
-  "liveStagingSha": "b6a5001bceb434d378b6f8707826043e166d6f65"
+  "hostedUi": "PASS: all 14 action IDs/order, visible count, fully loaded loan controls, 1280/390 screenshots",
+  "liveStagingSha": "149dcf2383823ad62ace4a99d4b084d1029ad9de",
+  "remoteBuild": "PASS: dedicated Vercel staging",
+  "indexedRefresh": "Pending follow-up scheduling migration; a future normal deadline prevents immediate version refresh"
 }

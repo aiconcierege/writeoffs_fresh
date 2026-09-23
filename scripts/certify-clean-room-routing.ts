@@ -9,11 +9,12 @@ import {PDFDocument,StandardFonts} from 'pdf-lib'
 import {mayChecking} from '../tests/fixtures/may-2026-checking'
 import {loadCanonicalBettiWork} from '../app/lib/bookkeeping/betti-work-loader'
 import {getAuthenticatedCanonicalReport} from '../app/lib/bookkeeping/reporting-service'
+import {refreshBettiActionIndex} from '../app/lib/bookkeeping/action-index-worker'
 
 const origin='https://writeoffs-fresh-staging.vercel.app',dir='/private/tmp/writeoffs-routing-certification'
 const url=process.env.NEXT_PUBLIC_SUPABASE_URL!,anon=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 assert(process.env.WRITEOFFS_ENVIRONMENT==='staging'&&new URL(url).hostname==='sgrqrrxrlglhjuetdtps.supabase.co')
-const mode=process.argv[2];assert(['--prepare','--inspect','--hosted'].includes(mode))
+const mode=process.argv[2];assert(['--prepare','--inspect','--hosted','--refresh-synthetic'].includes(mode))
 process.umask(0o077)
 const admin=createClient(url,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false,autoRefreshToken:false}})
 function totp(secret:string){const abc='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',bits=[...secret.replace(/=+$/,'').toUpperCase()].map(c=>abc.indexOf(c).toString(2).padStart(5,'0')).join(''),key=Buffer.from(Array.from({length:Math.floor(bits.length/8)},(_,i)=>parseInt(bits.slice(i*8,i*8+8),2))),counter=Buffer.alloc(8);counter.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const h=createHmac('sha1',key).update(counter).digest(),o=h.at(-1)!&15;return String((h.readUInt32BE(o)&0x7fffffff)%1000000).padStart(6,'0')}
@@ -35,6 +36,10 @@ async function main(){
   await writeFile(`${dir}/fixture.json`,JSON.stringify(f),{mode:0o600})
  }
  assert.equal((await admin.auth.admin.getUserById(f.userId)).data.user?.user_metadata.synthetic_t1_routing,true,'SYNTHETIC_OWNERSHIP_REQUIRED')
+ if(mode==='--refresh-synthetic'){
+  const result=await refreshBettiActionIndex({admin,businessId:f.businessId,limit:1})
+  assert.equal(result.failed,0,'SYNTHETIC_INDEX_REFRESH_FAILED');console.log(JSON.stringify(result));return
+ }
  const jar=new Map<string,string>()
  const client=createServerClient(url,anon,{cookies:{getAll:()=>[...jar].map(([name,value])=>({name,value})),setAll:values=>values.forEach(({name,value})=>jar.set(name,value))}})
  assert(!(await client.auth.signInWithPassword({email:f.email,password:f.password})).error)
@@ -107,8 +112,15 @@ async function main(){
   assert.equal(work.customer.actionable.find(a=>/verizon/i.test(a.question?.transaction.merchant??''))?.question?.kind,'percentage')
   const evidence={synthetic:true,at:new Date().toISOString(),income:report.businessIncomeCents,expenses:report.businessExpensesCents,profit:report.businessProfitCents,flow,hosted:false}
   if(mode==='--hosted'){
+   const response=await context.request.get(origin+'/api/bookkeeping/work')
+   assert.equal(response.status(),200,'HOSTED_WORK_UNAVAILABLE')
+   const hosted=await response.json()
+   assert.deepEqual(hosted.customer.actionable.map((a:{id:string})=>a.id),work.customer.actionable.map(a=>a.id),'HOSTED_ROUTING_ORDER_DIFFERS')
+   Object.assign(evidence,{hostedActionOrderMatches:true,hostedActionCount:hosted.customer.actionableCount,indexSummaryCurrent:hosted.index?.summaryCurrent??false})
    await page.goto(origin+'/check-in');await page.locator('[data-guided-action]').waitFor()
+   await page.getByRole('heading',{name:'Send me the loan statement.',exact:true}).waitFor()
    assert.equal(await page.locator('[data-guided-action]').getAttribute('data-guided-action'),work.nextAction?.type)
+   assert.equal(await page.locator('[data-customer-action-count]').getAttribute('data-customer-action-count'),'14')
    assert(!(await page.locator('body').innerText()).match(/\d+ things need you/))
    await page.screenshot({path:`${dir}/check-in-1280.png`,fullPage:true})
    await page.setViewportSize({width:390,height:844});await page.screenshot({path:`${dir}/check-in-390.png`,fullPage:true})

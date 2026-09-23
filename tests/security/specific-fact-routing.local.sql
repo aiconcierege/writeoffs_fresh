@@ -53,6 +53,7 @@ begin
   raise exception 'Customer claimed worker';
  exception when insufficient_privilege then null;end;
  perform set_config('request.jwt.claims','{"role":"service_role"}',true);
+ update public.betti_action_index_state set available_at=now()+interval '1 day',engine_version='betti-action-index:v2-render-ready',last_error=null where business_id in(bid,second_bid);
  select to_jsonb(s) into before_state from public.betti_action_index_state s where business_id=bid;
  select business_id into claimed from public.claim_betti_action_index_refresh_excluding(gen_random_uuid(),bid,p_excluded_business_ids=>array[bid]);
  if claimed is not null or before_state is distinct from (select to_jsonb(s) from public.betti_action_index_state s where business_id=bid) then raise exception 'Frozen state mutated';end if;
@@ -60,6 +61,9 @@ begin
  if claimed is distinct from second_bid then raise exception 'Other tenant was frozen';end if;
  select count(*) into n from public.claim_betti_action_index_refresh_excluding(gen_random_uuid(),second_bid,p_excluded_business_ids=>array[bid]);
  if n<>0 then raise exception 'Lease claimed twice';end if;
+ update public.betti_action_index_state set lease_id=null,lease_expires_at=null,last_error='synthetic_retry',available_at=now()+interval '1 hour' where business_id=second_bid;
+ select count(*) into n from public.claim_betti_action_index_refresh_excluding(gen_random_uuid(),second_bid,p_excluded_business_ids=>array[bid]);
+ if n<>0 then raise exception 'Version change bypassed failure backoff';end if;
  -- Exercise the real indexed reader: a huge optional batch's numeric score
  -- cannot override a specific question's canonical routing tier.
  update public.betti_action_index_state set published_revision=100000,revision=100000,global_revision=100000,
