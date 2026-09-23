@@ -4,18 +4,22 @@ Date: 2026-09-23. Branch: `v2-onboarding-staging`.
 
 ## Certification status
 
-**Application deployed; public canonical routing verified; indexed-refresh follow-up pending.**
-Rick approved the staging-only worker exclusion. It is configured on the dedicated
-staging primary slot. Migration 20261005000800 applied and application commit
-149dcf2383823ad62ace4a99d4b084d1029ad9de deployed successfully. No customer
-reassessment was requested. All original baseline comparisons remain unchanged.
+**Public hosted routing and prompt indexed refresh verified.**
+Rick approved the staging-only worker exclusion; it remains configured on the
+ dedicated staging primary slot. Migrations 20261005000800 and 20261005000900 are
+applied. No frozen-customer reassessment was requested or performed.
 
-Public API action IDs/order match the corrected 14-action projection. Desktop and
-mobile screenshots show the fully loaded loan-statement request and truthful
-progress text. The index is still on its prior version because its normal next
-refresh time is midnight. Tested follow-up migration 20261005000900 lets a routing
-version change refresh sooner while retaining retry backoff and the freeze.
-Its staging application is pending the local Supabase Keychain approval.
+The established non-Keychain access method is the existing local Supabase
+access-token file, used server-side by the existing staging Management API query
+helper. No credential was created, rotated or printed. The read-only check found
+the scheduling migration already applied; it was not applied a second time.
+
+The synthetic index published routing v3 at **2026-09-23 18:35:57 UTC**, before its
+previous **2026-09-24 00:00:00 UTC** deadline. Its revision and published revision
+both equal 906, with no retry error. The public hosted check at 18:39 UTC returned
+`indexSummaryCurrent: true` and all 14 corrected actions in the expected order.
+A subsequent targeted worker check found no work left to publish and no errors.
+See `index-refresh-timing.json` and `synthetic-ingestion-result.json`.
 
 ## Root cause
 
@@ -133,9 +137,8 @@ only. The claim function excludes configured businesses **before leasing**; an
 explicit refresh also returns without accessing them. No customer IDs are baked
 into source. Rick approved and this runtime exclusion is now configured. It must not be removed without his approval.
 
-The exclusion, first migration, deployment, hosted canonical flow and post-deploy
-baseline comparison are complete. The indexed-refresh follow-up remains to be
-verified. No unrelated pending migrations were applied.
+The exclusion, both routing migrations, hosted indexed flow and baseline
+comparison are complete. No unrelated pending migrations were applied.
 
 The frozen customer's existing evidence is sufficient to compute the corrected
 projection; re-importing or rewriting bookkeeping facts is not required. Any
@@ -177,8 +180,8 @@ original audit snapshot. All 16 checked record/history/projection classes were
 unchanged, and guided assertion count remained zero. No original-customer worker
 or reconciliation command was invoked.
 
-Final checks are recorded in `validation.json`. Hosted canonical verification now passes. The indexed-refresh follow-up remains
-pending; **this is not permission to unfreeze Rick's customer or answer questions**.
+Final checks are recorded in `validation.json`. Hosted indexed routing passes.
+**This is not permission to unfreeze Rick's customer or answer questions**.
 
 ## Deployment verification
 
@@ -201,3 +204,13 @@ indexed path should recover promptly. Migration 20261005000900 permits immediate
 claim only when the engine version differs and no retry error is outstanding.
 Lease fencing and the staging exclusion remain unchanged. Actual local PostgreSQL
 tests prove future-deadline refresh, failure backoff and frozen-state preservation.
+
+## Projection-only resumption boundary
+
+The corrected projection can be computed from the existing frozen facts. A scoped
+projection-only publication can preserve transactions, evidence, decisions and
+zero answers. Do not use the ordinary refresh worker for that narrow authorization:
+its preparation step reconciles stored questions. Any authorized future operation
+must bypass that preparation, retain revision/lease guards, and compare all fact
+and answer baselines before and after. No such publication has been performed.
+The runtime exclusion remains in place pending Rick's explicit authorization.

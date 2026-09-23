@@ -1,6 +1,6 @@
 {
   "synthetic": true,
-  "at": "2026-09-23T17:35:56.268Z",
+  "at": "2026-09-23T18:39:23.887Z",
   "income": 210052,
   "expenses": 142573,
   "profit": 67479,
@@ -86,7 +86,5 @@
   "hosted": true,
   "hostedActionOrderMatches": true,
   "hostedActionCount": 14,
-  "indexSummaryCurrent": false,
-  "evidenceLevel": "REAL STAGING INGESTION + PUBLIC STAGING UI/API; canonical fallback verified; indexed refresh pending",
-  "applicationSha": "149dcf2383823ad62ace4a99d4b084d1029ad9de"
+  "indexSummaryCurrent": true
 }
