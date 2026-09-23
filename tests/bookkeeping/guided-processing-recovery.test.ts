@@ -118,3 +118,15 @@ it('commits a current continuation once and latches it before a focus event',asy
  await focus()
  expect(new URL(fetcher.mock.calls[0][0],'https://local').searchParams.get('presented')).toBe(confirmed.nextAction?.id)
 })
+
+it('document evidence refresh commits only the returned presentation while retaining the shown identity in the request',async()=>{
+ const base=homeWorkFixture('concurrent'),initial={...base,nextAction:{...base.nextAction!,type:'special_transaction' as const}}
+ const {view,fetcher}=start(initial)
+ const next=homeWorkFixture('current')
+ fetcher.mockResolvedValue({ok:true,json:async()=>({...next,presentation:{status:'updated',action:next.nextAction}})})
+ await callback(view,'onEvidenceReceived')!()
+ expect(fetcher).toHaveBeenCalledOnce()
+ expect(new URL(fetcher.mock.calls[0][0],'https://local').searchParams.get('presented')).toBe(initial.nextAction.id)
+ expect(hooks.setters[0]).toHaveBeenCalledTimes(1)
+ expect(hooks.setters[0].mock.calls[0][0].nextAction.id).toBe(next.nextAction?.id)
+})

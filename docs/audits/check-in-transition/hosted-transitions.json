@@ -1,0 +1,135 @@
+{
+  "mode": "transition-certification",
+  "synthetic": true,
+  "dirtyContinuationNeverRendered": true,
+  "outcomes": [
+    {
+      "turn": 0,
+      "heading": "Send me the loan statement.",
+      "answer": "I’ll come back to this",
+      "visibleSuccessors": 1,
+      "elapsedMs": 3173,
+      "width": 1280
+    },
+    {
+      "turn": 1,
+      "heading": "Is it for this purchase?",
+      "answer": "I’ll come back to this",
+      "visibleSuccessors": 1,
+      "elapsedMs": 3274,
+      "width": 390
+    },
+    {
+      "turn": 2,
+      "heading": "Is that right?",
+      "answer": "I’ll come back to this",
+      "visibleSuccessors": 1,
+      "elapsedMs": 2296,
+      "width": 1280
+    },
+    {
+      "turn": 3,
+      "heading": "Is that right?",
+      "answer": "I’ll come back to this",
+      "visibleSuccessors": 1,
+      "elapsedMs": 1893,
+      "width": 390
+    },
+    {
+      "turn": 4,
+      "heading": "What did you use the cash for?",
+      "answer": "I’m not sure",
+      "visibleSuccessors": 1,
+      "elapsedMs": 3688,
+      "width": 1280
+    },
+    {
+      "turn": 5,
+      "heading": "What was this money for?",
+      "answer": "I’m not sure",
+      "visibleSuccessors": 1,
+      "elapsedMs": 3255,
+      "width": 390
+    },
+    {
+      "turn": 6,
+      "heading": "What was this money for?",
+      "answer": "I’m not sure",
+      "visibleSuccessors": 1,
+      "elapsedMs": 3595,
+      "width": 1280
+    },
+    {
+      "turn": 7,
+      "heading": "What kind of activity was this?",
+      "answer": "I’m not sure",
+      "visibleSuccessors": 1,
+      "elapsedMs": 3921,
+      "width": 390
+    },
+    {
+      "turn": 8,
+      "heading": "What was this money for?",
+      "answer": "I’m not sure",
+      "visibleSuccessors": 1,
+      "elapsedMs": 3591,
+      "width": 1280
+    },
+    {
+      "turn": 9,
+      "heading": "What was this money for?",
+      "answer": "I’m not sure",
+      "visibleSuccessors": 1,
+      "elapsedMs": 4987,
+      "width": 390
+    },
+    {
+      "turn": 10,
+      "heading": "What was this purchase for?",
+      "answer": "I’m not sure",
+      "visibleSuccessors": 1,
+      "elapsedMs": 2355,
+      "width": 1280
+    },
+    {
+      "turn": 11,
+      "heading": "What did this insurance cover?",
+      "answer": "I’m not sure",
+      "visibleSuccessors": 1,
+      "elapsedMs": 2038,
+      "width": 390
+    },
+    {
+      "turn": 12,
+      "heading": "About how much do you use this phone service for your business?",
+      "answer": "I’ll come back to this",
+      "visibleSuccessors": 1,
+      "elapsedMs": 2664,
+      "width": 1280
+    },
+    {
+      "turn": 13,
+      "heading": "Was any of this purchase personal?",
+      "answer": "I’m not sure",
+      "visibleSuccessors": 1,
+      "elapsedMs": 1949,
+      "width": 390
+    },
+    {
+      "turn": 14,
+      "heading": "Anything here personal?",
+      "answer": "Nothing here is personal",
+      "visibleSuccessors": 1,
+      "elapsedMs": 4540,
+      "width": 1280
+    },
+    {
+      "turn": 15,
+      "heading": "Do you have receipts for these?",
+      "answer": "I’ll do this later",
+      "visibleSuccessors": 0,
+      "elapsedMs": 3560,
+      "width": 390
+    }
+  ]
+}

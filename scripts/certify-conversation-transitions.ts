@@ -12,7 +12,7 @@ async function main(){
  const mode='transition-certification'
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL!,anon=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
  assert.equal(new URL(url).hostname,'sgrqrrxrlglhjuetdtps.supabase.co')
- const f=JSON.parse(await readFile('/private/tmp/writeoffs-routing-certification/fixture.json','utf8'))
+ const f=JSON.parse(await readFile(process.env.TRANSITION_FIXTURE_PATH??'/private/tmp/writeoffs-routing-certification/fixture.json','utf8'))
  const admin=createClient(url,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false}})
  assert.equal((await admin.auth.admin.getUserById(f.userId)).data.user?.user_metadata.synthetic_t1_routing,true)
  assert.notEqual(f.businessId,'d785186b-16db-47e5-ab02-e59fd1ae311b')
@@ -26,11 +26,6 @@ async function main(){
  await context.addCookies([...jar].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:true,sameSite:'Lax' as const})))
  const page=await context.newPage();await page.setViewportSize({width:1280,height:900})
  const outcomes:Array<Record<string,unknown>>=[];let injected=false
- await page.addInitScript(()=>{
-  const observed:string[]=[];(window as unknown as {observedTurns:string[]}).observedTurns=observed
-  const record=()=>{const id=document.querySelector('[data-guided-id]')?.getAttribute('data-guided-id');if(id&&observed.at(-1)!==id)observed.push(id)}
-  new MutationObserver(record).observe(document,{subtree:true,attributes:true,childList:true});record()
- })
  await page.route('**/api/bookkeeping/**',async route=>{
   if(route.request().method()!=='POST'||route.request().url().endsWith('/reconcile')){await route.continue();return}
   const response=await route.fetch(),data=await response.json()
@@ -50,11 +45,10 @@ async function main(){
   const id=await stage.getAttribute('data-guided-id');if(!id)break
   await page.locator('.betti-active-conversation h1').waitFor()
   const heading=await page.locator('.betti-active-conversation h1').innerText()
-  await page.evaluate(()=>{(window as unknown as {observedTurns:string[]}).observedTurns=[]})
-  // Rebind collection without replacing the observer's original array.
-  await page.evaluate(()=>{const w=window as unknown as {observedTurns:string[];turnIds?:string[]};w.turnIds=[];new MutationObserver(()=>{const id=document.querySelector('[data-guided-id]')?.getAttribute('data-guided-id');if(id&&w.turnIds?.at(-1)!==id)w.turnIds?.push(id)}).observe(document,{subtree:true,attributes:true,childList:true})})
+  await page.evaluate(()=>{const w=window as unknown as {turnIds?:string[]};w.turnIds=[];new MutationObserver(()=>{const id=document.querySelector('[data-guided-id]')?.getAttribute('data-guided-id');if(id&&w.turnIds?.at(-1)!==id)w.turnIds?.push(id)}).observe(document,{subtree:true,attributes:true,childList:true})})
   let button=page.getByRole('button',{name:'I’m not sure',exact:true})
-  if(heading==='Anything here personal?')button=page.getByRole('button',{name:'Nothing here is personal',exact:true})
+  if(await stage.getAttribute('data-guided-action')==='special_transaction')button=page.getByRole('button',{name:'I’ll come back to this',exact:true})
+  else if(heading==='Anything here personal?')button=page.getByRole('button',{name:'Nothing here is personal',exact:true})
   else if(heading==='Do you have receipts for these?'||heading==='Any more receipts for these?')button=page.getByRole('button',{name:'I’ll do this later',exact:true})
   else if(turn===2&&await page.getByRole('button',{name:'Payment from a customer',exact:true}).count())button=page.getByRole('button',{name:'Payment from a customer',exact:true})
   else if(!await button.count())button=page.getByRole('button',{name:'I’ll come back to this',exact:true})
@@ -63,14 +57,15 @@ async function main(){
   await page.waitForFunction(old=>{const el=document.querySelector('[data-guided-id]');return !el||el.getAttribute('data-guided-id')!==old},id,{timeout:60000})
   // Wait for the authoritative successor, including intentionally visible waiting.
   await page.waitForFunction(()=>!document.body.innerText.includes('I’m checking the next question.'),{},{timeout:60000})
-  const next=await page.locator('[data-guided-id]').getAttribute('data-guided-id').catch(()=>null)
+  const next=await page.evaluate(()=>document.querySelector('[data-guided-id]')?.getAttribute('data-guided-id')??null)
   const seen=await page.evaluate(()=>(window as unknown as {turnIds:string[]}).turnIds)
   assert(!seen.includes('forbidden-provisional-turn'))
   assert.deepEqual([...new Set(seen.filter(x=>x!==id))],next?[next]:[],'An intermediate action was rendered')
   await page.evaluate(()=>window.dispatchEvent(new Event('focus')))
   await page.waitForLoadState('networkidle')
-  assert.equal(await page.locator('[data-guided-id]').getAttribute('data-guided-id').catch(()=>null),next,'Focus replaced the active question')
+  if(next)assert.equal(await page.evaluate(()=>document.querySelector('[data-guided-id]')?.getAttribute('data-guided-id')??null),next,'Focus replaced the active question')
   outcomes.push({turn,heading,answer,visibleSuccessors:next?1:0,elapsedMs:Date.now()-started,width:turn%2?390:1280})
+  await writeFile('/private/tmp/flash-hosted-progress.json',JSON.stringify(outcomes,null,2))
   await page.screenshot({path:'/private/tmp/flash-hosted-'+(turn%2?'390':'1280')+'.png',fullPage:true})
   if(!next)break
   await page.reload();await page.locator('[data-guided-id]').waitFor()

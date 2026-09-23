@@ -1,0 +1,11 @@
+{
+  "tenantTablesCompared": 102,
+  "changedTables": [],
+  "workerExclusionRetained": true,
+  "projectionPublishedRevision": 712,
+  "projectionBuiltAt": "2026-09-23T18:50:22.428601+00:00",
+  "currentInvalidationRevision": 724,
+  "atmUncertaintyAnswers": 1,
+  "atmCommandReceipts": 1,
+  "noCustomerCommandsSubmitted": true
+}
