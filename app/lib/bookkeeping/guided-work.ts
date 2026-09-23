@@ -1,10 +1,30 @@
 import type { WorkContext, WorkRecord } from './betti-work'
-export type SweepType = 'personal_exception_sweep'|'mixed_use_sweep'|'receipt_upload_sweep'|'receipt_availability'
+export type SweepType = 'personal_exception_sweep'|'mixed_use_sweep'|'receipt_upload_sweep'|'receipt_availability'|'evidence_opportunity'
 export type GuidedItem = {recordId:string;decisionId:string;reviewVersion:string;accountUseVersion:string;merchant:string;date:string;amountCents:number;transactionId:string}
-export type GuidedReview = {business_id:string;id:string;action:SweepType;disposition:'completed'|'deferred';created_at:string;deferred_until:string|null;items:Pick<GuidedItem,'recordId'|'accountUseVersion'>[]}
+export type GuidedReview = {business_id:string;id:string;action:SweepType;disposition:'completed'|'deferred';created_at:string;deferred_until:string|null;items:(Pick<GuidedItem,'recordId'|'accountUseVersion'>&{date?:string})[];answers?:{response?:'provided'|'none'|'later';accountId?:string;month?:string}}
 export const GUIDED_BATCH_LIMIT=8
 // One coherent exception review, bounded like the existing 100-purchase bulk review.
 export const PERSONAL_SWEEP_LIMIT=100
+
+/** An opportunity is not a documentation mandate or an accounting conclusion.
+ * Acknowledgment suppresses repeat invitations for this account/month, including
+ * continuously arriving current activity. Documents can still arrive any time. */
+export function evidenceOpportunityHandled(r:WorkRecord,c:WorkContext){
+ return (c.guidedReviews??[]).some(e=>e.action==='evidence_opportunity'
+  ?e.answers?.accountId===r.account_id&&e.answers.month===r.activity_date.slice(0,7)
+  :['receipt_upload_sweep','receipt_availability'].includes(e.action)&&e.disposition==='completed'
+   &&e.items.some(i=>i.recordId===r.record_id))
+}
+export function evidenceOpportunityEligible(r:WorkRecord,c:WorkContext,asOf:string){
+ return Boolean(r.account_id&&r.review_version&&r.decision_id&&r.transaction_id
+  &&c.accounts.some(a=>a.id===r.account_id&&a.use_version&&a.designation)
+  &&r.source_kind==='financial_transaction'&&r.amount_cents<0&&r.bookkeeping_nature==='expense'
+  &&['business','mixed_use','unresolved'].includes(r.treatment??'')
+  &&!r.has_receipt&&!r.receipt_unavailable&&!statementEstablishesBankFee(r,c)
+  &&!evidenceOpportunityHandled(r,c)&&!guidedDeferral(r,'receipt_upload_sweep',c,asOf)
+  &&!(c.guidedReviews??[]).some(e=>e.disposition==='deferred'&&e.deferred_until&&e.deferred_until>asOf
+    &&e.items.some(i=>i.recordId===r.record_id)))
+}
 
 /** An established bank fee is directly evidenced by the validated statement.
  * Do not generalize this to merchant fees, ambiguous debits, or candidate categories. */
@@ -35,8 +55,8 @@ export function guidedStage(r:WorkRecord,c:WorkContext,specificFactPending=false
    &&r.allocations.some(a=>a.kind==='business')&&!done('personal_exception_sweep'))return 'personal_exception_sweep'
   if(!done('mixed_use_sweep')&&account.designation==='business_and_personal'&&r.treatment==='unresolved')return 'mixed_use_sweep'
  }
- if(['business','mixed_use'].includes(r.treatment??'')&&!r.has_receipt&&!r.receipt_unavailable)
-  return done('receipt_upload_sweep')?'receipt_availability':'receipt_upload_sweep'
+ // Receipt opportunities are separate from these use-fact reviews. Never append
+ // another generic receipt stage after the customer already had that opportunity.
  return null
 }
 export function guidedItem(r:WorkRecord,c:WorkContext):GuidedItem{

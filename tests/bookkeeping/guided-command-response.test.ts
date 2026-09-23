@@ -4,7 +4,7 @@ vi.mock('../../app/lib/bookkeeping/guided-work-projection',async original=>({...
 const state=vi.hoisted(()=>({rpc:vi.fn(),projection:vi.fn(),membership:vi.fn()}))
 vi.mock('../../utils/supabase/server',()=>({createServerSupabase:async()=>({auth:{getUser:async()=>({data:{user:{id:'owner'}}}),mfa:{getAuthenticatorAssuranceLevel:async()=>({data:{currentLevel:'aal2'}})}},rpc:state.rpc})}))
 vi.mock('../../app/lib/membership/entitlements',()=>({loadCustomerEntitlements:state.membership}))
-vi.mock('../../app/lib/bookkeeping/betti-work-loader',()=>({loadBettiWork:state.projection}))
+vi.mock('../../app/lib/bookkeeping/betti-work-loader',()=>({loadBettiWork:state.projection,loadCanonicalBettiWork:state.projection}))
 beforeEach(()=>{vi.clearAllMocks();state.rpc.mockResolvedValue({error:null});state.membership.mockResolvedValue({businessId:'owned',plan:'business',capabilities:new Set(['autonomous_processing'])});state.projection.mockResolvedValue({businessId:'owned',nextAction:null})})
 const request=(guided=true)=>new Request('https://staging.invalid/answer',{method:'POST',headers:guided?{'x-betti-guided':'1'}:{}})
 it('reconciles then returns a fresh owned projection with the committed answer',async()=>{

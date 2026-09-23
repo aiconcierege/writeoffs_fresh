@@ -3,7 +3,7 @@
  * Date: 2025-11-07
  * Notes:
  *  - GET /api/receipts/for-tx?id=<transaction_id>
- *  - Returns a short-lived signed URL for each receipt linked to that transaction (caller’s data only).
+ *  - Returns an authenticated preview URL for each linked receipt (caller’s data only).
  */
 import { NextResponse } from "next/server"
 import { createServerSupabase } from "../../../../utils/supabase/server"
@@ -39,22 +39,15 @@ export async function GET(req: Request) {
   // ⚙️ Null-safe: ensure rows is an array
   const safeRows = Array.isArray(rows) ? rows : []
 
-  // 🔐 Create short-lived signed URLs (120-second expiry)
-  const signed = await Promise.all(
-    safeRows.map(async (r: any) => {
-      const { data: signedData } = await supabase.storage
-        .from("receipts")
-        .createSignedUrl(r.storage_path, 120)
-
-      return {
+  // The shared preview verifies derived receipt bytes, or signs an ordinary
+  // original. Never attempt to sign a derived crop as a separate stored object.
+  const signed = safeRows.map(r => ({
         id: r.id,
         mime_type: r.mime_type,
         bytes: r.bytes,
         created_at: r.created_at,
-        signed_url: signedData?.signedUrl ?? null,
-      }
-    })
-  )
+        signed_url: new URL(`/api/receipts/${encodeURIComponent(r.id)}/view`,req.url).toString(),
+      }))
 
   return NextResponse.json({ ok: true, receipts: signed })
 }

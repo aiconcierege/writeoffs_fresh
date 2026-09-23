@@ -31,7 +31,7 @@ describe('canonical action index publication',()=>{
   for(const hint of [undefined,...input.context.records.map(r=>r.record_id)]){
    const projected=projectBettiWork({...input,continuityRecordId:hint})
    const candidates=built.entries.map(e=>hint&&e.action.recordIds.includes(hint)?{...e.action,priority:e.continuityPriority}:e.action)
-    .filter(a=>a.status==='actionable').sort((a,b)=>b.priority.score-a.priority.score||a.id.localeCompare(b.id))
+    .filter(a=>a.status==='actionable').sort((a,b)=>(b.priority.routingTier??0)-(a.priority.routingTier??0)||b.priority.score-a.priority.score||a.id.localeCompare(b.id))
    expect(candidates[0]??null).toEqual(projected.nextAction)
   }
  })

@@ -5,7 +5,10 @@ import {fileKind} from './file-validation'
 import {readPdfPages} from './pdf-reader'
 import {classifyDocumentText} from './classification'
 import {parseStructuredFile} from './structured-text'
-import { parseReceiptText, visionReceiptText } from './receipt-text'
+import { parseReceiptText, visionReceiptText, receiptTaxObservation } from './receipt-text'
+import {visionReceiptPages,receiptBoundaries,type ReceiptPage} from './receipt-boundaries'
+import {receiptCrop} from './receipt-crops'
+import {derivedReceiptSource} from './receipt-source'
 export { parseReceiptText } from './receipt-text'
 
 import { createHash, randomUUID } from 'node:crypto'
@@ -57,6 +60,11 @@ async function loadTarget(admin: SupabaseClient, job: Row) {
       .eq('id', id).eq('business_id', String(job.business_id)).single()
   const data = result.data as Row | null
   if (result.error || !data || data.upload_fingerprint !== job.document_sha256) throw new Error('DOCUMENT_TARGET_STALE')
+  if(receiptId){
+    const source=await derivedReceiptSource(admin,{id:receiptId,business_id:String(job.business_id),upload_fingerprint:String(data.upload_fingerprint),bytes:Number(data.bytes)})
+    if(source)return {bytes:source.bytes,receiptId,documentId:null,storagePath:String(data.storage_path),mimeType:source.mime,
+      originalName:typeof data.original_name==='string'?data.original_name:null,documentClass:null}
+  }
   const metadata=await admin.storage.from('receipts').info(String(data.storage_path))
   if(metadata.error)throw new Error('DOCUMENT_DOWNLOAD_FAILED')
   const storedSize=Number(metadata.data?.size??metadata.data?.metadata?.size)
@@ -72,6 +80,10 @@ async function loadTarget(admin: SupabaseClient, job: Row) {
 }
 
 export async function googleVision(bytes: Uint8Array, receiptLayout = false) {
+  const {annotation,text}=await googleVisionEvidence(bytes)
+  return receiptLayout&&annotation?visionReceiptText(annotation):text
+}
+async function googleVisionEvidence(bytes:Uint8Array){
   const apiKey = process.env.GCV_API_KEY
   if (!apiKey) throw new Error('DOCUMENT_PROVIDER_NOT_CONFIGURED')
   const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 20_000)
@@ -88,7 +100,7 @@ export async function googleVision(bytes: Uint8Array, receiptLayout = false) {
     const annotations = Array.isArray(first.textAnnotations) ? first.textAnnotations as Row[] : []
     if (first.error) throw new Error('DOCUMENT_PROVIDER_FAILED')
     if (!responses.length) throw new Error('DOCUMENT_PROVIDER_INVALID_RESPONSE')
-    return receiptLayout && annotation ? visionReceiptText(annotation) : String(annotation?.text ?? annotations[0]?.description ?? '')
+    return {annotation,text:String(annotation?.text ?? annotations[0]?.description ?? '')}
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') throw new Error('DOCUMENT_PROVIDER_TIMEOUT')
     throw error
@@ -127,7 +139,7 @@ async function processReceipt(admin: SupabaseClient, job: Row, suppliedText?:str
   const { data, error } = await admin.rpc('worker_record_bookkeeping_receipt_extraction', {
     p_receipt_id: target.receiptId, p_extraction_key: 'vision:v1', p_provider: 'google_vision',
     p_merchant: parsed.merchant, p_occurred_on: parsed.occurredOn,
-    p_total_amount_cents: parsed.totalAmountCents, p_raw_payload: { extractedText: text.slice(0, 20_000) },
+    p_total_amount_cents: parsed.totalAmountCents, p_raw_payload: { extractedText: text.slice(0, 20_000),taxAmountCents:receiptTaxObservation(text) },
   })
   if (error) throw new Error('CANONICAL_EXTRACTION_WRITE_FAILED')
   const result = data as Row | null
@@ -206,10 +218,14 @@ async function processStatement(admin: SupabaseClient, job: Row,ocr: (bytes:Uint
 async function processIntake(admin:SupabaseClient,job:Row){
   const target=await loadTarget(admin,job),kind=fileKind(target.bytes)
   let text='',documentClass='unknown',transactionCount=0
+  let receiptPages:ReceiptPage[]=[]
   if(kind==='pdf'){
     const pages=await readPdfPages(target.bytes);text=pages.map(p=>p.plain).join('\n');documentClass=classifyDocumentText(text)
+    receiptPages=pages.map(p=>({...p,text:p.plain}))
   }else if(['png','jpeg','webp'].includes(kind)){
-    text=await googleVision(target.bytes,true);documentClass=classifyDocumentText(text)
+    const evidence=await googleVisionEvidence(target.bytes)
+    text=evidence.annotation?visionReceiptText(evidence.annotation):evidence.text;documentClass=classifyDocumentText(text)
+    if(evidence.annotation)receiptPages=visionReceiptPages(evidence.annotation)
   }else if(kind==='text'){
     let rows;try{rows=parseStructuredFile(target.bytes)}catch{return {state:'needs_attention',reason:'DOCUMENT_ROWS_UNCLEAR'}}
     if(await documentMayOverlap(admin,String(job.business_id),rows,'csv'))return {state:'needs_attention',reason:'DOCUMENT_POSSIBLE_DUPLICATES'}
@@ -236,9 +252,32 @@ async function processIntake(admin:SupabaseClient,job:Row){
     return processStatement(admin,job,googleVision)
   }
   if(documentClass==='receipt'){
-    const routed=await admin.rpc('worker_route_document_receipt',{p_job_id:job.id,p_lease_id:job.lease_id,p_mime:kind==='pdf'?'application/pdf':`image/${kind}`})
-    if(routed.error||typeof routed.data!=='string')throw new Error('DOCUMENT_RECEIPT_ROUTE_FAILED')
-    await drainCanonicalDocumentJobs({admin,receiptId:routed.data,receiptText:text})
+    const boundaries=receiptPages.length?receiptBoundaries(receiptPages):null
+    if(boundaries?.receipts.length&&boundaries.receipts.length>1){
+      for(const [part,receipt] of boundaries.receipts.entries()){
+        let crop
+        try{crop=await receiptCrop(target.bytes,kind,receipt)}catch(error){
+          if(error instanceof Error&&['RECEIPT_ROTATION_REVIEW_REQUIRED','RECEIPT_IMAGE_BOUNDARIES_UNCLEAR'].includes(error.message))
+            return {state:'needs_attention',reason:error.message}
+          throw error
+        }
+        const fingerprint=createHash('sha256').update(crop.bytes).digest('hex')
+        // Store lineage, not another private object. Workers and previews derive
+        // these same authenticated bytes from the immutable original when needed.
+        const routed=await admin.rpc('worker_route_document_receipt_part',{p_job:job.id,p_lease:job.lease_id,
+          p_fingerprint:fingerprint,p_mime:crop.mime,p_bytes:crop.bytes.length,p_regions:receipt.regions,p_part:part})
+        if(routed.error||typeof routed.data!=='string')throw new Error('RECEIPT_PART_ROUTE_FAILED')
+        const processed=await drainCanonicalDocumentJobs({admin,receiptId:routed.data,receiptText:receipt.text})
+        if(processed.retried)throw new Error('RECEIPT_PART_EXTRACTION_PENDING')
+      }
+    }else{
+      // Never fall back to a single extraction when geometric evidence reports
+      // an ambiguous multi-page document or conflicting complete receipts.
+      if(boundaries?.reason)return {state:'needs_attention',reason:boundaries.reason}
+      const routed=await admin.rpc('worker_route_document_receipt',{p_job_id:job.id,p_lease_id:job.lease_id,p_mime:kind==='pdf'?'application/pdf':`image/${kind}`})
+      if(routed.error||typeof routed.data!=='string')throw new Error('DOCUMENT_RECEIPT_ROUTE_FAILED')
+      await drainCanonicalDocumentJobs({admin,receiptId:routed.data,receiptText:text})
+    }
   }
   const result=await admin.from('document_processing_results').insert({business_id:job.business_id,document_id:target.documentId,job_id:job.id,
     document_sha256:job.document_sha256,processor_version:job.processor_version,document_class:documentClass,outcome:'inspected',result_metadata:{transactionCount}})

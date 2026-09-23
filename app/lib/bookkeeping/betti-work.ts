@@ -1,14 +1,15 @@
 import { createHash } from 'node:crypto'
 import type { AuthorizedBookkeepingScope } from './authorized-scope'
+import { workPeriods } from './work-periods'
 import type { CustomerQuestion } from './customer-questions'
 import { purchaseReceiptEligible } from './receipt-eligibility'
-import {guidedStage,guidedItem,guidedDeferral,GUIDED_BATCH_LIMIT,PERSONAL_SWEEP_LIMIT,statementEstablishesBankFee,type GuidedItem,type GuidedReview,type SweepType} from './guided-work'
+import {guidedStage,guidedItem,guidedDeferral,GUIDED_BATCH_LIMIT,PERSONAL_SWEEP_LIMIT,statementEstablishesBankFee,evidenceOpportunityEligible,type GuidedItem,type GuidedReview,type SweepType} from './guided-work'
 
-export const BETTI_WORK_VERSION = 'betti-work:v5-specific-facts'
+export const BETTI_WORK_VERSION = 'betti-work:v6-evidence-scopes'
 export type Workstream = 'catch_up' | 'current' | 'shared' | 'outside_scope' | 'unscoped'
 export type ActionType = 'provide_records' | 'account_use' | 'personal_exception_sweep' | 'mixed_use_sweep'
   | 'receipt_upload_sweep' | 'receipt_availability' | 'special_transaction' | 'material_question'
-  | 'review_summary' | 'recover_ingestion'
+  | 'review_summary' | 'recover_ingestion' | 'evidence_opportunity'
 type Owned = { business_id: string }
 export type WorkRecord = Owned & {
   merchant?:string;transaction_id?:string;review_version?:string;customer_authored?:boolean
@@ -66,7 +67,7 @@ export function sourceCoverageGaps(start: string, through: string, periods: { fr
   return gaps
 }
 
-/** Scope is fixed at activation. It deliberately does not use the rolling question-age policy. */
+/** Purchased scope is fixed at joining. Ongoing months never age into billable cleanup. */
 export function activityWorkstream(date: string | null, scope: WorkContext['business']): Workstream {
   const authorized=scope.authorizedScope
   if (!date || !authorized?.authorizedStart) return 'unscoped'
@@ -108,7 +109,8 @@ export function projectBettiWork(input: {
   if (input.questions.some(q => q.recordId && !byId.has(q.recordId))) throw new Error('Question record unavailable')
   const stream = (r: WorkRecord) => activityWorkstream(r.activity_date, c.business)
   const scoped = records.filter(r => ['catch_up','current'].includes(stream(r)))
-  const scopeVersion = fingerprint([BETTI_WORK_VERSION, c.business])
+  const periods = workPeriods(c.business.authorizedScope, asOf, c.business.timezone)
+  const scopeVersion = fingerprint([BETTI_WORK_VERSION, c.business, periods.recentFrom])
   const streams = (rs: WorkRecord[]): ('catch_up' | 'current')[] =>
     ['catch_up', 'current'].filter(s => rs.some(r => stream(r) === s)) as ('catch_up' | 'current')[]
   const contextOf = (rs: WorkRecord[]): Workstream => {
@@ -162,7 +164,9 @@ export function projectBettiWork(input: {
       jobs.filter(j => dependencies.includes(j.id)).map(j => [j.id, j.version, j.status]).sort()]),
       type, target, workstream: contextOf(rs), affects, recordIds: rs.map(r => r.record_id).sort(),
       status: dependencies.length ? 'waiting' : 'actionable', availableAt: null, href,
-      priority: { score, routingTier:type==='account_use'?2:type==='material_question'||type==='special_transaction'?1:0,
+      // Current facts take precedence over historical backlog. Keep the same
+      // persisted tier in the fast SQL reader and canonical continuation.
+      priority: { score, routingTier:(rs.some(r=>stream(r)==='current'&&r.activity_date>=periods.recentFrom)?20:affects.includes('current')?10:0)+(type==='account_use'?3:type==='evidence_opportunity'?2:type==='material_question'||type==='special_transaction'?1:0),
         reasons, unlocks, ageDays, continuity, materiality: null, deadline: null }, dependencies, ...extra })
   }
   for (const account of c.accounts.filter(a => !a.designation)) {
@@ -174,10 +178,23 @@ export function projectBettiWork(input: {
   }
   const specificFacts=new Set([...input.questions.flatMap(q=>q.recordId?[q.recordId]:[]),
     ...c.deferred.filter(d=>!d.deferred_until||d.deferred_until>asOf).flatMap(d=>d.record_id?[d.record_id]:[])])
+  const evidenceGroups=new Map<string,WorkRecord[]>()
+  for(const r of scoped.filter(r=>evidenceOpportunityEligible(r,c,asOf)&&!activeJobIds(r.record_id).length)){
+    const key=`${r.account_id}:${r.activity_date.slice(0,7)}`
+    evidenceGroups.set(key,[...(evidenceGroups.get(key)??[]),r])
+  }
+  for(const[key,group]of evidenceGroups){
+    const rs=group.sort((a,b)=>a.activity_date.localeCompare(b.activity_date)||a.record_id.localeCompare(b.record_id)).slice(0,PERSONAL_SWEEP_LIMIT)
+    const account=c.accounts.find(a=>a.id===rs[0].account_id)!
+    const items=rs.map(r=>guidedItem(r,c))
+    add('evidence_opportunity',`evidence:${key}`,{kind:'account',id:account.id},rs,[key,items],'/check-in',rs[0].activity_date,
+      {items,account:{id:account.id,name:account.display_name??'Your account',mask:account.mask??null,designation:account.designation}})
+    actions.at(-1)!.priority.reasons.push('evidence_before_customer_questions')
+  }
   const stages=new Map(scoped.flatMap(r=>{const stage=guidedStage(r,c,specificFacts.has(r.record_id));return stage?[[r.record_id,stage] as const]:[]}))
   const groups=new Map<string,{stage:SweepType;records:WorkRecord[];deferred:string|null}>()
   for(const r of scoped){const stage=stages.get(r.record_id);if(!stage)continue
-    const deferred=guidedDeferral(r,stage,c,asOf),key=[r.account_id,stage,stage==='personal_exception_sweep'?'account':stream(r),deferred??'active',activeJobIds(r.record_id).length?'waiting':'ready'].join(':')
+    const deferred=guidedDeferral(r,stage,c,asOf),key=[r.account_id,stage,stream(r),deferred??'active',activeJobIds(r.record_id).length?'waiting':'ready'].join(':')
     const group=groups.get(key)??{stage,records:[],deferred};group.records.push(r);groups.set(key,group)
   }
   for(const[key,group]of groups){
@@ -274,7 +291,7 @@ export function projectBettiWork(input: {
   const actionable = deduplicated.filter(a => a.status === 'actionable')
   const deferred = deduplicated.filter(a => a.status === 'deferred')
   const waiting = deduplicated.filter(a => a.status === 'waiting')
-  const bookkeepingActions=deduplicated.filter(a=>!['personal_exception_sweep','receipt_upload_sweep','receipt_availability'].includes(a.type))
+  const bookkeepingActions=deduplicated.filter(a=>!['personal_exception_sweep','receipt_upload_sweep','receipt_availability','evidence_opportunity'].includes(a.type))
   const systemHeld = scoped.filter(r => !workingOrganized(r) && !activeJobIds(r.record_id).length
     && !deduplicated.some(a => a.recordIds.includes(r.record_id)))
     .map(r => ({ recordId: r.record_id, workstream: stream(r), reason: 'no_current_customer_action' as const,
@@ -314,6 +331,7 @@ export function projectBettiWork(input: {
       includedStart: c.business.authorizedScope.includedStart,
       catchUp: c.business.authorizedScope.catchUp,
       current: c.business.authorizedScope.currentFrom ? {from:c.business.authorizedScope.currentFrom} : null,
+      recent: {from:periods.recentFrom,through:periods.today},
       knownSourceCoverage: coverage, coverageGaps, sourceUniverseConfirmed: false,
       questionAgePolicy: 'unchanged_canonical_policy' as const },
     betti: { jobs, outsideScopeJobs:allJobs.filter(j=>j.workstream==='outside_scope'), waiting, systemHeld,

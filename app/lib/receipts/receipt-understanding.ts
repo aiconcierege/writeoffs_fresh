@@ -3,6 +3,7 @@ import 'server-only'
 import { createHash, randomUUID } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServerAdminSupabase } from '../../../utils/supabase/admin'
+import {derivedReceiptSource} from '../documents/receipt-source'
 import {
   configuredReceiptUnderstandingGateway, type ReceiptUnderstandingGateway,
 } from './receipt-understanding-gateway'
@@ -62,7 +63,7 @@ export async function evaluateReceiptUnderstandingJob(input: {
   const businessId = String(input.job.business_id ?? ''); const receiptId = String(input.job.receipt_id ?? '')
   const documentSha256 = String(input.job.document_sha256 ?? '')
   const { data: receipt, error } = await input.admin.from('receipts')
-    .select('id,business_id,upload_fingerprint,storage_path,mime_type,original_name')
+    .select('id,business_id,upload_fingerprint,storage_path,mime_type,original_name,bytes')
     .eq('id', receiptId).eq('business_id', businessId).single()
   if (error || !receipt) throw new Error('RECEIPT_AI_RECEIPT_UNAVAILABLE')
   if (receipt.upload_fingerprint !== documentSha256) return { outcome: 'stale' as const }
@@ -75,9 +76,13 @@ export async function evaluateReceiptUnderstandingJob(input: {
     .in('validation_status', ['accepted', 'rejected']).limit(1)
   if (prior?.length) return { outcome: 'cached' as const }
 
-  const { data: blob, error: storageError } = await input.admin.storage.from('receipts').download(receipt.storage_path)
-  if (storageError || !blob) throw new Error('RECEIPT_AI_DOCUMENT_UNAVAILABLE')
-  const bytes = new Uint8Array(await blob.arrayBuffer())
+  const derived=await derivedReceiptSource(input.admin,receipt)
+  let bytes=derived?.bytes
+  if(!bytes){
+    const { data: blob, error: storageError } = await input.admin.storage.from('receipts').download(receipt.storage_path)
+    if (storageError || !blob) throw new Error('RECEIPT_AI_DOCUMENT_UNAVAILABLE')
+    bytes = new Uint8Array(await blob.arrayBuffer())
+  }
   const actualHash = createHash('sha256').update(bytes).digest('hex')
   if (actualHash !== documentSha256) return { outcome: 'stale' as const }
   const { count: customerCorrectionCount } = await input.admin.from('bookkeeping_receipt_extractions')

@@ -45,6 +45,26 @@ Staging certification uses Stripe Sandbox only; Production activation remains se
 Cleanup may require statements or receipts when connected history is insufficient.
 It organizes books; it does not prepare, file, or amend tax returns.
 
+### September 23 evidence-first orchestration revision
+
+Current operational books begin on the first day of the immediately preceding
+calendar month. Purchased cleanup remains fixed at the agreed scope: chosen
+authorized start through the day before the joining customer's included prior
+month. Unfinished membership-covered months never become newly billable cleanup.
+Recent work takes priority while earlier cleanup proceeds through the same ledger.
+
+Available evidence → assessment → reassessment → remaining customer facts governs
+Check-in. Offer useful receipts/documents before substantive questions for an
+account/month; upload, no receipts, and later are distinct, nonblocking responses.
+Do not repeat an equivalent receipt opportunity for the same account/month.
+Documents arriving later still invalidate and resolve or narrow stale questions.
+A receipt's presence alone never proves business purpose, allocation, or completion.
+
+This supersedes older universal personal/mixed/receipt stage ordering and pure
+oldest-first sequencing below. It preserves the question-age policy, documentation
+limitations, immutable evidence, customer corrections, and financial calculations.
+Implementation/control details: [Evidence-first work orchestration](EVIDENCE_FIRST_WORK_ORCHESTRATION.md).
+
 Historical cleanup finishes with a durable review state and immutable presented snapshot. Betti processes what is available, uses evidence and bulk decisions, resolves avoidable personal/mixed ambiguity, and presents a factual summary of business expenses, personal/excluded activity, mixed use, documentation limitations, and unresolved category/detail limitations. **Caught up through [date]** means available records and customer decisions were processed and reviewed honestly, not that every source is perfect. The customer may choose **Everything looks right** or **Make a change**.
 
 ## 4. Onboarding and account context

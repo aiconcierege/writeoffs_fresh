@@ -153,7 +153,7 @@ export function projectCustomerQuestion(
       : null
   }
   if (item.event.reason === 'TRANSACTION_TYPE_UNCLEAR' && (transaction.amountCents ?? 0) > 0) return {
-    ...base, kind: 'transaction_type', materiality: 'totals', prompt: 'What was this money for?',
+    ...base, kind: 'transaction_type', materiality: 'totals', prompt: 'What was this money from?',
     understanding: 'I can see money came in, but I can’t tell where it came from.',
     ...(isPayoutConfirmation(context?.understanding) ? {
       understanding: context.understanding.invoiceReference

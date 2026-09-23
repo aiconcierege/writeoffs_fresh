@@ -46,7 +46,7 @@ const normalize = (value: string | null | undefined) =>
 
 const patterns: Array<{ categoryKey: OperatingExpenseCategoryKey; nature: string; pattern: RegExp }> = [
   { categoryKey: 'car-truck', nature: 'vehicle_operating_expense', pattern: /\b(?:gasoline|vehicle fuel|auto insurance|car insurance|vehicle insurance|auto repair|car repair|oil change|vehicle maintenance|dmv registration|vehicle registration|car tires?|parking fee|road toll|vehicle lease payment|car lease payment)\b/ },
-  { categoryKey: 'advertising', nature: 'advertising', pattern: /\b(?:advertis\w*|marketing|promotion|google ads|meta ads|facebook ads|mailchimp)\b/ },
+  { categoryKey: 'advertising', nature: 'advertising', pattern: /\b(?:advertis\w*|marketing|promotion(?:al)?|business cards|google ads|meta ads|facebook ads|mailchimp)\b/ },
   { categoryKey: 'commissions', nature: 'commissions_fees', pattern: /\b(?:commission|referral fee|broker fee|platform fee)\b/ },
   { categoryKey: 'contract-labor', nature: 'contract_labor', pattern: /\b(?:contractors?|freelanc(?:e|er|ers|ing)|subcontract(?:or|ors)?|upwork|fiverr)\b/ },
   { categoryKey: 'insurance', nature: 'business_insurance', pattern: /\b(?:business insurance|liability insurance|professional liability|errors and omissions|e o insurance|commercial insurance)\b/ },

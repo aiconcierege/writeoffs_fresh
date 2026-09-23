@@ -32,8 +32,8 @@ describe('receipt OCR facts',()=>{
 function workerFixture() {
   const bytes=Uint8Array.from([0x89,0x50,0x4e,0x47,1,2,3])
   const job={id:'job',business_id:'tenant-a',receipt_id:'receipt-a',job_type:'canonical_receipt_extraction',document_sha256:createHash('sha256').update(bytes).digest('hex')}
-  const query={select:vi.fn(),eq:vi.fn(),single:vi.fn(),maybeSingle:vi.fn()}
-  query.select.mockReturnValue(query);query.eq.mockReturnValue(query)
+  const query={select:vi.fn(),eq:vi.fn(),order:vi.fn(),limit:vi.fn(),single:vi.fn(),maybeSingle:vi.fn()}
+  query.select.mockReturnValue(query);query.eq.mockReturnValue(query);query.order.mockReturnValue(query);query.limit.mockReturnValue(query)
   query.single.mockResolvedValue({data:{id:'receipt-a',upload_fingerprint:job.document_sha256,storage_path:'private/object',mime_type:'image/png',bytes:bytes.length},error:null})
   query.maybeSingle.mockResolvedValue({data:null,error:null})
   const rpc=vi.fn(async(name:string)=>({data:name.startsWith('claim_')?[job]:name==='worker_record_bookkeeping_receipt_extraction'?{state:'matched'}:true,error:null}))

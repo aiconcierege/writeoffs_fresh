@@ -49,7 +49,7 @@ describe('customer question projection', () => {
     const incoming=withNature(item('TRANSACTION_TYPE_UNCLEAR',{factType:'money_in_source'}),null)
     incoming.record.authoritativeAmountCents=42500
     const question=projectCustomerQuestion(incoming,{...transaction,merchant,amountCents:42500,date:'2026-05-07'})
-    expect(question).toMatchObject({kind:'transaction_type',materiality:'totals',prompt:'What was this money for?'})
+    expect(question).toMatchObject({kind:'transaction_type',materiality:'totals',prompt:'What was this money from?'})
     expect(question?.options?.map(option=>option.id)).toEqual(['earned_money','moved_money','added_own_money','borrowed_money','received_refund','other'])
     expect(incoming.decision.treatment).toBe('unresolved')
   })

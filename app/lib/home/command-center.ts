@@ -28,7 +28,10 @@ export function homeCommand(work: GuidedWorkProjection, startMethod: string | nu
     action:null,alternative:{href:'/onboarding?edit=1',label:'Review an earlier bookkeeping start'},context:['Your books still begin on the same date.']}
   if (next?.type === 'recover_ingestion') return { state: 'attention', heading: 'I need your help with a document.',
     supporting: 'I couldn’t finish reading it. Let’s see what’s missing.',
-    action: { href: next.href, label: 'View document' }, context }
+      action: { href: next.href, label: 'View document' }, context }
+  if (next?.type === 'evidence_opportunity') return {state:'needs-customer',heading:'Have receipts? Send them first.',
+    supporting:'They may answer some of my questions for you. I’ll keep working with what I have.',
+    action:{href:'/check-in?returnTo=%2Fhome',label:'Review with Betti'},context}
   if (next && work.customer.actionableCount > 0) {
     const href = next.href.startsWith('/check-in') ? `${next.href}${next.href.includes('?') ? '&' : '?'}returnTo=%2Fhome` : next.href
     return { state: 'needs-customer',

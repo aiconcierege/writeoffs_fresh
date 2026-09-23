@@ -1,6 +1,13 @@
 // Conservative extraction of visible OCR facts. Never use filenames or bank candidates
 // to fill missing receipt fields.
 type VisionRow = Record<string, unknown>
+/** Supporting observations only; tax is already part of the receipt total and
+ * must never create another expense. Ambiguous/missing tax remains unknown. */
+export function receiptTaxObservation(text:string):number|null{
+  const values=[...text.matchAll(/^\s*(?:sales\s+)?tax\s*:?\s*\$?\s*([0-9]{1,9}(?:,[0-9]{3})*)\.([0-9]{2})\s*(?:USD)?\s*$/gmi)]
+    .map(m=>Number(m[1].replaceAll(',',''))*100+Number(m[2]))
+  return values.length&&new Set(values).size===1?values[0]:null
+}
 const months = ['january','february','march','april','may','june','july','august','september','october','november','december']
 const money = /(?:\$\s*|USD\s*)?([0-9]{1,9}(?:,[0-9]{3})*\.\d{2})\b/g
 function date(year: string, month: string, day: string) {

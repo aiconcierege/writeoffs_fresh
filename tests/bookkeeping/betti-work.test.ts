@@ -171,10 +171,10 @@ describe('read-only Betti work projection', () => {
     const c = context(); expect(activityWorkstream('2025-12-31', c.business)).toBe('outside_scope')
     c.business.activation = null; c.business.authorizedScope.activation = null; c.business.authorizedScope.catchUp = null; c.business.authorizedScope.currentFrom = null; expect(activityWorkstream('2026-05-01', c.business)).toBe('unscoped')
   })
-  it('account leverage and age can outweigh current preference', () => {
+  it('historical age cannot displace current customer work', () => {
     const c = context(); c.records = [record(), record('new', '2026-09-15')]
     const qs = c.records.map(question); qs[0].openedAt = '2026-01-01T00:00:00Z'
-    expect(project(c, qs).nextAction?.workstream).toBe('catch_up')
+    expect(project(c, qs).nextAction?.workstream).toBe('current')
   })
   it('keeps authorized older books separate from limited connected-bank evidence', () => {
     const c = context()
@@ -265,13 +265,14 @@ describe('guided work from the same canonical projection',()=>{
  }
  it('offers one non-blocking business-only exception group when no specific fact is missing',()=>{
   const c=guided();const p=project(c)
-  expect(p.customer.actionableCount).toBe(1);expect(p.nextAction?.type).toBe('personal_exception_sweep')
+  expect(p.customer.actionableCount).toBe(2);expect(p.nextAction?.type).toBe('evidence_opportunity')
+  expect(p.customer.actionable.filter(a=>a.type==='personal_exception_sweep')).toHaveLength(1)
   expect(p.nextAction?.items?.[0].merchant).toBe('Software service');expect(p.nextAction?.question).toBeUndefined()
  })
- it('moves from optional personal exceptions directly to receipts without a universal mixed-use stage',()=>{
+ it('offers evidence before optional exceptions and respects a prior receipt response without a second receipt stage',()=>{
   const c=guided(),original=JSON.stringify(c.records)
-  reviewed(c,'personal_exception_sweep');expect(project(c).nextAction?.type).toBe('receipt_upload_sweep')
-  reviewed(c,'receipt_upload_sweep');expect(project(c).nextAction?.type).toBe('receipt_availability')
+  reviewed(c,'personal_exception_sweep');expect(project(c).nextAction?.type).toBe('evidence_opportunity')
+  reviewed(c,'receipt_upload_sweep');expect(project(c).nextAction).toBeNull()
   expect(JSON.stringify(c.records)).toBe(original)
  })
  it('does not re-review customer-authored facts',()=>{
@@ -280,7 +281,7 @@ describe('guided work from the same canonical projection',()=>{
  })
  it('groups unresolved mixed-account purchases without establishing business use',()=>{
   const c=guided('business_and_personal');c.records[0].treatment='unresolved';c.records[0].allocations=[]
-  const p=project(c);expect(p.nextAction?.type).toBe('mixed_use_sweep')
+  const p=project(c);expect(p.nextAction?.type).toBe('evidence_opportunity');expect(p.customer.actionable.some(a=>a.type==='mixed_use_sweep')).toBe(true)
   expect(p.progress.catchUp.organized).toBe(0);expect(c.records[0].treatment).toBe('unresolved')
  })
  it('never puts transfers, loans, incoming funds or personal records in purchase sweeps',()=>{
@@ -296,7 +297,7 @@ describe('guided work from the same canonical projection',()=>{
  })
  it('bounds each visible group and does not include future/unseen purchases in its snapshot',()=>{
   const c=guided();c.records=Array.from({length:10},(_,i)=>({...c.records[0],record_id:`r${i}`,decision_id:`d${i}`}))
-  const p=project(c);expect(p.customer.actionableCount).toBe(1);expect(p.nextAction?.items).toHaveLength(10)
+  const p=project(c);expect(p.customer.actionableCount).toBe(2);expect(p.nextAction?.items).toHaveLength(10)
   const first=p.nextAction!;c.records.push({...c.records[0],record_id:'later'})
   expect(first.items).toHaveLength(first.recordIds.length);expect(first.recordIds).not.toContain('later')
  })
@@ -304,24 +305,24 @@ describe('guided work from the same canonical projection',()=>{
   const c=guided();c.records.push({...c.records[0],record_id:'ready'});c.jobs=[job()]
   const p=project(c);expect(p.nextAction?.recordIds).toEqual(['ready']);expect(p.betti.waiting[0].recordIds).toEqual(['old'])
  })
- it('waits for unmatched document processing before receipt-unavailable confirmation',()=>{
+ it('does not repeat an acknowledged opportunity while unmatched documents process',()=>{
   const c=guided();reviewed(c,'personal_exception_sweep');reviewed(c,'mixed_use_sweep');reviewed(c,'receipt_upload_sweep');c.jobs=[job(null)]
-  const p=project(c);expect(p.customer.actionableCount).toBe(0);expect(p.betti.waiting[0].type).toBe('receipt_availability');expect(p.readiness.doneForNow).toBe(false)
+  const p=project(c);expect(p.customer.actionableCount).toBe(0);expect(p.readiness.doneForNow).toBe(false)
  })
  it('receipt Later preserves the opportunity and working amount without asserting unavailable',()=>{
   const c=guided();reviewed(c,'personal_exception_sweep');reviewed(c,'mixed_use_sweep')
   const original=JSON.stringify(c.records)
   c.guidedReviews!.push({business_id:'a',id:'later',action:'receipt_upload_sweep',disposition:'deferred',created_at:now,deferred_until:'2026-09-18T12:00:00Z',items:[{recordId:'old',accountUseVersion:'use1'}]})
-  const p=project(c);expect(p.customer.actionableCount).toBe(0);expect(p.customer.deferredCount).toBe(1)
+  const p=project(c);expect(p.customer.actionableCount).toBe(0)
   expect(JSON.stringify(c.records)).toBe(original);expect(c.records[0].receipt_unavailable).toBeFalsy()
-  expect(projectBettiWork({businessId:'a',context:c,questions:[],asOf:'2026-09-19T12:00:00Z'}).nextAction?.type).toBe('receipt_upload_sweep')
+  expect(projectBettiWork({businessId:'a',context:c,questions:[],asOf:'2026-09-19T12:00:00Z'}).nextAction?.type).toBe('evidence_opportunity')
  })
  it('receipt availability Later is not a completed assertion; new purchases are outside its snapshot',()=>{
   const c=guided();reviewed(c,'personal_exception_sweep');reviewed(c,'mixed_use_sweep');reviewed(c,'receipt_upload_sweep')
   c.guidedReviews!.push({business_id:'a',id:'later',action:'receipt_availability',disposition:'deferred',created_at:now,deferred_until:'2026-09-18T12:00:00Z',items:[{recordId:'old',accountUseVersion:'use1'}]})
   c.records.push({...c.records[0],record_id:'new',transaction_id:'new-source',activity_date:'2026-09-16'})
-  const p=project(c);expect(p.customer.deferredCount).toBe(1);expect(p.customer.actionableCount).toBe(1)
-  expect(p.nextAction?.recordIds).toEqual(['new']);expect(c.records.every(r=>!r.receipt_unavailable)).toBe(true)
+  const p=project(c);expect(p.customer.actionableCount).toBe(2)
+  expect(p.nextAction?.recordIds).toEqual(['new']);expect(p.customer.actionable.some(a=>a.recordIds.includes('old'))).toBe(false);expect(c.records.every(r=>!r.receipt_unavailable)).toBe(true)
  })
  it('keeps deferred review distinct from completed assertions',()=>{
   const c=guided();c.guidedReviews=[{business_id:'a',id:'defer',action:'personal_exception_sweep',disposition:'deferred',created_at:now,deferred_until:'2026-09-18T12:00:00Z',items:[{recordId:'old',accountUseVersion:'use1'}]}]
@@ -338,7 +339,7 @@ describe('guided work from the same canonical projection',()=>{
  })
  it('does not turn a failed upload into a receipt-unavailable assertion or active processing',()=>{
   const c=guided();reviewed(c,'personal_exception_sweep');reviewed(c,'mixed_use_sweep');reviewed(c,'receipt_upload_sweep');c.jobs=[{...job(null),state:'dead_letter'}]
-  const p=project(c);expect(p.nextAction?.type).toBe('recover_ingestion');expect(p.betti.genuinelyProcessing).toBe(0);expect(p.betti.waiting[0].type).toBe('receipt_availability')
+  const p=project(c);expect(p.nextAction?.type).toBe('recover_ingestion');expect(p.betti.genuinelyProcessing).toBe(0);expect(p.customer.actionable.some(a=>a.type==='evidence_opportunity'||a.type==='receipt_availability')).toBe(false)
  })
  it('preserves an existing canonical deferral when presenting the new guided workflow',()=>{
   const c=guided();c.deferred=[{business_id:'a',id:'skip',issue_id:'q-old',record_id:'old',created_at:now,deferred_until:'2026-09-19T00:00:00Z'}]

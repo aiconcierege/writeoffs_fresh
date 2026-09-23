@@ -33,6 +33,7 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
  useEffect(()=>{try{const saved=JSON.parse(sessionStorage.getItem(`betti-visit:${initialWork.businessId}`)??'null');if(saved&&Date.now()-saved.at<7200000){setHandled(saved.handled??0);setDeferred(saved.deferred??0)}}catch{/* Session progress is optional; canonical facts remain durable. */}setSessionReady(true)},[initialWork.businessId])
  useEffect(()=>{if(!sessionReady)return;try{sessionStorage.setItem(`betti-visit:${initialWork.businessId}`,JSON.stringify({handled,deferred,at:Date.now()}))}catch{/* Private browsing may disable session storage. */}},[handled,deferred,sessionReady,initialWork.businessId])
  const[notice,setNotice]=useState(''),[error,setError]=useState(''),[saving,setSaving]=useState(false)
+ const[pendingMessage,setPendingMessage]=useState('Saving your answer…')
  const[outcome,setOutcome]=useState<ConversationOutcome>(null)
  const backgroundRead=useRef<AbortController|null>(null),reconciling=useRef(false)
  const automaticReads=useRef(0)
@@ -60,7 +61,7 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
   commitWork(updated);return updated
  },[recordId,commitWork])
  const needsProcessingRead=!action&&(work.betti.genuinelyProcessing+work.betti.queued+work.betti.retryScheduled>0||error==='I couldn’t check for updates. Refresh before answering.')
- const onPending=useCallback((pending:boolean)=>{lock.current=pending;setCommandPending(pending);if(pending){readSequence.current++;backgroundRead.current?.abort()}},[])
+ const onPending=useCallback((pending:boolean,message='Saving your answer…')=>{setPendingMessage(message);lock.current=pending;setCommandPending(pending);if(pending){readSequence.current++;backgroundRead.current?.abort()}},[])
  useEffect(()=>{
   let alive=true
   const updateError='I couldn’t check for updates. Refresh before answering.'
@@ -93,7 +94,7 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
  // The entry record is a server-side priority hint, never a session boundary.
  const displayedActionId=action?.id
  useEffect(()=>{if(!transitioning&&root.current)presentConversationTurn(root.current)},[displayedActionId,transitioning])
- const context=action?.workstream==='catch_up'?'Getting your books caught up':action?.workstream==='shared'?'Getting caught up and keeping up':action?.workstream==='current'?'Keeping your books up to date':'Work with Betti'
+ const context=action?.workstream==='catch_up'?'Getting your earlier books caught up':action?.workstream==='shared'?'Your current and earlier books':action?.workstream==='current'?'Keeping your current books up to date':'Work with Betti'
  async function recover(){
   backgroundRead.current?.abort();automaticReads.current=0;setWaitingPaused(false)
   setNotice('I’m checking your books.')
@@ -123,12 +124,12 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
  const status=conversationStatus(work,outcome,waitingPaused),waiting=status.waiting
  const progress=handled||deferred?`${handled} handled this visit${deferred?` · ${deferred} saved for later`:''}`:work.customer.actionableCount?'A few things to review':''
  return <div ref={root} data-customer-action-count={work.customer.actionableCount} data-guided-action={action?.type??work.readiness.phase} data-guided-version={action?.version} data-guided-id={action?.id} data-guided-presentation={work.presentation?.status??'ready'}>
- {(commandPending||transitioning)&&<div className="betti-transition-feedback" role="status" aria-live="polite" aria-atomic="true">{transitioning?'Got it. I’m checking the next question.':'Saving your answer…'}</div>}
+ {(commandPending||transitioning)&&<div className="betti-transition-feedback" role="status" aria-live="polite" aria-atomic="true">{transitioning?'Got it. I’m checking the next question.':pendingMessage}</div>}
  <ConversationShell contentIdentity={action?.id+':'+action?.version} returnTo={returnTo} context={context} progress={progress} notice={notice} state={!action?waiting?'working':'caught-up':'question'}>
   {error&&<div className="betti-error" role="alert">{error}<button className="betti-defer" onClick={()=>void recover()}>Refresh current work</button></div>}
-  {transitioning?<p role="status">Got it. I’m checking the next question.</p>:!action?<><span className={waiting?'betti-working':'betti-complete'} hidden/><h1 ref={heading} tabIndex={-1}>{status.heading}</h1><p className="betti-explanation">{status.supporting}</p>{status.operationalNote&&<p className="betti-operational-note">{status.operationalNote}</p>}{waiting&&<p className="betti-processing" role="status"><span className="betti-processing-dot"/> {work.betti.genuinelyProcessing?'Organizing your records':'I’ll keep working from here'}</p>}{waiting&&waitingPaused&&<button className="betti-defer" onClick={()=>void recover()}>Check for the next step</button>}{status.alternative&&<Link className="btn btn-secondary" href={status.alternative.href}>{status.alternative.label}</Link>}<LiveSourceCoverageNotice/><div className="betti-continue"><Link className="btn btn-primary" href={returnTo}>Back to your books</Link></div></>
+  {transitioning?<div className="min-h-40" aria-hidden="true"/>:!action?<><span className={waiting?'betti-working':'betti-complete'} hidden/><h1 ref={heading} tabIndex={-1}>{status.heading}</h1><p className="betti-explanation">{status.supporting}</p>{status.operationalNote&&<p className="betti-operational-note">{status.operationalNote}</p>}{waiting&&<p className="betti-processing" role="status"><span className="betti-processing-dot"/> {work.betti.genuinelyProcessing?'Organizing your records':'I’ll keep working from here'}</p>}{waiting&&waitingPaused&&<button className="betti-defer" onClick={()=>void recover()}>Check for the next step</button>}{status.alternative&&<Link className="btn btn-secondary" href={status.alternative.href}>{status.alternative.label}</Link>}<LiveSourceCoverageNotice/><div className="betti-continue"><Link className="btn btn-primary" href={returnTo}>Back to your books</Link></div></>
   :action.type==='account_use'?<AccountStep key={action.id+action.version} action={action} busy={saving} perform={perform}/>
-  :action.items?<SweepStep key={action.id+action.version} action={action} busy={saving} perform={perform} refresh={()=>refresh(undefined,'evidence')} onPending={onPending}/>
+  :action.type==='evidence_opportunity'?<EvidenceStep key={action.id+action.version} action={action} busy={saving} perform={perform} onPending={onPending}/>:action.items?<SweepStep key={action.id+action.version} action={action} busy={saving} perform={perform} refresh={()=>refresh(undefined,'evidence')} onPending={onPending}/>
   :action.type==='special_transaction'&&(!ordinary||!action.recordIds.includes(recordId??'')||!action.question)?<SpecialStep key={action.id+action.version} action={action} returnTo={returnTo} resolved={resolved} recover={recover} onPending={onPending} onEvidenceReceived={async()=>{await refresh(undefined,'evidence')}}/>
   :action.question?<><MerchantIdentity id="guided-transaction" merchant={action.question.transaction.merchant} date={action.question.transaction.date} amountCents={action.question.transaction.amountCents}/><QuestionFlow key={action.question.id+action.question.version} initialQuestions={[action.question]} guided onGuidedAnswer={resolved} onGuidedRefresh={recover} onGuidedPending={onPending} returnTo={returnTo}/></>
   :<><h1>{action.type==='recover_ingestion'?'Let’s take another look at this document.':'Send me your statements.'}</h1><p className="betti-explanation">{action.type==='recover_ingestion'?'Open the document to see what I need to read it.':'Connected accounts are the easiest way to keep up. Statements work too.'}</p><div className="betti-continue"><Link className="btn btn-primary" href={action.href}>{action.type==='recover_ingestion'?'View document':'Send documents'}</Link>{action.type==='provide_records'&&<Link className="betti-defer" href="/get-started">Connect accounts instead</Link>}</div></>}
@@ -136,7 +137,27 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
 }
 function AccountStep({action,busy,perform}:{action:WorkAction;busy:boolean;perform:(fn:()=>Promise<GuidedWorkProjection|void>,deferred?:boolean)=>Promise<void>}){
  const request=useRef<AccountUseRequest|null>(null),account=action.account!
- return <><MerchantIdentity merchant={account.name} detail={account.mask?`Account ending ${account.mask}`:undefined}/><h1>How did you use this account?</h1><p className="betti-explanation">I’ll use this setting for the account. You can still change any purchase.</p><div className="betti-choices">{([['business_only','Business only','I use this account for my business.'],['business_and_personal','Business + personal','There’s personal activity in this account too.']] as const).map(([designation,label,description])=><SelectionCard key={designation} disabled={busy} onClick={()=>void perform(async()=>{if(request.current?.designation!==designation)request.current={designation,effectiveAt:new Date().toISOString(),requestId:crypto.randomUUID()};let next:GuidedWorkProjection|undefined;await persistAccountUse(account.id,request.current,value=>{next=value});return next})}><span>{label}<small>{description}</small></span></SelectionCard>)}</div>{busy&&<p role="status">Got it…</p>}</>
+ return <><MerchantIdentity merchant={account.name} detail={account.mask?`Account ending ${account.mask}`:undefined}/><h1>How did you use this account?</h1><p className="betti-explanation">I’ll use this setting for the account. You can still change any purchase.</p><div className="betti-choices">{([['business_only','Business only','I use this account for my business.'],['business_and_personal','Business + personal','There’s personal activity in this account too.']] as const).map(([designation,label,description])=><SelectionCard key={designation} disabled={busy} onClick={()=>void perform(async()=>{if(request.current?.designation!==designation)request.current={designation,effectiveAt:new Date().toISOString(),requestId:crypto.randomUUID()};let next:GuidedWorkProjection|undefined;await persistAccountUse(account.id,request.current,value=>{next=value});return next})}><span>{label}<small>{description}</small></span></SelectionCard>)}</div></>
+}
+function EvidenceStep({action,busy,perform,onPending}:{action:WorkAction;busy:boolean;perform:(fn:()=>Promise<GuidedWorkProjection|void>,deferred?:boolean)=>Promise<void>;onPending:(pending:boolean,message?:string)=>void}){
+ const request=useRef<{signature:string;id:string}|null>(null)
+ const [uploading,setUploading]=useState(false)
+ const [received,setReceived]=useState<string[]>([])
+ const month=new Intl.DateTimeFormat('en-US',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(`${action.items![0].date.slice(0,7)}-01T12:00:00Z`))
+ function save(response:'provided'|'none'|'later',documentIds:string[]=[]){return perform(async()=>{
+  const payload={actionId:action.id,version:action.version,items:action.items,response,documentIds},signature=JSON.stringify(payload)
+  if(request.current?.signature!==signature)request.current={signature,id:crypto.randomUUID()}
+  const result=await fetch('/api/bookkeeping/work/evidence',{method:'POST',headers:{'content-type':'application/json','x-betti-guided':'1'},body:JSON.stringify({...payload,requestId:request.current.id}),signal:AbortSignal.timeout(15000)})
+  const body=await result.json();if(!result.ok)throw new Error(body.error??'Please try again.');return body.work as GuidedWorkProjection|undefined
+ },response==='later')}
+ return <><h1>Have receipts? Send them first.</h1><p className="betti-explanation">{action.workstream==='catch_up'?`I’m working on ${month}. Receipts and bills may answer some of my questions for you.`:'Send any receipts or bills you have. They may answer some of my questions for you.'}</p>
+ <p className="betti-workstream">{month} · {action.account?.name}{action.account?.mask?` · ${action.account.mask}`:''}</p>
+ <DocumentIntake guided compact buttonLabel="Send receipts" onUploadState={(pending,result)=>{
+  setUploading(pending);onPending(pending,'Receiving your documents…')
+  if(!pending&&result?.documentIds.length){const ids=[...new Set([...received,...result.documentIds])];setReceived(ids);if(!result.failed)void save('provided',ids.slice(0,10))}
+ }}/>
+ {received.length>0?<button className="btn btn-primary" disabled={busy||uploading} onClick={()=>void save('provided',received.slice(0,10))}>Continue with these documents →</button>:<div className="betti-continue"><button className="btn btn-secondary" disabled={busy||uploading} onClick={()=>void save('none')}>I don’t have any</button><button className="betti-defer" disabled={busy||uploading} onClick={()=>void save('later')}>I’ll do this later</button></div>}
+ <p className="betti-explanation">You can send documents later, too. I’ll keep working with what I have.</p></>
 }
 function SweepStep({action,busy,perform,refresh,onPending}:{onPending:(pending:boolean)=>void;action:WorkAction;busy:boolean;perform:(fn:()=>Promise<GuidedWorkProjection|void>,deferred?:boolean)=>Promise<void>;refresh:()=>Promise<GuidedWorkProjection>}){
  const[answers,setAnswers]=useState<Record<string,{use:string;businessDollars?:string}>>({}),[uploading,setUploading]=useState(false),[showUpload,setShowUpload]=useState(false),[uploadReadError,setUploadReadError]=useState(false),request=useRef<{signature:string;id:string}|null>(null)
@@ -144,8 +165,8 @@ function SweepStep({action,busy,perform,refresh,onPending}:{onPending:(pending:b
  function uploadState(value:boolean,result?:{received:number}){setUploading(value);if(value)onPending(true);else if(result?.received)void readAfterUpload();else onPending(false)}
  const personal=action.type==='personal_exception_sweep',mixed=action.type==='mixed_use_sweep',mixedAccount=action.account?.designation==='business_and_personal'
  const receipt=action.type==='receipt_upload_sweep',availability=action.type==='receipt_availability',items=action.items!
- const title=personal?'Anything here personal?':mixed?mixedAccount?'Which of these were for business?':'Anything partly personal?':receipt?'Do you have receipts for these?':'Any more receipts for these?'
- const explanation=personal?'I’ve treated these as business. Just tell me if any were personal.':mixed?mixedAccount?'This account has business and personal activity. For anything partly personal, tell me how much was for business.':'Select anything partly personal and tell me how much was for business.':receipt?'Send me what you have and I’ll match them.':'If not, that’s okay. I’ll keep working with what I have.'
+ const title=personal?'Are any of these not for the business?':mixed?mixedAccount?'Which of these were for business?':'Anything partly personal?':receipt?'Do you have receipts for these?':'Any more receipts for these?'
+ const explanation=personal?'I’ve treated these as business. Select any that weren’t.':mixed?mixedAccount?'This account has business and personal activity. For anything partly personal, tell me how much was for business.':'Select anything partly personal and tell me how much was for business.':receipt?'Send me what you have and I’ll match them.':'If not, that’s okay. I’ll keep working with what I have.'
  const valid=!mixed||items.every(i=>{const a=answers[i.recordId];if(mixedAccount&&!a)return false;if(a?.use!=='mixed')return true;const n=parsePositiveDollarCents(a.businessDollars??'');return n!==null&&n>0&&n<Math.abs(i.amountCents)})
  function save(disposition:'completed'|'deferred'){
   return perform(async()=>{
@@ -166,7 +187,7 @@ function SweepStep({action,busy,perform,refresh,onPending}:{onPending:(pending:b
 
  {receipt&&<><DocumentIntake guided compact buttonLabel="Choose receipts" onUploadState={uploadState}/><button className="betti-defer" disabled={busy||uploading} onClick={()=>void save('deferred')}>I’ll do this later</button></>}
  {availability&&<button className="betti-defer" onClick={()=>setShowUpload(value=>!value)}>I have another receipt</button>}{availability&&showUpload&&<DocumentIntake guided compact onUploadState={uploadState}/>}
- <div className="betti-continue"><button className={`btn ${receipt?'btn-secondary':'btn-primary'}`} disabled={busy||!valid||uploading||uploadReadError} onClick={()=>void save('completed')}>{busy?'Saving…':availability?'That’s all I have':personal?Object.keys(answers).length?'These were personal':'Nothing here is personal':mixed?mixedAccount?'That’s right':Object.keys(answers).length?'Use these amounts':'Nothing is partly personal': 'I don’t have any to send'}</button></div>
+ <div className="betti-continue"><button className={`btn ${receipt?'btn-secondary':'btn-primary'}`} disabled={busy||!valid||uploading||uploadReadError} onClick={()=>void save('completed')}>{busy?'Saving…':availability?'That’s all I have':personal?Object.keys(answers).length?'These were personal':'They’re all for the business':mixed?mixedAccount?'That’s right':Object.keys(answers).length?'Use these amounts':'Nothing is partly personal': 'I don’t have any to send'}</button></div>
  {!receipt&&<button className="betti-defer" disabled={busy||uploading} onClick={()=>void save('deferred')}>{availability?'I’ll do this later':'I’ll come back to this'}</button>}</>
 }
 function SpecialStep({action,returnTo,resolved,recover,onPending,onEvidenceReceived}:{onEvidenceReceived:()=>Promise<void>;onPending:(pending:boolean)=>void;action:WorkAction;returnTo:string;resolved:(deferred:boolean,message?:string,work?:GuidedWorkProjection)=>Promise<void>;recover:()=>Promise<void>}){

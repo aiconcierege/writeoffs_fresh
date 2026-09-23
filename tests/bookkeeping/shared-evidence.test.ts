@@ -30,6 +30,7 @@ function withReceipt(content: string) {
   const s = snapshot(); s.evidence = buildSharedEvidence(s, [receipt(content)]); return s
 }
 const cases = [
+  ['printed marketing materials', '500 business cards and promotional flyers', 'advertising'],
   ['restaurant', 'Neighborhood Restaurant\nSausage sandwich 4.00\nHash Brown 2.00\nMedium Coffee 3.54', 'meals'],
   ['software', 'Description: Software subscription', 'software'],
   ['office supplies', 'Printer paper and office supplies', 'office-expense'],

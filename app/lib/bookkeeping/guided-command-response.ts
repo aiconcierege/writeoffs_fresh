@@ -4,7 +4,7 @@ import {requestUser} from '../performance/request-identity'
 import 'server-only'
 import {createServerSupabase} from '../../../utils/supabase/server'
 import {loadCustomerEntitlements} from '../membership/entitlements'
-import {loadBettiWork} from './betti-work-loader'
+import {loadBettiWork,loadCanonicalBettiWork} from './betti-work-loader'
 import {timed} from '../performance/request-timing'
 import {after} from 'next/server'
 import {actionIndexEnabled,refreshBettiActionIndex} from './action-index-worker'
@@ -21,7 +21,7 @@ export function guidedContinuityRecord(request:Request){
 /** Optional continuation of an explicit, successfully persisted command. Never a GET
  * side effect, optimistic answer, or cross-request cache. Projection failure must not
  * turn a committed answer into an apparent failed write. */
-export function guidedCommand<Rest extends unknown[]>(handler:(request:Request,...rest:Rest)=>Promise<Response>,options:{deferralField?:'action'|'disposition'}={}){
+export function guidedCommand<Rest extends unknown[]>(handler:(request:Request,...rest:Rest)=>Promise<Response>,options:{deferralField?:'action'|'disposition'|'response'}={}){
  return async(request:Request,...rest:Rest):Promise<Response>=>{
   const requestBody=request.headers.get('x-betti-guided')==='1'?request.clone():null
   let response=await timed('canonical_command',()=>handler(request,...rest))
@@ -36,7 +36,7 @@ export function guidedCommand<Rest extends unknown[]>(handler:(request:Request,.
     response=Response.json(saved,{status:response.status,headers:{'Cache-Control':'private, no-store'}})
    }
    const body=await requestBody?.json().catch(()=>null)
-   const deferred=options.deferralField==='action'?body?.action==='defer':options.deferralField==='disposition'?body?.disposition==='deferred':false
+   const deferred=options.deferralField==='action'?body?.action==='defer':options.deferralField==='disposition'?body?.disposition==='deferred':options.deferralField==='response'?body?.response==='later':false
    const db=await createServerSupabase()
    const [{data:{user}}, {data:assurance}, membership]=await Promise.all([
     requestUser(db),db.auth.mfa.getAuthenticatorAssuranceLevel(),loadCustomerEntitlements(db),
@@ -57,7 +57,9 @@ export function guidedCommand<Rest extends unknown[]>(handler:(request:Request,.
     if(indexed&&authoritativeContinuation(indexed))return Response.json({...saved,work:indexed},{status:response.status,headers:{'Cache-Control':'private, no-store'}})
     // A dirty continuation must use the same read-only authority as page entry.
     // The answer has already committed; do not reconcile again just to pick next.
-    const current=await loadBettiWork({db,businessId:membership.businessId,scope:membership.plan??'expenses',
+    // The index was just checked above. Do not fetch the same stale index again
+    // inside the general loader before taking the required atomic snapshot.
+    const current=await loadCanonicalBettiWork({db,businessId:membership.businessId,scope:membership.plan??'expenses',
      continuityRecordId:guidedContinuityRecord(request),processingEnabled:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'})
     return Response.json({...saved,work:guidedWorkProjection(current)},{status:response.status,headers:{'Cache-Control':'private, no-store'}})
    }

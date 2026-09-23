@@ -25,7 +25,7 @@ export function SpecialTransactionFlow({work,returnTo:origin,embedded=false,onRe
  }
  return <section className={embedded?"betti-special space-y-4":"mx-auto max-w-2xl space-y-4 py-5"} aria-label="Betti transaction question">
   {!embedded&&<><Link href={returnTo} className="inline-flex min-h-11 items-center font-semibold">← {returnLabel(returnTo)}</Link><p className="font-semibold">Betti</p></>}
-  <p className="betti-answer-status" role="status">{busy?'Saving your answer…':'\u00a0'}</p>
+  {!embedded&&<p className="betti-answer-status" role="status">{busy?'Saving your answer…':'\u00a0'}</p>}
   {message&&<p role="status">{message}</p>}
   {!deferred&&!finished&&<>
   {needsSupportingRecord&&<><h1>Send me a supporting record.</h1><p>Send me the payment, purchase or reimbursement record you have.</p><DocumentIntake onUploadState={(pending,result)=>{if(pending)onPending?.(true);else if(result?.received&&onEvidenceReceived)void onEvidenceReceived().catch(()=>setError('I couldn’t check the latest document status. Please refresh.')).finally(()=>onPending?.(false));else onPending?.(false)}} guided={embedded} compact recordId={work.recordId}/></>}

@@ -206,7 +206,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
         <div className="question-identity">{!embedded&&<BettiIllustration state="question" className="question-betti" priority sizes="3rem" />}<span>Betti</span></div>
         {question.understanding && !showAlternatives && <p className="betti-understanding">{question.understanding}</p>}
         <h1 ref={heading} tabIndex={-1} aria-describedby={guided?'guided-transaction':undefined} className="text-[1.65rem] font-semibold leading-tight tracking-[-.035em] text-[#17211d] outline-none sm:text-3xl">
-          {showAmount ? `How much of the ${amount??'total'} was for your business?` : showAlternatives && question.confirmation ? 'What was this money for?' : shownPrompt}
+          {showAmount ? `How much of the ${amount??'total'} was for your business?` : showAlternatives && question.confirmation ? 'What was this money from?' : shownPrompt}
         </h1>
         <div className="question-transaction-context my-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#59665f]">
           <span className="font-semibold break-words">{question.transaction.merchant}</span>
@@ -218,7 +218,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
         {shownGuidance && !showAmount && <p className="mt-2 text-muted">{shownGuidance}</p>}
         {showAmount && <p className="mt-2 text-muted">Tell me how much was for business.</p>}
 
-        <p role="status" className="betti-answer-status">{submitting?'Got it. Saving your answer…':'\u00a0'}</p>
+        {!guided&&<p role="status" className="betti-answer-status">{submitting?'Got it. Saving your answer…':'\u00a0'}</p>}
         <div className="question-answer-options mt-4 grid gap-2" data-answer-layout={guided&&question.confirmation&&!showAlternatives?'confirmation':guided && (question.options || ['business_use', 'factual_choice', 'transaction_type'].includes(question.kind)) && !otherActivity ? 'choices' : 'field'}>
           {question.kind === 'business_use' && <>
             <Action onClick={() => submit({ action: 'business_use', use: 'business' })} busy={busy}>Yes, business</Action>

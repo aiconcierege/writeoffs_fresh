@@ -13,7 +13,7 @@ import {guidedStage,statementEstablishesBankFee} from '../../app/lib/bookkeeping
 
 const now='2026-09-23T17:00:00.000Z'
 export function syntheticMayScenario(){
- const c:WorkContext={business:{id:'synthetic-may',start:'2026-01-01',activation:'2026-09-23',activationEvidence:now,timezone:'America/Phoenix',coverageStart:'2026-01-01',authorizedScope:{businessId:'synthetic-may',selectedStart:'2026-01-01',authorizedStart:'2026-01-01',includedStart:'2026-08-01',activation:'2026-09-23',historicalAuthorized:true,currentFrom:'2026-09-23',catchUp:{from:'2026-01-01',through:'2026-09-22'}}},records:[],accounts:[{business_id:'synthetic-may',id:'account',provider:'statement',designation:'business_only',use_version:'use-1'}],jobs:[],documents:[],links:[],deferred:[],guidedReviews:[],coverage:[{business_id:'synthetic-may',id:'statement',account_id:'account',document_id:'pdf',period_start:'2026-05-01',period_end:'2026-05-31',validation_status:'validated',ambiguous_row_count:0}]}
+ const c:WorkContext={business:{id:'synthetic-may',start:'2026-01-01',activation:'2026-09-23',activationEvidence:now,timezone:'America/Phoenix',coverageStart:'2026-01-01',authorizedScope:{businessId:'synthetic-may',selectedStart:'2026-01-01',authorizedStart:'2026-01-01',includedStart:'2026-08-01',activation:'2026-09-23',historicalAuthorized:true,currentFrom:'2026-08-01',catchUp:{from:'2026-01-01',through:'2026-07-31'}}},records:[],accounts:[{business_id:'synthetic-may',id:'account',provider:'statement',designation:'business_only',use_version:'use-1'}],jobs:[],documents:[],links:[],deferred:[],guidedReviews:[],coverage:[{business_id:'synthetic-may',id:'statement',account_id:'account',document_id:'pdf',period_start:'2026-05-01',period_end:'2026-05-31',validation_status:'validated',ambiguous_row_count:0}]}
  const snapshots:BookkeepingEvaluationSnapshot[]=[],questions:CustomerQuestion[]=[],records:CanonicalSummaryRecord[]=[]
  for(const [day,merchant,amount] of mayChecking){
   const id=`may-${day}`,date=`2026-05-${String(day).padStart(2,'0')}`
@@ -52,14 +52,15 @@ describe('controlled May statement: existing evaluation → working books → co
  })
  it('surfaces every specific fact, one five-purchase exception opportunity, and no bank-fee task',()=>{
   const s=syntheticMayScenario(),before=JSON.stringify(s),built=buildActionIndex(s),actions=built.work.customer.actionable
-  expect(actions).toHaveLength(14) // 11 specific questions + loan + refund + one optional sweep
+  expect(actions).toHaveLength(15) // Evidence opportunity, 11 specific facts, loan, refund, optional exceptions
+  expect(actions[0].type).toBe('evidence_opportunity')
   expect(actions.filter(a=>a.type==='personal_exception_sweep')).toHaveLength(1)
   expect(actions.find(a=>a.type==='personal_exception_sweep')?.items?.map(i=>i.recordId)).toEqual(['may-3','may-6','may-12','may-18','may-26'])
   expect(actions.some(a=>a.recordIds.includes('may-29'))).toBe(false)
   expect(actions.filter(a=>a.type==='mixed_use_sweep'||a.type.startsWith('receipt_'))).toHaveLength(0)
-  for(const id of ['may-8','may-9','may-24'])expect(actions.find(a=>a.recordIds.includes(id))?.type).toBe('material_question')
-  expect(actions.find(a=>a.recordIds.includes('may-8'))?.question?.kind).toBe('percentage')
-  expect(actions.slice(0,13).every(a=>['material_question','special_transaction'].includes(a.type))).toBe(true)
+  for(const id of ['may-8','may-9','may-24'])expect(actions.find(a=>a.question&&a.recordIds.includes(id))?.type).toBe('material_question')
+  expect(actions.find(a=>a.question&&a.recordIds.includes('may-8'))?.question?.kind).toBe('percentage')
+  expect(actions.slice(1,14).every(a=>['material_question','special_transaction'].includes(a.type))).toBe(true)
   // The database reader sorts persisted priorities, not the serialized array.
   const persisted=[...built.entries].sort((a,b)=>(b.action.priority.routingTier??0)-(a.action.priority.routingTier??0)||b.action.priority.score-a.action.priority.score||a.action.id.localeCompare(b.action.id))
   expect(persisted.filter(e=>e.action.status==='actionable').map(e=>e.action.id)).toEqual(actions.map(a=>a.id))
@@ -72,19 +73,20 @@ describe('controlled May statement: existing evaluation → working books → co
   s.context.guidedReviews!.push({business_id:s.businessId,id:'synthetic-review',action:'personal_exception_sweep',disposition:'completed',items:sweep.items!,created_at:now,deferred_until:null})
   const next=projectBettiWork(s)
   expect(next.customer.actionable.some(a=>a.type==='mixed_use_sweep')).toBe(false)
-  expect(next.customer.actionable.find(a=>a.type==='receipt_upload_sweep')?.recordIds.sort()).toEqual(sweep.recordIds.sort())
-  expect(next.customer.actionable.find(a=>a.recordIds.includes('may-8'))?.question?.kind).toBe('percentage')
+  expect(next.customer.actionable.find(a=>a.type==='evidence_opportunity')?.recordIds).toEqual(expect.arrayContaining(sweep.recordIds))
+  expect(next.customer.actionable.some(a=>a.type==='receipt_upload_sweep'||a.type==='receipt_availability')).toBe(false)
+  expect(next.customer.actionable.find(a=>a.question&&a.recordIds.includes('may-8'))?.question?.kind).toBe('percentage')
   expect(JSON.stringify(s.context.records)).toBe(original)
  })
- it('keeps one account exception review across catch-up/current and prioritizes specifics over a large old batch',()=>{
+ it('separates current exceptions from cleanup without letting a large old batch displace current work',()=>{
   const s=syntheticMayScenario(),office=s.context.records.find(r=>r.record_id==='may-12')!
   office.activity_date='2026-09-23'
   for(let i=0;i<90;i++)s.context.records.push({...office,record_id:`older-${i}`,transaction_id:`older-tx-${i}`,activity_date:'2026-01-01'})
   const actions=projectBettiWork(s).customer.actionable,sweeps=actions.filter(a=>a.type==='personal_exception_sweep')
-  expect(sweeps).toHaveLength(1)
-  expect(sweeps[0].items).toHaveLength(95)
-  expect(sweeps[0].affects).toEqual(expect.arrayContaining(['catch_up','current']))
-  expect(actions.slice(0,13).every(a=>['material_question','special_transaction'].includes(a.type))).toBe(true)
+  expect(sweeps).toHaveLength(2)
+  expect(sweeps.reduce((n,sweep)=>n+sweep.items!.length,0)).toBe(95)
+  expect(sweeps.every(a=>a.affects.length===1)).toBe(true)
+  expect(actions[0].workstream).toBe('current')
  })
  it('does not replace a deferred material fact with a generic or receipt request',()=>{
   const s=syntheticMayScenario();s.questions=s.questions.filter(q=>q.recordId!=='may-24')
@@ -112,7 +114,7 @@ describe('controlled May statement: existing evaluation → working books → co
   const sweep=work.customer.actionable[0]
   s.context.guidedReviews!.push({business_id:s.businessId,id:'confirmed',action:'personal_exception_sweep',disposition:'completed',items:sweep.items!,created_at:now,deferred_until:null})
   work=projectBettiWork(s)
-  expect(work.nextAction?.type).toBe('receipt_upload_sweep')
+  expect(work.nextAction?.type).toBe('evidence_opportunity')
   expect(work.readiness.catchUp).toBe('available_activity_organized')
   expect(work.readiness.knownAccountsOrganizedThrough).toBe('2026-09-23')
   expect(work.readiness.booksCurrentThrough).toBeNull() // No invented all-source completion.
