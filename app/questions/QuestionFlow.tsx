@@ -192,8 +192,10 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
   const enteredCents = parsePositiveDollarCents(mixedAmount)
   const transactionTotalCents = Math.abs(question.transaction.amountCents??0)
 
-  const shownPrompt=guided?question.prompt:question.prompt==='What was this purchase for?'?'What did you buy?':question.prompt
-  const shownGuidance=!guided&&question.kind==='business_purpose'&&question.evidence
+  const cashWithdrawal=question.kind==='transaction_type'&&(question.transaction.amountCents??0)<0
+    &&/\bATM\b.*\bWITHDRAWAL\b/i.test(question.transaction.merchant)
+  const shownPrompt=cashWithdrawal?'What did you use the cash for?':guided?question.prompt:question.prompt==='What was this purchase for?'?'What did you buy?':question.prompt
+  const shownGuidance=cashWithdrawal?undefined:!guided&&question.kind==='business_purpose'&&question.evidence
     ?'I have the receipt, but I can’t tell what this was for.'
     :question.guidance
   const conversation=<>{!embedded && !guided && <header className="mb-2 flex items-center justify-between gap-4 text-sm">
@@ -290,7 +292,7 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
               <button type="button" className="betti-defer" disabled={busy} onClick={()=>setShowAlternatives(true)}>No, something else</button>
             </> : !otherActivity ? question.options?.map(option=><Action key={option.id}
               onClick={()=>option.id==='other'?setOtherActivity(true):submit({action:'transaction_type',activity:option.id})} busy={busy}>{option.label}</Action>) : <>
-              <label htmlFor="money-source" className="text-sm font-medium">Tell me where this money came from</label>
+              <label htmlFor="money-source" className="text-sm font-medium">{(question.transaction.amountCents??0)<0?'Tell me what you used it for':'Tell me where this money came from'}</label>
               <textarea id="money-source" rows={2} maxLength={1000} value={purpose} onChange={event=>setPurpose(event.target.value)} className="w-full rounded-lg border border-slate-300 p-3"/>
               <Action onClick={()=>submit({action:'transaction_type',activity:'other',details:purpose})} busy={busy||!purpose.trim()}>Continue</Action>
               <button type="button" disabled={busy} onClick={()=>setOtherActivity(false)} className="min-h-11 underline">Back to choices</button>

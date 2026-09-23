@@ -6,6 +6,13 @@ const weekly = readFileSync('app/weekly-review/[id]/page.tsx', 'utf8')
 const actions = readFileSync('app/lib/bookkeeping/customer-question-actions.ts', 'utf8')
 
 describe('customer question UI contract', () => {
+  it('uses cash wording even for an already-published ATM question without rebuilding its projection',()=>{
+    expect(flow).toContain("question.kind==='transaction_type'")
+    expect(flow).toContain("What did you use the cash for?")
+    expect(flow).toContain("cashWithdrawal?undefined:!guided")
+    expect(flow).toContain("Tell me what you used it for")
+  })
+
   it('offers the locked factual actions and completion state', () => {
     for (const copy of [
       'Yes, business', 'No, personal', 'I’m not sure', 'I’ll come back to this',

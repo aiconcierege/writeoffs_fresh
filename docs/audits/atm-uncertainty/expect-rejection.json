@@ -1,0 +1,11 @@
+{
+  "mode": "--expect-rejection",
+  "status": 400,
+  "indexedBefore": true,
+  "uncertaintyAnswers": 0,
+  "financialTotalsUnchanged": true,
+  "income": 210052,
+  "expenses": 142573,
+  "profit": 67479,
+  "atmRemainsUnresolved": true
+}
