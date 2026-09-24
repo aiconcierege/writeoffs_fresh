@@ -1,0 +1,17 @@
+import {beforeEach,it,expect,vi} from 'vitest'
+import {homeWorkFixture} from '../fixtures/home-command'
+const m=vi.hoisted(()=>({user:vi.fn(),aal:vi.fn(),membership:vi.fn(),work:vi.fn(),tables:{} as Record<string,unknown[]>,calls:[] as string[]}))
+vi.mock('../../utils/supabase/server',()=>({createServerSupabase:async()=>({auth:{mfa:{getAuthenticatorAssuranceLevel:m.aal}},from:(table:string)=>{m.calls.push(table);const q={select:()=>q,eq:()=>q,in:async()=>({data:m.tables[table]??[],error:null})};return q}})}))
+vi.mock('../../app/lib/performance/request-identity',()=>({requestUser:m.user}))
+vi.mock('../../app/lib/membership/entitlements',()=>({loadCustomerEntitlements:m.membership}))
+vi.mock('../../app/lib/bookkeeping/betti-work-loader',()=>({loadCanonicalBettiWork:m.work}))
+import {GET} from '../../app/api/bookkeeping/work/documents/route'
+const doc='11111111-1111-4111-8111-111111111111',record='22222222-2222-4222-8222-222222222222'
+const get=(params=`documents=${doc}&records=${record}`)=>GET(new Request('https://example.test/api/bookkeeping/work/documents?'+params))
+beforeEach(()=>{vi.clearAllMocks();m.calls=[];m.user.mockResolvedValue({data:{user:{id:'owner'}}});m.aal.mockResolvedValue({data:{currentLevel:'aal2'}});m.membership.mockResolvedValue({businessId:'b',lifecycle:'active',plan:'business'});m.tables={business_documents:[{id:doc}],current_customer_document_status:[{id:doc,state:'completed'}],bookkeeping_records:[{id:record}],receipt_source_regions:[],bookkeeping_loan_document_facts:[{principal_cents:40000,interest_cents:5000}]};m.work.mockImplementation(async({onSnapshot})=>{onSnapshot({context:{jobs:[],documents:[],links:[],documentRecords:[]},tables:{current_bookkeeping_compound_components:[]}});return homeWorkFixture('organized')})})
+it('requires authentication and MFA',async()=>{m.user.mockResolvedValueOnce({data:{user:null}});expect((await get()).status).toBe(401);m.aal.mockResolvedValueOnce({data:{currentLevel:'aal1'}});expect((await get()).status).toBe(403);expect(m.work).not.toHaveBeenCalled()})
+it('denies another tenant’s missing documents or records before canonical reads',async()=>{m.tables.business_documents=[];expect((await get()).status).toBe(404);m.tables.business_documents=[{id:doc}];m.tables.bookkeeping_records=[];expect((await get()).status).toBe(404);expect(m.work).not.toHaveBeenCalled()})
+it.each(['','documents=bad',`documents=${doc},${doc}`,`documents=${doc}&records=bad`])('rejects invalid input %s',async p=>{expect((await get(p)).status).toBe(400);expect(m.work).not.toHaveBeenCalled()})
+it('returns the completed loan result and fresh canonical next action without a mutation',async()=>{const r=await get();expect(r.status).toBe(200);expect((await r.json()).review).toEqual({phase:'ready',remainingFact:false,loanSplit:{principalCents:40000,interestCents:5000}});expect(m.calls.indexOf('current_customer_document_status')).toBeGreaterThan(m.calls.indexOf('business_documents'));expect(r.headers.get('Cache-Control')).toBe('private, no-store')})
+it('does not claim loan success while extraction is pending',async()=>{m.tables.current_customer_document_status=[{id:doc,state:'pending'}];expect((await(await get()).json()).review).toEqual({phase:'processing',remainingFact:false});expect(m.calls).not.toContain('bookkeeping_loan_document_facts')})
+it('fails closed on an unavailable canonical snapshot',async()=>{m.work.mockRejectedValue(Error('unavailable'));expect((await get()).status).toBe(503)})

@@ -10,7 +10,7 @@ vi.mock('react',async importOriginal=>({
  useEffect:(effect:()=>void|(()=>void))=>hooks.effects.push(effect),
  useRef:(value:unknown)=>({current:value}),
  useCallback:(callback:unknown)=>callback,
- useState:(value:unknown)=>{const setter=vi.fn();hooks.setters.push(setter);return[typeof value==='function'?value():value,setter]},
+ useState:(value:unknown)=>{const setter=vi.fn();hooks.setters.push(setter);return[hooks.setters.length===7?true:typeof value==='function'?value():value,setter]},
 }))
 let cleanup:Array<()=>void>=[]
 beforeEach(()=>{
@@ -119,16 +119,14 @@ it('commits a current continuation once and latches it before a focus event',asy
  expect(new URL(fetcher.mock.calls[0][0],'https://local').searchParams.get('presented')).toBe(confirmed.nextAction?.id)
 })
 
-it('document evidence refresh commits only the returned presentation while retaining the shown identity in the request',async()=>{
+it('document receipt pins a review turn instead of committing the next question',async()=>{
  const base=homeWorkFixture('concurrent'),initial={...base,nextAction:{...base.nextAction!,type:'special_transaction' as const}}
  const {view,fetcher}=start(initial)
- const next=homeWorkFixture('current')
- fetcher.mockResolvedValue({ok:true,json:async()=>({...next,presentation:{status:'updated',action:next.nextAction}})})
- await callback(view,'onEvidenceReceived')!()
- expect(fetcher).toHaveBeenCalledOnce()
- expect(new URL(fetcher.mock.calls[0][0],'https://local').searchParams.get('presented')).toBe(initial.nextAction.id)
- expect(hooks.setters[0]).toHaveBeenCalledTimes(1)
- expect(hooks.setters[0].mock.calls[0][0].nextAction.id).toBe(next.nextAction?.id)
+ await callback(view,'onEvidenceReceived')!(['received-doc'])
+ expect(fetcher).not.toHaveBeenCalled()
+ expect(hooks.setters[0]).not.toHaveBeenCalled()
+ expect(hooks.setters[5]).toHaveBeenCalledWith(expect.objectContaining({documentIds:['received-doc'],actionId:initial.nextAction.id}))
+ expect(sessionStorage.setItem).toHaveBeenCalledWith(expect.stringContaining('betti-document-turn:'),expect.stringContaining('received-doc'))
 })
 
 it('acknowledges pending submission immediately without unmounting the submitting question',async()=>{

@@ -4,11 +4,15 @@ import {describe,it,expect,vi} from 'vitest'
 import {GuidedWork} from '../../app/components/guided/GuidedWork'
 import {homeWorkFixture} from '../fixtures/home-command'
 const {renderToStaticMarkup}=createRequire(import.meta.url)('react-dom/server') as {renderToStaticMarkup:(node:React.ReactNode)=>string}
+const hydration=vi.hoisted(()=>({index:0}))
+// Exercise the hydrated view; the browser regression separately proves that
+// server/first paint is gated while a stored document turn is recovered.
+vi.mock('react',async original=>{const react=await original<typeof import('react')>();return{...react,useState:(initial:unknown)=>{const state=react.useState(initial);return hydration.index++===6?[true,state[1]]:state}}})
 vi.stubGlobal('React',React)
 vi.mock('../../app/questions/QuestionFlow',()=>({QuestionFlow:()=>React.createElement('h1',null,'Next material question')}))
 vi.mock('../../app/documents/DocumentIntake',()=>({DocumentIntake:()=>null}))
 vi.mock('next/navigation',()=>({useRouter:()=>({refresh:vi.fn()})}))
-const render=(work:ReturnType<typeof homeWorkFixture>,recordId='finished-loan')=>renderToStaticMarkup(React.createElement(GuidedWork,{initialWork:work,recordId}))
+const render=(work:ReturnType<typeof homeWorkFixture>,recordId='finished-loan')=>{hydration.index=0;return renderToStaticMarkup(React.createElement(GuidedWork,{initialWork:work,recordId}))}
 describe('guided conversation follows canonical ready work across entry boundaries',()=>{
  it.each(['catch-up','current','concurrent'] as const)('continues %s work after the entry transaction is finished or deferred',state=>{
   const work=homeWorkFixture(state);work.customer.deferredCount=1
