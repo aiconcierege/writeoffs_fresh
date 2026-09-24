@@ -3,6 +3,7 @@ import 'server-only'
 import {documentMayOverlap} from './overlap'
 import {fileKind} from './file-validation'
 import {readPdfPages} from './pdf-reader'
+import {CUSTOMER_PHOTO_GROUPING} from './photo-grouping'
 import {classifyDocumentText} from './classification'
 import {parseStructuredFile} from './structured-text'
 import { parseReceiptText, visionReceiptText, receiptTaxObservation } from './receipt-text'
@@ -217,9 +218,10 @@ async function processStatement(admin: SupabaseClient, job: Row,ocr: (bytes:Uint
 
 async function processIntake(admin:SupabaseClient,job:Row){
   const target=await loadTarget(admin,job),kind=fileKind(target.bytes)
-  let text='',documentClass='unknown',transactionCount=0
+  let text='',documentClass='unknown',transactionCount=0,customerGrouped=false
   let receiptPages:ReceiptPage[]=[]
   if(kind==='pdf'){
+    customerGrouped=(await PDFDocument.load(target.bytes)).getSubject()===CUSTOMER_PHOTO_GROUPING
     const pages=await readPdfPages(target.bytes);text=pages.map(p=>p.plain).join('\n');documentClass=classifyDocumentText(text)
     receiptPages=pages.map(p=>({...p,text:p.plain}))
   }else if(['png','jpeg','webp'].includes(kind)){
@@ -252,7 +254,7 @@ async function processIntake(admin:SupabaseClient,job:Row){
     return processStatement(admin,job,googleVision)
   }
   if(documentClass==='receipt'){
-    const boundaries=receiptPages.length?receiptBoundaries(receiptPages):null
+    const boundaries=receiptPages.length?receiptBoundaries(receiptPages,customerGrouped):null
     if(boundaries?.receipts.length&&boundaries.receipts.length>1){
       for(const [part,receipt] of boundaries.receipts.entries()){
         let crop

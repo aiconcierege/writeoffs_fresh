@@ -51,7 +51,8 @@ describe('guided deferral and processing language',()=>{
  it('preserves supported coverage and out-of-scope messages',()=>{
   const organized=homeWorkFixture('organized')
   const work={...organized,readiness:{...organized.readiness,booksCurrentThrough:'2026-09-18'}} as unknown as GuidedWorkProjection
-  expect(conversationStatus(work,null).heading).toContain('September 18, 2026')
+  expect(conversationStatus(work,null).heading).toBe('You’re all set for now.')
+  expect(conversationStatus(work,null).operationalNote).toContain('September 18, 2026')
   work.readiness.phase='outside_scope'
   expect(conversationStatus(work,null).heading).toBe('These records are from before your books begin.')
  })

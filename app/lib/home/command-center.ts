@@ -29,6 +29,9 @@ export function homeCommand(work: GuidedWorkProjection, startMethod: string | nu
   if (next?.type === 'recover_ingestion') return { state: 'attention', heading: 'I need your help with a document.',
     supporting: 'I couldn’t finish reading it. Let’s see what’s missing.',
       action: { href: next.href, label: 'View document' }, context }
+  if (next?.journey) return {state:'needs-customer',heading:next.journey.stage==='statements'?'Let’s gather your earlier statements.':next.journey.stage==='receipts'?next.journey.moreReceipts?'Any more receipts?':'Before I ask you anything, send me the receipts you have.':'Let’s review your business records together.',
+    supporting:next.journey.stage==='receipts'?'They may answer some of my questions for you.':'I’ll keep working with what you’ve sent. We’ll handle the remaining details together.',
+    action:{href:'/check-in?returnTo=%2Fhome',label:next.journey.stage==='statements'?'Review missing statements':next.journey.stage==='receipts'?'Send receipts':'Review together'},context}
   if (next?.type === 'evidence_opportunity') return {state:'needs-customer',heading:'Before I ask you anything, do you have receipts?',
     supporting:'Send me what you have. It may answer some of my questions for you.',
     action:{href:'/check-in?returnTo=%2Fhome',label:'Send receipts'},context}

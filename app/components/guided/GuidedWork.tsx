@@ -1,5 +1,6 @@
 'use client'
 import {DocumentReviewTurn,documentTurnKey,restoredDocumentTurn,type DocumentTurn} from './DocumentReviewTurn'
+import {CatchUpStep} from './CatchUpStep'
 import {EvidenceStep} from './EvidenceStep'
 import {LiveSourceCoverageNotice} from '../SourceCoverageNotice'
 import Link from 'next/link'
@@ -36,7 +37,7 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
  useEffect(()=>{try{setDocumentTurn(restoredDocumentTurn(sessionStorage.getItem(documentTurnKey(initialWork.businessId)),initialWork.businessId));const saved=JSON.parse(sessionStorage.getItem(`betti-visit:${initialWork.businessId}`)??'null');if(saved&&Date.now()-saved.at<7200000){setHandled(saved.handled??0);setDeferred(saved.deferred??0)}}catch{/* Session progress is optional; canonical facts remain durable. */}setSessionReady(true)},[initialWork.businessId])
  useEffect(()=>{if(!sessionReady)return;try{sessionStorage.setItem(`betti-visit:${initialWork.businessId}`,JSON.stringify({handled,deferred,at:Date.now()}))}catch{/* Private browsing may disable session storage. */}},[handled,deferred,sessionReady,initialWork.businessId])
  const[notice,setNotice]=useState(''),[error,setError]=useState(''),[saving,setSaving]=useState(false)
- const[pendingMessage,setPendingMessage]=useState('Saving your answer…')
+ const[pendingMessage,setPendingMessage]=useState('Got it. Updating your records…')
  const[outcome,setOutcome]=useState<ConversationOutcome>(null)
  const backgroundRead=useRef<AbortController|null>(null),reconciling=useRef(false)
  const automaticReads=useRef(0)
@@ -64,7 +65,7 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
   commitWork(updated);return updated
  },[recordId,commitWork])
  const needsProcessingRead=!documentTurn&&sessionReady&&!action&&(work.betti.genuinelyProcessing+work.betti.queued+work.betti.retryScheduled>0||error==='I couldn’t check for updates. Refresh before answering.')
- const onPending=useCallback((pending:boolean,message='Saving your answer…')=>{setPendingMessage(message);lock.current=pending;setCommandPending(pending);if(pending){readSequence.current++;backgroundRead.current?.abort()}},[])
+ const onPending=useCallback((pending:boolean,message='Got it. Updating your records…')=>{setPendingMessage(message);lock.current=pending;setCommandPending(pending);if(pending){readSequence.current++;backgroundRead.current?.abort()}},[])
  useEffect(()=>{
   let alive=true
   const updateError='I couldn’t check for updates. Refresh before answering.'
@@ -138,12 +139,14 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
   setDocumentTurn(null);setNotice('');setHandled(n=>n+1);commitWork(next)
  }
  const status=conversationStatus(work,outcome,waitingPaused),waiting=status.waiting
- const progress=handled||deferred?`${handled} handled this visit${deferred?` · ${deferred} saved for later`:''}`:work.customer.actionableCount?'A few things to review':''
+ const count=work.customer.substantiveCount??0
+ const progress=action?.substantiveQuestion&&count>0?`${count} ${count===1?'question':'questions'} left`:''
  return <div ref={root} data-customer-action-count={work.customer.actionableCount} data-guided-action={documentTurn?'document_review':action?.type??work.readiness.phase} data-guided-version={action?.version} data-guided-id={action?.id} data-guided-presentation={work.presentation?.status??'ready'}>
  {!documentTurn&&(commandPending||transitioning)&&<div className="betti-transition-feedback" role="status" aria-live="polite" aria-atomic="true">{transitioning?'Got it. I’m checking the next question.':pendingMessage}</div>}
  <ConversationShell contentIdentity={action?.id+':'+action?.version} returnTo={returnTo} context={context} progress={progress} notice={notice} state={documentTurn?'working':!action?waiting?'working':'caught-up':'question'}>
   {error&&<div className="betti-error" role="alert">{error}<button className="betti-defer" onClick={()=>void recover()}>Refresh current work</button></div>}
-  {!sessionReady?<h1>Getting your current question…</h1>:documentTurn?<DocumentReviewTurn turn={documentTurn} onContinue={continueAfterDocuments}/>:transitioning?<div className="min-h-40" aria-hidden="true"/>:!action?<><span className={waiting?'betti-working':'betti-complete'} hidden/><h1 ref={heading} tabIndex={-1}>{status.heading}</h1><p className="betti-explanation">{status.supporting}</p>{status.operationalNote&&<p className="betti-operational-note">{status.operationalNote}</p>}{waiting&&<p className="betti-processing" role="status"><span className="betti-processing-dot"/> {work.betti.genuinelyProcessing?'Organizing your records':'I’ll keep working from here'}</p>}{waiting&&waitingPaused&&<button className="betti-defer" onClick={()=>void recover()}>Check for the next step</button>}{status.alternative&&<Link className="btn btn-secondary" href={status.alternative.href}>{status.alternative.label}</Link>}<LiveSourceCoverageNotice/><div className="betti-continue"><Link className="btn btn-primary" href={returnTo}>Back to your books</Link></div></>
+  {!sessionReady?<h1>Getting your current question…</h1>:documentTurn?<DocumentReviewTurn turn={documentTurn} onContinue={continueAfterDocuments}/>:transitioning?<div className="min-h-40" aria-hidden="true"/>:!action?<><span className={waiting?'betti-working':'betti-complete'} hidden/><h1 ref={heading} tabIndex={-1}>{status.heading}</h1><p className="betti-explanation">{status.supporting}</p>{status.operationalNote&&<p className="betti-operational-note">{status.operationalNote}</p>}{waiting&&<p className="betti-processing" role="status"><span className="betti-processing-dot"/> {work.betti.genuinelyProcessing?'Organizing your records':'I’ll keep working from here'}</p>}{waiting&&waitingPaused&&<button className="betti-defer" onClick={()=>void recover()}>Check for the next step</button>}{status.alternative&&<Link className="btn btn-secondary" href={status.alternative.href}>{status.alternative.label}</Link>}<LiveSourceCoverageNotice/><div className="betti-continue"><Link className="btn btn-primary" href="/home">Back to Home</Link></div></>
+  :action.type==='catch_up_journey'?<CatchUpStep key={action.id+action.version} action={action} busy={saving||commandPending||transitioning} perform={perform} onPending={onPending} onProvided={async(ids,command)=>{onPending(true,'Got it. I’m reviewing your documents…');try{await command();await receivedDocuments(ids)}catch{setError('Your documents were received, but I couldn’t confirm the next step. Please refresh current work.')}finally{onPending(false)}}}/>
   :action.type==='account_use'?<AccountStep key={action.id+action.version} action={action} busy={saving} perform={perform}/>
   :action.type==='evidence_opportunity'?<EvidenceStep key={action.id+action.version} action={action} busy={saving} perform={perform} onPending={onPending} onProvided={async(ids,command)=>{onPending(true,'Receiving your documents…');try{await command();await receivedDocuments(ids)}catch{setError('Your documents were received, but I couldn’t confirm the next step. Please try Continue with these documents.')}finally{onPending(false)}}}/>:action.items?<SweepStep key={action.id+action.version} action={action} busy={saving} perform={perform} refresh={receivedDocuments} onPending={onPending}/>
   :action.type==='special_transaction'&&(!ordinary||!action.recordIds.includes(recordId??'')||!action.question)?<SpecialStep key={action.id+action.version} action={action} returnTo={returnTo} resolved={resolved} recover={recover} onPending={onPending} onEvidenceReceived={receivedDocuments}/>

@@ -1,4 +1,5 @@
 'use client'
+import {QuestionHelp} from '../components/guided/QuestionHelp'
 import type {GuidedWorkProjection} from '../lib/bookkeeping/guided-work-projection'
 import type {HomeCommand} from '../lib/home/command-center'
 
@@ -217,8 +218,9 @@ export function QuestionFlow({ initialQuestions,range,recordId,embedded=false,on
         {guided && question.evidence && <a className="betti-evidence-link" href={question.evidence.receiptUrl} target="_blank" rel="noreferrer">View receipt ↗</a>}
         {shownGuidance && !showAmount && <p className="mt-2 text-muted">{shownGuidance}</p>}
         {showAmount && <p className="mt-2 text-muted">Tell me how much was for business.</p>}
+        <QuestionHelp question={question}/>
 
-        {!guided&&<p role="status" className="betti-answer-status">{submitting?'Got it. Saving your answer…':'\u00a0'}</p>}
+        {!guided&&<p role="status" className="betti-answer-status">{submitting?'Got it. Updating your records…':'\u00a0'}</p>}
         <div className="question-answer-options mt-4 grid gap-2" data-answer-layout={guided&&question.confirmation&&!showAlternatives?'confirmation':guided && (question.options || ['business_use', 'factual_choice', 'transaction_type'].includes(question.kind)) && !otherActivity ? 'choices' : 'field'}>
           {question.kind === 'business_use' && <>
             <Action onClick={() => submit({ action: 'business_use', use: 'business' })} busy={busy}>Yes, business</Action>

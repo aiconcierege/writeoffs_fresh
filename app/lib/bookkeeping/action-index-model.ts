@@ -2,7 +2,7 @@ import type { CanonicalWeeklyReviewItem } from './model'
 import {projectBettiWork,type BettiWorkProjection,type WorkAction,type WorkContext} from './betti-work'
 import type {CustomerQuestion} from './customer-questions'
 
-export const ACTION_INDEX_VERSION='betti-action-index:v6-initial-evidence-batches'
+export const ACTION_INDEX_VERSION='betti-action-index:v7-catch-up-journey'
 export type ActionIndexFreshness={version:1;revision:number;publishedRevision:number;summaryCurrent:boolean;summaryAsOf:string;state:'ready'|'processing'|'queued'|'retry_scheduled'}
 export type IndexedWorkProjection=BettiWorkProjection&{index:ActionIndexFreshness}
 export type ActionIndexEntry={action:WorkAction;commandItem:CanonicalWeeklyReviewItem|null;continuityPriority:WorkAction['priority']}

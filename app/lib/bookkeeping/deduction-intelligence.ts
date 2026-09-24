@@ -50,6 +50,7 @@ export async function runDeductionIntelligenceForRecord(input: {
   now?: Date
 }) {
   const { admin, snapshot } = input
+  if (snapshot.hasOpenConflictingEvidence) return { outcome: 'conflicting_evidence' as const }
   await refreshHomeOfficeDiscovery({ admin, businessId: snapshot.businessId })
   const signal = deductionSignal(snapshot)
   if (!signal || snapshot.currentDecision.bookkeepingNature !== 'expense') {
@@ -81,7 +82,7 @@ export async function runDeductionIntelligenceForRecord(input: {
     if (await questionEligible(admin,snapshot.businessId,snapshot.occurredOn,input.now)) {
       await openAttention(admin, snapshot, signal.factType, 'merchant', signal.scope, 'percentage',
         `About how much do you use this ${signal.kind} service for your business?`,
-        'Enter an approximate percentage. WriteOffs will remember it for this recurring service.')
+        `Enter an approximate percentage. I’ll use it for this bill and future ${signal.scope} bills, so you won’t have to tell me each time. You can update it in Deduction details.`)
     }
     return { outcome: 'missing_fact' as const }
   }

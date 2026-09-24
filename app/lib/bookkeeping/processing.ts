@@ -22,6 +22,7 @@ import { runDeductionIntelligenceForRecord } from './deduction-intelligence'
 import { assessBusinessContext, businessContextAllocationDomain } from './business-context'
 import { processOperatingExpenseTreatment } from './operating-expense-processing'
 import { processVehicleExpense } from './vehicle-processing'
+import {applyRememberedPayment} from './recurring-payment'
 import {payoutUnderstanding} from './purchase-understanding'
 import { supportedMealPurpose } from './shared-evidence'
 import { classifyOperatingExpense } from './operating-expense-classification'
@@ -211,11 +212,12 @@ export async function evaluateBookkeepingProcessingJob(
   if(retained.error || !retained.data)throw new Error('BOOKKEEPING_RECORD_UNAVAILABLE')
   if(!activityIsActive(retained.data.occurred_on,scope))return {outcome:'outside_scope' as const}
 
-  const snapshot = await loadBookkeepingEvaluationSnapshot({ admin, businessId, recordId }).catch((error) => {
+  let snapshot = await loadBookkeepingEvaluationSnapshot({ admin, businessId, recordId }).catch((error) => {
     if (error instanceof Error && error.message === 'BOOKKEEPING_RECORD_INACTIVE') return null
     throw error
   })
   if (!snapshot) return { outcome: 'inactive' as const }
+  if (await applyRememberedPayment(admin,snapshot)) snapshot=await loadBookkeepingEvaluationSnapshot({admin,businessId,recordId})
   await resolveQuestionsFromSupportedEvidence(admin, snapshot)
   const { assessment: contextAssessment, assessmentId: contextAssessmentId } = await recordBusinessContextAssessment(admin, snapshot)
   if (contextAssessment.state === 'established'

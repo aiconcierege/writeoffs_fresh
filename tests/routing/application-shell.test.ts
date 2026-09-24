@@ -99,9 +99,9 @@ describe('canonical application and public shell routes', () => {
     }
   })
 
-  it('keeps receipt and import workflows reachable without redesigning them', () => {
+  it('keeps receipt and unified document intake reachable', () => {
     expect(source('app/receipts/page.tsx')).toContain('<ReceiptsInner />')
-    expect(source('app/import/page.tsx')).toContain('<DocumentIntake/>')
-    expect(source('app/import/page.tsx')).toContain('Send Betti documents')
+    expect(source('app/import/page.tsx')).toMatch(/<DocumentIntake\b/)
+    expect(source('app/import/page.tsx')).toContain('Send it to Betti.')
   })
 })

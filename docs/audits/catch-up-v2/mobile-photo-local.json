@@ -1,0 +1,137 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "width": 390,
+      "sizes": [
+        {
+          "width": 400,
+          "height": 800
+        },
+        {
+          "width": 800,
+          "height": 400
+        },
+        {
+          "width": 390,
+          "height": 844
+        },
+        {
+          "width": 400,
+          "height": 800
+        }
+      ],
+      "originalsUnchanged": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "repeatIdentical": true,
+      "unreadableRejected": true,
+      "largeSize": {
+        "width": 3200,
+        "height": 2133
+      }
+    },
+    {
+      "width": 430,
+      "sizes": [
+        {
+          "width": 400,
+          "height": 800
+        },
+        {
+          "width": 800,
+          "height": 400
+        },
+        {
+          "width": 390,
+          "height": 844
+        },
+        {
+          "width": 400,
+          "height": 800
+        }
+      ],
+      "originalsUnchanged": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "repeatIdentical": true,
+      "unreadableRejected": true,
+      "largeSize": {
+        "width": 3200,
+        "height": 2133
+      }
+    },
+    {
+      "width": 1280,
+      "sizes": [
+        {
+          "width": 400,
+          "height": 800
+        },
+        {
+          "width": 800,
+          "height": 400
+        },
+        {
+          "width": 390,
+          "height": 844
+        },
+        {
+          "width": 400,
+          "height": 800
+        }
+      ],
+      "originalsUnchanged": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "repeatIdentical": true,
+      "unreadableRejected": true,
+      "largeSize": {
+        "width": 3200,
+        "height": 2133
+      }
+    },
+    {
+      "width": 1440,
+      "sizes": [
+        {
+          "width": 400,
+          "height": 800
+        },
+        {
+          "width": 800,
+          "height": 400
+        },
+        {
+          "width": 390,
+          "height": 844
+        },
+        {
+          "width": 400,
+          "height": 800
+        }
+      ],
+      "originalsUnchanged": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "repeatIdentical": true,
+      "unreadableRejected": true,
+      "largeSize": {
+        "width": 3200,
+        "height": 2133
+      }
+    }
+  ]
+}

@@ -1,11 +1,11 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 type Fact = { id: string; fact_type: string; scope_kind: string; scope_key: string; fact_value: unknown }
 
-export function DeductionProfile({ initialFacts }: { initialFacts: Fact[] }) {
+export function DeductionProfile({ initialFacts, initialPayments=[] }: { initialFacts: Fact[]; initialPayments?:{id:string;counterparty:string}[] }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -53,8 +53,38 @@ export function DeductionProfile({ initialFacts }: { initialFacts: Fact[] }) {
       {message&&<p role="status" className="notice notice-success mt-4">{message}</p>}
     </form>
     <section className="mt-8 border-t border-slate-200 pt-7"><h2 className="text-lg font-semibold">Shared phone and internet use</h2>
-      <p className="mt-2 text-sm leading-6 text-slate-600">When WriteOffs identifies a supported recurring service, it will ask for the approximate business-use percentage once and remember that answer for the same service.</p></section>
+      <p className="mt-2 text-sm leading-6 text-slate-600">When WriteOffs identifies a supported recurring service, it will ask for the approximate business-use percentage once and remember that answer for the same service.</p>
+      {initialFacts.filter(f=>f.scope_kind==='merchant'&&['phone_business_use_percentage','internet_business_use_percentage'].includes(f.fact_type)).map(f=><ServicePercentage key={f.id} fact={f}/>)}</section>
+    {initialPayments.length>0&&<section className="mt-8 border-t border-slate-200 pt-7"><h2 className="text-lg font-semibold">Remembered customer payments</h2><p className="mt-2 text-sm text-slate-600">I use your confirmed source for similar future payouts. Stopping this leaves your existing books unchanged.</p>{initialPayments.map(payment=><RememberedPayment key={payment.id} payment={payment}/>)}</section>}
   </main>
+}
+
+function RememberedPayment({payment}:{payment:{id:string;counterparty:string}}){
+ const router=useRouter(),request=useRef<string|null>(null)
+ const [busy,setBusy]=useState(false),[message,setMessage]=useState('')
+ async function stop(){
+  setBusy(true);setMessage('');request.current??=crypto.randomUUID()
+  try{
+   const response=await fetch('/api/deductions/remembered-payments',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({factId:payment.id,requestId:request.current})})
+   if(!response.ok)throw Error('I couldn’t update this safely. Refresh and try again.')
+   setMessage('I’ll ask about future payouts again.');router.refresh()
+  }catch(error){setMessage(error instanceof Error?error.message:'Please try again.')}finally{setBusy(false)}
+ }
+ return <div className="mt-4 rounded-xl border bg-white p-4"><div className="flex flex-wrap items-center justify-between gap-3"><strong>{payment.counterparty}</strong><button className="btn btn-secondary" disabled={busy} onClick={()=>void stop()}>{busy?'Updating…':'Ask me next time'}</button></div>{message&&<p role="status" className="mt-3 text-sm">{message}</p>}</div>
+}
+
+function ServicePercentage({fact}:{fact:Fact}){
+ const[value,setValue]=useState(String(fact.fact_value)),[busy,setBusy]=useState(false),[message,setMessage]=useState('')
+ const router=useRouter()
+ return <form className="mt-5 rounded-2xl border border-slate-200 bg-white p-5" onSubmit={async event=>{
+  event.preventDefault();setBusy(true);setMessage('')
+  try{const response=await fetch('/api/deductions/facts',{method:'POST',headers:{'content-type':'application/json','idempotency-key':`deduction-${crypto.randomUUID()}`},
+   body:JSON.stringify({factType:fact.fact_type,scopeKind:'merchant',scopeKey:fact.scope_key,value:Number(value),expectedEventId:fact.id})})
+   if(!response.ok)throw Error('I couldn’t update this safely. Refresh and try again.')
+   setMessage('Updated. I’ll use your corrected percentage for this service.');router.refresh()
+  }catch(error){setMessage(error instanceof Error?error.message:'Please try again.')}finally{setBusy(false)}
+ }}><label className="grid gap-2 font-medium">{fact.scope_key} · Business use (%)<input className="field max-w-40" type="number" inputMode="numeric" min="1" max="100" step="1" required value={value} onChange={e=>setValue(e.target.value)}/></label>
+ <button className="btn btn-primary mt-4" disabled={busy}>{busy?'Updating…':'Update percentage'}</button>{message&&<p className="mt-3 text-sm" role="status">{message}</p>}</form>
 }
 
 function Choice({name,label,value}:{name:string;label:string;value:unknown}){return <fieldset><legend className="text-sm font-medium text-slate-800">{label}</legend><div className="mt-3 grid grid-cols-2 gap-2"><label className="flex min-h-12 cursor-pointer items-center gap-2 rounded-xl border border-[#dce3de] px-4"><input type="radio" name={name} value="yes" defaultChecked={value===true} required/> Yes</label><label className="flex min-h-12 cursor-pointer items-center gap-2 rounded-xl border border-[#dce3de] px-4"><input type="radio" name={name} value="no" defaultChecked={value===false}/> No</label></div></fieldset>}

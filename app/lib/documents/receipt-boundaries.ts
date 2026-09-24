@@ -50,12 +50,23 @@ const sameDocument=(a:string,b:string)=>Boolean(documentIdentity(a)&&documentIde
 /** Returns logical documents, or an explicit ambiguity. Original bytes are kept.
  * A repeated invoice identifier can join pages; differing merchants/identifiers
  * establish separate documents. Ambiguous pages never become invented expenses. */
-export function receiptBoundaries(pages:ReceiptPage[]):{receipts:LogicalReceipt[];reason:string|null} {
+export function receiptBoundaries(pages:ReceiptPage[],customerGrouped=false):{receipts:LogicalReceipt[];reason:string|null} {
   if(!pages.length||pages.length>10)return {receipts:[],reason:'RECEIPT_BOUNDARY_LIMIT'}
   const parts=pages.flatMap(page=>page.words.length?splitPage(page,page.words):[{text:page.text,regions:[{page:page.page,x:0,y:0,width:page.width,height:page.height}]}])
   if(parts.length>20)return {receipts:[],reason:'RECEIPT_BOUNDARY_LIMIT'}
   if(pages.length===1)return parts.every(p=>complete(p.text))?{receipts:parts,reason:null}:{receipts:[],reason:'RECEIPT_BOUNDARIES_UNCLEAR'}
   const joined=parts.map(p=>p.text).join('\n')
+  if(customerGrouped){
+    // The customer may join a long receipt's photos without a printed receipt
+    // number. Grouping does not override conflicting totals/dates/identities or
+    // independently complete receipts separated on the same page.
+    const full=parts.filter(p=>complete(p.text)).map(p=>parseReceiptText(p.text))
+    const identities=new Set(parts.map(p=>documentIdentity(p.text)).filter(Boolean))
+    const contradictory=identities.size>1 || parts.length!==pages.length
+      || full.some(p=>p.merchant!==full[0].merchant || p.occurredOn!==full[0].occurredOn || p.totalAmountCents!==full[0].totalAmountCents)
+    if(!contradictory&&complete(joined))return {receipts:[{text:joined,regions:parts.flatMap(p=>p.regions)}],reason:null}
+    return {receipts:[],reason:'RECEIPT_BOUNDARIES_UNCLEAR'}
+  }
   // One total/date with continuation pages is a single logical document. If all
   // pages repeat complete totals, require a common explicit document identity.
   if(complete(joined)&&parts.every(p=>sameDocument(parts[0].text,p.text)))

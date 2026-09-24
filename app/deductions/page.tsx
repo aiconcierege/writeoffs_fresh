@@ -11,5 +11,6 @@ export default async function DeductionsPage() {
   const { data: business } = await supabase.from('businesses').select('id').eq('owner_user_id', user.id).single()
   const { data: facts } = await supabase.from('current_deduction_business_facts').select('*')
     .eq('business_id', business!.id).order('created_at')
-  return <DeductionProfile initialFacts={facts ?? []} />
+  const {data:payments}=await supabase.from('current_recurring_payment_facts').select('id,counterparty').eq('business_id',business!.id).eq('status','active')
+  return <DeductionProfile initialFacts={facts ?? []} initialPayments={payments??[]} />
 }

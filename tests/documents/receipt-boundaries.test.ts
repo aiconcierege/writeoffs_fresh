@@ -6,6 +6,17 @@ const printing=['Desert Print Shop','Receipt # PRINT104','May 9, 2026','Business
 const insurance=['State Farm','Receipt # POLICY925','May 12, 2026','Business liability insurance','Total $118.75']
 function page(w:ReceiptWord[],n=1):ReceiptPage{return{page:n,width:650,height:850,words:w,text:w.map(i=>i.text).join('\n')}}
 describe('evidence-backed logical receipt boundaries',()=>{
+ it('uses explicit customer photo grouping for a long receipt without a printed document number',()=>{
+  const a=page(words(['Desert Print Shop','May 9, 2026','Business cards'])),b=page(words(['Promotional flyers','Total $218.40']),2)
+  expect(receiptBoundaries([a,b]).reason).toBe('RECEIPT_BOUNDARIES_UNCLEAR')
+  const grouped=receiptBoundaries([a,b],true)
+  expect(grouped.reason).toBeNull();expect(grouped.receipts).toHaveLength(1)
+  expect(grouped.receipts[0].regions.map(r=>r.page)).toEqual([1,2])
+ })
+ it('does not let photo grouping override distinct complete receipts or unreadable evidence',()=>{
+  expect(receiptBoundaries([page(words(printing)),page(words(insurance),2)],true).reason).toBe('RECEIPT_BOUNDARIES_UNCLEAR')
+  expect(receiptBoundaries([page(words(['Unreadable'])),page(words(['No facts']),2)],true).reason).toBe('RECEIPT_BOUNDARIES_UNCLEAR')
+ })
  it('preserves exact stated tax as supporting evidence without guessing or adding another expense',()=>{
   expect(receiptTaxObservation('Subtotal $200.00\nTax $18.40\nTotal $218.40')).toBe(1840)
   expect(receiptTaxObservation('Tax $0.001')).toBeNull()

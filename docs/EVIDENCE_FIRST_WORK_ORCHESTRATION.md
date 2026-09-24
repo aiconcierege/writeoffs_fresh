@@ -19,6 +19,10 @@ allocations, receipt history, and reports retain their existing authority.
   calendar month. It moves with time; it never changes commercial authorization.
 - Unfinished included months remain ongoing covered work. They do not become new
   cleanup purchases when the calendar advances.
+  Rick reaffirmed this for Catch-up V2 on September 24, 2026: they also remain in
+  the ongoing, exception-only workflow. The moving recent window does not enroll
+  covered months in historical bulk reviews. For a September signup, unfinished
+  August stays ongoing in October; January–July remains the fixed cleanup scope.
 - Prioritize recent work, then older ongoing work, then purchased historical work.
   Per-Business worker priority retains cross-Business fairness and existing lease,
   retry, and lifecycle controls.

@@ -159,6 +159,7 @@ export function projectCustomerQuestion(
       understanding: context.understanding.invoiceReference
         ? `This looks like payment for invoice ${context.understanding.invoiceReference} from ${context.understanding.counterparty}.`
         : `This looks like customer payments from ${context.understanding.counterparty}.`,
+      ...(!context.understanding.invoiceReference?{guidance:'I’ll remember this for future payouts from the same source. You can change remembered details later.'}:{}),
       prompt: 'Is that right?', confirmation: {optionId:'earned_money',label:'Yes, that’s right'},
     } : {}),
     options: [
@@ -168,12 +169,12 @@ export function projectCustomerQuestion(
     ].map(([id, label]) => ({ id, label })),
   }
   if(item.event.reason==='TRANSACTION_TYPE_UNCLEAR')return{
-    ...base,kind:'transaction_type',materiality:'totals',prompt:'What kind of activity was this?',
+    ...base,kind:'transaction_type',materiality:'totals',prompt:/\b(?:atm|cash withdrawal)\b/i.test(transaction.merchant)?'What did you use the cash for?':'What was this money for?',
     understanding:'I can see money left your account, but I can’t tell what it was for.',
-    guidance:'Tell me what this payment was for.',options:[
+    guidance:'',options:[
       ['purchase','A purchase'],['moved_money','Money moved between accounts'],
       ['paid_card','A credit card payment'],['other','Something else'],
-    ].map(([id,label])=>({id,label})),
+    ].filter(([id])=>id!=='paid_card'||!/\b(?:zelle|venmo|cash app|atm)\b/i.test(transaction.merchant)).map(([id,label])=>({id,label})),
     ...(economicContext?.confidence === 'narrowed_confirmation' ? {
       prompt: economicContext.context === 'telecom_service'
         ? 'Was this a phone or telecommunications service charge?'

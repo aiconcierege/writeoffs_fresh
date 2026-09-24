@@ -1,3 +1,10 @@
 import Link from 'next/link'
 import {DocumentIntake} from '../documents/DocumentIntake'
-export default function ImportPage(){return <main className="app-page"><section className="page-container max-w-3xl"><Link href="/home" className="inline-flex min-h-11 items-center font-semibold text-[#243186]">← Home</Link><h1 className="page-title mt-4">Send Betti documents</h1><div className="mt-5"><DocumentIntake/></div><Link href="/transactions" className="mt-6 inline-flex min-h-11 items-center font-semibold text-[#243186]">View transactions →</Link><p className="mt-5 text-sm text-slate-600">Want new activity to arrive automatically? <Link href="/settings/banking" className="underline">Connect accounts</Link> anytime. You can also keep sending documents.</p></section></main>}
+import {BettiPresence} from '../components/experience/BettiPresence'
+import '../documents/documents.css'
+export default function ImportPage(){return <main className="app-page"><section className="page-container document-workspace">
+ <Link href="/home" className="inline-flex min-h-11 items-center font-semibold text-[#243186]">← Home</Link>
+ <header className="document-intro"><div><p className="document-eyebrow">YOUR RECORDS, IN GOOD HANDS</p><h1>Send it to Betti.</h1><p>Statements, receipts, bills. Give me what you have, and I’ll work through the details.</p></div><BettiPresence state="question" className="document-betti" sizes="(max-width: 640px) 100px, 210px"/></header>
+ <section className="document-work-surface" aria-label="Send and review documents"><DocumentIntake primary buttonLabel="Choose photos or files"/></section>
+ <p className="document-footer">New records can arrive automatically, too. <Link href="/settings/banking">Connect accounts</Link> whenever you’re ready.</p>
+ </section></main>}

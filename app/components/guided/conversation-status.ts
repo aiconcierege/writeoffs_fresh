@@ -17,6 +17,7 @@ export function conversationStatus(work:GuidedWorkProjection,outcome:Conversatio
  const waiting=work.betti.genuinelyProcessing+work.betti.queued+work.betti.retryScheduled>0
  const processingProblem=work.betti.failures.length>0||work.betti.missingJobs.length>0
  const held=work.betti.systemHeld.length>0
+ if(work.readiness.phase==='outside_scope')return {heading:home.heading,supporting:home.supporting,alternative:home.alternative,waiting,operationalNote:undefined}
  if(work.presentation?.status==='settling')return {heading:'I’m checking the next thing.',supporting:'You don’t need to wait here.',waiting:true,alternative:undefined,operationalNote:undefined}
  const savedForLater=work.customer.deferredCount>0
  const justDeferred=outcome==='deferred'||outcome==='receipts-deferred'
@@ -33,5 +34,5 @@ export function conversationStatus(work:GuidedWorkProjection,outcome:Conversatio
  }
  if(processingProblem)return {heading:'I couldn’t finish processing some records.',supporting:'There’s nothing you need to answer right now. Your available books are still here.',waiting,alternative:undefined,operationalNote:undefined}
  if(held)return {heading:'You’re all set for now.',supporting:'There’s nothing else I need you to answer right now. I still have records to review.',waiting,alternative:undefined,operationalNote:undefined}
- return {heading:home.heading,supporting:home.supporting,alternative:home.alternative,waiting,operationalNote:undefined}
+ return {heading:'You’re all set for now.',supporting:'There’s nothing else I need you to answer right now.',alternative:home.alternative,waiting,operationalNote:work.readiness.booksCurrentThrough?home.heading:undefined}
 }

@@ -4,6 +4,10 @@ Status: canonical product and workflow authority, revised 2026-09-15.
 
 This document defines approved product behavior. It does not authorize implementation outside an approved engineering milestone. When legacy UI or workflow documentation conflicts with this document, this document governs; the conflict register near the end records intentional supersessions.
 
+The September 24 [Catch-up Workflow V2 revision](CATCH_UP_WORKFLOW_V2.md) governs
+the historical evidence/bulk-review journey and its explicit supersessions below.
+Covered ongoing months remain ongoing even after leaving the recent window.
+
 ## 1. Product relationship
 
 WriteOffs is conversation-first bookkeeping for non-accountants. WriteOffs does the bookkeeping; the customer runs the business and supervises the result.

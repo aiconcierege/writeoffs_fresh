@@ -1,15 +1,16 @@
 import { createHash } from 'node:crypto'
 import type { AuthorizedBookkeepingScope } from './authorized-scope'
 import { workPeriods } from './work-periods'
+import { catchUpJourney, type CatchUpEvent, type CatchUpJourney } from './catch-up-journey'
 import type { CustomerQuestion } from './customer-questions'
 import { purchaseReceiptEligible } from './receipt-eligibility'
 import {guidedStage,guidedItem,guidedDeferral,GUIDED_BATCH_LIMIT,PERSONAL_SWEEP_LIMIT,statementEstablishesBankFee,evidenceOpportunityEligible,type GuidedItem,type GuidedReview,type SweepType} from './guided-work'
 
-export const BETTI_WORK_VERSION = 'betti-work:v8-initial-evidence-batches'
+export const BETTI_WORK_VERSION = 'betti-work:v9-catch-up-journey'
 export type Workstream = 'catch_up' | 'current' | 'shared' | 'outside_scope' | 'unscoped'
 export type ActionType = 'provide_records' | 'account_use' | 'personal_exception_sweep' | 'mixed_use_sweep'
   | 'receipt_upload_sweep' | 'receipt_availability' | 'special_transaction' | 'material_question'
-  | 'review_summary' | 'recover_ingestion' | 'evidence_opportunity'
+  | 'review_summary' | 'recover_ingestion' | 'evidence_opportunity' | 'catch_up_journey'
 type Owned = { business_id: string }
 export type WorkRecord = Owned & {
   merchant?:string;transaction_id?:string;review_version?:string;customer_authored?:boolean
@@ -33,6 +34,7 @@ export type WorkContext = {
   documentRecords?: (Owned & {document_id:string;record_id:string})[]
   questionVersions?: string[]
   guidedReviews?:GuidedReview[]
+  catchUpEvents?: CatchUpEvent[]
   specialDeferrals?:(Owned & {id:string;record_id:string;decision_id:string;created_at:string})[]
 }
 export type WorkAction = {
@@ -42,6 +44,8 @@ export type WorkAction = {
   href: string; question?: CustomerQuestion
   transaction?:{merchant:string;date:string;amountCents:number}
   decisionVersion?:string
+  journey?: CatchUpJourney
+  substantiveQuestion?: boolean
   items?:GuidedItem[];account?:{id:string;name:string;mask:string|null;designation:string|null}
   priority: { score: number; routingTier?:number; reasons: string[]; unlocks: number; ageDays: number; continuity: boolean
     materiality: 'totals' | 'disclosable' | null; deadline: string | null }
@@ -97,7 +101,7 @@ export function projectBettiWork(input: {
 }) {
   const { context: c, asOf } = input
   if (c.business.id !== input.businessId || c.business.authorizedScope.businessId !== input.businessId) throw new Error('Projection business mismatch')
-  for (const rows of [c.records, c.accounts, c.jobs, c.documents, c.links, c.coverage, c.deferred, c.documentRecords??[],c.guidedReviews??[],c.specialDeferrals??[]]) {
+  for (const rows of [c.records, c.accounts, c.jobs, c.documents, c.links, c.coverage, c.deferred, c.documentRecords??[],c.guidedReviews??[],c.specialDeferrals??[],c.catchUpEvents??[]]) {
     if (rows.some(row => row.business_id !== input.businessId)) throw new Error('Projection tenant mismatch')
   }
   // A partial snapshot must not become a precise total or a false completion claim.
@@ -187,7 +191,7 @@ export function projectBettiWork(input: {
     actions.push({ id, version: fingerprint([scopeVersion, id, evidence, rs.map(r => [r.record_id, r.decision_id]).sort(),
       c.links.filter(l => rs.some(r => r.record_id === l.record_id)).map(l => [l.record_id, l.receipt_id, l.extraction_version]).sort(),
       jobs.filter(j => dependencies.includes(j.id)).map(j => [j.id, j.version, j.status]).sort()]),
-      type, target, workstream: contextOf(rs), affects, recordIds: rs.map(r => r.record_id).sort(),
+      type, target, substantiveQuestion: Boolean(extra.question) || type === 'special_transaction' && rs.some(r=>r.bookkeeping_nature==='refund'), workstream: contextOf(rs), affects, recordIds: rs.map(r => r.record_id).sort(),
       status: dependencies.length ? 'waiting' : 'actionable', availableAt: null, href,
       // Current facts take precedence over historical backlog. Keep the same
       // persisted tier in the fast SQL reader and canonical continuation.
@@ -204,7 +208,7 @@ export function projectBettiWork(input: {
   const specificFacts=new Set([...input.questions.flatMap(q=>q.recordId?[q.recordId]:[]),
     ...c.deferred.filter(d=>!d.deferred_until||d.deferred_until>asOf).flatMap(d=>d.record_id?[d.record_id]:[])])
   const evidenceGroups=new Map<string,WorkRecord[]>()
-  for(const r of scoped.filter(r=>evidenceOpportunityEligible(r,c,asOf)&&!activeJobIds(r.record_id).length)){
+  for(const r of scoped.filter(r=>!(c.catchUpEvents&&stream(r)==='catch_up')&&evidenceOpportunityEligible(r,c,asOf)&&!activeJobIds(r.record_id).length)){
     const key=`${r.account_id}:${r.activity_date.slice(0,7)}`
     evidenceGroups.set(key,[...(evidenceGroups.get(key)??[]),r])
   }
@@ -216,7 +220,7 @@ export function projectBettiWork(input: {
       {items,account:{id:account.id,name:account.display_name??'Your account',mask:account.mask??null,designation:account.designation}})
     actions.at(-1)!.priority.reasons.push('evidence_before_customer_questions')
   }
-  const stages=new Map(scoped.flatMap(r=>{const stage=guidedStage(r,c,specificFacts.has(r.record_id));return stage?[[r.record_id,stage] as const]:[]}))
+  const stages=new Map(scoped.flatMap(r=>{const stage=c.catchUpEvents&&stream(r)==='catch_up'?null:guidedStage(r,c,specificFacts.has(r.record_id));return stage?[[r.record_id,stage] as const]:[]}))
   const groups=new Map<string,{stage:SweepType;records:WorkRecord[];deferred:string|null}>()
   for(const r of scoped){const stage=stages.get(r.record_id);if(!stage)continue
     const deferred=guidedDeferral(r,stage,c,asOf),key=[r.account_id,stage,stream(r),deferred??'active',activeJobIds(r.record_id).length?'waiting':'ready'].join(':')
@@ -309,6 +313,19 @@ export function projectBettiWork(input: {
     add('provide_records', `records:${input.businessId}`, { kind: 'business', id: input.businessId }, [], scopeVersion,
       '/import', asOf)
   }
+  if (c.catchUpEvents) {
+    const historical = scoped.filter(r => stream(r) === 'catch_up')
+    const journey = catchUpJourney({ context: c, records: historical, actions,
+      range: periods.cleanup, events: c.catchUpEvents, pending: activeJobIds })
+    // V2 owns historical orchestration. Keep canonical questions internal while
+    // gathering broad evidence/facts, without changing any decision or answer.
+    for (let i = actions.length - 1; i >= 0; i--) {
+      const a = actions[i]
+      if (a.workstream !== 'catch_up' || a.type === 'account_use' || a.type === 'recover_ingestion') continue
+      if (a.items || journey.hold) actions.splice(i, 1)
+    }
+    if (journey.action) actions.push(journey.action)
+  }
   // Readiness/dependencies still decide eligibility. Within ready work, a useful
   // specific fact must not lose to an older/larger optional review batch.
   const deduplicated = [...new Map(actions.map(a => [a.id, a])).values()]
@@ -364,7 +381,7 @@ export function projectBettiWork(input: {
       genuinelyProcessing: jobs.filter(j => j.status === 'processing').length,
       queued: jobs.filter(j => j.status === 'queued').length, retryScheduled: jobs.filter(j => j.status === 'retry_scheduled').length,
       failures: jobs.filter(j => ['failed_recoverable', 'stale_lease', 'paused'].includes(j.status)) },
-    customer: { actionable, deferred, actionableCount: actionable.length, deferredCount: deferred.length,
+    customer: { substantiveCount: actionable.filter(a=>a.substantiveQuestion).length, actionable, deferred, actionableCount: actionable.length, deferredCount: deferred.length,
       sharedCount: actionable.filter(a => a.workstream === 'shared').length },
     progress: { catchUp, current, totalCanonicalActivity: records.length,
       unscopedActivity: records.filter(r => stream(r) === 'unscoped').length,
