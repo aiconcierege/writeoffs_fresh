@@ -1,0 +1,114 @@
+{
+  "applicationSha": "63a71fe7727d605deacd15b380b78208dd2cff73",
+  "synthetic": true,
+  "samples": [
+    {
+      "heading": "Have receipts? Send them first.",
+      "answer": "no receipts",
+      "responseMs": 4579,
+      "elapsedMs": 4600,
+      "serverTiming": "total;dur=3900.8, db_auth;dur=135.0, db_current_customer_membership;dur=57.7, db_betti_guided_assertions;dur=65.0, db_businesses;dur=70.2, db_rpc_read_betti_action_index;dur=114.6, canonical_action_index;dur=116.5, db_rpc_read_betti_work_inputs;dur=765.6, canonical_input_snapshot;dur=777.5, question_selection;dur=26.6, projection_construction;dur=22.4, db_rpc_answer_betti_evidence_opportunity;dur=2563.4, canonical_command;dur=3462.4",
+      "width": 1280
+    },
+    {
+      "heading": "Send me the loan statement.",
+      "answer": "defer",
+      "responseMs": 1065,
+      "elapsedMs": 1075,
+      "serverTiming": "total;dur=680.9, db_auth;dur=53.2, db_current_customer_membership;dur=45.5, db_rpc_record_special_transaction;dur=150.1, canonical_command;dur=253.7, db_rpc_read_betti_action_index;dur=62.7, canonical_action_index;dur=63.9, db_rpc_read_betti_work_inputs;dur=357.2, canonical_input_snapshot;dur=359.2, question_selection;dur=0.8, projection_construction;dur=1.2",
+      "width": 390
+    },
+    {
+      "heading": "Is that right?",
+      "answer": "hypothesis confirmation",
+      "responseMs": 817,
+      "elapsedMs": 825,
+      "serverTiming": "total;dur=630.1, db_auth;dur=38.3, db_current_customer_membership;dur=56.2, db_rpc_read_betti_indexed_question;dur=36.3, indexed_action_lookup;dur=37.4, db_rpc_execute_betti_indexed_question;dur=109.9, indexed_canonical_commit;dur=111.0, canonical_command;dur=251.2, db_rpc_read_betti_action_index;dur=52.9, canonical_action_index;dur=53.8, db_rpc_read_betti_work_inputs;dur=319.8, canonical_input_snapshot;dur=321.7, question_selection;dur=0.6, projection_construction;dur=0.9",
+      "width": 1280
+    },
+    {
+      "heading": "Is that right?",
+      "answer": "hypothesis confirmation",
+      "responseMs": 720,
+      "elapsedMs": 736,
+      "serverTiming": "total;dur=558.6, db_auth;dur=33.3, db_current_customer_membership;dur=31.0, db_rpc_read_betti_indexed_question;dur=34.4, indexed_action_lookup;dur=35.5, db_rpc_execute_betti_indexed_question;dur=100.4, indexed_canonical_commit;dur=101.4, canonical_command;dur=208.6, db_rpc_read_betti_action_index;dur=38.9, canonical_action_index;dur=39.8, db_rpc_read_betti_work_inputs;dur=305.5, canonical_input_snapshot;dur=306.8, question_selection;dur=0.9, projection_construction;dur=0.9",
+      "width": 390
+    },
+    {
+      "heading": "What was this money from?",
+      "answer": "customer payment",
+      "responseMs": 877,
+      "elapsedMs": 891,
+      "serverTiming": "total;dur=645.0, db_auth;dur=59.6, db_current_customer_membership;dur=40.1, db_rpc_read_betti_indexed_question;dur=58.6, indexed_action_lookup;dur=59.9, db_rpc_execute_betti_indexed_question;dur=83.1, indexed_canonical_commit;dur=84.3, canonical_command;dur=248.2, db_rpc_read_betti_action_index;dur=40.9, canonical_action_index;dur=41.9, db_rpc_read_betti_work_inputs;dur=350.0, canonical_input_snapshot;dur=351.8, question_selection;dur=0.6, projection_construction;dur=0.9",
+      "width": 1280
+    },
+    {
+      "heading": "What kind of activity was this?",
+      "answer": "purchase",
+      "responseMs": 882,
+      "elapsedMs": 895,
+      "serverTiming": "total;dur=637.8, db_auth;dur=47.5, db_current_customer_membership;dur=34.7, db_rpc_read_betti_indexed_question;dur=43.1, indexed_action_lookup;dur=44.1, db_rpc_execute_betti_indexed_question;dur=99.5, indexed_canonical_commit;dur=100.6, canonical_command;dur=233.2, db_rpc_read_betti_action_index;dur=43.0, canonical_action_index;dur=43.9, db_rpc_read_betti_work_inputs;dur=356.0, canonical_input_snapshot;dur=357.5, question_selection;dur=0.5, projection_construction;dur=1.4",
+      "width": 390
+    },
+    {
+      "heading": "What was this money from?",
+      "answer": "customer payment",
+      "responseMs": 959,
+      "elapsedMs": 976,
+      "serverTiming": "total;dur=689.9, db_auth;dur=41.4, db_current_customer_membership;dur=34.8, db_rpc_read_betti_indexed_question;dur=53.5, indexed_action_lookup;dur=54.5, db_rpc_execute_betti_indexed_question;dur=110.2, indexed_canonical_commit;dur=111.7, canonical_command;dur=246.8, db_rpc_read_betti_action_index;dur=89.4, canonical_action_index;dur=90.6, db_rpc_read_betti_work_inputs;dur=347.0, canonical_input_snapshot;dur=348.8, question_selection;dur=0.7, projection_construction;dur=1.1",
+      "width": 1280
+    },
+    {
+      "heading": "What did you use the cash for?",
+      "answer": "uncertain",
+      "responseMs": 813,
+      "elapsedMs": 824,
+      "serverTiming": "total;dur=656.3, db_auth;dur=39.1, db_current_customer_membership;dur=42.2, db_rpc_read_betti_indexed_question;dur=43.2, indexed_action_lookup;dur=44.5, db_rpc_execute_betti_indexed_question;dur=93.8, indexed_canonical_commit;dur=94.7, canonical_command;dur=224.7, db_rpc_read_betti_action_index;dur=72.0, canonical_action_index;dur=73.0, db_rpc_read_betti_work_inputs;dur=354.2, canonical_input_snapshot;dur=355.6, question_selection;dur=0.5, projection_construction;dur=0.9",
+      "width": 390
+    },
+    {
+      "heading": "What was this money from?",
+      "answer": "customer payment",
+      "responseMs": 922,
+      "elapsedMs": 935,
+      "serverTiming": "total;dur=672.7, db_auth;dur=128.6, db_current_customer_membership;dur=38.5, db_rpc_read_betti_indexed_question;dur=37.7, indexed_action_lookup;dur=38.6, db_rpc_execute_betti_indexed_question;dur=78.4, indexed_canonical_commit;dur=79.4, canonical_command;dur=288.8, db_rpc_read_betti_action_index;dur=42.0, canonical_action_index;dur=42.9, db_rpc_read_betti_work_inputs;dur=336.8, canonical_input_snapshot;dur=338.3, question_selection;dur=0.4, projection_construction;dur=0.8",
+      "width": 1280
+    },
+    {
+      "heading": "What was this purchase for?",
+      "answer": "Business cards and marketing flyers for my business",
+      "responseMs": 2036,
+      "elapsedMs": 2050,
+      "serverTiming": "total;dur=859.5, db_auth;dur=179.2, db_current_customer_membership;dur=103.4, db_rpc_read_betti_indexed_question;dur=51.9, indexed_action_lookup;dur=54.5, db_rpc_execute_betti_indexed_question;dur=81.5, indexed_canonical_commit;dur=83.8, canonical_command;dur=486.0, db_rpc_read_betti_action_index;dur=48.7, canonical_action_index;dur=50.3, db_rpc_read_betti_work_inputs;dur=273.8, canonical_input_snapshot;dur=277.0, question_selection;dur=20.6, projection_construction;dur=20.7",
+      "width": 390
+    },
+    {
+      "heading": "What did this insurance cover?",
+      "answer": "insurance coverage",
+      "responseMs": 871,
+      "elapsedMs": 882,
+      "serverTiming": "total;dur=636.8, db_auth;dur=83.3, db_current_customer_membership;dur=63.9, db_rpc_read_betti_indexed_question;dur=53.2, indexed_action_lookup;dur=54.5, db_rpc_execute_betti_indexed_question;dur=86.6, indexed_canonical_commit;dur=88.1, canonical_command;dur=297.8, db_rpc_read_betti_action_index;dur=31.0, canonical_action_index;dur=32.1, db_rpc_read_betti_work_inputs;dur=301.1, canonical_input_snapshot;dur=303.1, question_selection;dur=0.6, projection_construction;dur=1.4",
+      "width": 1280
+    },
+    {
+      "heading": "About how much do you use this phone service for your business?",
+      "answer": "business percentage",
+      "responseMs": 946,
+      "elapsedMs": 961,
+      "serverTiming": "total;dur=729.5, db_auth;dur=37.7, db_current_customer_membership;dur=44.7, db_rpc_read_betti_indexed_question;dur=39.5, indexed_action_lookup;dur=40.8, db_current_deduction_attentions;dur=35.1, db_rpc_answer_deduction_attention;dur=106.1, db_bookkeeping_decisions;dur=44.3, canonical_command;dur=319.8, db_rpc_read_betti_action_index;dur=59.5, canonical_action_index;dur=60.8, db_rpc_read_betti_work_inputs;dur=342.9, canonical_input_snapshot;dur=345.0, question_selection;dur=0.6, projection_construction;dur=1.6",
+      "width": 390
+    },
+    {
+      "heading": "Are any of these not for the business?",
+      "answer": "exception confirmation",
+      "responseMs": 2237,
+      "elapsedMs": 2247,
+      "serverTiming": "total;dur=1864.3, db_auth;dur=42.8, db_current_customer_membership;dur=47.3, db_betti_guided_assertions;dur=44.3, db_businesses;dur=44.8, db_rpc_read_betti_action_index;dur=111.8, canonical_action_index;dur=114.4, db_rpc_answer_betti_guided_work;dur=1124.0, canonical_command;dur=1387.0, db_rpc_read_betti_work_inputs;dur=428.2, canonical_input_snapshot;dur=430.8, question_selection;dur=0.7, projection_construction;dur=1.3",
+      "width": 1280
+    }
+  ],
+  "n": 13,
+  "p50Ms": 935,
+  "p95Ms": 4600,
+  "method": "Browser click to committed next action; nearest rank; representative sample, not a load test"
+}

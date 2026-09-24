@@ -2,7 +2,7 @@
 
 Scope: dedicated staging, synthetic/control customers. This is engineering
 verification, **not Rick's clean-room manual certification**. No Production work.
-Application implementation: `f994c88`, `42b654c`, `e71af5b`.
+Application implementation: `f994c88`, `42b654c`, `e71af5b`, `63a71fe`.
 
 ## Product behavior
 
@@ -48,6 +48,14 @@ verified against stored length and SHA-256. See `hosted-receipt-results.json`.
   the source and immutable disposition; no financial classification fabricated.
 - Browser refresh after each measured transition returned the same next action.
 
+The final hosted scope control imported September and June periods. With all
+processing settled, the order was current evidence opportunity → current material
+fact → current optional exception review → earlier evidence opportunity → earlier
+material fact → earlier optional review. The browser showed current-period context.
+Selecting Later proceeded to the current incoming-money question; refresh retained
+it and did not repeat September's receipt invitation. See `hosted-scope-order.json`
+and `hosted-receipts-later.json`.
+
 ## Receipt matrix
 
 "Local SQL" means real PostgreSQL canonical functions, synthetic fixtures,
@@ -70,7 +78,7 @@ live OCR. Hosted evidence is explicitly identified.
 | 12 | Duplicate upload | PASS — hosted repeat and local idempotency/conflict checks |
 | 13 | Irrelevant document → discard/set aside | PASS — hosted unknown-document set-aside; local SQL receipt discard |
 | 14 | No receipts available | PASS — hosted normal response; local SQL documentation-only change |
-| 15 | Receipts deferred | PASS — local SQL distinct deferral; unit no immediate repeat |
+| 15 | Receipts deferred | PASS — hosted current-month Later → current material question, stable browser refresh and no repeat invitation; local SQL distinct semantics |
 | 16 | Missing documentation, supported expense | PASS — hosted baseline amounts and local SQL preservation |
 | 17 | Bank fee evidenced by statement | PASS — 24-transaction routing regression, no personal/receipt turn |
 | 18 | Loan statement principal/interest | PASS — hosted exact split; local unknown/stale/mismatch/retry guards |
@@ -121,6 +129,13 @@ The grouped exception sample was **3,034 ms**, including **1,260 ms** in its dur
 command and **813.2 ms** loading canonical inputs. Authentication, durability, and
 canonical consistency were not weakened to improve the numbers. The sub-second
 aspiration is not met for every path.
+
+The final deployed sample (`hosted-final-answer-timings.json`, 13 answers) had p50
+**935 ms**, p95 **4,600 ms**. Insurance was **882 ms**, phone percentage **961 ms**,
+printing purpose **2,050 ms**, grouped exception **2,247 ms**. The slowest response
+was the no-receipts batch (**4,600 ms**): **2,563.4 ms** in its durable SQL command
+and **765.6 ms** loading canonical inputs. It correctly appeared before substantive
+questions. This batch path remains a performance limitation, not a sub-second pass.
 
 ## Visual / security / preservation
 

@@ -26,7 +26,7 @@ async function documents(){
 }
 async function main(){
  process.umask(0o077)
- const mode=process.argv[2];assert(['--upload','--verify','--duplicate','--receipt-only','--inspect-only','--profile','--loan','--irrelevant','--bank-only','--retry-loan','--set-aside','--screenshots','--scope-upload','--scope-verify'].includes(mode))
+ const mode=process.argv[2];assert(['--upload','--verify','--duplicate','--receipt-only','--inspect-only','--profile','--loan','--irrelevant','--bank-only','--retry-loan','--set-aside','--screenshots','--scope-upload','--scope-verify','--defer-evidence'].includes(mode))
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL!,anon=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
  assert.equal(process.env.WRITEOFFS_ENVIRONMENT,'staging');assert.equal(new URL(url).hostname,'sgrqrrxrlglhjuetdtps.supabase.co')
  const f=JSON.parse(await readFile(`${dir}/fixture.json`,'utf8'))
@@ -97,7 +97,7 @@ async function main(){
    put(`${month}/21`,40,540);put('ACH DEPOSIT - UNKNOWN SOURCE',100,540);put('$90.00',410,540)
   }
   await writeFile(`${dir}/current-and-earlier.pdf`,await pdf.save())
- }else if(['--profile','--retry-loan','--set-aside','--screenshots'].includes(mode)){}else if(mode==='--bank-only'){
+ }else if(['--profile','--retry-loan','--set-aside','--screenshots','--defer-evidence'].includes(mode)){}else if(mode==='--bank-only'){
   const before=await getAuthenticatedCanonicalReport({supabase:db,periodStart:'2026-01-01',periodEnd:'2026-09-23',currency:'USD'})
   assert.equal(before.rows.length,1);assert.equal(before.businessExpensesCents,21840,'RECEIPT_NOT_YET_ESTABLISHED')
   await writeFile(`${dir}/bank-only.csv`,'Date,Description,Amount\n2026-05-09,DESERT PRINT SHOP,-218.40\n')
@@ -117,6 +117,20 @@ async function main(){
   const context=await browser.newContext({viewport:{width:1280,height:900},timezoneId:'America/Phoenix'})
   await context.addCookies([...jar].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:true,sameSite:'Lax' as const})))
   const page=await context.newPage()
+  if(mode==='--defer-evidence'){
+   await page.goto(origin+'/check-in');await page.getByRole('heading',{name:'Have receipts? Send them first.',exact:true}).waitFor()
+   const previous=await page.locator('[data-guided-id]').getAttribute('data-guided-id')
+   await page.getByRole('button',{name:'I’ll do this later',exact:true}).click()
+   await page.waitForFunction(old=>{const e=document.querySelector('[data-guided-id]');return e&&e.getAttribute('data-guided-id')!==old},previous)
+   await page.getByRole('heading',{name:'What was this money from?',exact:true}).waitFor()
+   const next=await page.locator('[data-guided-id]').getAttribute('data-guided-id')
+   await page.reload();await page.locator('[data-guided-id]').waitFor();assert.equal(await page.locator('[data-guided-id]').getAttribute('data-guided-id'),next)
+   const work=await loadCanonicalBettiWork({db,businessId:f.businessId,scope:'business'})
+   assert.equal(work.nextAction?.workstream,'current')
+   assert(!work.customer.actionable.some(a=>a.type==='evidence_opportunity'&&a.workstream==='current'))
+   await page.setViewportSize({width:390,height:900});await page.screenshot({path:`${dir}/current-evidence-deferred.png`,fullPage:true})
+   console.log(JSON.stringify({synthetic:true,deferred:true,nextScope:'current',nextQuestion:'What was this money from?',repeatInvitation:false,refreshStable:true}));return
+  }
   if(mode==='--screenshots'){
    const results=[]
    for(const route of ['home','check-in','reports'])for(const width of [390,430,1280]){

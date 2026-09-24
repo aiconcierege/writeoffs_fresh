@@ -1,0 +1,19 @@
+{
+  "synthetic": true,
+  "receiptExtractions": [
+    {
+      "merchant": "DESERT PRINT SHOP",
+      "total_amount_cents": 21840
+    }
+  ],
+  "income": 0,
+  "expenses": 21840,
+  "profit": -21840,
+  "rows": 1,
+  "processing": 0,
+  "questions": [
+    {
+      "type": "account_use"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "synthetic": true,
+  "processing": 0,
+  "actions": [
+    {
+      "type": "evidence_opportunity",
+      "workstream": "current",
+      "priority": 22
+    },
+    {
+      "type": "material_question",
+      "workstream": "current",
+      "priority": 21,
+      "question": "What was this money from?"
+    },
+    {
+      "type": "personal_exception_sweep",
+      "workstream": "current",
+      "priority": 20
+    },
+    {
+      "type": "evidence_opportunity",
+      "workstream": "catch_up",
+      "priority": 2
+    },
+    {
+      "type": "material_question",
+      "workstream": "catch_up",
+      "priority": 1,
+      "question": "What was this money from?"
+    },
+    {
+      "type": "personal_exception_sweep",
+      "workstream": "catch_up",
+      "priority": 0
+    }
+  ]
+}
