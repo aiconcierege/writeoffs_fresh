@@ -55,6 +55,11 @@ export async function listCanonicalReceipts(input: { supabase: SupabaseClient; l
   for (const event of eventResult.data ?? []) if (!currentByReceipt.has(event.receipt_id)) currentByReceipt.set(event.receipt_id, event)
   const extractionByReceipt = new Map<string, Record<string, unknown>>()
   for (const extraction of extractionResult.data ?? []) if (!extractionByReceipt.has(extraction.receipt_id)) extractionByReceipt.set(extraction.receipt_id, extraction)
+  const receiptRecordIds=[...new Set([...currentByReceipt.values()].map(event=>event.bookkeeping_record_id).filter((id):id is string=>typeof id==='string'))]
+  const associated=receiptRecordIds.length?await input.supabase.from('bookkeeping_financial_sources')
+    .select('bookkeeping_record_id').eq('business_id',businessId).in('bookkeeping_record_id',receiptRecordIds).is('revoked_at',null):{data:[],error:null}
+  if(associated.error)throw new Error('Receipt financial evidence could not be loaded.')
+  const associatedRecords=new Set((associated.data??[]).map(row=>row.bookkeeping_record_id))
   const convergedReceipts = new Set((convergenceResult.data ?? []).map((row) => row.receipt_id))
   const processingByReceipt = new Map((processingResult.data ?? []).map((row) => [row.receipt_id, row]))
   return canonical.map((receipt): ReceiptReadItem => {
@@ -73,7 +78,7 @@ export async function listCanonicalReceipts(input: { supabase: SupabaseClient; l
       totalAmountCents: extraction?.total_amount_cents == null ? null : Number(extraction.total_amount_cents),
       recordId: (event?.bookkeeping_record_id as string | null | undefined) ?? null,
       displayStatus: receiptDisplayStatus({ eventType: event?.event_type as string | undefined,
-        converged: convergedReceipts.has(receipt.id), qualityStatus: extraction?.quality_status as string | undefined,
+        converged: convergedReceipts.has(receipt.id)||associatedRecords.has(String(event?.bookkeeping_record_id??'')), qualityStatus: extraction?.quality_status as string | undefined,
         processingStatus: processing?.processing_status }),
       qualityStatus: (extraction?.quality_status as ReceiptReadItem['qualityStatus'] | undefined) ?? null,
       qualityReasons: Array.isArray(extraction?.quality_reasons)

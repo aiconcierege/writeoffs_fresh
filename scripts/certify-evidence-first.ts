@@ -26,7 +26,7 @@ async function documents(){
 }
 async function main(){
  process.umask(0o077)
- const mode=process.argv[2];assert(['--upload','--verify','--duplicate','--receipt-only','--inspect-only','--profile','--loan','--irrelevant'].includes(mode))
+ const mode=process.argv[2];assert(['--upload','--verify','--duplicate','--receipt-only','--inspect-only','--profile','--loan','--irrelevant','--bank-only','--retry-loan','--set-aside'].includes(mode))
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL!,anon=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
  assert.equal(process.env.WRITEOFFS_ENVIRONMENT,'staging');assert.equal(new URL(url).hostname,'sgrqrrxrlglhjuetdtps.supabase.co')
  const f=JSON.parse(await readFile(`${dir}/fixture.json`,'utf8'))
@@ -79,7 +79,11 @@ async function main(){
   await writeFile(`${dir}/evidence-passed-${Date.now()}.json`,JSON.stringify(passed,null,2))
   console.log(JSON.stringify(passed));return
  }
- if(mode==='--profile'){}else if(mode==='--loan'||mode==='--irrelevant'){
+ if(['--profile','--retry-loan','--set-aside'].includes(mode)){}else if(mode==='--bank-only'){
+  const before=await getAuthenticatedCanonicalReport({supabase:db,periodStart:'2026-01-01',periodEnd:'2026-09-23',currency:'USD'})
+  assert.equal(before.rows.length,1);assert.equal(before.businessExpensesCents,21840,'RECEIPT_NOT_YET_ESTABLISHED')
+  await writeFile(`${dir}/bank-only.csv`,'Date,Description,Amount\n2026-05-09,DESERT PRINT SHOP,-218.40\n')
+ }else if(mode==='--loan'||mode==='--irrelevant'){
   const pdf=await PDFDocument.create(),font=await pdf.embedFont(StandardFonts.Helvetica),p=pdf.addPage([600,800])
   const lines=mode==='--loan'?['EQUIPMENT FINANCE','Loan statement','Payment date: May 15, 2026','Total payment $450.00','Principal paid $400.00','Interest paid $50.00']:['WEEKEND GARDEN WALK','Meet at the park after breakfast.','Bring a hat and enjoy the flowers.','This is a personal invitation, not a financial record.']
   lines.forEach((t,i)=>p.drawText(t,{x:40,y:750-i*25,font,size:13}))
@@ -133,14 +137,20 @@ async function main(){
    console.log(JSON.stringify({synthetic:true,results}));return
   }
   await page.goto(origin+(mode==='--upload'||mode==='--loan'?'/check-in':'/import'))
+  if(mode==='--retry-loan'||mode==='--set-aside'){
+   const row=page.getByRole('list',{name:'Your documents'}).getByRole('listitem').filter({hasText:mode==='--retry-loan'?'loan.pdf':'irrelevant.pdf'})
+   await row.getByRole('button',{name:mode==='--retry-loan'?'Try again':'Not for my books',exact:true}).click()
+   if(mode==='--set-aside')await row.getByText('Set aside — not used in your books',{exact:true}).waitFor()
+   console.log(JSON.stringify({synthetic:true,mode,submitted:true}));return
+  }
   if(mode==='--loan')await page.getByRole('heading',{name:'Send me the loan statement.',exact:true}).waitFor()
   if(mode==='--upload')await page.getByRole('heading',{name:'Have receipts? Send them first.',exact:true}).waitFor()
   await page.screenshot({path:`${dir}/${mode.slice(2)}-evidence-before-1280.png`,fullPage:true})
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:`${dir}/${mode.slice(2)}-evidence-before-390.png`,fullPage:true})
   const result=mode==='--upload'?page.waitForResponse(r=>r.url().endsWith('/api/bookkeeping/work/evidence')&&r.request().method()==='POST',{timeout:60000}):null
-  await page.locator('input[type=file]').first().setInputFiles(mode==='--loan'||mode==='--irrelevant'?[`${dir}/${mode.slice(2)}.pdf`]:mode==='--receipt-only'?[`${dir}/printing-only.pdf`]:[`${dir}/two-receipts-one-page.pdf`,`${dir}/phone-bill-two-pages.pdf`])
+  await page.locator('input[type=file]').first().setInputFiles(mode==='--bank-only'?[`${dir}/bank-only.csv`]:mode==='--loan'||mode==='--irrelevant'?[`${dir}/${mode.slice(2)}.pdf`]:mode==='--receipt-only'?[`${dir}/printing-only.pdf`]:[`${dir}/two-receipts-one-page.pdf`,`${dir}/phone-bill-two-pages.pdf`])
   if(mode==='--upload'){const response=await result!;assert(response.ok(),'EVIDENCE_ACKNOWLEDGMENT_FAILED')}
-  else await page.getByRole('status').filter({hasText:['--receipt-only','--loan','--irrelevant'].includes(mode)?/1 document received/:/2 documents received/}).waitFor({timeout:60000})
+  else await page.getByRole('status').filter({hasText:['--receipt-only','--loan','--irrelevant','--bank-only','--retry-loan','--set-aside'].includes(mode)?/1 document received/:/2 documents received/}).waitFor({timeout:60000})
   await page.screenshot({path:`${dir}/${mode.slice(2)}-evidence-received-390.png`,fullPage:true})
   console.log(JSON.stringify({synthetic:true,uploaded:true,mode}))
  }finally{await browser.close()}

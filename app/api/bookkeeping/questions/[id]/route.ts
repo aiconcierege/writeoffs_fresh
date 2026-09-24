@@ -1,3 +1,4 @@
+import {ACTION_INDEX_VERSION} from '../../../../lib/bookkeeping/action-index-model'
 import {completedVehicleTaxYear} from '../../../../lib/mileage/annual-use-question'
 import {requestUser} from '../../../../lib/performance/request-identity'
 import {guidedCommand} from '../../../../lib/bookkeeping/guided-command-response'
@@ -112,11 +113,17 @@ async function handlePOST(
     return NextResponse.json({ error: 'invalid question action' }, { status: 400 })
   }
   try {
+    let indexedAllocationEligible=false
     if(actionIndexEnabled()){
       const membership=await loadCustomerEntitlements(supabase)
       if(!membership.businessId||!membership.capabilities.has('autonomous_processing'))
         return NextResponse.json({error:'Active membership required'},{status:403})
       const indexed=await readIndexedQuestion(supabase,membership.businessId,id,expectedEventId)
+      const iq=indexed.action?.question
+      indexedAllocationEligible=command.action==='deduction_fact' && !indexed.replay
+        && indexed.engineVersion===ACTION_INDEX_VERSION && indexed.action?.status==='actionable'
+        && iq?.source==='deduction' && iq.id===id && iq.version===expectedEventId && iq.kind==='percentage'
+        && ['phone_business_use_percentage','internet_business_use_percentage'].includes(iq.deductionFact?.type??'')
       // An invalidated derived index is not proof that a canonically presented
       // question changed. A miss uses the existing atomic canonical eligibility
       // path below, including exact event-version and command RPC validation.
@@ -141,8 +148,8 @@ async function handlePOST(
       }
     }
     let validatedSnapshot:WorkInputSnapshot|undefined
-    const work = await timed('command_eligibility',()=>loadCurrentCustomerWork({supabase,onSnapshot:value=>{validatedSnapshot=value}}))
-    if (!work.questions.some(q=>q.id===id && q.version===expectedEventId)) {
+    const work = indexedAllocationEligible?null:await timed('command_eligibility',()=>loadCurrentCustomerWork({supabase,onSnapshot:value=>{validatedSnapshot=value}}))
+    if (work && !work.questions.some(q=>q.id===id && q.version===expectedEventId)) {
       // An uncertain response may be retried after the fact already committed.
       // Existing deduction logic below verifies the exact answer and ownership.
       const replay=command.action==='deduction_fact'

@@ -11,7 +11,7 @@ export async function readIndexedQuestion(db:SupabaseClient,businessId:string,id
   p_business_id:businessId,p_question_id:id,p_question_version:version,
  }))
  if(r.error)throw new Error('Indexed question unavailable')
- return r.data as {initialized:boolean;action:WorkAction|null;commandItem:CanonicalWeeklyReviewItem|null;replay?:{functionName:string;arguments:Record<string,unknown>}}
+ return r.data as {initialized:boolean;engineVersion?:string;action:WorkAction|null;commandItem:CanonicalWeeklyReviewItem|null;replay?:{functionName:string;arguments:Record<string,unknown>}}
 }
 
 /** The existing answer adapters still validate/normalize the real-world answer.

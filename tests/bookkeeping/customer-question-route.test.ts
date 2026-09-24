@@ -96,6 +96,17 @@ describe('customer question API', () => {
     expect(response.status).toBe(200);expect(rpc).toHaveBeenCalledWith('answer_deduction_attention',expect.objectContaining({p_value:60}));expect(applyFact).not.toHaveBeenCalled()
   })
 
+  it.each([true,false])('uses only a current-version, authoritative indexed allocation question (%s)',async current=>{
+    indexEnabled.mockReturnValue(true);decisionHistory.mockResolvedValue({data:[],error:null})
+    indexedQuestion.mockResolvedValue({initialized:true,engineVersion:current?'betti-action-index:v5-evidence-batches':'old',commandItem:null,
+      action:{status:'actionable',question:{id:issueId,version:eventId,source:'deduction',kind:'percentage',deductionFact:{type:'phone_business_use_percentage'}}}})
+    maybeSingle.mockResolvedValue({data:{id:eventId,attention_id:issueId,event_type:'opened',fact_type:'phone_business_use_percentage',bookkeeping_record_id:'record',business_id:'owned-business'}})
+    const route=await import('../../app/api/bookkeeping/questions/[id]/route')
+    const response=await route.POST(new Request('http://local',{method:'POST',headers:{'if-match':eventId},body:JSON.stringify({action:'deduction_fact',value:60})}),{params:Promise.resolve({id:issueId})})
+    expect(response.status).toBe(200);expect(getCurrentAskableQuestionQueue).toHaveBeenCalledTimes(current?0:1)
+    expect(rpc).toHaveBeenCalledWith('answer_deduction_attention',expect.objectContaining({p_expected_event_id:eventId}))
+  })
+
   it('rejects unauthenticated queue and answer access', async () => {
     getUser.mockResolvedValue({ data: { user: null }, error: null })
     const queue = await import('../../app/api/bookkeeping/questions/route')

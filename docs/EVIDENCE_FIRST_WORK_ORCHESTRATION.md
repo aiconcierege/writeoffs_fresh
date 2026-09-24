@@ -87,3 +87,31 @@ Local unit and database tests are development evidence only. Before handoff, ver
 the complete 18-case receipt matrix, late-evidence question removal/narrowing,
 hosted scope presentation, real hosted answer timings, desktop/mobile transitions,
 and unchanged frozen-customer state. Preserve failures and limitations explicitly.
+
+## Later evidence and safe continuation
+
+Uploaded account/month batches remain in reassessment until their related jobs
+finish. Unrelated current work can proceed once document relationships establish
+independence. Unknown uploads with no bookkeeping evidence can be set aside with
+“Not for my books”; the original and immutable customer disposition remain.
+
+An automatically assessed receipt can converge with its exact later bank source;
+its established working allocation moves atomically to the survivor and original
+history remains. For an already customer-treated receipt, use the existing
+`attach_bookkeeping_financial_source` capability and retain the original canonical
+record and customer decisions. Exact date, signed cents, currency, merchant,
+uniqueness, ownership and post-lock evidence checks are required. Ambiguous matches
+are not guessed. Receipt status reflects the later bank association.
+
+A transaction-bound loan statement can establish the exact principal/interest split
+when the loan has current established business context and a current business-only
+account fact, or the existing explicit business-loan confirmation. Unknown or
+conflicting context remains unresolved. Principal remains excluded. Changed retry
+facts fail closed, and no customer confirmation is fabricated.
+
+Phone/internet percentage answers durably queue reassessment in the answer
+transaction. Ordinary automated treatment need not synchronously load the entire
+evaluation snapshot before acknowledgment. Records with customer-authored treatment
+retain the existing guarded synchronous path. A current-version indexed question
+may prove eligibility; stale publications use canonical fallback. Canonical answer
+validation, ownership, MFA, exact event versions and retry checks remain required.

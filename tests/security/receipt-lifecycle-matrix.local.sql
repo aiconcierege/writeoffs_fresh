@@ -4,7 +4,7 @@ insert into public.categories(key,label) values('office-expense','Office expense
 do $$ declare uid uuid:=gen_random_uuid(); bid uuid; aid uuid:=gen_random_uuid(); tid uuid:=gen_random_uuid(); rid uuid:=gen_random_uuid(); other_rid uuid:=gen_random_uuid();
  receipt public.receipts%rowtype; extra public.receipts%rowtype; link public.bookkeeping_document_links%rowtype;
  customer_receipt boolean:=coalesce(current_setting('writeoffs.test.customer_receipt',true),'false')::boolean;
- result jsonb; receipt_record uuid; assessed uuid; convergence uuid; event_types text[];
+ result jsonb; receipt_record uuid; assessed uuid; convergence uuid; event_types text[];associated public.bookkeeping_records%rowtype;failed boolean;
 begin
  insert into auth.users(id,email,raw_user_meta_data) values(uid,'receipt-matrix@local.invalid','{"synthetic":true}');
  select id into bid from public.businesses where owner_user_id=uid;
@@ -34,6 +34,21 @@ begin
  insert into public.financial_accounts(id,business_id,institution_name,display_name,account_type) values(aid,bid,'Synthetic','Checking','checking');
  insert into public.financial_transactions(id,business_id,financial_account_id,source_fingerprint,import_method,original_description,amount_cents,transaction_date)
  values(tid,bid,aid,'later-bank-source','csv','Corner Supply',-1234,'2026-05-19');
+ if customer_receipt then
+  perform set_config('request.jwt.claims','{"role":"service_role"}',true);
+  associated:=public.ensure_bookkeeping_record(bid,'financial_transaction',tid,'import','later-bank-customer',-1234,'USD','2026-05-19');
+  if associated.id<>receipt_record or (select count(*) from public.bookkeeping_records where business_id=bid)<>1 then raise exception 'Later bank source duplicated a customer-treated receipt';end if;
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',uid,'role','authenticated','aal','aal2')::text,true);
+  failed:=false;begin perform public.associate_later_bank_receipt(gen_random_uuid(),tid);exception when others then failed:=true;end;
+  if not failed then raise exception 'Cross-tenant association accepted';end if;
+  perform public.ensure_initial_bookkeeping_decision(bid,associated.id);
+  associated:=public.ensure_bookkeeping_record(bid,'financial_transaction',tid,'import','later-bank-customer',-1234,'USD','2026-05-19');
+  if associated.id<>receipt_record or (select count(*) from public.bookkeeping_decisions where bookkeeping_record_id=receipt_record)<>2 then raise exception 'Association changed customer decision history';end if;
+  if not exists(select 1 from public.bookkeeping_financial_sources where bookkeeping_record_id=receipt_record and financial_transaction_id=tid and revoked_at is null) then raise exception 'Bank evidence not associated';end if;
+  failed:=false;begin perform public.ensure_bookkeeping_record(bid,'financial_transaction',tid,'import','later-bank-customer',-1,'USD','2026-05-19');exception when others then failed:=true;end;
+  if not failed then raise exception 'Changed source facts accepted';end if;
+  return;
+ end if;
  insert into public.bookkeeping_records(id,business_id,source_kind,ingestion_key,amount_cents,currency,occurred_on)
  values(rid,bid,'financial_transaction','later-bank',-1234,'USD','2026-05-19'),(other_rid,bid,'manual','rematch-control',-1500,'USD','2026-05-20');
  -- Match the canonical ingestion boundary: every new financial record starts

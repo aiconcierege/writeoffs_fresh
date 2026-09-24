@@ -1,0 +1,42 @@
+begin;
+insert into public.categories(key,label) values('interest','Interest') on conflict(key) do nothing;
+do $$ declare uid uuid:=gen_random_uuid();bid uuid;aid uuid:=gen_random_uuid();tid uuid:=gen_random_uuid();rid uuid:=gen_random_uuid();
+ doc public.business_documents%rowtype;job public.receipt_processing_jobs%rowtype;lease uuid:=gen_random_uuid();failed boolean;
+begin
+ insert into auth.users(id,email,raw_user_meta_data) values(uid,'loan-evidence@local.invalid','{"synthetic":true}');
+ select id into bid from public.businesses where owner_user_id=uid;
+ perform set_config('request.jwt.claims','{"role":"service_role"}',true);
+ perform public.create_business_membership_grant(bid,'business',now()-interval '1 day',null,'loan-evidence','Synthetic loan evidence','admin',null);
+ insert into public.business_customer_setup(business_id,joined_month,grandfathered_start_date,timezone_name) values(bid,'2026-09-01','2026-01-01','UTC');
+ update public.businesses set catch_up_start_date='2026-01-01' where id=bid;
+ insert into public.financial_accounts(id,business_id,institution_name,display_name,account_type) values(aid,bid,'Synthetic','Checking','checking');
+ insert into public.financial_transactions(id,business_id,financial_account_id,source_fingerprint,import_method,original_description,amount_cents,transaction_date)
+ values(tid,bid,aid,'loan-source','csv','EQUIPMENT FINANCE LOAN PAYMENT',-45000,'2026-05-15');
+ insert into public.bookkeeping_records(id,business_id,source_kind,ingestion_key,amount_cents,currency,occurred_on) values(rid,bid,'financial_transaction','loan',-45000,'USD','2026-05-15');
+ insert into public.bookkeeping_financial_sources(business_id,bookkeeping_record_id,financial_transaction_id,provenance) values(bid,rid,tid,'system');
+ insert into public.bookkeeping_decisions(business_id,bookkeeping_record_id,bookkeeping_nature,treatment,review_status,provenance) values(bid,rid,'loan_principal_payment','unresolved','needs_review','automation');
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',uid,'role','authenticated','aal','aal2')::text,true);
+ doc:=public.register_transaction_document(gen_random_uuid(),repeat('9',64),'loan.pdf','application/pdf',100,rid);
+ perform set_config('request.jwt.claims','{"role":"service_role"}',true);
+ select * into job from public.claim_customer_document_job(doc.id,lease);
+ if public.worker_apply_loan_document(job.id,lease,'2026-05-15',40000,5000) then raise exception 'Unknown business context expensed interest';end if;
+ insert into public.bookkeeping_business_context_assessments(business_id,bookkeeping_record_id,assessment_state,assessment_basis,evaluator_version,evidence_fingerprint,evidence_references)
+ values(bid,rid,'established','account_business_only','v1',repeat('a',64),'[]');
+ if public.worker_apply_loan_document(job.id,lease,'2026-05-15',40000,5000) then raise exception 'Stale context without current account fact accepted';end if;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',uid,'role','authenticated','aal','aal2')::text,true);
+ perform public.set_financial_account_use(aid,'business_only',now(),gen_random_uuid());
+ perform set_config('request.jwt.claims','{"role":"service_role"}',true);
+ if public.worker_apply_loan_document(job.id,lease,'2026-05-14',40000,5000) then raise exception 'Wrong payment date accepted';end if;
+ if public.worker_apply_loan_document(job.id,lease,'2026-05-15',40000,6000) then raise exception 'Nonreconciling split accepted';end if;
+ set constraints all immediate;
+ set constraints all deferred;
+ if not public.worker_apply_loan_document(job.id,lease,'2026-05-15',40000,5000) then raise exception 'Supported business loan still required hidden customer action';end if;
+ if not public.worker_apply_loan_document(job.id,lease,'2026-05-15',40000,5000) then raise exception 'Retry failed';end if;
+ failed:=false;begin perform public.worker_apply_loan_document(job.id,lease,'2026-05-15',39000,6000);exception when others then failed:=true;end;
+ if not failed then raise exception 'Changed retry accepted';end if;
+ if (select sum(amount_cents) from public.bookkeeping_allocations where business_id=bid and allocation_kind='business')<>-5000 then raise exception 'Interest amount incorrect';end if;
+ if (select sum(amount_cents) from public.bookkeeping_allocations where business_id=bid and allocation_kind='excluded')<>-40000 then raise exception 'Principal expensed';end if;
+ if (select count(*) from public.bookkeeping_loan_document_facts where business_id=bid)<>1 or exists(select 1 from public.bookkeeping_special_events where business_id=bid) then raise exception 'Retry duplicated evidence or fabricated customer answer';end if;
+end; $$;
+set constraints all immediate;
+rollback;
