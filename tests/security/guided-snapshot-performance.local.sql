@@ -78,6 +78,20 @@ begin
  begin perform public.answer_betti_guided_work(sweep_id,'personal_exception_sweep','completed',items,jsonb_build_object(rid,'{"use":"personal"}'::jsonb));
  exception when others then failed:=true;end;
  if not failed then raise exception 'Changed retry accepted'; end if;
+ -- Selected exceptions retain the existing financial correction path, while
+ -- the all-business fast path must never swallow a supplied personal answer.
+ begin
+  perform public.answer_betti_guided_work(gen_random_uuid(),'personal_exception_sweep','completed',items,jsonb_build_object(rid,'{"use":"personal"}'::jsonb));
+  if not exists(select 1 from public.customer_transaction_work where record_id=rid and treatment='personal') then raise exception 'Personal exception was ignored';end if;
+  raise exception 'ROLLBACK_PERSONAL_CONTROL';
+ exception when raise_exception then if sqlerrm<>'ROLLBACK_PERSONAL_CONTROL' then raise;end if;
+ end;
+ failed:=false;
+ begin
+  perform public.answer_betti_guided_work(gen_random_uuid(),'personal_exception_sweep','completed',items,jsonb_build_object(rid,'{"use":"business"}'::jsonb));
+ exception when others then failed:=true;end;
+ if not failed or before_decisions is distinct from (select jsonb_agg(to_jsonb(d) order by id) from public.bookkeeping_decisions d where business_id=bid)
+ then raise exception 'Invalid exception changed financial facts';end if;
  response:=public.answer_betti_evidence_opportunity(request_id,items,'none');
  if response<>public.answer_betti_evidence_opportunity(request_id,items,'none') then raise exception 'Receipt retry changed';end if;
  if (select count(*) from public.customer_transaction_work where business_id=bid and receipt_unavailable)<>8 then raise exception 'Not all documentation states persisted';end if;

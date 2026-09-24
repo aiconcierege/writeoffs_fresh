@@ -1,4 +1,4 @@
-/** REAL HOSTED STAGING: one isolated synthetic requested-loan upload, no customer answers. */
+/** Real hosted fresh-answer latency samples, restricted to synthetic staging fixtures. */
 import assert from 'node:assert/strict'
 import {readFile,writeFile} from 'node:fs/promises'
 import {createHmac,randomUUID} from 'node:crypto'
@@ -22,7 +22,8 @@ async function main(){
 
  const browser=await chromium.launch({headless:true}),samples:Record<string,unknown>[]=[]
  try{
- const context=await browser.newContext({viewport:{width:390,height:900},reducedMotion:'reduce'})
+ const viewportWidth=/sample-0[246]$/.test(dir)?1280:390
+ const context=await browser.newContext({viewport:{width:viewportWidth,height:900},reducedMotion:'reduce'})
  await context.addCookies([...jar].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:true,sameSite:'Lax' as const})))
  const page=await context.newPage();page.setDefaultTimeout(20000)
  const seen=new Set<string>(),deadline=Date.now()+20*60_000
@@ -71,7 +72,7 @@ async function main(){
    await page.locator('.betti-transition-feedback').waitFor();ackMs=Date.now()-started;r=await response
   }else {started=Date.now();r=await context.request.post(origin+path,{data,headers,timeout:30000})}
   const responseMs=Date.now()-started,payload=await r.json()
-  samples.push({turn,kind,status:r.status(),responseMs,requestMs,ackMs,timing:r.headers()['server-timing'],nextType:payload.work?.nextAction?.type});await writeFile(`${dir}/latency-samples.json`,JSON.stringify(samples,null,2))
+  samples.push({turn,kind,viewportWidth,status:r.status(),responseMs,requestMs,ackMs,timing:r.headers()['server-timing'],nextType:payload.work?.nextAction?.type});await writeFile(`${dir}/latency-samples.json`,JSON.stringify(samples,null,2))
   assert(r.ok(),'ANSWER_FAILED_'+kind+'_'+r.status());assert(payload.ok)
   assert(payload.work&&(!payload.work.index||payload.work.index.summaryCurrent===true),'CONTINUATION_REQUIRED')
   if(label){const next=payload.work.nextAction;if(next)await page.waitForFunction(id=>document.querySelector('[data-guided-id]')?.getAttribute('data-guided-id')===id,next.id,{timeout:20000}).catch(async()=>{await page.getByText(next.question?.transaction.merchant??next.transaction?.merchant,{exact:true}).first().waitFor()});renderMs=Date.now()-started;const observed=await page.evaluate(()=>(window as unknown as {latency:{ids:string[];ack?:number}}).latency);assert.deepEqual(observed.ids,next?[next.id]:[],'INTERMEDIATE_ACTION_FLASH');Object.assign(samples.at(-1)!,{renderMs,visibleAcknowledgmentMs:observed.ack,noIntermediateAction:true});await writeFile(`${dir}/latency-samples.json`,JSON.stringify(samples,null,2))}
