@@ -8,7 +8,6 @@ import {loadBettiWork,loadCanonicalBettiWork} from './betti-work-loader'
 import {timed} from '../performance/request-timing'
 import {after} from 'next/server'
 import {actionIndexEnabled,refreshBettiActionIndex} from './action-index-worker'
-import {readBettiActionIndex} from './action-index-reader'
 
 export function guidedContinuityRecord(request:Request){
  let record=request.headers.get('x-betti-record')
@@ -52,13 +51,11 @@ export function guidedCommand<Rest extends unknown[]>(handler:(request:Request,.
     })
     const saved=await response.clone().json()
     if(saved.work?.index?.version===1&&vehicleQuestionProjectionCurrent(saved.work)&&authoritativeContinuation(saved.work))return response
-    const indexed=await readBettiActionIndex({db,businessId:membership.businessId,view:'guided',
-     continuityRecordId:guidedContinuityRecord(request),processingEnabled:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'})
-    if(indexed&&authoritativeContinuation(indexed))return Response.json({...saved,work:indexed},{status:response.status,headers:{'Cache-Control':'private, no-store'}})
-    // A dirty continuation must use the same read-only authority as page entry.
-    // The answer has already committed; do not reconcile again just to pick next.
-    // The index was just checked above. Do not fetch the same stale index again
-    // inside the general loader before taking the required atomic snapshot.
+    // The command invalidated its derived projection. Unless the atomic command
+    // already returned a current continuation, go straight to canonical facts.
+    // Reading the dirty index first adds a serial database round trip but
+    // cannot establish the next turn. Never race an old queue
+    // against this snapshot or wait for the background publisher to finish.
     const current=await loadCanonicalBettiWork({db,businessId:membership.businessId,scope:membership.plan??'expenses',
      continuityRecordId:guidedContinuityRecord(request),processingEnabled:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'})
     return Response.json({...saved,work:guidedWorkProjection(current)},{status:response.status,headers:{'Cache-Control':'private, no-store'}})

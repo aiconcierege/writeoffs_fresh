@@ -17,7 +17,6 @@ import { finishAnsweredExpense } from '../../../../lib/bookkeeping/answered-expe
 import {actionIndexEnabled,refreshBettiActionIndex} from '../../../../lib/bookkeeping/action-index-worker'
 import {readIndexedQuestion,indexedQuestionClient} from '../../../../lib/bookkeeping/indexed-question-command'
 import {loadCustomerEntitlements} from '../../../../lib/membership/entitlements'
-import {readBettiActionIndex} from '../../../../lib/bookkeeping/action-index-reader'
 import {guidedContinuityRecord} from '../../../../lib/bookkeeping/guided-command-response'
 import { runDeductionIntelligenceForRecord } from '../../../../lib/bookkeeping/deduction-intelligence'
 
@@ -141,8 +140,9 @@ async function handlePOST(
           catch{console.error('BETTI_ANSWER_ENRICHMENT_REMAINS_QUEUED')}
         })
         else enriched=await finishAnsweredExpense({supabase,result})
-        const next=enriched?await readBettiActionIndex({db:supabase,businessId:membership.businessId,view:'guided',
-          continuityRecordId:guidedContinuityRecord(request),processingEnabled:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'}):transport.next()
+        // Local enrichment invalidates the command's projection. The shared
+        // continuation reads canonical facts once; do not first read a dirty index.
+        const next=enriched?null:transport.next()
         return NextResponse.json({ok:true,...(request.headers.get('x-betti-guided')==='1'&&next?{work:next}:{})},
           {headers:{'Cache-Control':'private, no-store'}})
       }
