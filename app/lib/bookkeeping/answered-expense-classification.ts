@@ -8,6 +8,7 @@ import { loadBookkeepingEvaluationSnapshot } from './evaluation-snapshot'
 import { processOperatingExpenseTreatment } from './operating-expense-processing'
 import { CanonicalBookkeepingService } from './service'
 import { SupabaseBookkeepingRepository } from './supabase-repository'
+import {hasQueuedAnswerReassessment} from './queued-answer-reassessment'
 
 /** Completes bookkeeping within the customer's answer command, preserving every supplied fact. */
 export function answeredExpenseAllocations(snapshot: BookkeepingEvaluationSnapshot) {
@@ -22,7 +23,7 @@ export function answeredExpenseAllocations(snapshot: BookkeepingEvaluationSnapsh
     taxCategoryKey: allocation.kind === 'business' ? classification.categoryKey : allocation.taxCategoryKey }))
 }
 
-export async function finishAnsweredExpense(input: { supabase: SupabaseClient; admin?: SupabaseClient; result: unknown }) {
+export async function finishAnsweredExpense(input: { supabase: SupabaseClient; admin?: SupabaseClient; result: unknown; deferQueuedTaxReassessment?: boolean }) {
   if (!input.result || typeof input.result !== 'object' || !('decision' in input.result)
     || ('followUpEvent' in input.result && input.result.followUpEvent)) return
   const decision = input.result.decision
@@ -66,11 +67,18 @@ export async function finishAnsweredExpense(input: { supabase: SupabaseClient; a
   if (snapshot.currentDecision.id !== decision.id) return
   const allocations = answeredExpenseAllocations(snapshot)
   if (allocations) {
-    await new CanonicalBookkeepingService(repository).recordDecision({ actor: { businessId, userId: user.id, provenance: 'user' },
+    const categorized = await new CanonicalBookkeepingService(repository).recordDecision({ actor: { businessId, userId: user.id, provenance: 'user' },
       recordId, expectedCurrentDecisionId: snapshot.currentDecision.id,
       decision: { bookkeepingNature: snapshot.currentDecision.bookkeepingNature, treatment: snapshot.currentDecision.treatment,
         reviewStatus: snapshot.currentDecision.reviewStatus, businessPurpose: snapshot.currentDecision.businessPurpose,
         reason: 'Organized the purchase using the customer answer and recorded purchase facts.', allocations } })
+    // Category creation remains durable and customer-authorized. Only the
+    // subsequent tax reassessment may leave this request, and only after its
+    // exact new decision has a durable worker dependency. No in-memory callback
+    // is required for recovery; missing/failed proof retains the original path.
+    if (input.deferQueuedTaxReassessment && await hasQueuedAnswerReassessment({
+      admin, businessId, result: {decision: categorized},
+    })) return true
     snapshot = await loadBookkeepingEvaluationSnapshot({ admin, businessId, recordId })
   }
   await processOperatingExpenseTreatment({ admin, snapshot })

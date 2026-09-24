@@ -40,7 +40,7 @@ const eventId = '22222222-2222-4222-8222-222222222222'
 
 describe('customer question API', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.clearAllMocks();vi.unstubAllEnvs()
     queuedReassessment.mockResolvedValue(false);finishExpense.mockResolvedValue(undefined)
     decisionHistory.mockResolvedValue({data:[{id:'customer-decision'}],error:null})
     indexEnabled.mockReturnValue(false)
@@ -71,6 +71,16 @@ describe('customer question API', () => {
     expect(finishExpense).toHaveBeenCalledTimes(queued?0:1)
     expect(scheduleAfter).toHaveBeenCalledTimes(queued?1:0)
     if(queued){finishExpense.mockResolvedValue(undefined);await scheduleAfter.mock.calls[0][0]();expect(finishExpense).toHaveBeenCalledWith(expect.objectContaining({result}))}
+  })
+
+  it('keeps category and tax reassessment synchronous while processing is paused',async()=>{
+    vi.stubEnv('DOCUMENT_EXPENSIVE_PROCESSING_ENABLED','false');indexEnabled.mockReturnValue(true)
+    getCurrentAskableQuestionQueue.mockImplementationOnce(async({onSnapshot})=>{onSnapshot({businessId:'owned-business'});return {questions:[{id:issueId,version:eventId}]}})
+    const route=await import('../../app/api/bookkeeping/questions/[id]/route')
+    const response=await route.POST(new Request('https://local/answer',{method:'POST',headers:{'if-match':eventId},body:JSON.stringify({action:'business_purpose',businessPurpose:'Business insurance'})}),{params:Promise.resolve({id:issueId})})
+    expect(response.status).toBe(200);expect(queuedReassessment).not.toHaveBeenCalled();expect(scheduleAfter).not.toHaveBeenCalled()
+    expect(finishExpense).toHaveBeenCalledWith(expect.objectContaining({deferQueuedTaxReassessment:false}))
+    vi.unstubAllEnvs()
   })
 
   it('rejects AAL1 before any eligibility read or write',async()=>{

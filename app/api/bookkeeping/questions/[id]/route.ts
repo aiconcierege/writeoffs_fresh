@@ -286,14 +286,16 @@ async function handlePOST(
     // A dirty index may use this canonical fallback even for a routine answer.
     // Preserve the indexed path's durable dependency rule instead of blocking
     // only fallback customers on a complete evidence/enrichment waterfall.
-    const queued=actionIndexEnabled()&&validatedSnapshot?.businessId
+    const canDeferReassessment=actionIndexEnabled()&&process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED!=='false'
+    const queued=canDeferReassessment&&validatedSnapshot?.businessId
       &&await timed('answer_reassessment_dependency',()=>hasQueuedAnswerReassessment({
         admin:createServerAdminSupabase(),businessId:validatedSnapshot!.businessId,result}))
     if(queued)after(async()=>{
       try{await finishAnsweredExpense({supabase,result});await refreshBettiActionIndex({businessId:validatedSnapshot!.businessId,limit:2})}
       catch{console.error('BETTI_ANSWER_ENRICHMENT_REMAINS_QUEUED')}
     })
-    else await timed('affected_expense_reassessment',()=>finishAnsweredExpense({ supabase, result }))
+    else await timed('affected_expense_reassessment',()=>finishAnsweredExpense({ supabase, result,
+      deferQueuedTaxReassessment: canDeferReassessment }))
     return NextResponse.json({ ok: true })
   } catch (cause) {
     const message = cause instanceof Error ? cause.message
