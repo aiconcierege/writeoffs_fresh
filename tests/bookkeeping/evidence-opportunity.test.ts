@@ -51,6 +51,20 @@ describe('evidence before questions without another bookkeeping engine',()=>{
   const current={...q,id:'current-fact',recordId:'current',transaction:{...q.transaction,date:'2026-09-22'}}
   expect(project(c,[q,current]).nextAction?.question?.id).toBe('current-fact')
  })
+ it('finishes the uploaded month batch before its other questions, without holding current work',()=>{
+  const{c,q}=fixture()
+  c.records.push({...c.records[0],record_id:'may-money',bookkeeping_nature:'business_income',amount_cents:30000},
+   {...c.records[0],record_id:'recent-money',activity_date:'2026-09-22',bookkeeping_nature:'business_income',amount_cents:30000})
+  c.guidedReviews=[{business_id:'b',id:'upload',action:'evidence_opportunity',disposition:'completed',created_at:now,deferred_until:null,items:[],answers:{response:'provided',accountId:'account',month:'2026-05',documentIds:['doc']}}]
+  c.documentRecords=[{business_id:'b',document_id:'doc',record_id:'printing'}]
+  c.jobs=[{business_id:'b',id:'reassess',record_id:'printing',document_id:null,receipt_id:null,state:'pending',kind:'bookkeeping',available_at:now,lease_expires_at:null,updated_at:now}]
+  const may={...q,id:'may-fact',recordId:'may-money'},recent={...q,id:'recent-fact',recordId:'recent-money'}
+  const waiting=project(c,[q,may,recent])
+  expect(waiting.customer.actionable.map(a=>a.question?.id)).toEqual(['recent-fact'])
+  expect(waiting.betti.waiting.map(a=>a.question?.id).sort()).toEqual(['may-fact','purpose'])
+  c.jobs=[];c.records[0].has_receipt=true
+  expect(project(c,[may,recent]).customer.actionable.some(a=>a.question?.id==='may-fact')).toBe(true)
+ })
  it.each(['business_income','transfer','credit_card_payment','loan_principal_payment','refund'])('does not ask for a purchase receipt for %s',nature=>{
   const{c}=fixture();c.records[0].bookkeeping_nature=nature
   expect(project(c).customer.actionable.some(a=>a.type==='evidence_opportunity')).toBe(false)

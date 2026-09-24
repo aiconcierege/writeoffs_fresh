@@ -5,7 +5,7 @@ import type { CustomerQuestion } from './customer-questions'
 import { purchaseReceiptEligible } from './receipt-eligibility'
 import {guidedStage,guidedItem,guidedDeferral,GUIDED_BATCH_LIMIT,PERSONAL_SWEEP_LIMIT,statementEstablishesBankFee,evidenceOpportunityEligible,type GuidedItem,type GuidedReview,type SweepType} from './guided-work'
 
-export const BETTI_WORK_VERSION = 'betti-work:v6-evidence-scopes'
+export const BETTI_WORK_VERSION = 'betti-work:v7-evidence-batches'
 export type Workstream = 'catch_up' | 'current' | 'shared' | 'outside_scope' | 'unscoped'
 export type ActionType = 'provide_records' | 'account_use' | 'personal_exception_sweep' | 'mixed_use_sweep'
   | 'receipt_upload_sweep' | 'receipt_availability' | 'special_transaction' | 'material_question'
@@ -138,10 +138,22 @@ export function projectBettiWork(input: {
   // not only receipt sweeps. Account-use remains an independent customer fact.
   const unassignedEvidence = jobs.filter(j => !j.recordIds.length && (j.documentId || j.receiptId))
   const unassessedDocuments = c.documents.filter(d => d.has_job === false)
+  // A provided batch is one customer interaction: finish its extraction and
+  // reassessment before starting that account/month's substantive questions.
+  // This is not a business-wide gate on unrelated current work.
+  const evidenceBatches=(c.guidedReviews??[]).filter(g=>g.action==='evidence_opportunity'&&g.answers?.response==='provided').map(g=>{
+    const documents=new Set(g.answers?.documentIds??[])
+    const receipts=new Set(c.documents.filter(d=>documents.has(d.id)&&d.receipt_id).map(d=>d.receipt_id!))
+    const records=new Set([...(c.documentRecords??[]).filter(d=>documents.has(d.document_id)).map(d=>d.record_id),
+      ...c.links.filter(l=>receipts.has(l.receipt_id)).map(l=>l.record_id)])
+    return{account:g.answers?.accountId,month:g.answers?.month,jobs:jobs.filter(j=>documents.has(j.documentId??'')
+      ||receipts.has(j.receiptId??'')||j.recordIds.some(id=>records.has(id))).map(j=>j.id)}
+  })
   const activeJobIds = (id: string) => [...new Set([
     ...jobs.filter(j => j.recordIds.includes(id)).map(j => j.id),
     ...unassignedEvidence.map(j => j.id),
     ...unassessedDocuments.map(d => `document-unassessed:${d.id}`),
+    ...evidenceBatches.filter(b=>b.account===byId.get(id)?.account_id&&b.month===byId.get(id)?.activity_date.slice(0,7)).flatMap(b=>b.jobs),
   ])]
   const actions: WorkAction[] = []
   const add = (type: ActionType, id: string, target: WorkAction['target'], rs: WorkRecord[], evidence: unknown,

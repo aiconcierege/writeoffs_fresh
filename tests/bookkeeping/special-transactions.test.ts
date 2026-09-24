@@ -30,5 +30,6 @@ describe('transaction workflow and independent personal use',()=>{
 describe('loan statement evidence',()=>{
  const text='Loan Statement\nPayment date: 2026-05-15\nTotal payment: $450.00\nPrincipal: $410.00\nInterest: $40.00\n'
  it('extracts explicit reconciled facts only',()=>expect(parseLoanPaymentStatement(text)).toEqual({paymentDate:'2026-05-15',paymentCents:45000,principalCents:41000,interestCents:4000}))
- it.each([text.replace('410.00','400.00'),text+'Principal: $400.00\n',text.replace('2026-05-15','2026-02-31'),text.replace('Interest: $40.00','Finance summary')])('holds inconsistent or missing evidence',input=>expect(parseLoanPaymentStatement(input)).toBeNull())
+ it('accepts an explicit written calendar date without guessing a locale',()=>expect(parseLoanPaymentStatement(text.replace('2026-05-15','May 15, 2026'))?.paymentDate).toBe('2026-05-15'))
+ it.each([text.replace('2026-05-15','February 31, 2026'),text.replace('2026-05-15','05/06/2026'),text.replace('410.00','400.00'),text+'Principal: $400.00\n',text.replace('2026-05-15','2026-02-31'),text.replace('Interest: $40.00','Finance summary')])('holds inconsistent or missing evidence',input=>expect(parseLoanPaymentStatement(input)).toBeNull())
 })

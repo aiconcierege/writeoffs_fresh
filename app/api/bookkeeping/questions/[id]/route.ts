@@ -252,6 +252,16 @@ async function handlePOST(
           p_signal_version: 'deduction-intelligence:v1',
         })
         if (deduction.bookkeeping_record_id) {
+          // Durable queue publication is part of answer_deduction_attention.
+          // Ordinary automated service treatment can be reassessed off the
+          // response path. Preserve the existing synchronous override guard for
+          // any record with customer-authored treatment history.
+          if (['phone_business_use_percentage','internet_business_use_percentage'].includes(deduction.fact_type)) {
+            const history=await supabase.from('bookkeeping_decisions').select('id')
+              .eq('business_id',deduction.business_id).eq('bookkeeping_record_id',deduction.bookkeeping_record_id)
+              .eq('provenance','user').limit(1)
+            if(!history.error && !history.data?.length) return NextResponse.json({ok:true})
+          }
           const snapshot = await loadBookkeepingEvaluationSnapshot({ admin,
             businessId: deduction.business_id, recordId: deduction.bookkeeping_record_id })
           await runDeductionIntelligenceForRecord({

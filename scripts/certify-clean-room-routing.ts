@@ -15,7 +15,7 @@ const origin='https://writeoffs-fresh-staging.vercel.app',dir=process.env.ROUTIN
 assert(/^\/private\/tmp\/writeoffs-routing-[a-z0-9-]+$/.test(dir))
 const url=process.env.NEXT_PUBLIC_SUPABASE_URL!,anon=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 assert(process.env.WRITEOFFS_ENVIRONMENT==='staging'&&new URL(url).hostname==='sgrqrrxrlglhjuetdtps.supabase.co')
-const mode=process.argv[2];assert(['--prepare','--inspect','--hosted','--refresh-synthetic'].includes(mode))
+const mode=process.argv[2];assert(['--prepare','--prepare-empty','--inspect','--hosted','--refresh-synthetic'].includes(mode))
 process.umask(0o077)
 const admin=createClient(url,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false,autoRefreshToken:false}})
 function totp(secret:string){const abc='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',bits=[...secret.replace(/=+$/,'').toUpperCase()].map(c=>abc.indexOf(c).toString(2).padStart(5,'0')).join(''),key=Buffer.from(Array.from({length:Math.floor(bits.length/8)},(_,i)=>parseInt(bits.slice(i*8,i*8+8),2))),counter=Buffer.alloc(8);counter.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const h=createHmac('sha1',key).update(counter).digest(),o=h.at(-1)!&15;return String((h.readUInt32BE(o)&0x7fffffff)%1000000).padStart(6,'0')}
@@ -24,7 +24,7 @@ async function main(){
  type Fixture={userId:string;businessId:string;email:string;password:string;factorId:string;totpSecret:string;documentId?:string}
  let f:Fixture|null=await readFile(`${dir}/fixture.json`,'utf8').then(JSON.parse).catch(()=>null)
  if(!f){
-  assert.equal(mode,'--prepare')
+  assert(['--prepare','--prepare-empty'].includes(mode!))
   const nonce=randomUUID(),email=`routing-may-${nonce}@staging.writeoffs.invalid`,password=`Synthetic-${randomUUID()}!`
   const made=await admin.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{synthetic_t1_routing:true}});assert(!made.error&&made.data.user,'SYNTHETIC_CREATE_FAILED')
   const customer=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false}})
@@ -50,7 +50,7 @@ async function main(){
   const context=await browser.newContext({viewport:{width:1280,height:900},timezoneId:'America/Phoenix'})
   await context.addCookies([...jar].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:true,sameSite:'Lax' as const})))
   const page=await context.newPage()
-  if(mode==='--prepare'){
+  if(mode==='--prepare'||mode==='--prepare-empty'){
    const b=await admin.from('businesses').select('onboarding_state').eq('id',f.businessId).single()
    if(b.data?.onboarding_state!=='completed'){
     await page.goto(origin+'/onboarding')
@@ -75,6 +75,7 @@ async function main(){
     assert(!(await admin.from('business_customer_setup').update({grandfathered_start_date:'2026-01-01'}).eq('business_id',f.businessId)).error)
     const r=await context.request.post(origin+'/api/onboarding/catch-up',{data:{startMonth:'2026-01',agreed:true,expectedTotalCents:0}});assert.equal(r.status(),200,'SYNTHETIC_SCOPE_FAILED')
    }
+   if(mode==='--prepare-empty'){console.log(JSON.stringify({synthetic:true,empty:true,businessId:f.businessId}));return}
    if(!f.documentId){
     const pdf=await PDFDocument.create(),font=await pdf.embedFont(StandardFonts.Helvetica)
     for(let n=0;n<2;n++){

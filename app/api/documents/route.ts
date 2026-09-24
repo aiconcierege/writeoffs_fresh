@@ -15,7 +15,10 @@ export async function GET(request:Request){
  const scopeRows=await db.from('customer_document_scope').select('id,active_transaction_count,outside_scope_transaction_count').in('id',(r.data??[]).map(d=>d.id))
  if(scopeRows.error)return NextResponse.json({error:'Document scope could not be loaded.'},{status:503})
  const scopeById=new Map((scopeRows.data??[]).map(row=>[row.id,row]))
- const documents=(r.data??[]).map(d=>({...d,...scopeById.get(d.id)}))
+ const dispositions=await db.from('customer_document_dispositions').select('document_id').in('document_id',(r.data??[]).map(d=>d.id))
+ if(dispositions.error)return NextResponse.json({error:'Document status could not be loaded.'},{status:503})
+ const setAside=new Set((dispositions.data??[]).map(d=>d.document_id))
+ const documents=(r.data??[]).map(d=>({...d,...scopeById.get(d.id),...(setAside.has(d.id)?{state:'set_aside'}:{})}))
  const accountUseAccounts=recordId?[]:await loadStatementAccountUse(db,true)
  return NextResponse.json({documents,accountUseAccounts,processingPaused:process.env.DOCUMENT_EXPENSIVE_PROCESSING_ENABLED==='false'})
 }

@@ -1,7 +1,7 @@
 import type { WorkContext, WorkRecord } from './betti-work'
 export type SweepType = 'personal_exception_sweep'|'mixed_use_sweep'|'receipt_upload_sweep'|'receipt_availability'|'evidence_opportunity'
 export type GuidedItem = {recordId:string;decisionId:string;reviewVersion:string;accountUseVersion:string;merchant:string;date:string;amountCents:number;transactionId:string}
-export type GuidedReview = {business_id:string;id:string;action:SweepType;disposition:'completed'|'deferred';created_at:string;deferred_until:string|null;items:(Pick<GuidedItem,'recordId'|'accountUseVersion'>&{date?:string})[];answers?:{response?:'provided'|'none'|'later';accountId?:string;month?:string}}
+export type GuidedReview = {business_id:string;id:string;action:SweepType;disposition:'completed'|'deferred';created_at:string;deferred_until:string|null;items:(Pick<GuidedItem,'recordId'|'accountUseVersion'>&{date?:string})[];answers?:{response?:'provided'|'none'|'later';accountId?:string;month?:string;documentIds?:string[]}}
 export const GUIDED_BATCH_LIMIT=8
 // One coherent exception review, bounded like the existing 100-purchase bulk review.
 export const PERSONAL_SWEEP_LIMIT=100

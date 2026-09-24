@@ -4,6 +4,7 @@ const getUser = vi.fn()
 const assurance = vi.fn()
 const maybeSingle = vi.fn()
 const rpc = vi.fn()
+const decisionHistory = vi.fn()
 const applyFact = vi.fn()
 const getCurrentAskableQuestionQueue = vi.fn()
 const actOnCustomerQuestion = vi.fn()
@@ -15,9 +16,10 @@ vi.mock('../../app/lib/bookkeeping/indexed-question-command',()=>({readIndexedQu
 vi.mock('../../utils/supabase/server', () => ({
   createServerSupabase: vi.fn(async () => ({
     auth: { getUser, mfa:{getAuthenticatorAssuranceLevel:assurance} }, rpc,
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle })) })),
-    })),
+    from: vi.fn((table:string) => {
+      if(table==='bookkeeping_decisions'){const q={eq:()=>q,limit:decisionHistory};return {select:()=>q}}
+      return {select:vi.fn(()=>({eq:vi.fn(()=>({maybeSingle}))}))}
+    }),
   })),
 }))
 vi.mock('../../app/lib/bookkeeping/customer-work', () => ({ loadCurrentCustomerWork:getCurrentAskableQuestionQueue }))
@@ -34,6 +36,7 @@ const eventId = '22222222-2222-4222-8222-222222222222'
 describe('customer question API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    decisionHistory.mockResolvedValue({data:[{id:'customer-decision'}],error:null})
     indexEnabled.mockReturnValue(false)
     indexedQuestion.mockResolvedValue({initialized:true,action:null,commandItem:null})
     assurance.mockResolvedValue({data:{currentLevel:"aal2"}})
@@ -83,6 +86,14 @@ describe('customer question API', () => {
       headers:{'content-type':'application/json','if-match':eventId},body:JSON.stringify({action:'deduction_fact',value:80})}),
       {params:Promise.resolve({id:issueId})})
     expect(response.status).toBe(200);expect(applyFact).toHaveBeenCalledTimes(1)
+  })
+
+  it('acknowledges an ordinary service allocation after durable persistence without synchronous reassessment',async()=>{
+    decisionHistory.mockResolvedValue({data:[],error:null})
+    maybeSingle.mockResolvedValue({data:{id:eventId,attention_id:issueId,event_type:'opened',fact_type:'phone_business_use_percentage',bookkeeping_record_id:'record',business_id:'owned-business'}})
+    const route=await import('../../app/api/bookkeeping/questions/[id]/route')
+    const response=await route.POST(new Request('http://local',{method:'POST',headers:{'if-match':eventId},body:JSON.stringify({action:'deduction_fact',value:60})}),{params:Promise.resolve({id:issueId})})
+    expect(response.status).toBe(200);expect(rpc).toHaveBeenCalledWith('answer_deduction_attention',expect.objectContaining({p_value:60}));expect(applyFact).not.toHaveBeenCalled()
   })
 
   it('rejects unauthenticated queue and answer access', async () => {

@@ -9,8 +9,13 @@ export function parseLoanPaymentStatement(text:string):LoanPaymentFacts|null{
   return Number.isSafeInteger(n)&&n>=0?n:null
  }
  const principal=amount('principal(?: paid)?'),interest=amount('interest(?: paid)?'),payment=amount('(?:total payment|payment amount)')
- const dates=[...text.matchAll(/(?:^|\n)\s*payment date\s*:\s*(\d{4}-\d{2}-\d{2})\s*(?:\n|$)/gi)]
+ const dates=[...text.matchAll(/(?:^|\n)\s*payment date\s*:\s*([^\n]+?)\s*(?:\n|$)/gi)]
  if(dates.length!==1||principal==null||interest==null||payment==null||principal<=0||interest<=0||principal+interest!==payment)return null
- const date=dates[0][1];if(Number.isNaN(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date)return null
+ const rawDate=dates[0][1].trim()
+ const named=/^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})$/.exec(rawDate)
+ const months=['january','february','march','april','may','june','july','august','september','october','november','december']
+ const month=named?months.indexOf(named[1].toLowerCase())+1:0
+ const date=named&&month?`${named[3]}-${String(month).padStart(2,'0')}-${named[2].padStart(2,'0')}`:rawDate
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date)return null
  return {paymentDate:date,paymentCents:payment,principalCents:principal,interestCents:interest}
 }

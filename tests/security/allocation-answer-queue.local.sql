@@ -1,0 +1,22 @@
+begin;
+do $$ declare uid uuid:=gen_random_uuid();bid uuid;rid uuid:=gen_random_uuid();event_id uuid;attention uuid;fact uuid;
+begin
+ insert into auth.users(id,email,raw_user_meta_data) values(uid,'allocation-queue@local.invalid','{"synthetic":true}');
+ select id into bid from public.businesses where owner_user_id=uid;
+ perform set_config('request.jwt.claims','{"role":"service_role"}',true);
+ perform public.create_business_membership_grant(bid,'business',now()-interval '1 day',null,'allocation-queue','Synthetic allocation queue','admin',null);
+ insert into public.business_customer_setup(business_id,joined_month,grandfathered_start_date,timezone_name) values(bid,'2026-09-01','2026-01-01','UTC');
+ update public.businesses set catch_up_start_date='2026-01-01' where id=bid;
+ insert into public.bookkeeping_records(id,business_id,source_kind,ingestion_key,amount_cents,currency,occurred_on) values(rid,bid,'manual','phone',-10000,'USD','2026-05-08');
+ insert into public.bookkeeping_decisions(business_id,bookkeeping_record_id,bookkeeping_nature,treatment,review_status,provenance) values(bid,rid,'expense','unresolved','needs_review','automation');
+ perform public.open_deduction_attention(bid,rid,'phone_business_use_percentage','merchant','synthetic-phone','percentage','How much for business?','A factual allocation','synthetic-phone','v1');
+ select attention_id,id into attention,event_id from public.current_deduction_attentions where business_id=bid and bookkeeping_record_id=rid;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',uid,'role','authenticated','aal','aal2')::text,true);
+ fact:=public.answer_deduction_attention(attention,event_id,'60','allocation-answer');
+ if fact is null or not exists(select 1 from public.current_deduction_business_facts where id=fact and fact_value='60') then raise exception 'Answer missing';end if;
+ if (select count(*) from public.bookkeeping_processing_jobs where business_id=bid and bookkeeping_record_id=rid and target_fingerprint like 'deduction-intelligence:v1:answer:%')<>1 then raise exception 'First answer did not durably queue reassessment';end if;
+ if exists(select 1 from public.current_deduction_attentions where attention_id=attention and event_type='opened') then raise exception 'Answered question remained open';end if;
+ if exists(select 1 from public.bookkeeping_allocations where business_id=bid) then raise exception 'Queue publication fabricated allocation';end if;
+end; $$;
+set constraints all immediate;
+rollback;
