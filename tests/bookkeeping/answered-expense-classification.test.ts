@@ -12,6 +12,13 @@ function snapshot(): BookkeepingEvaluationSnapshot {
       allocations: [{ kind: 'business', amountCents: -7500, taxCategoryKey: null }, { kind: 'personal', amountCents: -2500, taxCategoryKey: null }] } }
 }
 describe('bookkeeping completion within a customer answer', () => {
+  it('rejects an unowned record before any trusted evidence hydration',async()=>{
+    const q={eq:vi.fn(),maybeSingle:vi.fn().mockResolvedValue({data:null,error:null})};q.eq.mockReturnValue(q)
+    const db={auth:{getUser:vi.fn().mockResolvedValue({data:{user:{id:'owner'}}})},from:vi.fn().mockReturnValue({select:vi.fn().mockReturnValue(q)})}
+    const admin={from:vi.fn()}
+    await expect(finishAnsweredExpense({supabase:db as never,admin:admin as never,result:{decision:snapshot().currentDecision}})).rejects.toThrow('BOOKKEEPING_RECORD_UNAVAILABLE')
+    expect(db.from).toHaveBeenCalledWith('bookkeeping_records');expect(q.eq.mock.calls).toEqual([['business_id','business'],['id','record']]);expect(admin.from).not.toHaveBeenCalled()
+  })
   it('fills a supported category while preserving exact customer amounts and purpose', () => {
     const source = snapshot(), original = structuredClone(source)
     const allocations = answeredExpenseAllocations(source)

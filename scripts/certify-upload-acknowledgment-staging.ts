@@ -42,7 +42,25 @@ async function main(){
    await new Promise(r=>setTimeout(r,2000))
   }
   const jobs=await admin.from('receipt_processing_jobs').select('state,job_type,created_at,claimed_at,completed_at').eq('business_id',f.businessId).eq('document_id',documentId);assert(!jobs.error)
-  result.jobs=jobs.data;await writeFile(dir+'/upload-timing.json',JSON.stringify(result,null,2));console.log(JSON.stringify(result))
+  result.jobs=jobs.data
+  const regions=await admin.from('receipt_source_regions').select('receipt_id').eq('business_id',f.businessId).eq('document_id',documentId);assert(!regions.error)
+  const receiptIds=(regions.data??[]).map(r=>r.receipt_id)
+  result.receiptParts=receiptIds.length
+  if(receiptIds.length){
+   const extracted=await admin.from('bookkeeping_receipt_extractions').select('created_at').eq('business_id',f.businessId).in('receipt_id',receiptIds);assert(!extracted.error)
+   const links=await admin.from('bookkeeping_document_links').select('created_at,bookkeeping_record_id').eq('business_id',f.businessId).in('receipt_id',receiptIds).is('revoked_at',null);assert(!links.error)
+   const registeredAt=Math.min(...(jobs.data??[]).map(j=>Date.parse(j.created_at)))
+   result.extractionEventAfterRegistrationMs=(extracted.data??[]).map(e=>Date.parse(e.created_at)-registeredAt)
+   result.matchEventAfterRegistrationMs=(links.data??[]).map(e=>Date.parse(e.created_at)-registeredAt)
+   result.matchedDocuments=links.data?.length??0
+   const records=[...new Set((links.data??[]).map(l=>l.bookkeeping_record_id))]
+   if(records.length)while(Date.now()<deadline){
+    const pending=await admin.from('bookkeeping_processing_jobs').select('id').eq('business_id',f.businessId).in('bookkeeping_record_id',records).in('state',['pending','processing','retryable']);assert(!pending.error)
+    if(!pending.data.length){result.reassessmentReadyObservedMs=Date.now()-started;break}
+    await new Promise(r=>setTimeout(r,2000))
+   }
+  }
+  await writeFile(dir+'/upload-timing.json',JSON.stringify(result,null,2));console.log(JSON.stringify(result))
  }finally{await browser.close()}
 }
 main().catch(e=>{console.error(e instanceof Error?e.message:'FAILED');process.exitCode=1})

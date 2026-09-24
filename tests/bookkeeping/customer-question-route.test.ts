@@ -11,6 +11,10 @@ const getCurrentAskableQuestionQueue = vi.fn()
 const actOnCustomerQuestion = vi.fn()
 const indexEnabled = vi.fn(() => false)
 const indexedQuestion = vi.fn()
+const queuedReassessment=vi.fn(),finishExpense=vi.fn(),scheduleAfter=vi.fn()
+vi.mock('../../app/lib/bookkeeping/queued-answer-reassessment',()=>({hasQueuedAnswerReassessment:queuedReassessment}))
+vi.mock('../../app/lib/bookkeeping/answered-expense-classification',()=>({finishAnsweredExpense:finishExpense}))
+vi.mock('next/server',async original=>({...await original<typeof import('next/server')>(),after:scheduleAfter}))
 vi.mock('../../app/lib/bookkeeping/action-index-worker',()=>({actionIndexEnabled:indexEnabled,refreshBettiActionIndex:vi.fn()}))
 vi.mock('../../app/lib/bookkeeping/indexed-question-command',()=>({readIndexedQuestion:indexedQuestion,indexedQuestionClient:vi.fn()}))
 
@@ -37,6 +41,7 @@ const eventId = '22222222-2222-4222-8222-222222222222'
 describe('customer question API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    queuedReassessment.mockResolvedValue(false);finishExpense.mockResolvedValue(undefined)
     decisionHistory.mockResolvedValue({data:[{id:'customer-decision'}],error:null})
     indexEnabled.mockReturnValue(false)
     indexedQuestion.mockResolvedValue({initialized:true,action:null,commandItem:null})
@@ -52,6 +57,21 @@ describe('customer question API', () => {
     actOnCustomerQuestion.mockResolvedValue({})
   })
 
+
+  it.each([true,false])('uses the exact durable-job proof on a dirty-index fallback (%s)',async queued=>{
+    indexEnabled.mockReturnValue(true);queuedReassessment.mockResolvedValue(queued)
+    getCurrentAskableQuestionQueue.mockImplementationOnce(async({onSnapshot})=>{onSnapshot({businessId:'owned-business'});return {questions:[{id:issueId,version:eventId}]}})
+    const result={decision:{id:'saved',businessId:'owned-business',bookkeepingRecordId:'record',bookkeepingNature:'expense'}}
+    actOnCustomerQuestion.mockResolvedValue(result)
+    if(queued)finishExpense.mockImplementation(()=>new Promise(()=>{}))
+    const route=await import('../../app/api/bookkeeping/questions/[id]/route')
+    const response=await route.POST(new Request('https://local/answer',{method:'POST',headers:{'if-match':eventId},body:JSON.stringify({action:'business_purpose',businessPurpose:'Business insurance'})}),{params:Promise.resolve({id:issueId})})
+    expect(response.status).toBe(200)
+    expect(queuedReassessment).toHaveBeenCalledWith(expect.objectContaining({businessId:'owned-business',result}))
+    expect(finishExpense).toHaveBeenCalledTimes(queued?0:1)
+    expect(scheduleAfter).toHaveBeenCalledTimes(queued?1:0)
+    if(queued){finishExpense.mockResolvedValue(undefined);await scheduleAfter.mock.calls[0][0]();expect(finishExpense).toHaveBeenCalledWith(expect.objectContaining({result}))}
+  })
 
   it('rejects AAL1 before any eligibility read or write',async()=>{
     assurance.mockResolvedValue({data:{currentLevel:'aal1'}})

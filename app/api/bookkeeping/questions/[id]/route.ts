@@ -1,3 +1,4 @@
+import {hasQueuedAnswerReassessment} from '../../../../lib/bookkeeping/queued-answer-reassessment'
 import {ACTION_INDEX_VERSION} from '../../../../lib/bookkeeping/action-index-model'
 import {completedVehicleTaxYear} from '../../../../lib/mileage/annual-use-question'
 import {requestUser} from '../../../../lib/performance/request-identity'
@@ -282,7 +283,17 @@ async function handlePOST(
       return NextResponse.json({ ok: true })
     }
     const result = await timed('answer_validation_and_commit',()=>actOnCustomerQuestion({ supabase, issueId: id, expectedEventId, command, validatedSnapshot }))
-    await timed('affected_expense_reassessment',()=>finishAnsweredExpense({ supabase, result }))
+    // A dirty index may use this canonical fallback even for a routine answer.
+    // Preserve the indexed path's durable dependency rule instead of blocking
+    // only fallback customers on a complete evidence/enrichment waterfall.
+    const queued=actionIndexEnabled()&&validatedSnapshot?.businessId
+      &&await timed('answer_reassessment_dependency',()=>hasQueuedAnswerReassessment({
+        admin:createServerAdminSupabase(),businessId:validatedSnapshot!.businessId,result}))
+    if(queued)after(async()=>{
+      try{await finishAnsweredExpense({supabase,result});await refreshBettiActionIndex({businessId:validatedSnapshot!.businessId,limit:2})}
+      catch{console.error('BETTI_ANSWER_ENRICHMENT_REMAINS_QUEUED')}
+    })
+    else await timed('affected_expense_reassessment',()=>finishAnsweredExpense({ supabase, result }))
     return NextResponse.json({ ok: true })
   } catch (cause) {
     const message = cause instanceof Error ? cause.message

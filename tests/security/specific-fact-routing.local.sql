@@ -6,10 +6,12 @@ do $$ begin
 end $$;
 do $test$
 declare uid uuid:=gen_random_uuid(); bid uuid; second_uid uuid:=gen_random_uuid(); second_bid uuid;
- items jsonb; before_state jsonb; claimed uuid; n integer; result_text text;
+ items jsonb; before_state jsonb; claimed uuid; n integer; result_text text; current_version text; command_version text;
 begin
- if pg_get_functiondef('public.read_betti_action_index(uuid,uuid,text,boolean)'::regprocedure) not like '%betti-action-index:v3-specific-facts%'
- or pg_get_functiondef('public.execute_betti_indexed_question(uuid,uuid,uuid,text,jsonb,uuid,boolean)'::regprocedure) not like '%betti-action-index:v3-specific-facts%'
+ -- Keep this behavioral regression valid after intentional engine-version bumps.
+ current_version:=substring(pg_get_functiondef('public.read_betti_action_index(uuid,uuid,text,boolean)'::regprocedure) from 'betti-action-index:v[0-9]+-[a-z-]+');
+ command_version:=substring(pg_get_functiondef('public.execute_betti_indexed_question(uuid,uuid,uuid,text,jsonb,uuid,boolean)'::regprocedure) from 'betti-action-index:v[0-9]+-[a-z-]+');
+ if current_version is null or current_version is distinct from command_version
  then raise exception 'Reader and command routing versions disagree';end if;
  insert into auth.users(id,email,raw_user_meta_data) values(uid,'routing-a@local.invalid','{"synthetic_routing":true}'),(second_uid,'routing-b@local.invalid','{"synthetic_routing":true}');
  select id into bid from public.businesses where owner_user_id=uid;
@@ -67,7 +69,7 @@ begin
  -- Exercise the real indexed reader: a huge optional batch's numeric score
  -- cannot override a specific question's canonical routing tier.
  update public.betti_action_index_state set published_revision=100000,revision=100000,global_revision=100000,
-  engine_version='betti-action-index:v3-specific-facts',processing_enabled=true,
+  engine_version=current_version,processing_enabled=true,
   valid_until=now()+interval '1 day',summary_valid_until=now()+interval '1 day',built_at=now(),
   projection='{"businessId":"local","progress":{"catchUp":{},"current":{}},"betti":{},"scope":{},"readiness":{}}'
  where business_id=bid;

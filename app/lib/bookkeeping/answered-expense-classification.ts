@@ -55,7 +55,12 @@ export async function finishAnsweredExpense(input: { supabase: SupabaseClient; a
   const businessId = String(decision.businessId), recordId = String(decision.bookkeepingRecordId)
   // Confirm ownership with the authenticated repository before a trusted read.
   const repository = new SupabaseBookkeepingRepository(input.supabase)
-  if (!(await repository.findRecord(businessId, recordId))) throw new Error('BOOKKEEPING_RECORD_UNAVAILABLE')
+  // Ownership needs one RLS-protected identity read, not the repository's full
+  // financial-source/convergence graph. The trusted snapshot below still checks
+  // canonical activity and loads that graph exactly where it is needed.
+  const owned=await input.supabase.from('bookkeeping_records').select('id')
+    .eq('business_id',businessId).eq('id',recordId).maybeSingle()
+  if(owned.error||!owned.data)throw new Error('BOOKKEEPING_RECORD_UNAVAILABLE')
   const admin = input.admin ?? createServerAdminSupabase()
   let snapshot = await loadBookkeepingEvaluationSnapshot({ admin, businessId, recordId })
   if (snapshot.currentDecision.id !== decision.id) return

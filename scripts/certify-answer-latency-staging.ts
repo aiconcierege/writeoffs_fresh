@@ -22,7 +22,7 @@ async function main(){
 
  const browser=await chromium.launch({headless:true}),samples:Record<string,unknown>[]=[]
  try{
- const viewportWidth=/sample-0[246]$/.test(dir)?1280:390
+ const viewportWidth=Number(dir.match(/sample-(\d+)$/)?.[1])%2===0?1280:390
  const context=await browser.newContext({viewport:{width:viewportWidth,height:900},reducedMotion:'reduce'})
  await context.addCookies([...jar].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:true,sameSite:'Lax' as const})))
  const page=await context.newPage();page.setDefaultTimeout(20000)
@@ -75,7 +75,7 @@ async function main(){
   samples.push({turn,kind,viewportWidth,status:r.status(),responseMs,requestMs,ackMs,timing:r.headers()['server-timing'],nextType:payload.work?.nextAction?.type});await writeFile(`${dir}/latency-samples.json`,JSON.stringify(samples,null,2))
   assert(r.ok(),'ANSWER_FAILED_'+kind+'_'+r.status());assert(payload.ok)
   assert(payload.work&&(!payload.work.index||payload.work.index.summaryCurrent===true),'CONTINUATION_REQUIRED')
-  if(label){const next=payload.work.nextAction;if(next)await page.waitForFunction(id=>document.querySelector('[data-guided-id]')?.getAttribute('data-guided-id')===id,next.id,{timeout:20000}).catch(async()=>{await page.getByText(next.question?.transaction.merchant??next.transaction?.merchant,{exact:true}).first().waitFor()});renderMs=Date.now()-started;const observed=await page.evaluate(()=>(window as unknown as {latency:{ids:string[];ack?:number}}).latency);assert.deepEqual(observed.ids,next?[next.id]:[],'INTERMEDIATE_ACTION_FLASH');Object.assign(samples.at(-1)!,{renderMs,visibleAcknowledgmentMs:observed.ack,noIntermediateAction:true});await writeFile(`${dir}/latency-samples.json`,JSON.stringify(samples,null,2))}
+  if(label){const next=payload.work.nextAction;if(next)await page.waitForFunction(id=>document.querySelector('[data-guided-id]')?.getAttribute('data-guided-id')===id,next.id,{timeout:20000}).catch(async()=>{await page.getByText(next.question?.transaction.merchant??next.transaction?.merchant,{exact:true}).first().waitFor()});else {await page.locator('.betti-complete,.betti-working').waitFor({state:'attached'});await page.locator('.betti-transition-feedback').waitFor({state:'hidden'})}renderMs=Date.now()-started;const observed=await page.evaluate(()=>(window as unknown as {latency:{ids:string[];ack?:number}}).latency);assert.deepEqual(observed.ids,next?[next.id]:[],'INTERMEDIATE_ACTION_FLASH');Object.assign(samples.at(-1)!,{renderMs,visibleAcknowledgmentMs:observed.ack,noIntermediateAction:true,noActionPresentationVerified:!next});await writeFile(`${dir}/latency-samples.json`,JSON.stringify(samples,null,2))}
   console.log(JSON.stringify({kind,responseMs,renderMs}))
   // Verify the post-command continuation against a fresh canonical read before
   // another fact is supplied; no optimistic local queue advancement.
