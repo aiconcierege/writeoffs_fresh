@@ -12,9 +12,10 @@ describe('Home uses the shared work projection', () => {
   it.each(['processing', 'waiting', 'held', 'deferred', 'organized'] as const)('%s never invents a customer CTA', state => {
     expect(homeCommand(homeWorkFixture(state), null).action).toBeNull()
   })
-  it('only actual leased processing gets active processing language', () => {
+  it('explains changing totals while processing or waiting for queued work', () => {
     expect(homeCommand(homeWorkFixture('processing'), null).heading).toBe('I’m updating your books.')
-    expect(homeCommand(homeWorkFixture('waiting'), null).heading).toBe('I have what I need for the next step.')
+    expect(homeCommand(homeWorkFixture('waiting'), null).heading).toBe('I’m updating your books.')
+    expect(homeCommand(homeWorkFixture('waiting'), null).supporting).toContain('Your totals may change')
     expect(homeCommand(homeWorkFixture('held'), null).heading).toBe('I still have some records to review.')
   })
   it('shows concurrent streams without adding system work to the customer count', () => {

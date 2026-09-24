@@ -7,8 +7,9 @@ export function WorkRefresh({active}:{active:boolean}) {
  useEffect(()=>{
   const refresh=()=>{if(document.visibilityState==='visible')router.refresh()}
   window.addEventListener('focus',refresh)
+  document.addEventListener('visibilitychange',refresh)
   const timer=active?setInterval(refresh,15000):null
-  return ()=>{window.removeEventListener('focus',refresh);if(timer)clearInterval(timer)}
+  return ()=>{window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);if(timer)clearInterval(timer)}
  },[active,router])
  return null
 }

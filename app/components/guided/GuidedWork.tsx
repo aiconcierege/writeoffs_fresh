@@ -1,4 +1,5 @@
 'use client'
+import {EvidenceStep} from './EvidenceStep'
 import {LiveSourceCoverageNotice} from '../SourceCoverageNotice'
 import Link from 'next/link'
 import {useCallback,useEffect,useRef,useState} from 'react'
@@ -138,26 +139,6 @@ export function GuidedWork({initialWork,returnTo='/home',recordId,ordinary=false
 function AccountStep({action,busy,perform}:{action:WorkAction;busy:boolean;perform:(fn:()=>Promise<GuidedWorkProjection|void>,deferred?:boolean)=>Promise<void>}){
  const request=useRef<AccountUseRequest|null>(null),account=action.account!
  return <><MerchantIdentity merchant={account.name} detail={account.mask?`Account ending ${account.mask}`:undefined}/><h1>How did you use this account?</h1><p className="betti-explanation">I’ll use this setting for the account. You can still change any purchase.</p><div className="betti-choices">{([['business_only','Business only','I use this account for my business.'],['business_and_personal','Business + personal','There’s personal activity in this account too.']] as const).map(([designation,label,description])=><SelectionCard key={designation} disabled={busy} onClick={()=>void perform(async()=>{if(request.current?.designation!==designation)request.current={designation,effectiveAt:new Date().toISOString(),requestId:crypto.randomUUID()};let next:GuidedWorkProjection|undefined;await persistAccountUse(account.id,request.current,value=>{next=value});return next})}><span>{label}<small>{description}</small></span></SelectionCard>)}</div></>
-}
-function EvidenceStep({action,busy,perform,onPending}:{action:WorkAction;busy:boolean;perform:(fn:()=>Promise<GuidedWorkProjection|void>,deferred?:boolean)=>Promise<void>;onPending:(pending:boolean,message?:string)=>void}){
- const request=useRef<{signature:string;id:string}|null>(null)
- const [uploading,setUploading]=useState(false)
- const [received,setReceived]=useState<string[]>([])
- const month=new Intl.DateTimeFormat('en-US',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(`${action.items![0].date.slice(0,7)}-01T12:00:00Z`))
- function save(response:'provided'|'none'|'later',documentIds:string[]=[]){return perform(async()=>{
-  const payload={actionId:action.id,version:action.version,items:action.items,response,documentIds},signature=JSON.stringify(payload)
-  if(request.current?.signature!==signature)request.current={signature,id:crypto.randomUUID()}
-  const result=await fetch('/api/bookkeeping/work/evidence',{method:'POST',headers:{'content-type':'application/json','x-betti-guided':'1'},body:JSON.stringify({...payload,requestId:request.current.id}),signal:AbortSignal.timeout(15000)})
-  const body=await result.json();if(!result.ok)throw new Error(body.error??'Please try again.');return body.work as GuidedWorkProjection|undefined
- },response==='later')}
- return <><h1>Have receipts? Send them first.</h1><p className="betti-explanation">{action.workstream==='catch_up'?`I’m working on ${month}. Receipts and bills may answer some of my questions for you.`:'Send any receipts or bills you have. They may answer some of my questions for you.'}</p>
- <p className="betti-workstream">{month} · {action.account?.name}{action.account?.mask?` · ${action.account.mask}`:''}</p>
- <DocumentIntake guided compact buttonLabel="Send receipts" onUploadState={(pending,result)=>{
-  setUploading(pending);onPending(pending,'Receiving your documents…')
-  if(!pending&&result?.documentIds.length){const ids=[...new Set([...received,...result.documentIds])];setReceived(ids);if(!result.failed)void save('provided',ids.slice(0,10))}
- }}/>
- {received.length>0?<button className="btn btn-primary" disabled={busy||uploading} onClick={()=>void save('provided',received.slice(0,10))}>Continue with these documents →</button>:<div className="betti-continue"><button className="btn btn-secondary" disabled={busy||uploading} onClick={()=>void save('none')}>I don’t have any</button><button className="betti-defer" disabled={busy||uploading} onClick={()=>void save('later')}>I’ll do this later</button></div>}
- <p className="betti-explanation">You can send documents later, too. I’ll keep working with what I have.</p></>
 }
 function SweepStep({action,busy,perform,refresh,onPending}:{onPending:(pending:boolean)=>void;action:WorkAction;busy:boolean;perform:(fn:()=>Promise<GuidedWorkProjection|void>,deferred?:boolean)=>Promise<void>;refresh:()=>Promise<GuidedWorkProjection>}){
  const[answers,setAnswers]=useState<Record<string,{use:string;businessDollars?:string}>>({}),[uploading,setUploading]=useState(false),[showUpload,setShowUpload]=useState(false),[uploadReadError,setUploadReadError]=useState(false),request=useRef<{signature:string;id:string}|null>(null)

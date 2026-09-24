@@ -9,7 +9,7 @@ import {supabase} from '../../utils/supabase/client'
 import {fileKind} from '../lib/documents/file-validation'
 import {runBoundedBatch} from '../lib/documents/batch-intake'
 import {status,type Document} from '../lib/documents/customer-status'
-export function DocumentIntake({compact=false,recordId,guided=false,onUploadState,buttonLabel='Choose files'}:{buttonLabel?:string;compact?:boolean;recordId?:string;guided?:boolean;onUploadState?:(busy:boolean,result?:{received:number;documentIds:string[];failed:number})=>void}){
+export function DocumentIntake({compact=false,recordId,guided=false,onUploadState,buttonLabel='Choose files',primary=false,disabled=false}:{primary?:boolean;disabled?:boolean;buttonLabel?:string;compact?:boolean;recordId?:string;guided?:boolean;onUploadState?:(busy:boolean,result?:{received:number;documentIds:string[];failed:number})=>void}){
  const [accounts,setAccounts]=useState<StatementUseAccount[]>([])
  const [uploads,setUploads]=useState<Array<{key:string;name:string;state:'uploading'|'received'|'failed';documentId?:string}>>([])
  const router=useRouter()
@@ -50,7 +50,7 @@ export function DocumentIntake({compact=false,recordId,guided=false,onUploadStat
  const visibleDocuments=(guided?documents.filter(d=>uploads.some(u=>u.documentId===d.id)):compact?documents.slice(0,3):documents)
  return <div className={`document-intake min-w-0 ${compact?'document-intake-compact':''}`}>
   {!guided&&<p className="text-sm leading-6 text-slate-600">Send me receipts and statements. I’ll figure out where they belong.</p>}
-  <button type="button" className="btn btn-secondary mt-3 min-h-11" disabled={busy} onClick={()=>input.current?.click()}>{busy?'Sending…':buttonLabel}</button>
+  <button type="button" className={`btn ${primary?'btn-primary':'btn-secondary'} mt-3 min-h-11`} disabled={busy||disabled} onClick={()=>input.current?.click()}>{busy?'Sending…':buttonLabel}</button>
   <input ref={input} type="file" multiple className="sr-only" aria-label="Send Betti documents" accept="image/jpeg,image/png,image/webp,application/pdf,text/csv,.csv" onChange={e=>void upload(Array.from(e.target.files??[]))}/>
   {message&&<p role="status" className="mt-3 break-words text-sm leading-6">{message}</p>}
   {paused&&<p role="status" className="mt-3 text-sm">Your documents are safe. Organizing is paused; please check back later.</p>}

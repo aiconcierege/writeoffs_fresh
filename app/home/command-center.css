@@ -182,3 +182,11 @@
  .home-command-center .home-betti-thought { grid-row:4; }
  .home-command-center .home-betti-action { grid-row:5; }
 }
+
+/* Evidence handoff reuses Check-in commands without introducing a second flow. */
+.home-evidence-opportunity { margin-top: 1.5rem; display: grid; gap: 1rem; }
+.home-evidence-opportunity .betti-continue { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
+.home-evidence-opportunity .betti-defer { min-height: 44px; text-decoration: underline; text-underline-offset: 3px; }
+.home-evidence-opportunity .betti-workstream { font-size: .875rem; font-weight: 600; }
+.home-evidence-statements { font-size: .875rem; }
+.home-evidence-opportunity [role="status"] { position: sticky; bottom: 1rem; padding: .75rem; background: white; border: 1px solid #d8e4df; border-radius: .75rem; }

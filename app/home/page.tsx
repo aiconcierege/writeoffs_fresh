@@ -18,6 +18,7 @@ import{onboardingNeedsFollowUp,type OnboardingBusinessData}from'../lib/onboardin
 import{FinancialRelationship}from'./HomeVisuals'
 import{HomeQuickActions}from'./HomeQuickActions'
 import{HomeBettiHero}from'./HomeBettiHero'
+import{HomeEvidenceOpportunity}from'./HomeEvidenceOpportunity'
 import{HomeRecentActivity}from'./HomeRecentActivity'
 
 export const dynamic='force-dynamic';export const runtime='nodejs'
@@ -42,10 +43,10 @@ async function HomePage(){
  let betti=work?homeCommand(work,businessResult.data?.onboarding_start_method??null):unavailableHomeCommand
  if(coverage?.needsRecords&&betti.state==='caught-up')betti={...betti,state:'waiting',heading:'Your available records are organized.',supporting:'Send me statements for the missing months and I’ll work on those too.'}
  const dateLabel=(day:string)=>new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}).format(new Date(`${day}T00:00:00Z`))
- return <div className="home-page home-command-center wo-experience" data-customer-action-count={work?.customer.actionableCount}><WorkRefresh active={!work||Boolean(work.betti.jobs.length)||Boolean(connections.data?.some(bankConnectionAttention))}/><div className="home-shell">
-  <HomeBettiHero projection={betti}/><div className="home-status-strip">
+ return <div className="home-page home-command-center wo-experience" data-customer-action-count={work?.customer.actionableCount}><WorkRefresh active={!work||Boolean(work.betti.jobs.length||work.betti.queued||work.betti.retryScheduled||work.betti.genuinelyProcessing)||Boolean(connections.data?.some(bankConnectionAttention))}/><div className="home-shell">
+  <HomeBettiHero projection={betti} actions={work?.nextAction?.type==='evidence_opportunity'?<HomeEvidenceOpportunity key={work.nextAction.id+work.nextAction.version} action={work.nextAction} coverage={coverage}/>:undefined}/><div className="home-status-strip">
   <BankConnectionNotice connections={connections.data}/>
-  <SourceCoverageNotice coverage={coverage}/>
+  {work?.nextAction?.type!=='evidence_opportunity'&&<SourceCoverageNotice coverage={coverage}/>}
   {work?.scope.catchUp&&<div className="home-working-note" aria-label="Bookkeeping periods"><p><strong>Current books</strong> · Recent activity comes first. Earlier unfinished months stay included.</p><p><strong>Your earlier books</strong> · {dateLabel(work.scope.catchUp.from)} – {dateLabel(work.scope.catchUp.through)}. {work.readiness.catchUp==='available_activity_organized'?'The available activity is organized; missing records and details may remain.':'I’m working through the records available for these months.'}</p></div>}
   {betti.education&&<p className="home-first-use">{betti.education}</p>}</div><div className="home-overview-layout">
 
