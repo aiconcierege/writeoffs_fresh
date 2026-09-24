@@ -1,0 +1,21 @@
+{
+  "applicationSha": "e71af5b00d400d75c04edba692ba2ec72745889f",
+  "source": "Synthetic hosted document upload and normal Try again; read-only database verification",
+  "facts": [
+    {
+      "answers": 0,
+      "special_answers": 0,
+      "loan_facts": [
+        {
+          "date": "2026-05-15",
+          "interest": 5000,
+          "principal": 40000
+        }
+      ]
+    }
+  ],
+  "incomeCents": 210052,
+  "expensesCents": 147573,
+  "profitCents": 62479,
+  "expenseIncreaseCents": 5000
+}

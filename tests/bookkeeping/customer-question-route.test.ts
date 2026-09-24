@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ACTION_INDEX_VERSION } from '../../app/lib/bookkeeping/action-index-model'
 
 const getUser = vi.fn()
 const assurance = vi.fn()
@@ -98,7 +99,7 @@ describe('customer question API', () => {
 
   it.each([true,false])('uses only a current-version, authoritative indexed allocation question (%s)',async current=>{
     indexEnabled.mockReturnValue(true);decisionHistory.mockResolvedValue({data:[],error:null})
-    indexedQuestion.mockResolvedValue({initialized:true,engineVersion:current?'betti-action-index:v5-evidence-batches':'old',commandItem:null,
+    indexedQuestion.mockResolvedValue({initialized:true,engineVersion:current?ACTION_INDEX_VERSION:'old',commandItem:null,
       action:{status:'actionable',question:{id:issueId,version:eventId,source:'deduction',kind:'percentage',deductionFact:{type:'phone_business_use_percentage'}}}})
     maybeSingle.mockResolvedValue({data:{id:eventId,attention_id:issueId,event_type:'opened',fact_type:'phone_business_use_percentage',bookkeeping_record_id:'record',business_id:'owned-business'}})
     const route=await import('../../app/api/bookkeeping/questions/[id]/route')

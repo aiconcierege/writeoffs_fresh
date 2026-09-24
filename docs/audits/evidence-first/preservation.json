@@ -1,0 +1,11 @@
+{
+  "business": "Rick frozen clean-room (identifier omitted)",
+  "tablesCompared": 102,
+  "changedTables": [],
+  "newNonemptyTables": [],
+  "transactions": 24,
+  "existingAnsweredEvents": 11,
+  "workerExclusion": "Kept; runtime configuration untouched",
+  "projectionRebuild": false,
+  "customerMutations": false
+}

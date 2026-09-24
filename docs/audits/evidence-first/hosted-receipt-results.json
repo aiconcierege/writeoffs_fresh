@@ -1,0 +1,80 @@
+{
+  "synthetic": true,
+  "at": "2026-09-23T23:37:54.297Z",
+  "questions": [
+    {
+      "merchant": "ZELLE FROM JANE MORRIS - INV 1041",
+      "kind": "transaction_type",
+      "prompt": "Is that right?"
+    },
+    {
+      "merchant": "ZELLE FROM ROBERT HALL",
+      "kind": "transaction_type",
+      "prompt": "What was this money from?"
+    },
+    {
+      "merchant": "ACH DEPOSIT - BLUE MESA CONSULTING",
+      "kind": "transaction_type",
+      "prompt": "What was this money from?"
+    },
+    {
+      "merchant": "ZELLE FROM EMILY CARTER",
+      "kind": "transaction_type",
+      "prompt": "What was this money from?"
+    },
+    {
+      "merchant": "STRIPE PAYOUT",
+      "kind": "transaction_type",
+      "prompt": "Is that right?"
+    },
+    {
+      "merchant": "CASH DEPOSIT",
+      "kind": "transaction_type",
+      "prompt": "What was this money from?"
+    },
+    {
+      "merchant": "ATM WITHDRAWAL",
+      "kind": "transaction_type",
+      "prompt": "What kind of activity was this?"
+    },
+    {
+      "merchant": "ZELLE TO MARK REYNOLDS",
+      "kind": "transaction_type",
+      "prompt": "What kind of activity was this?"
+    },
+    {
+      "merchant": "verizon",
+      "kind": "percentage",
+      "prompt": "About how much do you use this phone service for your business?"
+    }
+  ],
+  "financialTransactions": 24,
+  "receiptOnlyRecords": 0,
+  "transactionAnswers": 0,
+  "logicalReceipts": 3,
+  "splitReceiptParts": 2,
+  "amounts": [
+    {
+      "merchant": "VERIZON WIRELESS",
+      "total": 14628,
+      "tax": null
+    },
+    {
+      "merchant": "STATE FARM INSURANCE",
+      "total": 11875,
+      "tax": null
+    },
+    {
+      "merchant": "DESERT PRINT SHOP",
+      "total": 21840,
+      "tax": 1840
+    }
+  ],
+  "income": 210052,
+  "expenses": 142573,
+  "profit": 67479,
+  "evidenceOpportunityRemaining": false,
+  "processing": 0,
+  "verifiedReceiptPreviews": 3,
+  "passed": true
+}

@@ -17,6 +17,19 @@ describe('evidence before questions without another bookkeeping engine',()=>{
   expect(project(c,[q]).customer.actionable.some(a=>a.question?.id==='purpose')).toBe(true)
   expect(JSON.stringify(c)).toBe(before)
  })
+ it('finishes initial monthly assessment before pinning a question ahead of receipts',()=>{
+  const{c,q}=fixture()
+  c.records.push({...c.records[0],record_id:'may-money',bookkeeping_nature:'business_income',amount_cents:30000},
+   {...c.records[0],record_id:'recent-money',activity_date:'2026-09-22',bookkeeping_nature:'business_income',amount_cents:30000})
+  c.jobs=[{business_id:'b',id:'initial-purchase',record_id:'printing',document_id:null,receipt_id:null,state:'pending',kind:'bookkeeping',available_at:now,lease_expires_at:null,updated_at:now}]
+  const may={...q,id:'may-fact',recordId:'may-money'},recent={...q,id:'recent-fact',recordId:'recent-money'}
+  expect(project(c,[may,recent]).customer.actionable.map(a=>a.question?.id)).toEqual(['recent-fact'])
+  c.jobs=[]
+  expect(project(c,[may]).nextAction?.type).toBe('evidence_opportunity')
+  c.jobs=[{business_id:'b',id:'later-purchase',record_id:'printing',document_id:null,receipt_id:null,state:'pending',kind:'bookkeeping',available_at:now,lease_expires_at:null,updated_at:now}]
+  c.guidedReviews=[{business_id:'b',id:'later',action:'evidence_opportunity',disposition:'deferred',created_at:now,deferred_until:null,items:[],answers:{response:'later',accountId:'account',month:'2026-05'}}]
+  expect(project(c,[may]).nextAction?.question?.id).toBe('may-fact')
+ })
  it.each(['none','later','provided'] as const)('%s proceeds to specific facts without another receipt stage',response=>{
   const{c,q}=fixture()
   c.guidedReviews=[{business_id:'b',id:'response',action:'evidence_opportunity',disposition:response==='later'?'deferred':'completed',created_at:now,deferred_until:null,items:[],answers:{response,accountId:'account',month:'2026-05'}}]

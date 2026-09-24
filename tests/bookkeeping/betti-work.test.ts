@@ -301,8 +301,8 @@ describe('guided work from the same canonical projection',()=>{
   const first=p.nextAction!;c.records.push({...c.records[0],record_id:'later'})
   expect(first.items).toHaveLength(first.recordIds.length);expect(first.recordIds).not.toContain('later')
  })
- it('a processing record waits without blocking another ready purchase in the same account',()=>{
-  const c=guided();c.records.push({...c.records[0],record_id:'ready'});c.jobs=[job()]
+ it('a processing record waits without blocking another month in the same account',()=>{
+  const c=guided();c.records.push({...c.records[0],record_id:'ready',activity_date:'2026-09-16'});c.jobs=[job()]
   const p=project(c);expect(p.nextAction?.recordIds).toEqual(['ready']);expect(p.betti.waiting[0].recordIds).toEqual(['old'])
  })
  it('does not repeat an acknowledged opportunity while unmatched documents process',()=>{

@@ -1,0 +1,105 @@
+{
+  "applicationSha": "e71af5b00d400d75c04edba692ba2ec72745889f",
+  "method": "Actual hosted browser click to committed authoritative next action; synthetic control; nearest-rank percentiles; small representative sample, not a load test",
+  "samples": [
+    {
+      "heading": "Is it for this purchase?",
+      "answer": "defer",
+      "responseMs": 1252,
+      "elapsedMs": 1264,
+      "serverTiming": "total;dur=754.0, db_auth;dur=45.1, db_current_customer_membership;dur=35.0, db_rpc_record_special_transaction;dur=168.0, canonical_command;dur=256.9, db_rpc_read_betti_action_index;dur=41.5, canonical_action_index;dur=43.4, db_rpc_read_betti_work_inputs;dur=395.4, canonical_input_snapshot;dur=402.8, question_selection;dur=23.2, projection_construction;dur=21.9",
+      "width": 1280
+    },
+    {
+      "heading": "Is that right?",
+      "answer": "hypothesis confirmation",
+      "responseMs": 988,
+      "elapsedMs": 1005,
+      "serverTiming": "total;dur=776.5, db_auth;dur=31.7, db_current_customer_membership;dur=41.8, db_rpc_read_betti_indexed_question;dur=37.4, indexed_action_lookup;dur=38.8, db_rpc_execute_betti_indexed_question;dur=124.8, indexed_canonical_commit;dur=129.4, canonical_command;dur=252.3, db_rpc_read_betti_action_index;dur=47.8, canonical_action_index;dur=49.3, db_rpc_read_betti_work_inputs;dur=467.1, canonical_input_snapshot;dur=469.7, question_selection;dur=1.5, projection_construction;dur=1.5",
+      "width": 390
+    },
+    {
+      "heading": "What was this money from?",
+      "answer": "customer payment",
+      "responseMs": 1001,
+      "elapsedMs": 1007,
+      "serverTiming": "total;dur=824.7, db_auth;dur=62.0, db_current_customer_membership;dur=78.2, db_rpc_read_betti_indexed_question;dur=46.1, indexed_action_lookup;dur=47.3, db_rpc_execute_betti_indexed_question;dur=112.0, indexed_canonical_commit;dur=113.1, canonical_command;dur=306.5, db_rpc_read_betti_action_index;dur=46.0, canonical_action_index;dur=47.2, db_rpc_read_betti_work_inputs;dur=462.3, canonical_input_snapshot;dur=465.5, question_selection;dur=1.2, projection_construction;dur=1.0",
+      "width": 1280
+    },
+    {
+      "heading": "What was this money from?",
+      "answer": "customer payment",
+      "responseMs": 981,
+      "elapsedMs": 987,
+      "serverTiming": "total;dur=706.2, db_auth;dur=39.5, db_current_customer_membership;dur=35.7, db_rpc_read_betti_indexed_question;dur=40.6, indexed_action_lookup;dur=41.7, db_rpc_execute_betti_indexed_question;dur=126.7, indexed_canonical_commit;dur=127.9, canonical_command;dur=250.0, db_rpc_read_betti_action_index;dur=39.2, canonical_action_index;dur=40.3, db_rpc_read_betti_work_inputs;dur=409.5, canonical_input_snapshot;dur=412.2, question_selection;dur=0.7, projection_construction;dur=1.0",
+      "width": 390
+    },
+    {
+      "heading": "What was this money from?",
+      "answer": "customer payment",
+      "responseMs": 957,
+      "elapsedMs": 970,
+      "serverTiming": "total;dur=732.8, db_auth;dur=38.4, db_current_customer_membership;dur=44.9, db_rpc_read_betti_indexed_question;dur=40.3, indexed_action_lookup;dur=41.5, db_rpc_execute_betti_indexed_question;dur=152.9, indexed_canonical_commit;dur=154.1, canonical_command;dur=283.8, db_rpc_read_betti_action_index;dur=42.9, canonical_action_index;dur=44.0, db_rpc_read_betti_work_inputs;dur=399.4, canonical_input_snapshot;dur=401.1, question_selection;dur=1.1, projection_construction;dur=0.8",
+      "width": 1280
+    },
+    {
+      "heading": "Is that right?",
+      "answer": "hypothesis confirmation",
+      "responseMs": 1004,
+      "elapsedMs": 1021,
+      "serverTiming": "total;dur=824.5, db_auth;dur=74.5, db_current_customer_membership;dur=43.3, db_rpc_read_betti_indexed_question;dur=38.6, indexed_action_lookup;dur=40.0, db_rpc_execute_betti_indexed_question;dur=117.7, indexed_canonical_commit;dur=121.1, canonical_command;dur=284.4, db_rpc_read_betti_action_index;dur=39.7, canonical_action_index;dur=41.1, db_rpc_read_betti_work_inputs;dur=490.9, canonical_input_snapshot;dur=494.6, question_selection;dur=0.9, projection_construction;dur=1.2",
+      "width": 390
+    },
+    {
+      "heading": "What was this money from?",
+      "answer": "customer payment",
+      "responseMs": 874,
+      "elapsedMs": 890,
+      "serverTiming": "total;dur=702.4, db_auth;dur=51.2, db_current_customer_membership;dur=52.1, db_rpc_read_betti_indexed_question;dur=41.8, indexed_action_lookup;dur=43.2, db_rpc_execute_betti_indexed_question;dur=141.5, indexed_canonical_commit;dur=143.1, canonical_command;dur=295.3, db_rpc_read_betti_action_index;dur=67.0, canonical_action_index;dur=68.4, db_rpc_read_betti_work_inputs;dur=331.6, canonical_input_snapshot;dur=334.5, question_selection;dur=0.9, projection_construction;dur=1.2",
+      "width": 1280
+    },
+    {
+      "heading": "What did you use the cash for?",
+      "answer": "uncertain",
+      "responseMs": 799,
+      "elapsedMs": 807,
+      "serverTiming": "total;dur=574.0, db_auth;dur=43.1, db_current_customer_membership;dur=50.6, db_rpc_read_betti_indexed_question;dur=38.1, indexed_action_lookup;dur=39.3, db_rpc_execute_betti_indexed_question;dur=93.6, indexed_canonical_commit;dur=95.0, canonical_command;dur=233.4, db_rpc_read_betti_action_index;dur=44.1, canonical_action_index;dur=45.2, db_rpc_read_betti_work_inputs;dur=290.5, canonical_input_snapshot;dur=292.1, question_selection;dur=0.6, projection_construction;dur=1.0",
+      "width": 390
+    },
+    {
+      "heading": "What kind of activity was this?",
+      "answer": "purchase",
+      "responseMs": 896,
+      "elapsedMs": 910,
+      "serverTiming": "total;dur=622.8, db_auth;dur=55.1, db_current_customer_membership;dur=33.2, db_rpc_read_betti_indexed_question;dur=41.3, indexed_action_lookup;dur=42.6, db_rpc_execute_betti_indexed_question;dur=104.0, indexed_canonical_commit;dur=105.3, canonical_command;dur=242.3, db_rpc_read_betti_action_index;dur=38.8, canonical_action_index;dur=39.9, db_rpc_read_betti_work_inputs;dur=334.4, canonical_input_snapshot;dur=336.1, question_selection;dur=0.7, projection_construction;dur=1.7",
+      "width": 1280
+    },
+    {
+      "heading": "About how much do you use this phone service for your business?",
+      "answer": "business percentage",
+      "responseMs": 884,
+      "elapsedMs": 893,
+      "serverTiming": "total;dur=714.7, db_auth;dur=45.8, db_current_customer_membership;dur=37.8, db_rpc_read_betti_indexed_question;dur=40.6, indexed_action_lookup;dur=41.7, db_current_deduction_attentions;dur=43.0, db_rpc_answer_deduction_attention;dur=78.4, db_bookkeeping_decisions;dur=43.3, canonical_command;dur=297.3, db_rpc_read_betti_action_index;dur=39.0, canonical_action_index;dur=40.0, db_rpc_read_betti_work_inputs;dur=371.3, canonical_input_snapshot;dur=373.2, question_selection;dur=0.5, projection_construction;dur=1.0",
+      "width": 390
+    },
+    {
+      "heading": "What was this purchase for?",
+      "answer": "Paid a freelance graphic designer to create a logo for my business",
+      "responseMs": 3517,
+      "elapsedMs": 3532,
+      "serverTiming": "total;dur=3264.7, db_auth;dur=2050.5, db_current_customer_membership;dur=68.0, db_rpc_read_betti_indexed_question;dur=331.4, indexed_action_lookup;dur=332.6, db_rpc_execute_betti_indexed_question;dur=364.1, indexed_canonical_commit;dur=365.4, canonical_command;dur=2826.8, db_rpc_read_betti_action_index;dur=73.8, canonical_action_index;dur=76.1, db_rpc_read_betti_work_inputs;dur=356.4, canonical_input_snapshot;dur=359.2, question_selection;dur=0.3, projection_construction;dur=0.8",
+      "width": 1280
+    },
+    {
+      "heading": "Are any of these not for the business?",
+      "answer": "exception confirmation",
+      "responseMs": 3022,
+      "elapsedMs": 3034,
+      "serverTiming": "total;dur=2411.0, db_auth;dur=45.1, db_current_customer_membership;dur=62.6, db_betti_guided_assertions;dur=45.0, db_businesses;dur=47.1, db_rpc_read_betti_action_index;dur=119.6, canonical_action_index;dur=122.2, db_rpc_answer_betti_guided_work;dur=1260.0, canonical_command;dur=1532.8, db_rpc_read_betti_work_inputs;dur=813.2, canonical_input_snapshot;dur=815.2, question_selection;dur=0.3, projection_construction;dur=0.8",
+      "width": 390
+    }
+  ],
+  "n": 12,
+  "p50Ms": 987,
+  "p95Ms": 3532
+}

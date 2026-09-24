@@ -26,7 +26,7 @@ async function documents(){
 }
 async function main(){
  process.umask(0o077)
- const mode=process.argv[2];assert(['--upload','--verify','--duplicate','--receipt-only','--inspect-only','--profile','--loan','--irrelevant','--bank-only','--retry-loan','--set-aside'].includes(mode))
+ const mode=process.argv[2];assert(['--upload','--verify','--duplicate','--receipt-only','--inspect-only','--profile','--loan','--irrelevant','--bank-only','--retry-loan','--set-aside','--screenshots','--scope-upload','--scope-verify'].includes(mode))
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL!,anon=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
  assert.equal(process.env.WRITEOFFS_ENVIRONMENT,'staging');assert.equal(new URL(url).hostname,'sgrqrrxrlglhjuetdtps.supabase.co')
  const f=JSON.parse(await readFile(`${dir}/fixture.json`,'utf8'))
@@ -36,6 +36,14 @@ async function main(){
  const jar=new Map<string,string>(),db=createServerClient(url,anon,{cookies:{getAll:()=>[...jar].map(([name,value])=>({name,value})),setAll:values=>values.forEach(({name,value})=>jar.set(name,value))}})
  assert(!(await db.auth.signInWithPassword({email:f.email,password:f.password})).error)
  assert(!(await db.auth.mfa.challengeAndVerify({factorId:f.factorId,code:totp(f.totpSecret)})).error)
+ if(mode==='--scope-verify'){
+  const work=await loadCanonicalBettiWork({db,businessId:f.businessId,scope:'business'})
+  const actions=work.customer.actionable
+  assert(actions.length>0);assert.equal(work.betti.jobs.length,0,'SCOPE_PROCESSING_NOT_SETTLED')
+  assert.equal(actions[0].workstream,'current');assert(actions.some(a=>a.workstream==='catch_up'),'EARLIER_WORK_MISSING')
+  const result={synthetic:true,processing:work.betti.jobs.length,actions:actions.map(a=>({type:a.type,workstream:a.workstream,priority:a.priority.routingTier,question:a.question?.prompt}))}
+  await writeFile(`${dir}/scope-result.json`,JSON.stringify(result,null,2));console.log(JSON.stringify(result));return
+ }
  if(mode==='--inspect-only'){
   const report=await getAuthenticatedCanonicalReport({supabase:db,periodStart:'2026-01-01',periodEnd:'2026-09-23',currency:'USD'})
   const work=await loadCanonicalBettiWork({db,businessId:f.businessId,scope:'business'})
@@ -79,7 +87,17 @@ async function main(){
   await writeFile(`${dir}/evidence-passed-${Date.now()}.json`,JSON.stringify(passed,null,2))
   console.log(JSON.stringify(passed));return
  }
- if(['--profile','--retry-loan','--set-aside'].includes(mode)){}else if(mode==='--bank-only'){
+ if(mode==='--scope-upload'){
+  const pdf=await PDFDocument.create(),font=await pdf.embedFont(StandardFonts.Helvetica)
+  for(const [month,label,end] of [['09','September','23'],['06','June','30']]){
+   const p=pdf.addPage([612,792]),put=(t:string,x:number,y:number)=>p.drawText(t,{x,y,font,size:10})
+   ;['FIRST PLATYPUS BANK','Checking Statement','Account ending 0000',`Statement period: ${label} 1, 2026 - ${label} ${end}, 2026`,'Beginning balance $0.00','Ending balance $67.01'].forEach((t,i)=>put(t,40,750-i*22))
+   put('Date',40,600);put('Description',100,600);put('Credits',410,600);put('Debits',500,600)
+   put(`${month}/20`,40,570);put('ADOBE CREATIVE CLOUD',100,570);put('$22.99',500,570)
+   put(`${month}/21`,40,540);put('ACH DEPOSIT - UNKNOWN SOURCE',100,540);put('$90.00',410,540)
+  }
+  await writeFile(`${dir}/current-and-earlier.pdf`,await pdf.save())
+ }else if(['--profile','--retry-loan','--set-aside','--screenshots'].includes(mode)){}else if(mode==='--bank-only'){
   const before=await getAuthenticatedCanonicalReport({supabase:db,periodStart:'2026-01-01',periodEnd:'2026-09-23',currency:'USD'})
   assert.equal(before.rows.length,1);assert.equal(before.businessExpensesCents,21840,'RECEIPT_NOT_YET_ESTABLISHED')
   await writeFile(`${dir}/bank-only.csv`,'Date,Description,Amount\n2026-05-09,DESERT PRINT SHOP,-218.40\n')
@@ -99,9 +117,20 @@ async function main(){
   const context=await browser.newContext({viewport:{width:1280,height:900},timezoneId:'America/Phoenix'})
   await context.addCookies([...jar].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:true,sameSite:'Lax' as const})))
   const page=await context.newPage()
+  if(mode==='--screenshots'){
+   const results=[]
+   for(const route of ['home','check-in','reports'])for(const width of [390,430,1280]){
+    await page.setViewportSize({width,height:900});await page.goto(`${origin}/${route}`);await page.waitForLoadState('networkidle')
+    assert.equal(new URL(page.url()).pathname,`/${route}`,'UNEXPECTED_AUTHENTICATED_ROUTE')
+    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)
+    assert(!overflow,'HORIZONTAL_OVERFLOW')
+    await page.screenshot({path:`${dir}/final-${route}-${width}.png`,fullPage:true});results.push({route,width,overflow})
+   }
+   console.log(JSON.stringify({synthetic:true,screenshots:results}));return
+  }
   if(mode==='--profile'){
    const results:Array<Record<string,unknown>>=[]
-   await page.goto(origin+'/check-in');await page.locator('[data-guided-id]').waitFor()
+   await page.goto(origin+'/check-in');await page.locator('[data-guided-id]').waitFor({timeout:300000})
    for(let i=0;i<24;i++){
     const stage=page.locator('[data-guided-id]');if(!await stage.count())break
     const id=await stage.getAttribute('data-guided-id'),heading=await stage.locator('h1').innerText(),text=await stage.innerText()
@@ -148,9 +177,9 @@ async function main(){
   await page.screenshot({path:`${dir}/${mode.slice(2)}-evidence-before-1280.png`,fullPage:true})
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:`${dir}/${mode.slice(2)}-evidence-before-390.png`,fullPage:true})
   const result=mode==='--upload'?page.waitForResponse(r=>r.url().endsWith('/api/bookkeeping/work/evidence')&&r.request().method()==='POST',{timeout:60000}):null
-  await page.locator('input[type=file]').first().setInputFiles(mode==='--bank-only'?[`${dir}/bank-only.csv`]:mode==='--loan'||mode==='--irrelevant'?[`${dir}/${mode.slice(2)}.pdf`]:mode==='--receipt-only'?[`${dir}/printing-only.pdf`]:[`${dir}/two-receipts-one-page.pdf`,`${dir}/phone-bill-two-pages.pdf`])
+  await page.locator('input[type=file]').first().setInputFiles(mode==='--scope-upload'?[`${dir}/current-and-earlier.pdf`]:mode==='--bank-only'?[`${dir}/bank-only.csv`]:mode==='--loan'||mode==='--irrelevant'?[`${dir}/${mode.slice(2)}.pdf`]:mode==='--receipt-only'?[`${dir}/printing-only.pdf`]:[`${dir}/two-receipts-one-page.pdf`,`${dir}/phone-bill-two-pages.pdf`])
   if(mode==='--upload'){const response=await result!;assert(response.ok(),'EVIDENCE_ACKNOWLEDGMENT_FAILED')}
-  else await page.getByRole('status').filter({hasText:['--receipt-only','--loan','--irrelevant','--bank-only','--retry-loan','--set-aside'].includes(mode)?/1 document received/:/2 documents received/}).waitFor({timeout:60000})
+  else await page.getByRole('status').filter({hasText:['--receipt-only','--loan','--irrelevant','--bank-only','--retry-loan','--set-aside','--scope-upload'].includes(mode)?/1 document received/:/2 documents received/}).waitFor({timeout:60000})
   await page.screenshot({path:`${dir}/${mode.slice(2)}-evidence-received-390.png`,fullPage:true})
   console.log(JSON.stringify({synthetic:true,uploaded:true,mode}))
  }finally{await browser.close()}

@@ -1,6 +1,7 @@
 # Evidence-first work orchestration
 
-Status: implementation and certification in progress. Not a launch certificate.
+Status: implemented in dedicated staging. Engineering evidence and explicit limits:
+[verification report](audits/evidence-first/README.md). Not a manual clean-room or launch certificate.
 
 ## Product authority
 
@@ -81,12 +82,12 @@ worker. No projection rebuild, answers, financial facts, or evidence changes are
 authorized for that customer during this implementation. Synthetic customers and
 rollback-only local fixtures provide the mutable certification data.
 
-## Certification remaining
+## Verification and next customer journey
 
-Local unit and database tests are development evidence only. Before handoff, verify
-the complete 18-case receipt matrix, late-evidence question removal/narrowing,
-hosted scope presentation, real hosted answer timings, desktop/mobile transitions,
-and unchanged frozen-customer state. Preserve failures and limitations explicitly.
+The 18-case matrix distinguishes actual hosted extraction/browser evidence from
+local PostgreSQL and unit coverage. See the linked verification report for timings,
+limitations and preserved failures. A second fresh clean-room customer is recommended
+to certify the changed sequence; the original customer's history stays intact.
 
 ## Later evidence and safe continuation
 
