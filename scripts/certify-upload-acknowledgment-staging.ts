@@ -37,25 +37,27 @@ async function main(){
   await writeFile(dir+'/upload-timing.json',JSON.stringify(result,null,2))
   const deadline=Date.now()+180000
   while(Date.now()<deadline){
-   const status=await db.from('current_customer_document_status').select('state').eq('id',documentId).single();assert(!status.error)
+   const status=await db.from('current_customer_document_status').select('state').eq('id',documentId).single();assert(!status.error,'DOCUMENT_STATUS_'+status.error?.code)
    if(['completed','needs_attention','unreadable','dead_letter'].includes(status.data.state)){result.completedMs=Date.now()-started;result.state=status.data.state;break}
    await new Promise(r=>setTimeout(r,2000))
   }
-  const jobs=await admin.from('receipt_processing_jobs').select('state,job_type,created_at,claimed_at,completed_at').eq('business_id',f.businessId).eq('document_id',documentId);assert(!jobs.error)
+  await writeFile(dir+'/upload-timing.json',JSON.stringify(result,null,2))
+  const jobs=await admin.from('receipt_processing_jobs').select('state,job_type,created_at,claimed_at,completed_at').eq('business_id',f.businessId).eq('document_id',documentId);assert(!jobs.error,'PROCESSING_JOBS_'+jobs.error?.code)
   result.jobs=jobs.data
-  const regions=await admin.from('receipt_source_regions').select('receipt_id').eq('business_id',f.businessId).eq('document_id',documentId);assert(!regions.error)
+  const regions=await admin.from('receipt_source_regions').select('receipt_id').eq('business_id',f.businessId).eq('document_id',documentId);assert(!regions.error,'SOURCE_REGIONS_'+regions.error?.code)
   const receiptIds=(regions.data??[]).map(r=>r.receipt_id)
   result.receiptParts=receiptIds.length
   if(receiptIds.length){
-   const extracted=await admin.from('bookkeeping_receipt_extractions').select('created_at').eq('business_id',f.businessId).in('receipt_id',receiptIds);assert(!extracted.error)
-   const links=await admin.from('bookkeeping_document_links').select('created_at,bookkeeping_record_id').eq('business_id',f.businessId).in('receipt_id',receiptIds).is('revoked_at',null);assert(!links.error)
+   const extracted=await admin.from('bookkeeping_receipt_extractions').select('created_at').eq('business_id',f.businessId).in('receipt_id',receiptIds);assert(!extracted.error,'EXTRACTION_EVENTS_'+extracted.error?.code)
+   const links=await admin.from('bookkeeping_document_links').select('linked_at,bookkeeping_record_id').eq('business_id',f.businessId).in('receipt_id',receiptIds).is('revoked_at',null);assert(!links.error,'MATCH_EVENTS_'+links.error?.code)
    const registeredAt=Math.min(...(jobs.data??[]).map(j=>Date.parse(j.created_at)))
    result.extractionEventAfterRegistrationMs=(extracted.data??[]).map(e=>Date.parse(e.created_at)-registeredAt)
-   result.matchEventAfterRegistrationMs=(links.data??[]).map(e=>Date.parse(e.created_at)-registeredAt)
+   result.matchEventAfterRegistrationMs=(links.data??[]).map(e=>Date.parse(e.linked_at)-registeredAt)
    result.matchedDocuments=links.data?.length??0
    const records=[...new Set((links.data??[]).map(l=>l.bookkeeping_record_id))]
+   await writeFile(dir+'/upload-timing.json',JSON.stringify(result,null,2))
    if(records.length)while(Date.now()<deadline){
-    const pending=await admin.from('bookkeeping_processing_jobs').select('id').eq('business_id',f.businessId).in('bookkeeping_record_id',records).in('state',['pending','processing','retryable']);assert(!pending.error)
+    const pending=await admin.from('bookkeeping_processing_jobs').select('id').eq('business_id',f.businessId).in('bookkeeping_record_id',records).in('state',['pending','processing','retryable']);assert(!pending.error,'REASSESSMENT_JOBS_'+pending.error?.code)
     if(!pending.data.length){result.reassessmentReadyObservedMs=Date.now()-started;break}
     await new Promise(r=>setTimeout(r,2000))
    }

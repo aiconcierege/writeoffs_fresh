@@ -1,0 +1,19 @@
+{
+  "evidence": "READ-ONLY STAGING COMPARISON",
+  "checks": [
+    {
+      "customer": 1,
+      "tablesCompared": 102,
+      "changedTables": []
+    },
+    {
+      "customer": 2,
+      "tablesCompared": 102,
+      "changedTables": []
+    }
+  ],
+  "customer1WorkerExclusion": true,
+  "customer2NextQuestion": "CASH DEPOSIT \u00b7 May 16, 2026 \u00b7 $600 \u00b7 What was this money from?",
+  "finalVerification": "preservation-final.json",
+  "finalComparisonPendingAtThatCapture": true
+}

@@ -1,0 +1,247 @@
+{
+  "applicationSha": "8e3d9618eed530f1a2a69b8211045ee0c980338d",
+  "method": "Six real synthetic browser uploads of the existing controlled two-receipt PDF; one existing uploaded file observed read-only after a diagnostic-column error. Registration and queueing are atomic. Server bytes-received is not instrumented. Extraction/link offsets are database event timestamps, not isolated stage execution times.",
+  "metrics": {
+    "storageStartedMs": {
+      "n": 6,
+      "p50Ms": 255.0,
+      "p95Ms": 269
+    },
+    "storageStoredMs": {
+      "n": 6,
+      "p50Ms": 792.5,
+      "p95Ms": 1178
+    },
+    "registeredQueuedMs": {
+      "n": 6,
+      "p50Ms": 1607.0,
+      "p95Ms": 2225
+    },
+    "acknowledgmentMs": {
+      "n": 6,
+      "p50Ms": 1611.5,
+      "p95Ms": 2226.2
+    },
+    "registeredToProcessingCompleteMs": {
+      "n": 6,
+      "p50Ms": 4458.3,
+      "p95Ms": 8476.1
+    },
+    "completedMs": {
+      "n": 5,
+      "p50Ms": 6128,
+      "p95Ms": 8300
+    },
+    "reassessmentReadyObservedMs": {
+      "n": 5,
+      "p50Ms": 46001,
+      "p95Ms": 71328
+    }
+  },
+  "samples": [
+    {
+      "evidence": "HOSTED SYNTHETIC UPLOAD",
+      "storageStartedMs": 256,
+      "storageStoredMs": 1178,
+      "registrationStartedMs": 1182,
+      "registeredQueuedMs": 2225,
+      "acknowledgmentMs": 2226.1999999284744,
+      "serverTiming": "total;dur=629.5, db_auth;dur=273.6, db_current_customer_membership;dur=71.9, document_storage_verification;dur=158.3, db_rpc_register_customer_document;dur=267.4",
+      "bytesReceivedAtServer": "not separately instrumented",
+      "completedMs": null,
+      "state": "completed",
+      "jobs": [
+        {
+          "state": "completed",
+          "job_type": "document_intake",
+          "created_at": "2026-09-24T21:21:46.234335+00:00",
+          "claimed_at": "2026-09-24T21:21:46.569768+00:00",
+          "completed_at": "2026-09-24T21:21:54.710464+00:00"
+        }
+      ],
+      "receiptParts": 2,
+      "extractionEventAfterRegistrationMs": [
+        3053,
+        7101
+      ],
+      "matchEventAfterRegistrationMs": [
+        3053,
+        7101
+      ],
+      "matchedDocuments": 2,
+      "completionObservationNote": "Original post-upload observer failed on an incorrect diagnostic column. Completion, two receipt parts and links were verified read-only; original receipt acknowledgment timing retained. No re-upload.",
+      "registeredToProcessingCompleteMs": 8476.1,
+      "syntheticFixture": 9
+    },
+    {
+      "evidence": "HOSTED SYNTHETIC UPLOAD",
+      "storageStartedMs": 254,
+      "storageStoredMs": 953,
+      "registrationStartedMs": 954,
+      "registeredQueuedMs": 1736,
+      "acknowledgmentMs": 1738,
+      "serverTiming": "total;dur=308.7, db_auth;dur=124.9, db_current_customer_membership;dur=58.4, document_storage_verification;dur=88.4, db_rpc_register_customer_document;dur=115.7",
+      "bytesReceivedAtServer": "not separately instrumented",
+      "completedMs": 6128,
+      "state": "completed",
+      "jobs": [
+        {
+          "state": "completed",
+          "job_type": "document_intake",
+          "created_at": "2026-09-24T21:25:26.011514+00:00",
+          "claimed_at": "2026-09-24T21:25:26.159439+00:00",
+          "completed_at": "2026-09-24T21:25:30.217498+00:00"
+        }
+      ],
+      "receiptParts": 2,
+      "extractionEventAfterRegistrationMs": [
+        3473,
+        1860
+      ],
+      "matchEventAfterRegistrationMs": [
+        1860,
+        3473
+      ],
+      "matchedDocuments": 2,
+      "reassessmentReadyObservedMs": 46001,
+      "registeredToProcessingCompleteMs": 4206.0,
+      "syntheticFixture": 10
+    },
+    {
+      "evidence": "HOSTED SYNTHETIC UPLOAD",
+      "storageStartedMs": 219,
+      "storageStoredMs": 647,
+      "registrationStartedMs": 648,
+      "registeredQueuedMs": 1305,
+      "acknowledgmentMs": 1314,
+      "serverTiming": "total;dur=331.4, db_auth;dur=206.1, db_current_customer_membership;dur=51.9, document_storage_verification;dur=163.6, db_rpc_register_customer_document;dur=64.4",
+      "bytesReceivedAtServer": "not separately instrumented",
+      "completedMs": 5784,
+      "state": "completed",
+      "jobs": [
+        {
+          "state": "completed",
+          "job_type": "document_intake",
+          "created_at": "2026-09-24T21:26:13.70128+00:00",
+          "claimed_at": "2026-09-24T21:26:13.827516+00:00",
+          "completed_at": "2026-09-24T21:26:17.568609+00:00"
+        }
+      ],
+      "receiptParts": 2,
+      "extractionEventAfterRegistrationMs": [
+        1585,
+        2884
+      ],
+      "matchEventAfterRegistrationMs": [
+        1585,
+        2884
+      ],
+      "matchedDocuments": 2,
+      "reassessmentReadyObservedMs": 71328,
+      "registeredToProcessingCompleteMs": 3867.3,
+      "syntheticFixture": 11
+    },
+    {
+      "evidence": "HOSTED SYNTHETIC UPLOAD",
+      "storageStartedMs": 269,
+      "storageStoredMs": 563,
+      "registrationStartedMs": 564,
+      "registeredQueuedMs": 1342,
+      "acknowledgmentMs": 1347.7999999523163,
+      "serverTiming": "total;dur=359.0, db_auth;dur=195.7, db_current_customer_membership;dur=86.6, document_storage_verification;dur=142.9, db_rpc_register_customer_document;dur=69.0",
+      "bytesReceivedAtServer": "not separately instrumented",
+      "completedMs": 5796,
+      "state": "completed",
+      "jobs": [
+        {
+          "state": "completed",
+          "job_type": "document_intake",
+          "created_at": "2026-09-24T21:27:27.427602+00:00",
+          "claimed_at": "2026-09-24T21:27:27.546181+00:00",
+          "completed_at": "2026-09-24T21:27:31.51748+00:00"
+        }
+      ],
+      "receiptParts": 2,
+      "extractionEventAfterRegistrationMs": [
+        2950,
+        1498
+      ],
+      "matchEventAfterRegistrationMs": [
+        1498,
+        2950
+      ],
+      "matchedDocuments": 2,
+      "reassessmentReadyObservedMs": 60854,
+      "registeredToProcessingCompleteMs": 4089.9,
+      "syntheticFixture": 12
+    },
+    {
+      "evidence": "HOSTED SYNTHETIC UPLOAD",
+      "storageStartedMs": 261,
+      "storageStoredMs": 782,
+      "registrationStartedMs": 784,
+      "registeredQueuedMs": 1537,
+      "acknowledgmentMs": 1542.6000000238419,
+      "serverTiming": "total;dur=350.9, db_auth;dur=186.3, db_current_customer_membership;dur=60.6, document_storage_verification;dur=119.1, db_rpc_register_customer_document;dur=97.1",
+      "bytesReceivedAtServer": "not separately instrumented",
+      "completedMs": 8191,
+      "state": "completed",
+      "jobs": [
+        {
+          "state": "completed",
+          "job_type": "document_intake",
+          "created_at": "2026-09-24T21:28:30.517755+00:00",
+          "claimed_at": "2026-09-24T21:28:30.68597+00:00",
+          "completed_at": "2026-09-24T21:28:35.228314+00:00"
+        }
+      ],
+      "receiptParts": 2,
+      "extractionEventAfterRegistrationMs": [
+        2082,
+        3831
+      ],
+      "matchEventAfterRegistrationMs": [
+        2082,
+        3831
+      ],
+      "matchedDocuments": 2,
+      "reassessmentReadyObservedMs": 45519,
+      "registeredToProcessingCompleteMs": 4710.6,
+      "syntheticFixture": 13
+    },
+    {
+      "evidence": "HOSTED SYNTHETIC UPLOAD",
+      "storageStartedMs": 246,
+      "storageStoredMs": 803,
+      "registrationStartedMs": 804,
+      "registeredQueuedMs": 1677,
+      "acknowledgmentMs": 1680.3999999761581,
+      "serverTiming": "total;dur=514.2, db_auth;dur=310.4, db_current_customer_membership;dur=80.9, document_storage_verification;dur=274.1, db_rpc_register_customer_document;dur=116.7",
+      "bytesReceivedAtServer": "not separately instrumented",
+      "completedMs": 8300,
+      "state": "completed",
+      "jobs": [
+        {
+          "state": "completed",
+          "job_type": "document_intake",
+          "created_at": "2026-09-24T21:29:18.377511+00:00",
+          "claimed_at": "2026-09-24T21:29:18.571438+00:00",
+          "completed_at": "2026-09-24T21:29:23.68572+00:00"
+        }
+      ],
+      "receiptParts": 2,
+      "extractionEventAfterRegistrationMs": [
+        2300,
+        4008
+      ],
+      "matchEventAfterRegistrationMs": [
+        2300,
+        4008
+      ],
+      "matchedDocuments": 2,
+      "reassessmentReadyObservedMs": 24577,
+      "registeredToProcessingCompleteMs": 5308.2,
+      "syntheticFixture": 14
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "applicationSha": "8e3d9618eed530f1a2a69b8211045ee0c980338d",
+  "note": "Separate forced canonical-fallback control; two remaining purpose answers forced off the index, then percentage and exception sweep. Not pooled with six fresh ordinary runs. All four transitions passed; fallback remains slower than the target.",
+  "samples": [
+    {
+      "turn": 0,
+      "kind": "purchase_purpose",
+      "viewportWidth": 1280,
+      "status": 200,
+      "responseMs": 4675,
+      "requestMs": 21,
+      "ackMs": 29,
+      "timing": "total;dur=4462.0, db_auth;dur=104.2, db_current_customer_membership;dur=96.0, db_rpc_read_betti_indexed_question;dur=93.6, indexed_action_lookup;dur=94.5, db_businesses;dur=272.9, db_rpc_read_betti_work_inputs;dur=1038.1, canonical_input_snapshot;dur=1041.4, question_selection;dur=1.1, projection_construction;dur=1.9, command_eligibility;dur=442.1, db_current_deduction_attentions;dur=50.6, current_action_lookup;dur=0.2, db_rpc_answer_bookkeeping_business_purpose_review_issue;dur=326.3, db_bookkeeping_review_events;dur=374.9, db_bookkeeping_decisions;dur=723.1, db_bookkeeping_allocations;dur=284.7, answer_validation_and_commit;dur=494.4, answer_reassessment_dependency;dur=0.2, db_bookkeeping_records;dur=236.0, db_current_bookkeeping_source_convergences;dur=188.7, db_manual_financial_source_events;dur=265.5, db_bookkeeping_receipt_events;dur=274.4, db_current_bookkeeping_record_convergences;dur=279.7, db_current_bookkeeping_compound_components;dur=291.7, db_bookkeeping_financial_sources;dur=316.8, db_bookkeeping_receipt_meal_candidates;dur=165.9, db_bookkeeping_document_links;dur=236.4, db_financial_transactions;dur=196.0, db_financial_accounts;dur=164.2, db_current_financial_account_use;dur=78.4, db_plaid_transaction_versions;dur=148.4, db_rpc_append_bookkeeping_decision;dur=222.2, db_bookkeeping_processing_jobs;dur=104.8, affected_expense_reassessment;dur=2551.0, canonical_command;dur=3795.4",
+      "nextType": "material_question",
+      "renderMs": 4701,
+      "visibleAcknowledgmentMs": 2.399999976158142,
+      "noIntermediateAction": true,
+      "noActionPresentationVerified": false
+    },
+    {
+      "turn": 1,
+      "kind": "purchase_purpose",
+      "viewportWidth": 1280,
+      "status": 200,
+      "responseMs": 3738,
+      "requestMs": 30,
+      "ackMs": 34,
+      "timing": "total;dur=3560.4, db_auth;dur=147.7, db_current_customer_membership;dur=81.3, db_rpc_read_betti_indexed_question;dur=63.9, indexed_action_lookup;dur=64.7, db_businesses;dur=186.3, db_rpc_read_betti_work_inputs;dur=1022.5, canonical_input_snapshot;dur=1025.5, question_selection;dur=0.9, projection_construction;dur=1.7, command_eligibility;dur=790.7, db_current_deduction_attentions;dur=50.1, current_action_lookup;dur=0.2, db_rpc_answer_bookkeeping_business_purpose_review_issue;dur=120.8, db_bookkeeping_review_events;dur=296.6, db_bookkeeping_decisions;dur=561.0, db_bookkeeping_allocations;dur=269.4, answer_validation_and_commit;dur=334.5, answer_reassessment_dependency;dur=0.2, db_bookkeeping_records;dur=157.9, db_current_bookkeeping_record_convergences;dur=104.6, db_bookkeeping_receipt_events;dur=121.4, db_current_bookkeeping_source_convergences;dur=157.0, db_manual_financial_source_events;dur=164.2, db_current_bookkeeping_compound_components;dur=170.1, db_bookkeeping_financial_sources;dur=259.2, db_bookkeeping_receipt_meal_candidates;dur=207.2, db_bookkeeping_document_links;dur=247.3, db_financial_transactions;dur=196.6, db_financial_accounts;dur=76.9, db_current_financial_account_use;dur=63.3, db_plaid_transaction_versions;dur=115.4, db_rpc_append_bookkeeping_decision;dur=168.9, db_bookkeeping_processing_jobs;dur=69.4, affected_expense_reassessment;dur=1917.4, canonical_command;dur=3287.7",
+      "nextType": "material_question",
+      "renderMs": 3765,
+      "visibleAcknowledgmentMs": 4.100000023841858,
+      "noIntermediateAction": true,
+      "noActionPresentationVerified": false
+    },
+    {
+      "turn": 2,
+      "kind": "percentage",
+      "viewportWidth": 1280,
+      "status": 200,
+      "responseMs": 1030,
+      "requestMs": 36,
+      "ackMs": 38,
+      "timing": "total;dur=710.7, db_auth;dur=54.5, db_current_customer_membership;dur=38.0, db_rpc_read_betti_indexed_question;dur=84.3, indexed_action_lookup;dur=85.3, db_current_deduction_attentions;dur=42.7, db_rpc_answer_deduction_attention;dur=130.4, db_bookkeeping_decisions;dur=42.2, canonical_command;dur=399.3, db_rpc_read_betti_work_inputs;dur=307.6, canonical_input_snapshot;dur=308.9, question_selection;dur=0.4, projection_construction;dur=0.9",
+      "nextType": "personal_exception_sweep",
+      "renderMs": 1058,
+      "visibleAcknowledgmentMs": 1.7000000476837158,
+      "noIntermediateAction": true,
+      "noActionPresentationVerified": false
+    },
+    {
+      "turn": 3,
+      "kind": "exception_sweep",
+      "viewportWidth": 1280,
+      "status": 200,
+      "responseMs": 1320,
+      "requestMs": 33,
+      "ackMs": 35,
+      "timing": "total;dur=865.4, db_auth;dur=51.9, db_current_customer_membership;dur=83.2, db_betti_guided_assertions;dur=104.2, db_businesses;dur=57.6, db_rpc_read_betti_action_index;dur=37.7, canonical_action_index;dur=38.9, db_rpc_answer_betti_guided_work;dur=229.4, canonical_command;dur=571.1, db_rpc_read_betti_work_inputs;dur=290.3, canonical_input_snapshot;dur=291.6, question_selection;dur=0.6, projection_construction;dur=0.9",
+      "renderMs": 1336,
+      "visibleAcknowledgmentMs": 2.6999999284744263,
+      "noIntermediateAction": true,
+      "noActionPresentationVerified": true
+    }
+  ],
+  "transactions": 24,
+  "totals": [
+    536096,
+    165640,
+    370456
+  ]
+}

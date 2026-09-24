@@ -1,0 +1,16 @@
+[
+  {
+    "action": "evidence_opportunity",
+    "concurrentReplays": 2,
+    "conflictStatus": 409,
+    "staleStatus": 409,
+    "assertionUnchanged": true
+  },
+  {
+    "action": "personal_exception_sweep",
+    "concurrentReplays": 2,
+    "conflictStatus": 409,
+    "staleStatus": 409,
+    "assertionUnchanged": true
+  }
+]

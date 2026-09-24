@@ -1,0 +1,8 @@
+{
+  "synthetic": true,
+  "concurrentReplays": 2,
+  "refundFacts": 1,
+  "conflictStatus": 400,
+  "staleStatus": 409,
+  "unauthenticatedStatus": 401
+}

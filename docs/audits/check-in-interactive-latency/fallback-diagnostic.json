@@ -1,0 +1,455 @@
+[
+  {
+    "evidence": "HOSTED SYNTHETIC FORCED CANONICAL FALLBACK UNDER PREPARATION LOAD",
+    "applicationSha": "0527a62d403c20c760b27d67507c5d47f1721af9",
+    "httpStatus": 200,
+    "timing": {
+      "event": "guided_request_timing",
+      "totalMs": 17225,
+      "queryCount": 75,
+      "spans": [
+        {
+          "name": "db_auth",
+          "start": 1.8913429999956861,
+          "duration": 60.26352100004442
+        },
+        {
+          "name": "db_current_customer_membership",
+          "start": 64.31300600001123,
+          "duration": 174.3352329999907
+        },
+        {
+          "name": "db_rpc_read_betti_indexed_question",
+          "start": 239.71909500000766,
+          "duration": 148.7915159999975
+        },
+        {
+          "name": "indexed_action_lookup",
+          "start": 239.33722400001716,
+          "duration": 149.97605599998496
+        },
+        {
+          "name": "db_businesses",
+          "start": 389.8095730000059,
+          "duration": 77.58290400000988
+        },
+        {
+          "name": "db_rpc_read_betti_work_inputs",
+          "start": 468.1673910000245,
+          "duration": 1798.1030349999783
+        },
+        {
+          "name": "canonical_input_snapshot",
+          "start": 467.7721390000079,
+          "duration": 1800.2149510000017
+        },
+        {
+          "name": "question_selection",
+          "start": 2268.013393000001,
+          "duration": 0.47253000002820045
+        },
+        {
+          "name": "projection_construction",
+          "start": 2268.489539000031,
+          "duration": 0.9779269999708049
+        },
+        {
+          "name": "command_eligibility",
+          "start": 389.3220760000404,
+          "duration": 1880.2871149999555
+        },
+        {
+          "name": "db_current_deduction_attentions",
+          "start": 2270.685586000036,
+          "duration": 261.32353299995884
+        },
+        {
+          "name": "current_action_lookup",
+          "start": 2532.439778,
+          "duration": 0.23926500004017726
+        },
+        {
+          "name": "db_auth",
+          "start": 2533.174946000043,
+          "duration": 53.455377999984194
+        },
+        {
+          "name": "db_rpc_answer_bookkeeping_business_purpose_review_issue",
+          "start": 2588.4172000000253,
+          "duration": 475.13836699997773
+        },
+        {
+          "name": "db_bookkeeping_review_events",
+          "start": 3065.1801710000145,
+          "duration": 88.13437899999553
+        },
+        {
+          "name": "db_bookkeeping_decisions",
+          "start": 3065.796962000022,
+          "duration": 107.9559860000154
+        },
+        {
+          "name": "db_bookkeeping_review_events",
+          "start": 3066.1661700000404,
+          "duration": 121.22208499995759
+        },
+        {
+          "name": "db_bookkeeping_allocations",
+          "start": 3174.9941049999907,
+          "duration": 116.10101199999917
+        },
+        {
+          "name": "answer_validation_and_commit",
+          "start": 2532.300968000025,
+          "duration": 760.4632419999689
+        },
+        {
+          "name": "answer_reassessment_dependency",
+          "start": 3292.7821240000194,
+          "duration": 0.4820019999751821
+        },
+        {
+          "name": "db_bookkeeping_records",
+          "start": 3293.768157000013,
+          "duration": 69.46590200002538
+        },
+        {
+          "name": "db_current_bookkeeping_record_convergences",
+          "start": 3365.0333550000214,
+          "duration": 387.64500299998326
+        },
+        {
+          "name": "db_current_bookkeeping_source_convergences",
+          "start": 3368.6846230000374,
+          "duration": 394.74822599999607
+        },
+        {
+          "name": "db_bookkeeping_receipt_events",
+          "start": 3365.563932000019,
+          "duration": 537.4858079999685
+        },
+        {
+          "name": "db_manual_financial_source_events",
+          "start": 3367.04516400001,
+          "duration": 562.9153790000128
+        },
+        {
+          "name": "db_current_bookkeeping_compound_components",
+          "start": 3365.9054960000212,
+          "duration": 591.4667669999762
+        },
+        {
+          "name": "db_bookkeeping_decisions",
+          "start": 3958.131691000017,
+          "duration": 287.0858720000251
+        },
+        {
+          "name": "db_bookkeeping_allocations",
+          "start": 4246.1976040000445,
+          "duration": 574.8748389999964
+        },
+        {
+          "name": "db_bookkeeping_records",
+          "start": 4822.085049999994,
+          "duration": 217.7675010000239
+        },
+        {
+          "name": "db_bookkeeping_decisions",
+          "start": 5041.714916000026,
+          "duration": 395.66008699999657
+        },
+        {
+          "name": "db_bookkeeping_receipt_meal_candidates",
+          "start": 5042.592154000013,
+          "duration": 444.6779760000063
+        },
+        {
+          "name": "db_businesses",
+          "start": 5042.847983000043,
+          "duration": 534.329561999999
+        },
+        {
+          "name": "db_bookkeeping_review_events",
+          "start": 5042.027054000006,
+          "duration": 583.8842820000136
+        },
+        {
+          "name": "db_bookkeeping_document_links",
+          "start": 5042.317207000044,
+          "duration": 608.9817969999858
+        },
+        {
+          "name": "db_bookkeeping_financial_sources",
+          "start": 5041.215418000007,
+          "duration": 625.9065050000208
+        },
+        {
+          "name": "db_financial_transactions",
+          "start": 5668.340025999991,
+          "duration": 186.61677500000224
+        },
+        {
+          "name": "db_financial_transactions",
+          "start": 5856.031297000009,
+          "duration": 462.00563099997817
+        },
+        {
+          "name": "db_financial_accounts",
+          "start": 6319.006438000011,
+          "duration": 420.9900829999824
+        },
+        {
+          "name": "db_current_financial_account_use",
+          "start": 6740.95882,
+          "duration": 128.94477400003234
+        },
+        {
+          "name": "db_plaid_transaction_versions",
+          "start": 6872.13537600002,
+          "duration": 292.7762150000199
+        },
+        {
+          "name": "db_bookkeeping_financial_sources",
+          "start": 7165.621923000028,
+          "duration": 121.19116599997506
+        },
+        {
+          "name": "db_bookkeeping_decisions",
+          "start": 7288.147712000005,
+          "duration": 145.34042399999453
+        },
+        {
+          "name": "db_bookkeeping_records",
+          "start": 7442.774268000037,
+          "duration": 56.66547599999467
+        },
+        {
+          "name": "db_bookkeeping_financial_sources",
+          "start": 7500.544531000021,
+          "duration": 57.693081000004895
+        },
+        {
+          "name": "db_financial_transactions",
+          "start": 7560.518426000024,
+          "duration": 246.18205699999817
+        },
+        {
+          "name": "db_plaid_transaction_versions",
+          "start": 7807.822282000037,
+          "duration": 80.61905899998965
+        },
+        {
+          "name": "db_bookkeeping_decisions",
+          "start": 7889.646746999992,
+          "duration": 343.3055710000335
+        },
+        {
+          "name": "db_bookkeeping_allocations",
+          "start": 8234.192635000043,
+          "duration": 52.503417999949306
+        },
+        {
+          "name": "db_rpc_append_bookkeeping_decision",
+          "start": 8289.553037000005,
+          "duration": 374.33344200003194
+        },
+        {
+          "name": "db_bookkeeping_decisions",
+          "start": 8664.565004000033,
+          "duration": 95.13227999996161
+        },
+        {
+          "name": "db_bookkeeping_allocations",
+          "start": 8761.100596000033,
+          "duration": 93.06724599999143
+        },
+        {
+          "name": "db_current_bookkeeping_compound_components",
+          "start": 8855.897326000035,
+          "duration": 373.51297399995383
+        },
+        {
+          "name": "db_manual_financial_source_events",
+          "start": 8856.226667999988,
+          "duration": 612.537667000026
+        },
+        {
+          "name": "db_bookkeeping_receipt_events",
+          "start": 8855.415395000018,
+          "duration": 633.8617150000064
+        },
+        {
+          "name": "db_current_bookkeeping_record_convergences",
+          "start": 8857.003812999988,
+          "duration": 647.9111560000456
+        },
+        {
+          "name": "db_current_bookkeeping_source_convergences",
+          "start": 8856.64916500001,
+          "duration": 708.9969709999859
+        },
+        {
+          "name": "db_bookkeeping_decisions",
+          "start": 9566.114690000017,
+          "duration": 375.18221200001426
+        },
+        {
+          "name": "db_bookkeeping_allocations",
+          "start": 9942.217272999987,
+          "duration": 310.47186000004876
+        },
+        {
+          "name": "db_bookkeeping_records",
+          "start": 10253.599134000018,
+          "duration": 164.97962900000857
+        },
+        {
+          "name": "db_bookkeeping_decisions",
+          "start": 10420.178394999995,
+          "duration": 318.4909179999959
+        },
+        {
+          "name": "db_bookkeeping_review_events",
+          "start": 10420.515554000041,
+          "duration": 336.4125049999566
+        },
+        {
+          "name": "db_bookkeeping_receipt_meal_candidates",
+          "start": 10421.106405000028,
+          "duration": 581.9570630000089
+        },
+        {
+          "name": "db_bookkeeping_financial_sources",
+          "start": 10419.670796999999,
+          "duration": 587.4058410000289
+        },
+        {
+          "name": "db_bookkeeping_document_links",
+          "start": 10420.804560000019,
+          "duration": 715.7827609999804
+        },
+        {
+          "name": "db_businesses",
+          "start": 10421.37137300003,
+          "duration": 742.8371470000129
+        },
+        {
+          "name": "db_financial_transactions",
+          "start": 11165.232523999992,
+          "duration": 286.0149790000287
+        },
+        {
+          "name": "db_financial_transactions",
+          "start": 11452.175555000023,
+          "duration": 248.0084509999724
+        },
+        {
+          "name": "db_financial_accounts",
+          "start": 11701.302403000009,
+          "duration": 226.62364800000796
+        },
+        {
+          "name": "db_current_financial_account_use",
+          "start": 11929.020309999993,
+          "duration": 538.1750140000368
+        },
+        {
+          "name": "db_plaid_transaction_versions",
+          "start": 12468.318339999998,
+          "duration": 199.80106700002216
+        },
+        {
+          "name": "db_bookkeeping_financial_sources",
+          "start": 12668.74601599999,
+          "duration": 516.0120540000498
+        },
+        {
+          "name": "db_bookkeeping_decisions",
+          "start": 13185.87363300001,
+          "duration": 338.14437300001737
+        },
+        {
+          "name": "db_current_schedule_c_expense_assessments",
+          "start": 13527.454047000036,
+          "duration": 246.49171499995282
+        },
+        {
+          "name": "db_schedule_c_expense_assessments",
+          "start": 13775.295741999988,
+          "duration": 213.03359100001398
+        },
+        {
+          "name": "db_bookkeeping_allocations",
+          "start": 13988.702565000043,
+          "duration": 269.87850299995625
+        },
+        {
+          "name": "db_bookkeeping_tax_treatments",
+          "start": 14259.620396999991,
+          "duration": 216.82745199999772
+        },
+        {
+          "name": "db_bookkeeping_allocations",
+          "start": 14477.35936500004,
+          "duration": 220.47302899998613
+        },
+        {
+          "name": "db_bookkeeping_records",
+          "start": 14698.749322000018,
+          "duration": 176.96385300002294
+        },
+        {
+          "name": "db_bookkeeping_allocations",
+          "start": 14877.425965000002,
+          "duration": 99.98029700003099
+        },
+        {
+          "name": "db_bookkeeping_tax_treatments",
+          "start": 14978.847340000037,
+          "duration": 130.20199999999022
+        },
+        {
+          "name": "db_bookkeeping_tax_treatments",
+          "start": 15110.381962000043,
+          "duration": 326.6467779999948
+        },
+        {
+          "name": "db_bookkeeping_tax_treatments",
+          "start": 15437.914121000038,
+          "duration": 471.7497239999939
+        },
+        {
+          "name": "affected_expense_reassessment",
+          "start": 3293.271521000017,
+          "duration": 12616.822752000007
+        },
+        {
+          "name": "canonical_command",
+          "start": 0.6645819999976084,
+          "duration": 15909.564927000029
+        },
+        {
+          "name": "db_rpc_read_betti_work_inputs",
+          "start": 15911.660869000014,
+          "duration": 1310.5403270000243
+        },
+        {
+          "name": "canonical_input_snapshot",
+          "start": 15911.346894000017,
+          "duration": 1311.8370010000071
+        },
+        {
+          "name": "question_selection",
+          "start": 17223.204195,
+          "duration": 0.4341990000102669
+        },
+        {
+          "name": "projection_construction",
+          "start": 17223.64233100001,
+          "duration": 0.9076500000082888
+        }
+      ]
+    },
+    "browserRequestAborted": true
+  }
+]

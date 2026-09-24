@@ -1,0 +1,22 @@
+{
+  "results": [
+    {
+      "customer": 1,
+      "tablesCompared": 102,
+      "changedTables": [],
+      "beforeSha256": "90d4043ef846fb783d9526b9baec2932ab5952693e0e960fa32e3b67ca5a8ab5",
+      "afterSha256": "90d4043ef846fb783d9526b9baec2932ab5952693e0e960fa32e3b67ca5a8ab5"
+    },
+    {
+      "customer": 2,
+      "tablesCompared": 102,
+      "changedTables": [],
+      "beforeSha256": "7e265a634ab2e3971446827481c5553b60052d7c6349b162f491e38df1482591",
+      "afterSha256": "7e265a634ab2e3971446827481c5553b60052d7c6349b162f491e38df1482591"
+    }
+  ],
+  "customer1WorkerExcluded": true,
+  "customer2Action": "CASH DEPOSIT \u2014 May 16, 2026 \u2014 $600 \u2014 What was this money from?",
+  "applicationSha": "8e3d9618eed530f1a2a69b8211045ee0c980338d",
+  "scope": "Tenant tables compared byte-for-byte after stable JSON serialization; transient read-as-of timestamp excluded. No clean-room customer actions submitted."
+}

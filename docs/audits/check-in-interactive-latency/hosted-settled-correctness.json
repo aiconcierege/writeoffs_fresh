@@ -1,0 +1,90 @@
+{
+  "applicationSha": "8e3d9618eed530f1a2a69b8211045ee0c980338d",
+  "results": [
+    {
+      "syntheticFixture": 9,
+      "totals": [
+        536096,
+        165640,
+        370456
+      ],
+      "pending": 0,
+      "transactions": 24,
+      "refunds": 1,
+      "answers": 9,
+      "uniqueAnswerPredecessors": true,
+      "uniqueSpecialRequests": true
+    },
+    {
+      "syntheticFixture": 10,
+      "totals": [
+        536096,
+        165640,
+        370456
+      ],
+      "pending": 0,
+      "transactions": 24,
+      "refunds": 1,
+      "answers": 10,
+      "uniqueAnswerPredecessors": true,
+      "uniqueSpecialRequests": true
+    },
+    {
+      "syntheticFixture": 11,
+      "totals": [
+        536096,
+        165640,
+        370456
+      ],
+      "pending": 0,
+      "transactions": 24,
+      "refunds": 1,
+      "answers": 10,
+      "uniqueAnswerPredecessors": true,
+      "uniqueSpecialRequests": true
+    },
+    {
+      "syntheticFixture": 12,
+      "totals": [
+        536096,
+        165640,
+        370456
+      ],
+      "pending": 0,
+      "transactions": 24,
+      "refunds": 1,
+      "answers": 10,
+      "uniqueAnswerPredecessors": true,
+      "uniqueSpecialRequests": true
+    },
+    {
+      "syntheticFixture": 13,
+      "totals": [
+        536096,
+        165640,
+        370456
+      ],
+      "pending": 0,
+      "transactions": 24,
+      "refunds": 1,
+      "answers": 9,
+      "uniqueAnswerPredecessors": true,
+      "uniqueSpecialRequests": true
+    },
+    {
+      "syntheticFixture": 14,
+      "totals": [
+        536096,
+        165640,
+        370456
+      ],
+      "pending": 0,
+      "transactions": 24,
+      "refunds": 1,
+      "answers": 10,
+      "uniqueAnswerPredecessors": true,
+      "uniqueSpecialRequests": true
+    }
+  ],
+  "note": "Measured routine classes, not completion of every possible follow-up; some runs included an additional purchase-purpose answer. All settled financial totals agree."
+}
