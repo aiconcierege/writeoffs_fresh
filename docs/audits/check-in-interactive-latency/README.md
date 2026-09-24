@@ -1,5 +1,7 @@
 # Check-in interactive latency — staging only
 
+**Latest follow-up:** the product owner accepted general routine latency for continued manual testing. The [final targeted fallback review](targeted-fallback-closeout.md) approves resuming Customer #2 while retaining the performance items below. The original measured results and earlier latency-target determination remain historical evidence.
+
 ## Scope and preservation
 
 This pass does not answer or rebuild either clean-room customer. Customer #1's staging worker exclusion remains enabled. Customer #2 remains on **CASH DEPOSIT — May 16, 2026 — $600 — “What was this money from?”**. Private before/after captures compare 102 tenant-scoped tables, including stored projections and answer history. No public repository push is authorized in this pass.
