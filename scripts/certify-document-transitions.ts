@@ -13,7 +13,7 @@ async function main(){
  b.onLoad({filter:/.*/,namespace:'stub'},args=>({loader:'js',resolveDir:process.cwd(),contents:args.path==='client'?`export const supabase={auth:{getUser:async()=>({data:{user:{id:'synthetic'}}})},storage:{from:()=>({upload:async()=>({error:null})})}};`:args.path.endsWith('navigation')?`export const useRouter=()=>({refresh(){},push(){}});export const usePathname=()=>'/check-in';export const useSearchParams=()=>new URLSearchParams();`:`import React from 'react';export default function C(p){return React.createElement('${args.path.endsWith('image')?'img':'a'}',p,p.children)}`}))
  }}]})
  const js=bundle.outputFiles[0].text,browser=await chromium.launch({headless:true}),results=[]
- try{for(const mode of ['loan','slow','racing-check','failure','refresh','changed-next','batch','receipt','multipage']){
+ try{for(const mode of ['loan','slow','racing-check','failure','refresh','changed-next','batch','receipt','multipage','slow-list','failed-list']){
   console.log('Testing',mode)
   const context=await browser.newContext({viewport:{width:mode==='loan'?1280:390,height:900},reducedMotion:mode==='refresh'?'reduce':'no-preference'})
   const initial=homeWorkFixture('concurrent'),next=structuredClone(initial)
@@ -30,7 +30,7 @@ async function main(){
    if(path==='/bundle.js'){await route.fulfill({contentType:'text/javascript',body:js});return}
    if(path.startsWith('/api/bookkeeping/records/')){await route.fulfill({json:{work:{recordId:record,decisionId:'decision1',nature:'loan_principal_payment',treatment:'unresolved',kind:'loan',amountCents:-45000,lastAction:null,candidates:[],linked:false}}});return}
    if(path==='/api/documents'){
-    if(route.request().method()==='POST'){posts++;await route.fulfill({json:{document:{id:doc}}})}else await route.fulfill({json:{documents:posts?[{id:doc,state:phase==='ready'?'completed':'processing',document_class:'loan_statement'}]:[]}});return
+    if(route.request().method()==='POST'){posts++;await route.fulfill({json:{document:{id:doc}}})}else {if(posts&&mode==='slow-list')await new Promise(r=>setTimeout(r,5000));if(posts&&mode==='failed-list'){await route.abort();return}await route.fulfill({json:{documents:posts?[{id:doc,state:phase==='ready'?'completed':'processing',document_class:'loan_statement'}]:[]}})};return
    }
    if(path==='/api/bookkeeping/work/evidence'){await route.fulfill({json:{ok:true,work:next}});return}
    if(path==='/api/bookkeeping/work/documents'){
@@ -43,7 +43,7 @@ async function main(){
   await page.addInitScript(()=>{(window as unknown as {headings:string[]}).headings=[];new MutationObserver(()=>{const w=window as unknown as {advanceAuthorized?:boolean;leaked?:boolean};if(!w.advanceAuthorized&&document.querySelector('#guided-transaction')?.textContent?.includes('NEXT PURCHASE'))w.leaked=true;const t=document.querySelector('h1')?.textContent;if(t)(window as unknown as {headings:string[]}).headings.push(t)}).observe(document,{childList:true,subtree:true})})
   await page.goto('http://localhost/')
   await page.getByLabel('Send Betti documents',{exact:true}).setInputFiles(mode==='multipage'?'/private/tmp/writeoffs-routing-evidence-first/phone-bill-two-pages.pdf':mode==='batch'?['/private/tmp/writeoffs-routing-evidence-first/two-receipts-one-page.pdf','/private/tmp/writeoffs-routing-evidence-first/phone-bill-two-pages.pdf']:'/private/tmp/writeoffs-routing-evidence-first/loan.pdf')
-  await page.locator('[data-document-review]').waitFor()
+  await page.locator('[data-document-review]').waitFor({timeout:mode==='slow-list'||mode==='failed-list'?2000:30000})
   assert.equal(await page.getByText('NEXT PURCHASE',{exact:true}).count(),0)
   if(mode==='refresh'){await page.reload();await page.locator('[data-document-review]').waitFor();assert.equal(await page.getByText('NEXT PURCHASE',{exact:true}).count(),0)}
   if(mode==='slow')await page.locator('[data-document-review=processing]').waitFor()

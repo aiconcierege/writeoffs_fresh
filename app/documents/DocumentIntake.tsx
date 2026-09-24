@@ -39,7 +39,7 @@ export function DocumentIntake({compact=false,recordId,guided=false,onUploadStat
     }catch(error){setUploads(rows=>rows.map(row=>row.key===key?{...row,state:'failed'}:row));throw error}
    }})
    const failed=results.filter(r=>r.status==='rejected').length,received=results.length-failed
-   setMessage(`${received} ${received===1?'document':'documents'} received.${failed?` ${failed} could not be sent. Check the file is under 20 MB and try again.`:' You can leave while Betti organizes them.'}`);await refresh()
+   setMessage(`${received} ${received===1?'document':'documents'} received.${failed?` ${failed} could not be sent. Check the file is under 20 MB and try again.`:' You can leave while Betti organizes them.'}`);void refresh().catch(()=>{/* Polling retries; registration already succeeded. */})
   }catch{setUploads(rows=>rows.map(row=>row.state==='uploading'?{...row,state:'failed'}:row));setMessage('Your documents could not be sent. Please try again.')}
   finally{busyRef.current=false;setBusy(false);onUploadState?.(false,{received:receivedCount,documentIds:receivedDocumentIds,failed:files.length-receivedCount});if(input.current)input.current.value=''}
  }
