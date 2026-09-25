@@ -1,0 +1,823 @@
+{
+  "status": "Hosted core journey passed; final photo-picker deployment verification pending",
+  "testedApplicationSHA": "23fceac800f5168b69de412f5ad3d4ebadf94ae4",
+  "statements": {
+    "passed": true,
+    "synthetic": true,
+    "mode": "account",
+    "at": "2026-09-25T00:20:03.953Z",
+    "transactions": 24,
+    "transactionAnswers": 0,
+    "income": 210052,
+    "expenses": 142573,
+    "profit": 67479,
+    "events": [
+      {
+        "stage": "statements",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      }
+    ],
+    "receipts": [],
+    "next": "receipts",
+    "questions": [],
+    "transitions": [
+      {
+        "type": "customer_action",
+        "heading": "Getting your current question…"
+      },
+      {
+        "type": "catch_up_journey",
+        "heading": "Let’s gather your earlier statements."
+      },
+      {
+        "type": "catch_up_journey",
+        "heading": "Before I ask you anything, send me the receipts you have."
+      }
+    ],
+    "browserErrors": [],
+    "widths": [
+      390,
+      430,
+      1280,
+      1440
+    ]
+  },
+  "noReceipts": {
+    "passed": true,
+    "synthetic": true,
+    "mode": "none",
+    "at": "2026-09-25T00:21:18.636Z",
+    "transactions": 24,
+    "transactionAnswers": 0,
+    "income": 210052,
+    "expenses": 142573,
+    "profit": 67479,
+    "events": [
+      {
+        "stage": "statements",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "receipts",
+        "response": "none",
+        "itemCount": 0,
+        "documents": 0
+      }
+    ],
+    "receipts": [],
+    "next": "personal",
+    "questions": [],
+    "transitions": [
+      {
+        "type": "customer_action",
+        "heading": "Getting your current question…"
+      },
+      {
+        "type": "catch_up_journey",
+        "heading": "Before I ask you anything, send me the receipts you have."
+      },
+      {
+        "type": "catch_up_journey",
+        "heading": "Are any of these personal?"
+      }
+    ],
+    "browserErrors": [],
+    "widths": [
+      390,
+      430,
+      1280,
+      1440
+    ]
+  },
+  "noReceiptReviews": {
+    "passed": true,
+    "synthetic": true,
+    "mode": "reviews",
+    "at": "2026-09-25T00:22:06.049Z",
+    "transactions": 24,
+    "transactionAnswers": 0,
+    "income": 210052,
+    "expenses": 142573,
+    "profit": 67479,
+    "events": [
+      {
+        "stage": "statements",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "receipts",
+        "response": "none",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "personal",
+        "response": "reviewed",
+        "itemCount": 9,
+        "documents": 0
+      },
+      {
+        "stage": "nonexpense",
+        "response": "reviewed",
+        "itemCount": 7,
+        "documents": 0
+      }
+    ],
+    "receipts": [],
+    "next": "special_transaction",
+    "questions": [
+      {
+        "merchant": "ACH DEPOSIT - BLUE MESA CONSULTING",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "STRIPE PAYOUT",
+        "kind": "transaction_type",
+        "prompt": "Is that right?"
+      },
+      {
+        "merchant": "ZELLE FROM JANE MORRIS - INV 1041",
+        "kind": "transaction_type",
+        "prompt": "Is that right?"
+      },
+      {
+        "merchant": "ZELLE FROM EMILY CARTER",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "ZELLE TO MARK REYNOLDS",
+        "kind": "transaction_type",
+        "prompt": "What was this money for?"
+      },
+      {
+        "merchant": "ZELLE FROM ROBERT HALL",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "ATM WITHDRAWAL",
+        "kind": "transaction_type",
+        "prompt": "What did you use the cash for?"
+      },
+      {
+        "merchant": "CASH DEPOSIT",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "CHECK #104 - DESERT PRINT SHOP",
+        "kind": "business_purpose",
+        "prompt": "What was this purchase for?"
+      },
+      {
+        "merchant": "STATE FARM INSURANCE",
+        "kind": "business_purpose",
+        "prompt": "What did this insurance cover?"
+      },
+      {
+        "merchant": "verizon",
+        "kind": "percentage",
+        "prompt": "About how much do you use this phone service for your business?"
+      }
+    ],
+    "transitions": [
+      {
+        "type": "customer_action",
+        "heading": "Getting your current question…"
+      },
+      {
+        "type": "catch_up_journey",
+        "heading": "Are any of these personal?"
+      },
+      {
+        "type": "catch_up_journey",
+        "heading": "Are any of these not expenses for this business?"
+      },
+      {
+        "type": "special_transaction",
+        "heading": null
+      },
+      {
+        "type": "special_transaction",
+        "heading": "Send me the loan statement."
+      }
+    ],
+    "browserErrors": [],
+    "widths": [
+      390,
+      430,
+      1280,
+      1440
+    ]
+  },
+  "receiptCompletionAfterGuardFix": {
+    "passed": true,
+    "synthetic": true,
+    "mode": "finish-receipts",
+    "at": "2026-09-25T00:26:37.243Z",
+    "transactions": 24,
+    "transactionAnswers": 0,
+    "income": 210052,
+    "expenses": 142573,
+    "profit": 67479,
+    "events": [
+      {
+        "stage": "statements",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "receipts",
+        "response": "uploaded",
+        "itemCount": 0,
+        "documents": 2
+      },
+      {
+        "stage": "receipts",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      }
+    ],
+    "receipts": [
+      {
+        "merchant": "STATE FARM INSURANCE",
+        "cents": 11875
+      },
+      {
+        "merchant": "DESERT PRINT SHOP",
+        "cents": 21840
+      },
+      {
+        "merchant": "VERIZON WIRELESS",
+        "cents": 14628
+      }
+    ],
+    "next": "personal",
+    "questions": [],
+    "transitions": [
+      {
+        "type": "customer_action",
+        "heading": "Getting your current question…"
+      },
+      {
+        "type": "catch_up_journey",
+        "heading": "Any more receipts?"
+      },
+      {
+        "type": "catch_up_journey",
+        "heading": "Are any of these personal?"
+      }
+    ],
+    "browserErrors": [],
+    "widths": [
+      390,
+      430,
+      1280,
+      1440
+    ]
+  },
+  "receiptInformedReviews": {
+    "passed": true,
+    "synthetic": true,
+    "mode": "reviews",
+    "at": "2026-09-25T00:27:23.481Z",
+    "transactions": 24,
+    "transactionAnswers": 0,
+    "income": 210052,
+    "expenses": 142573,
+    "profit": 67479,
+    "events": [
+      {
+        "stage": "statements",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "receipts",
+        "response": "uploaded",
+        "itemCount": 0,
+        "documents": 2
+      },
+      {
+        "stage": "receipts",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "personal",
+        "response": "reviewed",
+        "itemCount": 9,
+        "documents": 0
+      },
+      {
+        "stage": "nonexpense",
+        "response": "reviewed",
+        "itemCount": 7,
+        "documents": 0
+      }
+    ],
+    "receipts": [
+      {
+        "merchant": "STATE FARM INSURANCE",
+        "cents": 11875
+      },
+      {
+        "merchant": "DESERT PRINT SHOP",
+        "cents": 21840
+      },
+      {
+        "merchant": "VERIZON WIRELESS",
+        "cents": 14628
+      }
+    ],
+    "next": "special_transaction",
+    "questions": [
+      {
+        "merchant": "ZELLE FROM JANE MORRIS - INV 1041",
+        "kind": "transaction_type",
+        "prompt": "Is that right?"
+      },
+      {
+        "merchant": "ZELLE FROM EMILY CARTER",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "ATM WITHDRAWAL",
+        "kind": "transaction_type",
+        "prompt": "What did you use the cash for?"
+      },
+      {
+        "merchant": "ZELLE FROM ROBERT HALL",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "STRIPE PAYOUT",
+        "kind": "transaction_type",
+        "prompt": "Is that right?"
+      },
+      {
+        "merchant": "ZELLE TO MARK REYNOLDS",
+        "kind": "transaction_type",
+        "prompt": "What was this money for?"
+      },
+      {
+        "merchant": "ACH DEPOSIT - BLUE MESA CONSULTING",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "CASH DEPOSIT",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "verizon",
+        "kind": "percentage",
+        "prompt": "About how much do you use this phone service for your business?"
+      }
+    ],
+    "transitions": [
+      {
+        "type": "customer_action",
+        "heading": "Getting your current question…"
+      },
+      {
+        "type": "catch_up_journey",
+        "heading": "Are any of these personal?"
+      },
+      {
+        "type": "catch_up_journey",
+        "heading": "Are any of these not expenses for this business?"
+      },
+      {
+        "type": "special_transaction",
+        "heading": null
+      },
+      {
+        "type": "special_transaction",
+        "heading": "Send me the loan statement."
+      }
+    ],
+    "browserErrors": [],
+    "widths": [
+      390,
+      430,
+      1280,
+      1440
+    ]
+  },
+  "photoRetryAfterOcrFix": {
+    "passed": true,
+    "synthetic": true,
+    "mode": "retry-photos",
+    "engine": "chromium",
+    "at": "2026-09-25T00:52:17.272Z",
+    "transactions": 24,
+    "transactionAnswers": 0,
+    "income": 210052,
+    "expenses": 142573,
+    "profit": 67479,
+    "events": [
+      {
+        "stage": "statements",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "receipts",
+        "response": "none",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "personal",
+        "response": "reviewed",
+        "itemCount": 9,
+        "documents": 0
+      },
+      {
+        "stage": "nonexpense",
+        "response": "reviewed",
+        "itemCount": 7,
+        "documents": 0
+      }
+    ],
+    "receipts": [
+      {
+        "merchant": "VERIZON WIRELESS",
+        "cents": 14628
+      },
+      {
+        "merchant": "DESERT PRINT SHOP",
+        "cents": 21840
+      },
+      {
+        "merchant": "STATE FARM INSURANCE",
+        "cents": 11875
+      }
+    ],
+    "next": "special_transaction",
+    "questions": [
+      {
+        "merchant": "ACH DEPOSIT - BLUE MESA CONSULTING",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "STRIPE PAYOUT",
+        "kind": "transaction_type",
+        "prompt": "Is that right?"
+      },
+      {
+        "merchant": "ZELLE FROM JANE MORRIS - INV 1041",
+        "kind": "transaction_type",
+        "prompt": "Is that right?"
+      },
+      {
+        "merchant": "ZELLE FROM EMILY CARTER",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "ZELLE TO MARK REYNOLDS",
+        "kind": "transaction_type",
+        "prompt": "What was this money for?"
+      },
+      {
+        "merchant": "ZELLE FROM ROBERT HALL",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "ATM WITHDRAWAL",
+        "kind": "transaction_type",
+        "prompt": "What did you use the cash for?"
+      },
+      {
+        "merchant": "CASH DEPOSIT",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "verizon",
+        "kind": "percentage",
+        "prompt": "About how much do you use this phone service for your business?"
+      }
+    ],
+    "transitions": [
+      {
+        "type": "customer_action",
+        "heading": "Getting your current question…"
+      },
+      {
+        "type": "special_transaction",
+        "heading": null
+      },
+      {
+        "type": "special_transaction",
+        "heading": "Send me the loan statement."
+      }
+    ],
+    "browserErrors": [],
+    "widths": [
+      390,
+      430,
+      1280,
+      1440
+    ]
+  },
+  "completion": {
+    "passed": true,
+    "synthetic": true,
+    "mode": "complete",
+    "engine": "chromium",
+    "at": "2026-09-25T00:54:07.239Z",
+    "transactions": 24,
+    "transactionAnswers": 7,
+    "income": 210052,
+    "expenses": 142573,
+    "profit": 67479,
+    "events": [
+      {
+        "stage": "statements",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "receipts",
+        "response": "none",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "personal",
+        "response": "reviewed",
+        "itemCount": 9,
+        "documents": 0
+      },
+      {
+        "stage": "nonexpense",
+        "response": "reviewed",
+        "itemCount": 7,
+        "documents": 0
+      }
+    ],
+    "receipts": [
+      {
+        "merchant": "VERIZON WIRELESS",
+        "cents": 14628
+      },
+      {
+        "merchant": "DESERT PRINT SHOP",
+        "cents": 21840
+      },
+      {
+        "merchant": "STATE FARM INSURANCE",
+        "cents": 11875
+      }
+    ],
+    "questions": [],
+    "transitions": [
+      {
+        "type": "customer_action",
+        "heading": "Getting your current question…"
+      },
+      {
+        "type": "special_transaction",
+        "heading": null
+      },
+      {
+        "type": "special_transaction",
+        "heading": "Send me the loan statement."
+      },
+      {
+        "type": "special_transaction",
+        "heading": null
+      },
+      {
+        "type": "special_transaction",
+        "heading": "Is it for this purchase?"
+      },
+      {
+        "type": "material_question",
+        "heading": "What was this money from?"
+      },
+      {
+        "type": "material_question",
+        "heading": "Is that right?"
+      },
+      {
+        "type": "material_question",
+        "heading": "What was this money from?"
+      },
+      {
+        "type": "material_question",
+        "heading": "What was this money for?"
+      },
+      {
+        "type": "material_question",
+        "heading": "What was this money from?"
+      },
+      {
+        "type": "material_question",
+        "heading": "What did you use the cash for?"
+      },
+      {
+        "type": "material_question",
+        "heading": "What was this money from?"
+      },
+      {
+        "type": "material_question",
+        "heading": "About how much do you use this phone service for your business?"
+      },
+      {
+        "type": "material_question",
+        "heading": "Was any of this purchase personal?"
+      },
+      {
+        "type": "received",
+        "heading": "I’m updating your books."
+      },
+      {
+        "type": "blocked",
+        "heading": "You’re all set for now."
+      },
+      {
+        "type": "blocked",
+        "heading": "Getting your current question…"
+      },
+      {
+        "type": "blocked",
+        "heading": "You’re all set for now."
+      }
+    ],
+    "browserErrors": [],
+    "widths": [
+      390,
+      430,
+      1280,
+      1440
+    ]
+  },
+  "completionActions": {
+    "submittedDistinctActions": 12,
+    "refreshStable": true
+  },
+  "slowResponse": {
+    "passed": true,
+    "synthetic": true,
+    "mode": "slow",
+    "engine": "chromium",
+    "at": "2026-09-25T00:58:05.226Z",
+    "transactions": 24,
+    "transactionAnswers": 0,
+    "income": 210052,
+    "expenses": 142573,
+    "profit": 67479,
+    "events": [
+      {
+        "stage": "statements",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "receipts",
+        "response": "uploaded",
+        "itemCount": 0,
+        "documents": 2
+      },
+      {
+        "stage": "receipts",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "personal",
+        "response": "reviewed",
+        "itemCount": 9,
+        "documents": 0
+      },
+      {
+        "stage": "nonexpense",
+        "response": "reviewed",
+        "itemCount": 7,
+        "documents": 0
+      }
+    ],
+    "receipts": [
+      {
+        "merchant": "STATE FARM INSURANCE",
+        "cents": 11875
+      },
+      {
+        "merchant": "DESERT PRINT SHOP",
+        "cents": 21840
+      },
+      {
+        "merchant": "VERIZON WIRELESS",
+        "cents": 14628
+      }
+    ],
+    "next": "material_question",
+    "questions": [
+      {
+        "merchant": "ZELLE FROM JANE MORRIS - INV 1041",
+        "kind": "transaction_type",
+        "prompt": "Is that right?"
+      },
+      {
+        "merchant": "ZELLE FROM EMILY CARTER",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "ATM WITHDRAWAL",
+        "kind": "transaction_type",
+        "prompt": "What did you use the cash for?"
+      },
+      {
+        "merchant": "ZELLE FROM ROBERT HALL",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "STRIPE PAYOUT",
+        "kind": "transaction_type",
+        "prompt": "Is that right?"
+      },
+      {
+        "merchant": "ZELLE TO MARK REYNOLDS",
+        "kind": "transaction_type",
+        "prompt": "What was this money for?"
+      },
+      {
+        "merchant": "ACH DEPOSIT - BLUE MESA CONSULTING",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "CASH DEPOSIT",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "verizon",
+        "kind": "percentage",
+        "prompt": "About how much do you use this phone service for your business?"
+      }
+    ],
+    "transitions": [
+      {
+        "type": "customer_action",
+        "heading": "Getting your current question…"
+      },
+      {
+        "type": "special_transaction",
+        "heading": null
+      },
+      {
+        "type": "special_transaction",
+        "heading": "Send me a supporting record."
+      },
+      {
+        "type": "material_question",
+        "heading": "Is that right?"
+      }
+    ],
+    "browserErrors": [],
+    "widths": [
+      390,
+      430,
+      1280,
+      1440
+    ]
+  },
+  "learnedPercentage": {
+    "passed": true,
+    "synthetic": true,
+    "recurringRecords": 2,
+    "oneCustomerPercentageReused": true,
+    "initialBusinessCentsPerBill": 9800,
+    "correctedBusinessCentsPerBill": 7000,
+    "conflictBlocksAutomaticReuse": true,
+    "sourceTransactionsUnchanged": true
+  }
+}

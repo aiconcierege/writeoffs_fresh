@@ -4,6 +4,8 @@ import { CUSTOMER_PHOTO_GROUPING } from './photo-grouping'
 
 const MAX_BYTES=20*1024*1024
 const epoch=new Date('2000-01-01T00:00:00Z')
+export function isHeifImage(bytes:Uint8Array){return String.fromCharCode(...bytes.slice(4,12)).startsWith('ftyp')
+  &&/heic|heix|hevc|hevx|mif1|msf1/.test(String.fromCharCode(...bytes.slice(8,40)))}
 /** An explicit multi-photo document retains every original as a PDF attachment.
  * Rendered pages are orientation-normalized derivatives, never replacement
  * evidence. Fixed metadata makes identical ordered input bytes retry-stable. */
@@ -18,8 +20,7 @@ export async function receiptPhotoDocument(files:File[]):Promise<File>{
   originalBytes+=file.size
   if(!file.size||originalBytes>MAX_BYTES)throw Error('Choose photos totaling less than 20 MB.')
   const bytes=new Uint8Array(await file.arrayBuffer()),kind=fileKind(bytes)
-  const heif=String.fromCharCode(...bytes.slice(4,12)).startsWith('ftyp')
-    &&/heic|heix|hevc|hevx|mif1|msf1/.test(String.fromCharCode(...bytes.slice(8,40)))
+  const heif=isHeifImage(bytes)
   if(!['jpeg','png','webp'].includes(kind)&&!heif)throw Error('Choose receipt photos, not a PDF or other file, for this option.')
   let bitmap:ImageBitmap
   try{bitmap=await createImageBitmap(file,{imageOrientation:'from-image'})}

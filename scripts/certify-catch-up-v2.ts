@@ -11,7 +11,7 @@ const origin='https://writeoffs-fresh-staging.vercel.app',dir=process.env.ROUTIN
 function totp(secret:string){const abc='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',bits=[...secret.replace(/=+$/,'').toUpperCase()].map(c=>abc.indexOf(c).toString(2).padStart(5,'0')).join(''),key=Buffer.from(Array.from({length:Math.floor(bits.length/8)},(_,i)=>parseInt(bits.slice(i*8,i*8+8),2))),counter=Buffer.alloc(8);counter.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const h=createHmac('sha1',key).update(counter).digest(),o=h.at(-1)!&15;return String((h.readUInt32BE(o)&0x7fffffff)%1000000).padStart(6,'0')}
 async function main(){
  process.umask(0o077);assert(/^\/private\/tmp\/writeoffs-routing-catchup-v2-[a-z0-9-]+$/.test(dir))
- const engine=process.env.CERT_BROWSER??'chromium';assert(['chromium','webkit'].includes(engine));const mode=process.argv[2];assert(['statement','account','complete','photos','finish-receipts','receipts','reviews','inspect','none','later'].includes(mode))
+ const engine=process.env.CERT_BROWSER??'chromium';assert(['chromium','webkit'].includes(engine));const mode=process.argv[2];assert(['statement','account','complete','visual','slow','heic','photos','retry-photos','finish-receipts','receipts','reviews','inspect','none','later'].includes(mode))
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL!,anon=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
  assert.equal(process.env.WRITEOFFS_ENVIRONMENT,'staging');assert.equal(new URL(url).hostname,'sgrqrrxrlglhjuetdtps.supabase.co')
  const f=JSON.parse(await readFile(`${dir}/fixture.json`,'utf8'));assert(!['d785186b-16db-47e5-ab02-e59fd1ae311b','2c0ddbb3-6650-42a4-aafa-3685f7efe288'].includes(f.businessId))
@@ -20,16 +20,17 @@ async function main(){
  const jar=new Map<string,string>(),db=createServerClient(url,anon,{cookies:{getAll:()=>[...jar].map(([name,value])=>({name,value})),setAll:values=>values.forEach(({name,value})=>jar.set(name,value))}})
  assert(!(await db.auth.signInWithPassword({email:f.email,password:f.password})).error)
  assert(!(await db.auth.mfa.challengeAndVerify({factorId:f.factorId,code:totp(f.totpSecret)})).error)
+ const baselineAnswers=await db.from('bookkeeping_review_events').select('id',{count:'exact',head:true}).eq('business_id',f.businessId).eq('event_type','answered');assert(!baselineAnswers.error)
  await mkdir(`${dir}/proof`,{recursive:true});const browser=await (engine==='webkit'?webkit:chromium).launch({headless:true})
  try{
-  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,timezoneId:'America/Phoenix',reducedMotion:'reduce'})
+  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:process.env.CERT_DESKTOP!=='1',hasTouch:process.env.CERT_DESKTOP!=='1',timezoneId:'America/Phoenix',reducedMotion:'reduce'})
   await context.addCookies([...jar].map(([name,value])=>({name,value,domain:new URL(origin).hostname,path:'/',secure:true,sameSite:'Lax' as const})))
   const page=await context.newPage(),errors:string[]=[],transitions:{type:string|null;heading:string|null}[]=[]
   page.on('pageerror',e=>errors.push(e.name))
   await page.exposeFunction('recordCatchupState',(s:{type:string|null;heading:string|null})=>{const last=transitions.at(-1);if(!last||last.type!==s.type||last.heading!==s.heading)transitions.push(s)})
   await page.addInitScript(()=>{new MutationObserver(()=>{const root=document.querySelector('[data-guided-action]');if(root)(window as unknown as {recordCatchupState:(s:unknown)=>void}).recordCatchupState({type:root.getAttribute('data-guided-action'),heading:root.querySelector('h1')?.textContent??null})}).observe(document,{subtree:true,childList:true,attributes:true,attributeFilter:['data-guided-action']})})
   const work=()=>loadCanonicalBettiWork({db,businessId:f.businessId,scope:'business'})
-  const screenshot=async(label:string)=>{for(const width of [390,430,1280,1440]){await page.setViewportSize({width,height:900});await page.waitForFunction(()=>Array.from(document.images).every(i=>i.complete),{timeout:10000});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'HORIZONTAL_OVERFLOW');await page.screenshot({path:`${dir}/proof/${engine}-${label}-${width}.png`,fullPage:true})}await page.setViewportSize({width:390,height:844})}
+  const screenshot=async(label:string)=>{for(const width of [390,430,1280,1440]){await page.setViewportSize({width,height:900});await page.waitForFunction(()=>Array.from(document.images).every(i=>i.complete),{timeout:10000});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'HORIZONTAL_OVERFLOW');await page.screenshot({path:`${dir}/proof/${engine}-${process.env.CERT_DESKTOP==='1'?'desktop':'mobile'}-${label}-${width}.png`,fullPage:true})}await page.setViewportSize({width:390,height:844})}
   const waitSettled=async()=>{for(let n=0;n<240;n++){const w=await work();if(!w.betti.jobs.length&&!w.betti.missingJobs.length)return w;await page.waitForTimeout(2000)}throw Error('SYNTHETIC_PROCESSING_NOT_SETTLED')}
   const upload=async(paths:string[])=>{const registered=page.waitForResponse(r=>r.url()===origin+'/api/documents'&&r.request().method()==='POST',{timeout:30000});await page.getByLabel('Send Betti documents',{exact:true}).setInputFiles(paths);assert.equal((await registered).status(),200,'DOCUMENT_REGISTRATION_FAILED')}
   if(mode==='statement'||mode==='account'){
@@ -58,6 +59,33 @@ async function main(){
    }else if(mode==='finish-receipts'){await page.getByRole('heading',{name:'Any more receipts?'}).waitFor();await page.getByRole('button',{name:'That’s all I have',exact:true}).click()}else await page.getByRole('button',{name:mode==='none'?'I don’t have any':'I’ll do this later',exact:true}).click()
    await page.getByRole('heading',{name:'Are any of these personal?',exact:true}).waitFor({timeout:30000});await screenshot('personal-review')
   }
+  if(mode==='visual'){
+   await page.goto(origin+'/import');await page.getByRole('heading',{name:'Send it to Betti.'}).waitFor();await screenshot('import-populated')
+   assert(await page.locator('.document-betti').evaluate(e=>e.getBoundingClientRect().height>50),'BETTI_COLLAPSED')
+   await page.goto(origin+'/check-in');await page.locator('[data-guided-action]').waitFor();await screenshot('check-in-final')
+   await page.goto(origin+'/home');await page.getByRole('main').waitFor();await screenshot('home-final')
+  }
+  if(mode==='slow'){
+   await page.goto(origin+'/check-in');await page.locator('[data-guided-action]').waitFor()
+   const before=await page.locator('[data-guided-action]').getAttribute('data-guided-id');assert(before)
+   let release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve})
+   await page.route('**/api/bookkeeping/records/*/special',async route=>{const response=await route.fetch();await gate;await route.fulfill({response})})
+   await page.getByRole('button',{name:'I’ll come back to this',exact:true}).click()
+   await page.locator('.betti-transition-feedback').waitFor({timeout:1000})
+   await page.waitForTimeout(2000);assert.equal(await page.locator('[data-guided-action]').getAttribute('data-guided-id'),before)
+   assert.equal(await page.locator('.betti-transition-feedback').count(),1);release()
+   await page.waitForFunction(id=>document.querySelector('[data-guided-action]')?.getAttribute('data-guided-id')!==id,before,{timeout:60000})
+   assert.equal(await page.locator('.betti-error').count(),0);await screenshot('slow-response-next-turn')
+  }
+  if(mode==='heic'){
+   assert.equal(engine,'webkit');await page.goto(origin+'/import');await page.getByRole('heading',{name:'Send it to Betti.'}).waitFor()
+   assert.equal(await page.getByRole('checkbox',{name:'These photos are pages of one receipt or document',exact:true}).isChecked(),false)
+   await upload(['/private/tmp/writeoffs-routing-catchup-v2-photos/two-receipts.heic']);await screenshot('heic-received');await waitSettled()
+   const beforeDocs=await db.from('business_documents').select('id',{count:'exact',head:true}).eq('business_id',f.businessId)
+   await upload(['/private/tmp/writeoffs-routing-catchup-v2-photos/two-receipts.heic'])
+   const afterDocs=await db.from('business_documents').select('id',{count:'exact',head:true}).eq('business_id',f.businessId)
+   assert.equal(afterDocs.count,beforeDocs.count,'DUPLICATE_PHOTO_CREATED_DOCUMENT')
+  }
   if(mode==='complete'){
    await page.goto(origin+'/check-in');await page.locator('[data-guided-action]').waitFor()
    const seen=new Set<string>();
@@ -77,12 +105,19 @@ async function main(){
    await screenshot('completed');await page.reload();await page.getByRole('heading',{name:'You’re all set for now.',exact:true}).waitFor()
    await writeFile(`${dir}/proof/completion-actions.json`,JSON.stringify({submittedDistinctActions:seen.size,refreshStable:true},null,2))
   }
-  if(mode==='photos'){
+  if(mode==='photos'||mode==='retry-photos'){
+   if(mode==='retry-photos'){
+    const doc=await admin.from('business_documents').select('id').eq('business_id',f.businessId).eq('original_name','Receipt photos.pdf').single();assert(doc.data&&!doc.error)
+    const job=await admin.from('receipt_processing_jobs').select('id,state').eq('business_id',f.businessId).eq('document_id',doc.data.id).eq('job_type','document_intake').single();assert(job.data&&!job.error)
+    const retry=await admin.rpc('requeue_terminal_document_processing_job',{p_job_id:job.data.id,p_expected_state:job.data.state,p_reason:'SYNTHETIC_FIXED_SCANNED_PDF_RETRY'});assert(!retry.error&&retry.data===true)
+    assert.equal((await context.request.post(origin+`/api/documents/${doc.data.id}/retry`)).status(),202)
+   }else{
    await page.goto(origin+'/import');await page.getByRole('heading',{name:'Send it to Betti.'}).waitFor()
    await upload(['/private/tmp/writeoffs-routing-catchup-v2-photos/two-receipts-one-page-1.jpg'])
    const grouping=page.getByRole('checkbox',{name:'These photos are pages of one receipt or document',exact:true})
    await grouping.check();await upload(['/private/tmp/writeoffs-routing-catchup-v2-photos/phone-bill-two-pages-1.jpg','/private/tmp/writeoffs-routing-catchup-v2-photos/phone-bill-two-pages-2.jpg'])
-   await screenshot('mobile-photos-received');await waitSettled()
+   await screenshot('mobile-photos-received');}
+   await waitSettled()
    await page.goto(origin+'/check-in');await page.locator('[data-guided-action]').waitFor();await screenshot('after-mobile-evidence')
   }
   if(mode==='reviews'){
@@ -100,12 +135,12 @@ async function main(){
   const tx=await db.from('financial_transactions').select('id',{count:'exact',head:true}).eq('business_id',f.businessId)
   for(const r of [answered,events,receipts,tx])assert(!r.error,'SYNTHETIC_READ_FAILED')
   const questions=w.customer.actionable.filter(a=>a.question).map(a=>({merchant:a.question!.transaction.merchant,kind:a.question!.kind,prompt:a.question!.prompt}))
-  if(mode==='photos'||mode==='reviews'&&dir.endsWith('-receipts')){
+  if(mode==='photos'||mode==='retry-photos'||mode==='reviews'&&dir.endsWith('-receipts')){
    assert(!questions.some(q=>/print shop|state farm/i.test(q.merchant)),'EVIDENCE_DID_NOT_REMOVE_QUESTION')
    assert(questions.some(q=>/verizon/i.test(q.merchant)&&q.kind==='percentage'),'PERCENTAGE_LOST')
    assert.equal(receipts.data?.length,3)
   }
-  assert.equal(tx.count,24);if(mode!=='complete')assert.equal(answered.count,0,'BROAD_REVIEW_FABRICATED_TRANSACTION_ANSWER');else assert((answered.count??0)>0,'NO_UNCERTAINTY_PERSISTED')
+  assert.equal(tx.count,24);if(mode!=='complete')assert.equal(answered.count,baselineAnswers.count,'UNEXPECTED_TRANSACTION_ANSWER');else assert((answered.count??0)>0,'NO_UNCERTAINTY_PERSISTED')
   assert.deepEqual([report.businessIncomeCents,report.businessExpensesCents,report.businessProfitCents],[210052,142573,67479],'WORKING_BOOKS_CHANGED')
   assert.equal(errors.length,0,'BROWSER_ERRORS')
   const result={passed:true,synthetic:true,mode,engine,at:new Date().toISOString(),transactions:tx.count,transactionAnswers:answered.count,income:report.businessIncomeCents,expenses:report.businessExpensesCents,profit:report.businessProfitCents,events:events.data?.map(e=>({stage:e.stage,response:e.response,itemCount:e.items.length,documents:e.document_ids.length})),receipts:receipts.data?.map(r=>({merchant:r.merchant,cents:r.total_amount_cents})),next:w.nextAction?.journey?.stage??w.nextAction?.type,questions,transitions,browserErrors:errors,widths:mode==='inspect'?[]:[390,430,1280,1440]}
