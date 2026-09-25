@@ -3,6 +3,7 @@ import 'server-only'
 import {documentMayOverlap} from './overlap'
 import {fileKind} from './file-validation'
 import {readPdfPages} from './pdf-reader'
+import {readIntakePdfEvidence} from './pdf-intake-evidence'
 import {CUSTOMER_PHOTO_GROUPING} from './photo-grouping'
 import {classifyDocumentText} from './classification'
 import {parseStructuredFile} from './structured-text'
@@ -222,8 +223,8 @@ async function processIntake(admin:SupabaseClient,job:Row){
   let receiptPages:ReceiptPage[]=[]
   if(kind==='pdf'){
     customerGrouped=(await PDFDocument.load(target.bytes)).getSubject()===CUSTOMER_PHOTO_GROUPING
-    const pages=await readPdfPages(target.bytes);text=pages.map(p=>p.plain).join('\n');documentClass=classifyDocumentText(text)
-    receiptPages=pages.map(p=>({...p,text:p.plain}))
+    receiptPages=await readIntakePdfEvidence(target.bytes,googleVisionEvidence)
+    text=receiptPages.map(p=>p.text).join('\n');documentClass=classifyDocumentText(text)
   }else if(['png','jpeg','webp'].includes(kind)){
     const evidence=await googleVisionEvidence(target.bytes)
     text=evidence.annotation?visionReceiptText(evidence.annotation):evidence.text;documentClass=classifyDocumentText(text)

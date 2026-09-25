@@ -56,7 +56,7 @@ export function CatchUpStep({ action, busy, perform, onPending, onProvided }: {
       </label>)}
     </fieldset>}
     <div className="betti-continue">
-      <button className="btn btn-primary" disabled={busy || uploading} onClick={() => void save(review ? 'reviewed' : stage === 'receipts' && !journey.moreReceipts ? 'none' : 'continue')}>
+      <button className={`btn ${review ? 'btn-primary' : 'btn-secondary'}`} disabled={busy || uploading} onClick={() => void save(review ? 'reviewed' : stage === 'receipts' && !journey.moreReceipts ? 'none' : 'continue')}>
         {review ? selected.length ? personal ? 'Mark selected as personal' : 'Help Betti understand selected items'
           : personal ? 'Everything here was for my business' : 'These were all business expenses'
           : stage === 'statements' ? 'Keep working with what I sent' : journey.moreReceipts ? 'That’s all I have' : 'I don’t have any'}

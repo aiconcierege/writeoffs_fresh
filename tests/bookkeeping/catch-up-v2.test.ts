@@ -17,6 +17,28 @@ function respond(c:WorkContext,response:'continue'|'none'|'later'|'uploaded'|'re
   stage:action.journey.stage,response,items:action.items??[],document_ids:response==='uploaded'?['doc']:[],created_at:now})
 }
 describe('catch-up V2 authoritative journey',()=>{
+ it('does not ask a connected account for historical statement files',()=>{
+  const {c}=fixture();c.accounts[0].provider='plaid'
+  expect(project(c).nextAction?.journey?.stage).toBe('receipts')
+ })
+ it('does not enroll current-only activity in historical bulk reviews',()=>{
+  const {c,q}=fixture();c.records[0].activity_date='2026-09-22';c.records[0].has_receipt=true
+  const question={...q,transaction:{...q.transaction,date:'2026-09-22'}}
+  expect(project(c,[question]).nextAction?.question?.id).toBe('purpose')
+  expect(project(c,[question]).customer.actionable.some(a=>a.journey)).toBe(false)
+ })
+ it('uses the reassessed question set after receipts, with no stale question or fixed count',()=>{
+  const {c,q}=fixture();respond(c,'continue',[q]);respond(c,'uploaded',[q])
+  c.records[0].has_receipt=true
+  // The canonical evidence engine supplies a narrower remaining fact, never
+  // the old projected purpose question. Orchestration must preserve that set.
+  const narrowed={...q,id:'remaining-allocation',kind:'percentage' as const,prompt:'About how much was for business?'}
+  respond(c,'continue',[narrowed]);respond(c,'reviewed',[narrowed]);respond(c,'reviewed',[narrowed])
+  expect(project(c,[narrowed]).nextAction?.question?.id).toBe('remaining-allocation')
+  expect(project(c,[narrowed]).customer.substantiveCount).toBe(1)
+  expect(project(c,[]).customer.substantiveCount).toBe(0)
+  expect(project(c,[]).customer.actionable.some(a=>a.question)).toBe(false)
+ })
  it('offers unknown outgoing money for personal exceptions without inventing an expense',()=>{
   const{c,q}=fixture();c.records[0].bookkeeping_nature=null;c.records[0].treatment='unresolved';c.records[0].allocations=[]
   respond(c,'continue',[q])

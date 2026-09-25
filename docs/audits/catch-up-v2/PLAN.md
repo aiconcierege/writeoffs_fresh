@@ -1,13 +1,13 @@
 # Catch-up Workflow V2
 
-Status: implementation in progress; not deployed or certified.
+Status: implementation deployed to dedicated staging; hosted synthetic certification in progress.
 
 ## Preservation
 
 Read-only snapshots of both existing clean-room customers were captured before
 implementation. `preservation-before.json` contains table counts and hashes, not
 customer credentials or raw financial evidence. Full snapshots remain in protected
-local temporary files. Customer #1's worker exclusion was verified enabled.
+local temporary files. Both customers’ staging worker exclusions were verified enabled.
 Customer #2 has no current Check-in action; this does not certify complete source
 coverage. Its four uploaded documents and three usable receipt extractions remain.
 The loan fact records $400 principal and $50 interest. Neither customer is a fixture.

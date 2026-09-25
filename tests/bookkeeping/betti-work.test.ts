@@ -366,6 +366,16 @@ describe('existing special evidence workflows are not limited to question rows',
   expect(project(c).customer.deferredCount).toBe(1);expect(project(c).customer.actionableCount).toBe(0)
   expect(projectBettiWork({businessId:'a',context:c,questions:[],asOf:'2026-09-25T12:00:00Z'}).customer.actionableCount).toBe(1)
  })
+ it('does not immediately repeat a refund uncertainty or turn it into a timed deferral',()=>{
+  const c=special('refund');c.specialUncertainties=[{business_id:'a',id:'unknown',record_id:'old',decision_id:'decision-old',created_at:now}]
+  const before=JSON.stringify(c.records)
+  expect(project(c).customer.actionableCount).toBe(0)
+  expect(project(c).customer.deferred[0].availableAt).toBeNull()
+  expect(projectBettiWork({businessId:'a',context:c,questions:[],asOf:'2026-10-25T12:00:00Z'}).customer.actionableCount).toBe(0)
+  // The canonical reader removes the hold when its evidence fingerprint changes.
+  c.specialUncertainties=[];expect(project(c).nextAction?.type).toBe('special_transaction')
+  expect(JSON.stringify(c.records)).toBe(before)
+ })
  it('waits on real processing and uses one account prerequisite',()=>{
   const c=special();c.jobs=[job()];expect(project(c).customer.actionableCount).toBe(0);expect(project(c).betti.waiting).toHaveLength(1)
   c.accounts=[{business_id:'a',id:'account',designation:null,use_version:null}]

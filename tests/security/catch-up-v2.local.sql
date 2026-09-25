@@ -36,6 +36,20 @@ begin
  select jsonb_agg(to_jsonb(d)) into before_decisions from public.bookkeeping_decisions d where business_id=bid;
 
  delete from public.bookkeeping_processing_jobs where business_id=bid;
+ -- Real hosted failure: completed canonical extraction can leave optional,
+ -- write-disabled receipt-understanding jobs pending. They must not reject an
+ -- otherwise authoritative receipt-completion response.
+ insert into public.receipts(business_id,user_id,storage_path,mime_type,bytes)
+ values(bid,uid,'synthetic/shadow-only.jpg','image/jpeg',100) returning * into receipt;
+ insert into public.receipt_processing_jobs(business_id,receipt_id,job_type,processing_reason,document_sha256,processor_version,provider,model,prompt_version,output_schema_version)
+ values(bid,receipt.id,'receipt_understanding_shadow','synthetic_shadow',repeat('b',64),'test','test','test','test','test');
+ insert into public.receipt_processing_jobs(business_id,receipt_id,job_type,processing_reason,document_sha256,processor_version,provider,model,prompt_version,output_schema_version)
+ values(bid,receipt.id,'canonical_receipt_extraction','synthetic_canonical',repeat('b',64),'test','test','test','test','test');
+ failed:=false;begin
+  perform public.answer_catch_up_stage(gen_random_uuid(),scope_key,'2026-01-01','2026-07-31','receipts','continue','[]','{}','{}');
+ exception when others then failed:=true;end;
+ if not failed then raise exception 'Canonical extraction stopped fencing completion';end if;
+ delete from public.receipt_processing_jobs where business_id=bid and job_type='canonical_receipt_extraction';
  response:=public.answer_catch_up_stage(request_id,scope_key,'2026-01-01','2026-07-31','statements','continue','[]','{}','{}');
  if response<>public.answer_catch_up_stage(request_id,scope_key,'2026-01-01','2026-07-31','statements','continue','[]','{}','{}') then raise exception 'Retry failed';end if;
  failed:=false;begin
@@ -60,6 +74,14 @@ begin
  if not exists(select 1 from public.bookkeeping_decisions where id=new_decision and treatment='unresolved' and bookkeeping_nature is null) then raise exception 'Invented exception nature';end if;
  if not exists(select 1 from public.bookkeeping_review_events where bookkeeping_record_id=rid and based_on_decision_id=new_decision and reason='TRANSACTION_TYPE_UNCLEAR' and event_type='opened') then raise exception 'Missing material exception follow-up';end if;
  if (select count(*) from public.financial_transactions where business_id=bid)<>1 then raise exception 'Source changed';end if;
+ -- An explicit personal exception uses the existing correction command, leaves
+ -- the imported transaction immutable, and removes the proposed expense.
+ delete from public.bookkeeping_processing_jobs where business_id=bid;
+ items:=jsonb_set(jsonb_set(items,'{0,decisionId}',to_jsonb(new_decision)),
+  '{0,reviewVersion}',to_jsonb(public.guided_purchase_version(rid)));
+ perform public.answer_catch_up_stage(gen_random_uuid(),scope_key,'2026-01-01','2026-07-31','personal','reviewed',items,array[rid],'{}');
+ if not exists(select 1 from public.customer_transaction_work where record_id=rid and treatment='personal') then raise exception 'Personal exception not applied';end if;
+ if not exists(select 1 from public.financial_transactions where id=tid and amount_cents=-21840 and original_description='CHECK #104 - DESERT PRINT SHOP') then raise exception 'Personal correction rewrote source';end if;
  response:=public.read_betti_work_inputs(bid,now());
  if jsonb_typeof(response#>'{context,catchUpEvents}') is distinct from 'array' then raise exception 'Atomic work inputs lost catch-up history';end if;
  perform set_config('writeoffs.test_owner',uid::text,true);perform set_config('writeoffs.test_other',other_uid::text,true);

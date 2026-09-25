@@ -1,0 +1,1409 @@
+{
+  "checkedAt": "2026-09-25T00:14:52.441Z",
+  "deployedSHA": "4663ebf045bbf4b82e734bed2d11e1331cddcbbf",
+  "bothWorkerExclusions": true,
+  "results": [
+    {
+      "customer": 1,
+      "unchanged": true,
+      "tables": [
+        {
+          "table": "receipts",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "plaid_items",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "business_vehicles",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "invoice_customers",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "membership_events",
+          "rowCount": 2,
+          "sha256": "40aab1b13607e0231ddb1b6d779598078e9c4a9f15ef3e279854401055f7c858"
+        },
+        {
+          "table": "membership_grants",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "statement_periods",
+          "rowCount": 1,
+          "sha256": "96e4f60a3cd3f41beaa53e831bdfca5fa607a73753d6e522ec1e3a05c59237d3"
+        },
+        {
+          "table": "business_documents",
+          "rowCount": 1,
+          "sha256": "5c27a1df6af879ffe939ff688d59824c2bc281b89e45c9adc0888be769374d7b"
+        },
+        {
+          "table": "canonical_invoices",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "financial_accounts",
+          "rowCount": 1,
+          "sha256": "f3e1ea4f76e800a71c95fdf5a87c74240a0b21079232c79f52d69607757295f7"
+        },
+        {
+          "table": "bookkeeping_records",
+          "rowCount": 24,
+          "sha256": "9061a51bd7017ff3c624302225ad75a6a2dd1e6dc22181b9aca8cc9107dc2f44"
+        },
+        {
+          "table": "business_fact_events",
+          "rowCount": 4,
+          "sha256": "496024b7f574b28a5f81aceba2db097bbc10780c676d9504169e8584097b5424"
+        },
+        {
+          "table": "business_memberships",
+          "rowCount": 1,
+          "sha256": "7392d5eba9b8aec68a9ddd74e42d2dd1f0fd0ce22e6ae3e323c4767e1f2e9b9d"
+        },
+        {
+          "table": "contractor_w9_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "invoice_income_links",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_decisions",
+          "rowCount": 64,
+          "sha256": "3c2f3b14aa2e4facfdd3b5bf4abc51af08c3d75e8ca5098dcc8833219c564fc2"
+        },
+        {
+          "table": "canonical_contractors",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "plaid_account_sources",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "financial_transactions",
+          "rowCount": 24,
+          "sha256": "925f314231feb19541e6cc0d6c788144a7367ab73eec3f61dd6bfc7a8f448ae9"
+        },
+        {
+          "table": "receipt_source_regions",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "betti_guided_assertions",
+          "rowCount": 2,
+          "sha256": "5a45d37872325d56f3e37daa04c6c4af2ed56f8423b17c51cebe3c3b468d7131"
+        },
+        {
+          "table": "bookkeeping_allocations",
+          "rowCount": 35,
+          "sha256": "35b855efc65fc0455a5962725c61bd78b738f3652bfa9c95ec9d17663bd2ec79"
+        },
+        {
+          "table": "business_customer_setup",
+          "rowCount": 1,
+          "sha256": "d50028cd00003325e4c93c1f1c78ec2c79ea72a2f2b6d33dc1a85c622e992553"
+        },
+        {
+          "table": "customer_document_scope",
+          "rowCount": 1,
+          "sha256": "3ad48840d85ac29b9d1c3c92bc8a552262c2e3f09712fd3aa6a8953eaa9c7524"
+        },
+        {
+          "table": "plaid_exchange_requests",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "receipt_processing_jobs",
+          "rowCount": 1,
+          "sha256": "63254f89e0f2d6bc91400541e61d9a62bdde343bb9e4f1b948da188cd5c937e0"
+        },
+        {
+          "table": "vehicle_identity_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "betti_action_index_state",
+          "rowCount": 1,
+          "sha256": "b300d9ecd3aacdf86d2a51b9577c766c675827d99f9d29e007f6721697950461"
+        },
+        {
+          "table": "canonical_invoice_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "canonical_mileage_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "customer_catch_up_orders",
+          "rowCount": 1,
+          "sha256": "421e0acf8ad132c282ca8a05a7d7fc844fc6391a262fe0cbb56cc1a678479ca7"
+        },
+        {
+          "table": "historical_mileage_facts",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "manual_financial_sources",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "account_deletion_requests",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_review_events",
+          "rowCount": 56,
+          "sha256": "735b4634f886d689c43623331170f4960b0bd6b50be3f1462e3a20f7d3fec8f4"
+        },
+        {
+          "table": "canonical_mileage_entries",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "contractor_payment_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "customer_transaction_work",
+          "rowCount": 24,
+          "sha256": "26e6fc74976f731ab06a892747b05e6ec46f1a6aef8118ba6a6de882a79104c5"
+        },
+        {
+          "table": "membership_provider_links",
+          "rowCount": 1,
+          "sha256": "ddf35c6a0d69e064d4da91e671e3bec2c712ea3ca3a4ba9c299a57022e13b436"
+        },
+        {
+          "table": "active_bookkeeping_records",
+          "rowCount": 24,
+          "sha256": "9061a51bd7017ff3c624302225ad75a6a2dd1e6dc22181b9aca8cc9107dc2f44"
+        },
+        {
+          "table": "betti_action_index_entries",
+          "rowCount": 14,
+          "sha256": "948954f270ac315c18718935eb5cdd5ad7b9956ed57b4657703e476eeddcb940"
+        },
+        {
+          "table": "bookkeeping_document_links",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_receipt_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_review_periods",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_special_events",
+          "rowCount": 2,
+          "sha256": "7e912a0275110e377336b4959b89df975ee21bfd367ecdd16efb81e690fe5a58"
+        },
+        {
+          "table": "bookkeeping_tax_treatments",
+          "rowCount": 9,
+          "sha256": "da9f765392bbfbcc2f65690301e187a9c9055dd46bfa2a64d02fded7aa7627ae"
+        },
+        {
+          "table": "current_canonical_invoices",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_historical_mileage",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_vehicle_identities",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "deduction_attention_events",
+          "rowCount": 2,
+          "sha256": "510dcde90838989902d1e15d23e18a8a2e0ae5bfe758e7e7a6f79a2df8a5e35b"
+        },
+        {
+          "table": "plaid_transaction_versions",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "statement_page_extractions",
+          "rowCount": 2,
+          "sha256": "8b6315b7c271b01006c4609188d0e7d83d02c2d03c02ea9a3ea37b2cd06c5d40"
+        },
+        {
+          "table": "betti_action_index_commands",
+          "rowCount": 5,
+          "sha256": "1e98b9ca38249fba143ff8d09fe5f5f8e42278243740b9c8e93924164fc7d5ac"
+        },
+        {
+          "table": "bookkeeping_processing_jobs",
+          "rowCount": 94,
+          "sha256": "1ba3bd3585368f1e882f600baca122ea00b93dd486b253896ab944ca560a033f"
+        },
+        {
+          "table": "canonical_contractor_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_contractor_payments",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_customer_membership",
+          "rowCount": 1,
+          "sha256": "4c15c4a97f07e5f7f56a0ec238f0d129d734ce9eebd44250dba3325658bf2725"
+        },
+        {
+          "table": "document_processing_results",
+          "rowCount": 1,
+          "sha256": "56b4bd154cc6af0b0c93b3b1e2da9ccb7804012eaf60c8c4e61a31bdb52d1f54"
+        },
+        {
+          "table": "vehicle_tax_year_use_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_review_snapshots",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_contractor_w9_status",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_deduction_attentions",
+          "rowCount": 1,
+          "sha256": "edf572121b7fb609ec0026074a8614604827d5ae833887bebd5357b96de27c71"
+        },
+        {
+          "table": "current_vehicle_tax_year_use",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "financial_account_use_events",
+          "rowCount": 1,
+          "sha256": "b1cc62c6db56415ee15f330081d6f96aec68502186ea48153313ac101a3409d6"
+        },
+        {
+          "table": "bookkeeping_financial_sources",
+          "rowCount": 24,
+          "sha256": "8615f3af79cdabb119032c3ab7f924b69baed4f0250bdd70d69c3bfcc93808e5"
+        },
+        {
+          "table": "current_canonical_contractors",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_financial_account_use",
+          "rowCount": 1,
+          "sha256": "b1cc62c6db56415ee15f330081d6f96aec68502186ea48153313ac101a3409d6"
+        },
+        {
+          "table": "retention_notification_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "vehicle_deduction_assessments",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "business_review_cadence_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "customer_document_dispositions",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "deduction_business_fact_events",
+          "rowCount": 1,
+          "sha256": "fc8c61f18569379e9a97c725193722a2c7072a86376f92ba87509a643a399224"
+        },
+        {
+          "table": "manual_financial_source_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "schedule_c_expense_assessments",
+          "rowCount": 18,
+          "sha256": "a2ba0d91927a3c9c23100f04b217a75aff9852704c65c20a35422e03a1d900e5"
+        },
+        {
+          "table": "vehicle_tax_year_method_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_loan_document_facts",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_receipt_extractions",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_scope_reassessments",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_source_convergences",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_business_review_cadence",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "betti_action_index_invalidations",
+          "rowCount": 18,
+          "sha256": "f3cbed778e937c5308155f52a92a3a9500e72c1ab68c8c2854bb93e603692099"
+        },
+        {
+          "table": "bookkeeping_documentation_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_review_period_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_supporting_documents",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_deduction_business_facts",
+          "rowCount": 1,
+          "sha256": "fc8c61f18569379e9a97c725193722a2c7072a86376f92ba87509a643a399224"
+        },
+        {
+          "table": "current_vehicle_tax_year_methods",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "stripe_membership_webhook_events",
+          "rowCount": 3,
+          "sha256": "0f596c7b4d965e7b14770f8b0a66284e0022ee25cff9cdc1c4cfa15b67d1d94f"
+        },
+        {
+          "table": "bookkeeping_ai_shadow_evaluations",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_guided_review_batches",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_review_snapshot_items",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_canonical_mileage_entries",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_customer_statement_status",
+          "rowCount": 1,
+          "sha256": "5cd51a4b5cbf3618cb335ae610810e6879cabbf281f9faf257d2e8cb0006096f"
+        },
+        {
+          "table": "current_manual_financial_activity",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "receipt_understanding_evaluations",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_customer_statement_periods",
+          "rowCount": 1,
+          "sha256": "89522e1af971b6929c6e669c49e7c0f8bb24af1b0ebc9d6e89a969d9f226585e"
+        },
+        {
+          "table": "retained_customer_transaction_work",
+          "rowCount": 24,
+          "sha256": "26e6fc74976f731ab06a892747b05e6ec46f1a6aef8118ba6a6de882a79104c5"
+        },
+        {
+          "table": "statement_transaction_observations",
+          "rowCount": 24,
+          "sha256": "5fd7a01c73f05ee84dc5b9324675b9207a59be74f386aa65c81303ee4c86c89a"
+        },
+        {
+          "table": "vehicle_expense_association_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_receipt_meal_candidates",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_review_correction_links",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "contractor_question_deferral_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "customer_canonical_transaction_work",
+          "rowCount": 24,
+          "sha256": "26e6fc74976f731ab06a892747b05e6ec46f1a6aef8118ba6a6de882a79104c5"
+        },
+        {
+          "table": "financial_account_equivalence_links",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_compound_reconciliations",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_bookkeeping_business_context",
+          "rowCount": 24,
+          "sha256": "4904daa7daf7b48c1580e1fe91d7842f02230837b5eae55c24837a5ae88b6ad4"
+        },
+        {
+          "table": "current_vehicle_expense_associations",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "financial_account_equivalence_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_meal_substantiation_facts",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_processing_attempt_events",
+          "rowCount": 188,
+          "sha256": "43d335e9085d96f708a5907cb714f7e2227515648c75b7079c8932e28a02a2f7"
+        },
+        {
+          "table": "bookkeeping_record_convergence_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_source_convergence_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_special_treatment_signals",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_vehicle_deduction_assessments",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_manual_financial_source_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_schedule_c_expense_assessments",
+          "rowCount": 12,
+          "sha256": "4083d25bb0a4a8835d0bc430b9c32233e91ec7bc765dc8882a9025855caf8c80"
+        },
+        {
+          "table": "bookkeeping_mixed_use_answer_provenance",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_tax_treatment_invalidations",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_bookkeeping_compound_components",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_bookkeeping_receipt_extractions",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_bookkeeping_record_convergences",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_bookkeeping_source_convergences",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_business_context_assessments",
+          "rowCount": 47,
+          "sha256": "b1c62ca7fbc52c472ca89257ea15d5e4062f77c9a9cf251a54e97540415cefcc"
+        },
+        {
+          "table": "bookkeeping_weekly_documentation_batches",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_compound_reconciliation_links",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_scope_decision_question_links",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_weekly_review_workflow_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_compound_reconciliation_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_receipt_convergence_candidates",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_customer_receipt_processing_status",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_financial_account_equivalence_links",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_weekly_documentation_batch_items",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_bookkeeping_compound_reconciliations",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_bookkeeping_meal_substantiation_facts",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_customer_statement_account_candidates",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_autonomous_receipt_match_candidates",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_decision_deduction_fact_dependencies",
+          "rowCount": 2,
+          "sha256": "fe87c9113ce250c668139283230635341a5231e75061089da98d23ae512a8635"
+        },
+        {
+          "table": "bookkeeping_tax_treatment_business_fact_dependencies",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_tax_treatment_deduction_fact_dependencies",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_tax_treatment_deduction_fact_invalidations",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        }
+      ]
+    },
+    {
+      "customer": 2,
+      "unchanged": true,
+      "tables": [
+        {
+          "table": "receipts",
+          "rowCount": 3,
+          "sha256": "5594a4b1355ae4bbae47807023abb9dd258cad28c7f1692a19f2a41535bf9349"
+        },
+        {
+          "table": "plaid_items",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "business_vehicles",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "invoice_customers",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "membership_events",
+          "rowCount": 1,
+          "sha256": "5bfddb3e92e6e61c5296386168d3b47c634a994cf9066131ad24b193c80ab0d1"
+        },
+        {
+          "table": "membership_grants",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "statement_periods",
+          "rowCount": 1,
+          "sha256": "7596b3f744637ff3c23ce7f4b6e55ba8798073203919fe2f6f650040608e39b6"
+        },
+        {
+          "table": "business_documents",
+          "rowCount": 4,
+          "sha256": "2ffaf48efc04ab2e12c9b2d8acdcaa48f4b8bda30450bd828bdadd25a38aa22a"
+        },
+        {
+          "table": "canonical_invoices",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "financial_accounts",
+          "rowCount": 1,
+          "sha256": "52855b76b2837fab8247db2f9f7627d24276d0a0e06c22a13c4d4704965e2c8b"
+        },
+        {
+          "table": "bookkeeping_records",
+          "rowCount": 26,
+          "sha256": "94adac9ed6cf3fca031a5156fd78c291bfb992ddd34aabef3d71c984b067e8f2"
+        },
+        {
+          "table": "business_fact_events",
+          "rowCount": 4,
+          "sha256": "364dc8f7532b664986a36a0e612b2cb76cfb1f9e886a22f545c704c4a43a496e"
+        },
+        {
+          "table": "business_memberships",
+          "rowCount": 1,
+          "sha256": "9daebbf3bff17cdadb8d335c819e4fbf6ffc82e87ba8c6aa23d6ba8165346bbf"
+        },
+        {
+          "table": "contractor_w9_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "invoice_income_links",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_decisions",
+          "rowCount": 61,
+          "sha256": "0f6a476320f31ea1fad8e5fc47e30be9bc4a33e9bb25d7dda9fa3bc95428c8dd"
+        },
+        {
+          "table": "canonical_contractors",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "plaid_account_sources",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "financial_transactions",
+          "rowCount": 24,
+          "sha256": "128e1113f10e4e62d6b516fe0b761a4d686d5f12caf6f4aa9d9f1de1580dbef5"
+        },
+        {
+          "table": "receipt_source_regions",
+          "rowCount": 2,
+          "sha256": "9fd70029e6f228a727dbd1254e8a0de2eb41734252e14b2fc3188d8fba32dd55"
+        },
+        {
+          "table": "betti_guided_assertions",
+          "rowCount": 2,
+          "sha256": "0a3f6f0725fcc7ba95e526e66093935663271a4f535490acc380ba4b28f2e3cb"
+        },
+        {
+          "table": "bookkeeping_allocations",
+          "rowCount": 32,
+          "sha256": "3e4bcdd9cfab6c41997feda31953864dfbd7d5d64955eb1bac0fdff6a2b7742e"
+        },
+        {
+          "table": "business_customer_setup",
+          "rowCount": 1,
+          "sha256": "54a7b9cb6ac2093b94b8c99e5b633f21a4d961aeb2bd3fcf7c09c6dae90b1fd7"
+        },
+        {
+          "table": "customer_document_scope",
+          "rowCount": 4,
+          "sha256": "f50d5a9e8c420b142f77c05488bb7643883a9fb0b93abef0fa62eab310c0e6f2"
+        },
+        {
+          "table": "plaid_exchange_requests",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "receipt_processing_jobs",
+          "rowCount": 10,
+          "sha256": "7dfdb3050bd2ad4c5c294b4a0df5eb4a82106145078c6e23ef73b385203fcdd8"
+        },
+        {
+          "table": "vehicle_identity_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "betti_action_index_state",
+          "rowCount": 1,
+          "sha256": "7b4f41608fcd7b2e24ee64c61c33c3a7231fa10e2902dd06b7ffd36bd7b09208"
+        },
+        {
+          "table": "canonical_invoice_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "canonical_mileage_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "customer_catch_up_orders",
+          "rowCount": 1,
+          "sha256": "d1f6f75b661ad639a091645219ac4495847892306636dedc501fb1b22ef87822"
+        },
+        {
+          "table": "historical_mileage_facts",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "manual_financial_sources",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "account_deletion_requests",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_review_events",
+          "rowCount": 40,
+          "sha256": "451c690c917ebb6e59ed320bed1bf75445c2c6395c7d84e3ae4a9bb16851cd6f"
+        },
+        {
+          "table": "canonical_mileage_entries",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "contractor_payment_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "customer_transaction_work",
+          "rowCount": 25,
+          "sha256": "1ce847a4fe79fd1c752b1d111fb594db015d34d081d43eda0a8aa84871b06f42"
+        },
+        {
+          "table": "membership_provider_links",
+          "rowCount": 1,
+          "sha256": "f9420656b26ae376286e1a722e9552de582881f5560d43137fd17bbde92873b9"
+        },
+        {
+          "table": "active_bookkeeping_records",
+          "rowCount": 26,
+          "sha256": "94adac9ed6cf3fca031a5156fd78c291bfb992ddd34aabef3d71c984b067e8f2"
+        },
+        {
+          "table": "betti_action_index_entries",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_document_links",
+          "rowCount": 3,
+          "sha256": "95eddc656349c46a9aea65423dc7267258368914205f632247eb4ca8fd9296db"
+        },
+        {
+          "table": "bookkeeping_receipt_events",
+          "rowCount": 9,
+          "sha256": "9d70fef5f35bfd0d91f7bf1245dd3de1d1850bbcdde9f8fbde9851dc381620c1"
+        },
+        {
+          "table": "bookkeeping_review_periods",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_special_events",
+          "rowCount": 1,
+          "sha256": "7d5c0e2bc2e0432ce97faf8503b14eb2ac2e9345d11e0be030d6a03f7aaf389d"
+        },
+        {
+          "table": "bookkeeping_tax_treatments",
+          "rowCount": 8,
+          "sha256": "1442084c70622b96c7aa090d5a0a53b365dce458fe4fe6b8cbb789dc1bd9ee4d"
+        },
+        {
+          "table": "current_canonical_invoices",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_historical_mileage",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_vehicle_identities",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "deduction_attention_events",
+          "rowCount": 2,
+          "sha256": "cac5829a92e826e1e472807c4ec3f429a05f213ec489b65d0abda75bdde7b4db"
+        },
+        {
+          "table": "plaid_transaction_versions",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "statement_page_extractions",
+          "rowCount": 2,
+          "sha256": "46a881cda225b6ced882fc4a99ef5b9848a9757a69e0a95ee66ba4707879af35"
+        },
+        {
+          "table": "betti_action_index_commands",
+          "rowCount": 8,
+          "sha256": "34698b988231bd660fd2e4ffe39b02e0593ab27621585921267ebcda7e529b19"
+        },
+        {
+          "table": "bookkeeping_processing_jobs",
+          "rowCount": 98,
+          "sha256": "fd05d474f991bb9f8ce002024a740e55c161404743d19d85fcf291fafe5c2282"
+        },
+        {
+          "table": "canonical_contractor_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_contractor_payments",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_customer_membership",
+          "rowCount": 1,
+          "sha256": "e16499b063afeb4a5420c84e284fb3f7539e0ce76743e65c0d5ee418e1bbd429"
+        },
+        {
+          "table": "document_processing_results",
+          "rowCount": 3,
+          "sha256": "1a9214ad746a1c6024781d728a32ed79922f13ba1a8c3b9e0e6a3be138b75a74"
+        },
+        {
+          "table": "vehicle_tax_year_use_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_review_snapshots",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_contractor_w9_status",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_deduction_attentions",
+          "rowCount": 1,
+          "sha256": "27b5b3c75dcd6bdd3941e3931a675e09caff29a9a6e3e2ffb5c846bc8144271e"
+        },
+        {
+          "table": "current_vehicle_tax_year_use",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "financial_account_use_events",
+          "rowCount": 1,
+          "sha256": "6bc745d80f477dc8d928b445700566289710ac0f27f08427f465aebe4c56f8e5"
+        },
+        {
+          "table": "bookkeeping_financial_sources",
+          "rowCount": 24,
+          "sha256": "86115794a7cff63d2ea3b8c94cc7084f0358cfeceaf29bfdb79d7570dbc4907c"
+        },
+        {
+          "table": "current_canonical_contractors",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_financial_account_use",
+          "rowCount": 1,
+          "sha256": "6bc745d80f477dc8d928b445700566289710ac0f27f08427f465aebe4c56f8e5"
+        },
+        {
+          "table": "retention_notification_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "vehicle_deduction_assessments",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "business_review_cadence_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "customer_document_dispositions",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "deduction_business_fact_events",
+          "rowCount": 1,
+          "sha256": "4ce6b2299772978a370cbdd22970da32a42c8515947726ee825f17016ac60b74"
+        },
+        {
+          "table": "manual_financial_source_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "schedule_c_expense_assessments",
+          "rowCount": 17,
+          "sha256": "aee1fe65ae00469ea1b9e04f2932a68791bb46753496fd87f4aad968ce9b533f"
+        },
+        {
+          "table": "vehicle_tax_year_method_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_loan_document_facts",
+          "rowCount": 1,
+          "sha256": "c4f53e09b9c0a0cbb7e077ec108bf64918bacff56736cb23f4ed8b86dbf0e2e6"
+        },
+        {
+          "table": "bookkeeping_receipt_extractions",
+          "rowCount": 3,
+          "sha256": "740bdf463396f1cfd1172a0675681de557862ab985bb942b18a77fc9e8317c56"
+        },
+        {
+          "table": "bookkeeping_scope_reassessments",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_source_convergences",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_business_review_cadence",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "betti_action_index_invalidations",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_documentation_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_review_period_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_supporting_documents",
+          "rowCount": 1,
+          "sha256": "ecd0e68958595c3b3d1f28598c89d8f1fee6546f2f4edf66c4793ff9e7faa3f1"
+        },
+        {
+          "table": "current_deduction_business_facts",
+          "rowCount": 1,
+          "sha256": "4ce6b2299772978a370cbdd22970da32a42c8515947726ee825f17016ac60b74"
+        },
+        {
+          "table": "current_vehicle_tax_year_methods",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "stripe_membership_webhook_events",
+          "rowCount": 3,
+          "sha256": "64b8c2d353de64cca4dcc7ff41db7fa188cea3dede5935a40ba1a393e11342a2"
+        },
+        {
+          "table": "bookkeeping_ai_shadow_evaluations",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_guided_review_batches",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_review_snapshot_items",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_canonical_mileage_entries",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_customer_statement_status",
+          "rowCount": 4,
+          "sha256": "27e90041db8990183a080a81e11098a09ff8d0391b8a3c8355e70f3ba0cdf595"
+        },
+        {
+          "table": "current_manual_financial_activity",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "receipt_understanding_evaluations",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_customer_statement_periods",
+          "rowCount": 1,
+          "sha256": "460dd76454486e8419cff01c2e41e0630b2cafbba7480c6dd6fc32c98635d088"
+        },
+        {
+          "table": "retained_customer_transaction_work",
+          "rowCount": 25,
+          "sha256": "1ce847a4fe79fd1c752b1d111fb594db015d34d081d43eda0a8aa84871b06f42"
+        },
+        {
+          "table": "statement_transaction_observations",
+          "rowCount": 24,
+          "sha256": "1c1fe6f83e2dc1df1c5a30ace263bd1439816105e8023abca2c1220504e87f97"
+        },
+        {
+          "table": "vehicle_expense_association_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_receipt_meal_candidates",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_review_correction_links",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "contractor_question_deferral_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "customer_canonical_transaction_work",
+          "rowCount": 25,
+          "sha256": "1ce847a4fe79fd1c752b1d111fb594db015d34d081d43eda0a8aa84871b06f42"
+        },
+        {
+          "table": "financial_account_equivalence_links",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_compound_reconciliations",
+          "rowCount": 1,
+          "sha256": "0dc2830c9e61302dc008dd3e102a020c9920045e2ceb0e289393ff99e65db029"
+        },
+        {
+          "table": "current_bookkeeping_business_context",
+          "rowCount": 26,
+          "sha256": "afaf17492eefac043c00e54610309dc1f936d3787263eb3b6bee0e70a06f3f8a"
+        },
+        {
+          "table": "current_vehicle_expense_associations",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "financial_account_equivalence_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_meal_substantiation_facts",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_processing_attempt_events",
+          "rowCount": 196,
+          "sha256": "3a92833b57441b739c03ca38599e17f0fd944bce14b6b06961fa49ca01e03bef"
+        },
+        {
+          "table": "bookkeeping_record_convergence_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_source_convergence_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_special_treatment_signals",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_vehicle_deduction_assessments",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_manual_financial_source_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_schedule_c_expense_assessments",
+          "rowCount": 13,
+          "sha256": "c2e22e7f010189678947ae4b0f9abbef3e62c15eae1542e71485ac94129a9e0f"
+        },
+        {
+          "table": "bookkeeping_mixed_use_answer_provenance",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_tax_treatment_invalidations",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_bookkeeping_compound_components",
+          "rowCount": 2,
+          "sha256": "f929c951aa67c17a18fa5d7eb2f97ec4ec8efe05f4050deb97664c9804e04e09"
+        },
+        {
+          "table": "current_bookkeeping_receipt_extractions",
+          "rowCount": 3,
+          "sha256": "740bdf463396f1cfd1172a0675681de557862ab985bb942b18a77fc9e8317c56"
+        },
+        {
+          "table": "current_bookkeeping_record_convergences",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_bookkeeping_source_convergences",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_business_context_assessments",
+          "rowCount": 49,
+          "sha256": "1edf27a883e0a835695bc069514d88af0be7d31ffc4bc105187683e4a5e7f7d6"
+        },
+        {
+          "table": "bookkeeping_weekly_documentation_batches",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_compound_reconciliation_links",
+          "rowCount": 2,
+          "sha256": "f68fa6f2ad0720bc77df540c64084df432f7675e126a3f89aad4d4e185b6aac4"
+        },
+        {
+          "table": "bookkeeping_scope_decision_question_links",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_weekly_review_workflow_events",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_compound_reconciliation_events",
+          "rowCount": 1,
+          "sha256": "79fe851caa00523719bd1f3d923d87fcaf779357b6db91de0b55004f8670d2a2"
+        },
+        {
+          "table": "bookkeeping_receipt_convergence_candidates",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_customer_receipt_processing_status",
+          "rowCount": 3,
+          "sha256": "933d9b2e2c54e434bdcfd470baba6c98f3f46f39048c53a7f78c20472fb4ebf7"
+        },
+        {
+          "table": "current_financial_account_equivalence_links",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_weekly_documentation_batch_items",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_bookkeeping_compound_reconciliations",
+          "rowCount": 1,
+          "sha256": "1760b7d7e6dd89e5be554989ed5f3d0cf8cedcea698e44aaa2fb361f95f56af0"
+        },
+        {
+          "table": "current_bookkeeping_meal_substantiation_facts",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "current_customer_statement_account_candidates",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_autonomous_receipt_match_candidates",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_decision_deduction_fact_dependencies",
+          "rowCount": 2,
+          "sha256": "ecc87ab3424aa5a63ed17bc638cfa5d1f5d271a3a10875b770e4e815ebbeab64"
+        },
+        {
+          "table": "bookkeeping_tax_treatment_business_fact_dependencies",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_tax_treatment_deduction_fact_dependencies",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "table": "bookkeeping_tax_treatment_deduction_fact_invalidations",
+          "rowCount": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        }
+      ]
+    }
+  ]
+}

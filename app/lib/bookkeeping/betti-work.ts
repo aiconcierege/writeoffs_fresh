@@ -6,7 +6,7 @@ import type { CustomerQuestion } from './customer-questions'
 import { purchaseReceiptEligible } from './receipt-eligibility'
 import {guidedStage,guidedItem,guidedDeferral,GUIDED_BATCH_LIMIT,PERSONAL_SWEEP_LIMIT,statementEstablishesBankFee,evidenceOpportunityEligible,type GuidedItem,type GuidedReview,type SweepType} from './guided-work'
 
-export const BETTI_WORK_VERSION = 'betti-work:v9-catch-up-journey'
+export const BETTI_WORK_VERSION = 'betti-work:v10-special-uncertainty'
 export type Workstream = 'catch_up' | 'current' | 'shared' | 'outside_scope' | 'unscoped'
 export type ActionType = 'provide_records' | 'account_use' | 'personal_exception_sweep' | 'mixed_use_sweep'
   | 'receipt_upload_sweep' | 'receipt_availability' | 'special_transaction' | 'material_question'
@@ -35,6 +35,7 @@ export type WorkContext = {
   questionVersions?: string[]
   guidedReviews?:GuidedReview[]
   catchUpEvents?: CatchUpEvent[]
+  specialUncertainties?:(Owned & {id:string;record_id:string;decision_id:string;created_at:string})[]
   specialDeferrals?:(Owned & {id:string;record_id:string;decision_id:string;created_at:string})[]
 }
 export type WorkAction = {
@@ -101,11 +102,11 @@ export function projectBettiWork(input: {
 }) {
   const { context: c, asOf } = input
   if (c.business.id !== input.businessId || c.business.authorizedScope.businessId !== input.businessId) throw new Error('Projection business mismatch')
-  for (const rows of [c.records, c.accounts, c.jobs, c.documents, c.links, c.coverage, c.deferred, c.documentRecords??[],c.guidedReviews??[],c.specialDeferrals??[],c.catchUpEvents??[]]) {
+  for (const rows of [c.records, c.accounts, c.jobs, c.documents, c.links, c.coverage, c.deferred, c.documentRecords??[],c.guidedReviews??[],c.specialDeferrals??[],c.specialUncertainties??[],c.catchUpEvents??[]]) {
     if (rows.some(row => row.business_id !== input.businessId)) throw new Error('Projection tenant mismatch')
   }
   // A partial snapshot must not become a precise total or a false completion claim.
-  if ((c.specialDeferrals?.length??0)>5000 || c.records.length > 5000 || c.jobs.length > 5000 || c.documents.length > 5000 || c.coverage.length > 5000
+  if ((c.specialUncertainties?.length??0)>5000 || (c.specialDeferrals?.length??0)>5000 || c.records.length > 5000 || c.jobs.length > 5000 || c.documents.length > 5000 || c.coverage.length > 5000
     || c.deferred.length > 5000 || c.accounts.length > 500 || c.links.length > 10000 || (c.questionVersions?.length ?? 0) > 10000)
     throw new Error('Projection capacity exceeded')
   const records = [...new Map(c.records.map(r => [r.record_id, r])).values()]
@@ -206,6 +207,7 @@ export function projectBettiWork(input: {
       {account:{id:account.id,name:account.display_name??'Your account',mask:account.mask??null,designation:null}})
   }
   const specificFacts=new Set([...input.questions.flatMap(q=>q.recordId?[q.recordId]:[]),
+    ...(c.specialUncertainties??[]).map(d=>d.record_id),
     ...c.deferred.filter(d=>!d.deferred_until||d.deferred_until>asOf).flatMap(d=>d.record_id?[d.record_id]:[])])
   const evidenceGroups=new Map<string,WorkRecord[]>()
   for(const r of scoped.filter(r=>!(c.catchUpEvents&&stream(r)==='catch_up')&&evidenceOpportunityEligible(r,c,asOf)&&!activeJobIds(r.record_id).length)){
@@ -255,18 +257,20 @@ export function projectBettiWork(input: {
     if(r.account_id&&unknownAccounts.has(r.account_id))continue
     const deferred=(c.specialDeferrals??[]).filter(d=>d.record_id===r.record_id&&d.decision_id===r.decision_id)
       .sort((a,b)=>b.created_at.localeCompare(a.created_at))[0]
+    const uncertain=c.specialUncertainties?.find(d=>d.record_id===r.record_id&&d.decision_id===r.decision_id)
     const until=deferred?new Date(Date.parse(deferred.created_at)+7*86400000).toISOString():null
     add('special_transaction',`special:${r.record_id}:evidence`,{kind:'record',id:r.record_id},[r],
-      [r.decision_id,r.review_version,deferred?.id],`/check-in?record=${encodeURIComponent(r.record_id)}`,r.activity_date,
+      [r.decision_id,r.review_version,deferred?.id,uncertain?.id],`/check-in?record=${encodeURIComponent(r.record_id)}`,r.activity_date,
       {decisionVersion:r.decision_id!,transaction:{merchant:r.merchant??'Financial activity',date:r.activity_date,amountCents:r.amount_cents},
-       ...(until&&until>asOf?{status:'deferred' as const,availableAt:until}:{})})
+       ...(uncertain?{status:'deferred' as const,availableAt:null}:until&&until>asOf?{status:'deferred' as const,availableAt:until}:{})})
     actions.at(-1)!.priority.reasons.push('existing_supporting_evidence_workflow','specific_fact_before_optional_review')
   }
   const deferredSpecialRecords=new Set<string>()
-  for(const d of c.specialDeferrals??[]){
-    const r=byId.get(d.record_id),until=new Date(Date.parse(d.created_at)+7*86400000).toISOString()
+  for(const d of [...c.specialUncertainties??[],...c.specialDeferrals??[]]){
+    const uncertain=c.specialUncertainties?.some(u=>u.id===d.id)
+    const r=byId.get(d.record_id),until=uncertain?null:new Date(Date.parse(d.created_at)+7*86400000).toISOString()
     if(!r||stages.has(r.record_id)||specialRecords.has(r.record_id)||deferredSpecialRecords.has(r.record_id)||r.decision_id!==d.decision_id
-      ||r.treatment!=='unresolved'||!['catch_up','current'].includes(stream(r))||until<=asOf)continue
+      ||r.treatment!=='unresolved'||!['catch_up','current'].includes(stream(r))||(until&&until<=asOf))continue
     if(r.account_id&&unknownAccounts.has(r.account_id))continue
     deferredSpecialRecords.add(r.record_id)
     add('special_transaction',`special:${r.record_id}:deferred`,{kind:'record',id:r.record_id},[r],[r.decision_id,d.id],

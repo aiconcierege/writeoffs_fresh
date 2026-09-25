@@ -4,7 +4,7 @@
 .document-eyebrow{font-size:12px;font-weight:750;letter-spacing:.13em;color:#243186}
 .document-intro h1{font-size:clamp(2rem,4.5vw,3.4rem);line-height:1.1;letter-spacing:-.045em;color:#172a36;margin:12px 0 16px}
 .document-intro p:not(.document-eyebrow){font-size:18px;line-height:1.6;color:#52605d}
-.document-betti{width:210px;flex:none}
+.document-betti{width:210px;aspect-ratio:1;flex:none}
 .document-work-surface{background:white;border:1px solid #e2e8e2;border-radius:28px;padding:28px;box-shadow:0 12px 36px #172a3609,0 2px 5px #172a3605}
 .document-drop{margin-top:16px;border:1px dashed #a8b8cc;border-radius:20px;padding:24px;background:#f8fbff;transition:border-color .15s,background .15s}
 .document-drop-active{border-color:#243186;background:#eef4ff}
