@@ -1,6 +1,6 @@
 # Catch-up Workflow V2
 
-Status: implementation deployed to dedicated staging; hosted synthetic certification in progress.
+Status: implemented and verified on dedicated staging. Ready for Customer #3 manual certification; see [results and limitations](CERTIFICATION.md). No public push performed.
 
 ## Preservation
 

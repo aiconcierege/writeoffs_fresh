@@ -1,6 +1,6 @@
 {
-  "status": "Hosted core journey passed; final photo-picker deployment verification pending",
-  "testedApplicationSHA": "23fceac800f5168b69de412f5ad3d4ebadf94ae4",
+  "status": "Passed; ready for Customer #3 manual certification, not launch-performance or physical-device certification",
+  "testedApplicationSHA": "0a3c323ba23f26c97ef2e845bee9d3f9306cf58a",
   "statements": {
     "passed": true,
     "synthetic": true,
@@ -25,11 +25,11 @@
     "transitions": [
       {
         "type": "customer_action",
-        "heading": "Getting your current question…"
+        "heading": "Getting your current question\u2026"
       },
       {
         "type": "catch_up_journey",
-        "heading": "Let’s gather your earlier statements."
+        "heading": "Let\u2019s gather your earlier statements."
       },
       {
         "type": "catch_up_journey",
@@ -74,7 +74,7 @@
     "transitions": [
       {
         "type": "customer_action",
-        "heading": "Getting your current question…"
+        "heading": "Getting your current question\u2026"
       },
       {
         "type": "catch_up_journey",
@@ -191,7 +191,7 @@
     "transitions": [
       {
         "type": "customer_action",
-        "heading": "Getting your current question…"
+        "heading": "Getting your current question\u2026"
       },
       {
         "type": "catch_up_journey",
@@ -267,7 +267,7 @@
     "transitions": [
       {
         "type": "customer_action",
-        "heading": "Getting your current question…"
+        "heading": "Getting your current question\u2026"
       },
       {
         "type": "catch_up_journey",
@@ -393,7 +393,7 @@
     "transitions": [
       {
         "type": "customer_action",
-        "heading": "Getting your current question…"
+        "heading": "Getting your current question\u2026"
       },
       {
         "type": "catch_up_journey",
@@ -522,7 +522,7 @@
     "transitions": [
       {
         "type": "customer_action",
-        "heading": "Getting your current question…"
+        "heading": "Getting your current question\u2026"
       },
       {
         "type": "special_transaction",
@@ -596,7 +596,7 @@
     "transitions": [
       {
         "type": "customer_action",
-        "heading": "Getting your current question…"
+        "heading": "Getting your current question\u2026"
       },
       {
         "type": "special_transaction",
@@ -652,19 +652,19 @@
       },
       {
         "type": "received",
-        "heading": "I’m updating your books."
+        "heading": "I\u2019m updating your books."
       },
       {
         "type": "blocked",
-        "heading": "You’re all set for now."
+        "heading": "You\u2019re all set for now."
       },
       {
         "type": "blocked",
-        "heading": "Getting your current question…"
+        "heading": "Getting your current question\u2026"
       },
       {
         "type": "blocked",
-        "heading": "You’re all set for now."
+        "heading": "You\u2019re all set for now."
       }
     ],
     "browserErrors": [],
@@ -787,7 +787,7 @@
     "transitions": [
       {
         "type": "customer_action",
-        "heading": "Getting your current question…"
+        "heading": "Getting your current question\u2026"
       },
       {
         "type": "special_transaction",
@@ -811,6 +811,446 @@
     ]
   },
   "learnedPercentage": {
+    "passed": true,
+    "synthetic": true,
+    "recurringRecords": 2,
+    "oneCustomerPercentageReused": true,
+    "initialBusinessCentsPerBill": 9800,
+    "correctedBusinessCentsPerBill": 7000,
+    "conflictBlocksAutomaticReuse": true,
+    "sourceTransactionsUnchanged": true
+  },
+  "coreJourneySHA": "23fceac800f5168b69de412f5ad3d4ebadf94ae4",
+  "heicOrdinaryPickerAndDuplicate": {
+    "passed": true,
+    "synthetic": true,
+    "mode": "heic",
+    "engine": "webkit",
+    "at": "2026-09-25T01:05:17.358Z",
+    "transactions": 24,
+    "transactionAnswers": 7,
+    "income": 210052,
+    "expenses": 142573,
+    "profit": 67479,
+    "events": [
+      {
+        "stage": "statements",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "receipts",
+        "response": "none",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "personal",
+        "response": "reviewed",
+        "itemCount": 9,
+        "documents": 0
+      },
+      {
+        "stage": "nonexpense",
+        "response": "reviewed",
+        "itemCount": 7,
+        "documents": 0
+      }
+    ],
+    "receipts": [
+      {
+        "merchant": "VERIZON WIRELESS",
+        "cents": 14628
+      },
+      {
+        "merchant": "STATE FARM INSURANCE",
+        "cents": 11875
+      },
+      {
+        "merchant": "DESERT PRINT SHOP",
+        "cents": 21840
+      },
+      {
+        "merchant": "STATE FARM INSURANCE",
+        "cents": 11875
+      },
+      {
+        "merchant": "DESERT PRINT SHOP",
+        "cents": 21840
+      }
+    ],
+    "questions": [],
+    "transitions": [],
+    "browserErrors": [],
+    "widths": [
+      390,
+      430,
+      1280,
+      1440
+    ]
+  },
+  "irrelevantAndUnreadableImages": {
+    "passed": true,
+    "synthetic": true,
+    "mode": "invalid-images",
+    "engine": "chromium",
+    "at": "2026-09-25T01:06:13.748Z",
+    "transactions": 24,
+    "transactionAnswers": 0,
+    "income": 210052,
+    "expenses": 142573,
+    "profit": 67479,
+    "events": [
+      {
+        "stage": "statements",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "receipts",
+        "response": "uploaded",
+        "itemCount": 0,
+        "documents": 2
+      },
+      {
+        "stage": "receipts",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "personal",
+        "response": "reviewed",
+        "itemCount": 9,
+        "documents": 0
+      },
+      {
+        "stage": "nonexpense",
+        "response": "reviewed",
+        "itemCount": 7,
+        "documents": 0
+      }
+    ],
+    "receipts": [
+      {
+        "merchant": "STATE FARM INSURANCE",
+        "cents": 11875
+      },
+      {
+        "merchant": "DESERT PRINT SHOP",
+        "cents": 21840
+      },
+      {
+        "merchant": "VERIZON WIRELESS",
+        "cents": 14628
+      }
+    ],
+    "next": "material_question",
+    "questions": [
+      {
+        "merchant": "ZELLE FROM JANE MORRIS - INV 1041",
+        "kind": "transaction_type",
+        "prompt": "Is that right?"
+      },
+      {
+        "merchant": "ZELLE FROM EMILY CARTER",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "ATM WITHDRAWAL",
+        "kind": "transaction_type",
+        "prompt": "What did you use the cash for?"
+      },
+      {
+        "merchant": "ZELLE FROM ROBERT HALL",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "STRIPE PAYOUT",
+        "kind": "transaction_type",
+        "prompt": "Is that right?"
+      },
+      {
+        "merchant": "ZELLE TO MARK REYNOLDS",
+        "kind": "transaction_type",
+        "prompt": "What was this money for?"
+      },
+      {
+        "merchant": "ACH DEPOSIT - BLUE MESA CONSULTING",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "CASH DEPOSIT",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "verizon",
+        "kind": "percentage",
+        "prompt": "About how much do you use this phone service for your business?"
+      }
+    ],
+    "transitions": [],
+    "browserErrors": [],
+    "widths": [
+      390,
+      430,
+      1280,
+      1440
+    ]
+  },
+  "desktopFinal": {
+    "passed": true,
+    "synthetic": true,
+    "mode": "visual",
+    "engine": "chromium",
+    "at": "2026-09-25T01:12:17.140Z",
+    "transactions": 24,
+    "transactionAnswers": 0,
+    "income": 210052,
+    "expenses": 142573,
+    "profit": 67479,
+    "events": [
+      {
+        "stage": "statements",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "receipts",
+        "response": "uploaded",
+        "itemCount": 0,
+        "documents": 2
+      },
+      {
+        "stage": "receipts",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "personal",
+        "response": "reviewed",
+        "itemCount": 9,
+        "documents": 0
+      },
+      {
+        "stage": "nonexpense",
+        "response": "reviewed",
+        "itemCount": 7,
+        "documents": 0
+      }
+    ],
+    "receipts": [
+      {
+        "merchant": "STATE FARM INSURANCE",
+        "cents": 11875
+      },
+      {
+        "merchant": "DESERT PRINT SHOP",
+        "cents": 21840
+      },
+      {
+        "merchant": "VERIZON WIRELESS",
+        "cents": 14628
+      }
+    ],
+    "next": "material_question",
+    "questions": [
+      {
+        "merchant": "ZELLE FROM JANE MORRIS - INV 1041",
+        "kind": "transaction_type",
+        "prompt": "Is that right?"
+      },
+      {
+        "merchant": "ZELLE FROM EMILY CARTER",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "ATM WITHDRAWAL",
+        "kind": "transaction_type",
+        "prompt": "What did you use the cash for?"
+      },
+      {
+        "merchant": "ZELLE FROM ROBERT HALL",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "STRIPE PAYOUT",
+        "kind": "transaction_type",
+        "prompt": "Is that right?"
+      },
+      {
+        "merchant": "ZELLE TO MARK REYNOLDS",
+        "kind": "transaction_type",
+        "prompt": "What was this money for?"
+      },
+      {
+        "merchant": "ACH DEPOSIT - BLUE MESA CONSULTING",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "CASH DEPOSIT",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "verizon",
+        "kind": "percentage",
+        "prompt": "About how much do you use this phone service for your business?"
+      }
+    ],
+    "transitions": [
+      {
+        "type": "customer_action",
+        "heading": "Getting your current question\u2026"
+      },
+      {
+        "type": "material_question",
+        "heading": "Is that right?"
+      }
+    ],
+    "browserErrors": [],
+    "widths": [
+      390,
+      430,
+      1280,
+      1440
+    ]
+  },
+  "webkitMobileFinal": {
+    "passed": true,
+    "synthetic": true,
+    "mode": "visual",
+    "engine": "webkit",
+    "at": "2026-09-25T01:12:05.923Z",
+    "transactions": 24,
+    "transactionAnswers": 0,
+    "income": 210052,
+    "expenses": 142573,
+    "profit": 67479,
+    "events": [
+      {
+        "stage": "statements",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "receipts",
+        "response": "uploaded",
+        "itemCount": 0,
+        "documents": 2
+      },
+      {
+        "stage": "receipts",
+        "response": "continue",
+        "itemCount": 0,
+        "documents": 0
+      },
+      {
+        "stage": "personal",
+        "response": "reviewed",
+        "itemCount": 9,
+        "documents": 0
+      },
+      {
+        "stage": "nonexpense",
+        "response": "reviewed",
+        "itemCount": 7,
+        "documents": 0
+      }
+    ],
+    "receipts": [
+      {
+        "merchant": "STATE FARM INSURANCE",
+        "cents": 11875
+      },
+      {
+        "merchant": "DESERT PRINT SHOP",
+        "cents": 21840
+      },
+      {
+        "merchant": "VERIZON WIRELESS",
+        "cents": 14628
+      }
+    ],
+    "next": "material_question",
+    "questions": [
+      {
+        "merchant": "ZELLE FROM JANE MORRIS - INV 1041",
+        "kind": "transaction_type",
+        "prompt": "Is that right?"
+      },
+      {
+        "merchant": "ZELLE FROM EMILY CARTER",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "ATM WITHDRAWAL",
+        "kind": "transaction_type",
+        "prompt": "What did you use the cash for?"
+      },
+      {
+        "merchant": "ZELLE FROM ROBERT HALL",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "STRIPE PAYOUT",
+        "kind": "transaction_type",
+        "prompt": "Is that right?"
+      },
+      {
+        "merchant": "ZELLE TO MARK REYNOLDS",
+        "kind": "transaction_type",
+        "prompt": "What was this money for?"
+      },
+      {
+        "merchant": "ACH DEPOSIT - BLUE MESA CONSULTING",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "CASH DEPOSIT",
+        "kind": "transaction_type",
+        "prompt": "What was this money from?"
+      },
+      {
+        "merchant": "verizon",
+        "kind": "percentage",
+        "prompt": "About how much do you use this phone service for your business?"
+      }
+    ],
+    "transitions": [
+      {
+        "type": "customer_action",
+        "heading": "Getting your current question\u2026"
+      },
+      {
+        "type": "material_question",
+        "heading": "Is that right?"
+      }
+    ],
+    "browserErrors": [],
+    "widths": [
+      390,
+      430,
+      1280,
+      1440
+    ]
+  },
+  "learnedPercentageHostedEngine": {
     "passed": true,
     "synthetic": true,
     "recurringRecords": 2,

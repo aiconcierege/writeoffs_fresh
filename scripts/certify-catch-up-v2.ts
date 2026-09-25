@@ -11,7 +11,7 @@ const origin='https://writeoffs-fresh-staging.vercel.app',dir=process.env.ROUTIN
 function totp(secret:string){const abc='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',bits=[...secret.replace(/=+$/,'').toUpperCase()].map(c=>abc.indexOf(c).toString(2).padStart(5,'0')).join(''),key=Buffer.from(Array.from({length:Math.floor(bits.length/8)},(_,i)=>parseInt(bits.slice(i*8,i*8+8),2))),counter=Buffer.alloc(8);counter.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const h=createHmac('sha1',key).update(counter).digest(),o=h.at(-1)!&15;return String((h.readUInt32BE(o)&0x7fffffff)%1000000).padStart(6,'0')}
 async function main(){
  process.umask(0o077);assert(/^\/private\/tmp\/writeoffs-routing-catchup-v2-[a-z0-9-]+$/.test(dir))
- const engine=process.env.CERT_BROWSER??'chromium';assert(['chromium','webkit'].includes(engine));const mode=process.argv[2];assert(['statement','account','complete','visual','slow','heic','photos','retry-photos','finish-receipts','receipts','reviews','inspect','none','later'].includes(mode))
+ const engine=process.env.CERT_BROWSER??'chromium';assert(['chromium','webkit'].includes(engine));const mode=process.argv[2];assert(['statement','account','complete','visual','invalid-images','slow','heic','photos','retry-photos','finish-receipts','receipts','reviews','inspect','none','later'].includes(mode))
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL!,anon=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
  assert.equal(process.env.WRITEOFFS_ENVIRONMENT,'staging');assert.equal(new URL(url).hostname,'sgrqrrxrlglhjuetdtps.supabase.co')
  const f=JSON.parse(await readFile(`${dir}/fixture.json`,'utf8'));assert(!['d785186b-16db-47e5-ab02-e59fd1ae311b','2c0ddbb3-6650-42a4-aafa-3685f7efe288'].includes(f.businessId))
@@ -60,7 +60,7 @@ async function main(){
    await page.getByRole('heading',{name:'Are any of these personal?',exact:true}).waitFor({timeout:30000});await screenshot('personal-review')
   }
   if(mode==='visual'){
-   await page.goto(origin+'/import');await page.getByRole('heading',{name:'Send it to Betti.'}).waitFor();await screenshot('import-populated')
+   await page.goto(origin+'/import');await page.getByRole('heading',{name:'Send it to Betti.'}).waitFor();await page.getByRole('list',{name:'Your documents',exact:true}).waitFor({timeout:30000});await screenshot('import-populated')
    assert(await page.locator('.document-betti').evaluate(e=>e.getBoundingClientRect().height>50),'BETTI_COLLAPSED')
    await page.goto(origin+'/check-in');await page.locator('[data-guided-action]').waitFor();await screenshot('check-in-final')
    await page.goto(origin+'/home');await page.getByRole('main').waitFor();await screenshot('home-final')
@@ -76,6 +76,25 @@ async function main(){
    assert.equal(await page.locator('.betti-transition-feedback').count(),1);release()
    await page.waitForFunction(id=>document.querySelector('[data-guided-action]')?.getAttribute('data-guided-id')!==id,before,{timeout:60000})
    assert.equal(await page.locator('.betti-error').count(),0);await screenshot('slow-response-next-turn')
+  }
+  if(mode==='invalid-images'){
+   await page.goto(origin+'/import');await page.getByRole('heading',{name:'Send it to Betti.'}).waitFor()
+   const before=await db.from('bookkeeping_receipt_extractions').select('id',{count:'exact',head:true}).eq('business_id',f.businessId);assert(!before.error&&before.count!==null)
+   await upload(['/private/tmp/writeoffs-routing-catchup-v2-photos/irrelevant.png','/private/tmp/writeoffs-routing-catchup-v2-photos/unreadable.png'])
+   for(let i=0;i<120;i++){
+    const response=await context.request.get(origin+'/api/documents'),body=await response.json()
+    const failures=(body.documents??[]).filter((d:{original_name:string})=>['irrelevant.png','unreadable.png'].includes(d.original_name))
+    if(failures.length===2&&failures.every((d:{state:string})=>['needs_attention','unreadable'].includes(d.state)))break
+    await page.waitForTimeout(2000)
+   }
+   await page.reload();await page.getByRole('list',{name:'Your documents',exact:true}).waitFor()
+   for(const name of ['irrelevant.png','unreadable.png']){
+    const row=page.getByRole('list',{name:'Your documents',exact:true}).getByRole('listitem').filter({hasText:name})
+    await row.getByRole('button',{name:'Not for my books',exact:true}).click()
+    await row.getByText('Set aside — not used in your books',{exact:true}).waitFor()
+   }
+   const after=await db.from('bookkeeping_receipt_extractions').select('id',{count:'exact',head:true}).eq('business_id',f.businessId)
+   assert(!after.error&&after.count!==null);assert.equal(after.count,before.count,'INVENTED_EXTRACTION_FROM_INVALID_IMAGE');await screenshot('invalid-images-set-aside')
   }
   if(mode==='heic'){
    assert.equal(engine,'webkit');await page.goto(origin+'/import');await page.getByRole('heading',{name:'Send it to Betti.'}).waitFor()

@@ -133,5 +133,44 @@
         "height": 2133
       }
     }
-  ]
+  ],
+  "engineResults": [
+    {
+      "passed": true,
+      "engine": "webkit",
+      "widths": [
+        390,
+        430,
+        1280,
+        1440
+      ],
+      "heic": {
+        "supported": true,
+        "pages": 1
+      },
+      "originalBytesPreserved": true,
+      "exifOrientation": true,
+      "largeImage": true,
+      "unreadableFailClosed": true
+    },
+    {
+      "passed": true,
+      "engine": "chromium",
+      "widths": [
+        390,
+        430,
+        1280,
+        1440
+      ],
+      "heic": {
+        "supported": false,
+        "explicitMessage": "This browser can\u2019t read this HEIC photo. Use Take a photo, or choose a JPEG or PNG photo."
+      },
+      "originalBytesPreserved": true,
+      "exifOrientation": true,
+      "largeImage": true,
+      "unreadableFailClosed": true
+    }
+  ],
+  "physicalDevicesTested": false
 }
